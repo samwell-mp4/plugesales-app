@@ -9,8 +9,7 @@ import {
     Download,
     Settings2,
     CheckCircle,
-    UploadCloud,
-    Check
+    UploadCloud
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { dbService } from '../services/dbService';
@@ -23,10 +22,10 @@ const UploadContacts = () => {
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Advanced Filters
-    const [removeDuplicates, setRemoveDuplicates] = useState(true);
-    const [discardNoName, setDiscardNoName] = useState(false);
-    const [mapExtraInfo, setMapExtraInfo] = useState(false);
-    const [smartSplit, setSmartSplit] = useState(true);
+    const [removeDuplicates] = useState(true);
+    const [discardNoName] = useState(false);
+    const [mapExtraInfo] = useState(false);
+    const [smartSplit] = useState(false);
 
     const [results, setResults] = useState<{ tag: string, count: number }[]>([]);
     const [processedData, setProcessedData] = useState<any[]>([]);
@@ -612,34 +611,7 @@ const UploadContacts = () => {
                             </div>
                         </div>
 
-                        <div className="flex-col gap-5 checkbox-group" style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: '32px' }}>
-                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
-                                <div className="flex items-center justify-center" onClick={() => setRemoveDuplicates(!removeDuplicates)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid var(--primary-color)', background: removeDuplicates ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
-                                    {removeDuplicates && <Check size={14} color="black" strokeWidth={4} />}
-                                </div>
-                                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Remover duplicatas</span>
-                            </label>
-                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
-                                <div className="flex items-center justify-center" onClick={() => setDiscardNoName(!discardNoName)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)', background: discardNoName ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
-                                    {discardNoName && <Check size={14} color="black" strokeWidth={4} />}
-                                </div>
-                                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Exigir nome do lead</span>
-                            </label>
-                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
-                                <div className="flex items-center justify-center" onClick={() => setMapExtraInfo(!mapExtraInfo)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)', background: mapExtraInfo ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
-                                    {mapExtraInfo && <Check size={14} color="black" strokeWidth={4} />}
-                                </div>
-                                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Capturar CPF/Email</span>
-                            </label>
-                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
-                                <div className="flex items-center justify-center" onClick={() => setSmartSplit(!smartSplit)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(172, 248, 0, 0.4)', background: smartSplit ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
-                                    {smartSplit && <Check size={14} color="black" strokeWidth={4} />}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Smart Split (Separar Colunas)</span>
-                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Detecta Nome, CPF e Email na mesma linha</span>
-                                </div>
-                            </label>
+                        <div className="flex-col gap-5 checkbox-group" style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: '32px', display: 'none' }}>
                         </div>
                     </div>
 
