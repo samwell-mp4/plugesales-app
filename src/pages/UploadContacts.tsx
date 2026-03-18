@@ -24,6 +24,9 @@ const UploadContacts = () => {
 
     // Advanced Filters
     const [removeDuplicates, setRemoveDuplicates] = useState(true);
+    const [discardNoName, setDiscardNoName] = useState(false);
+    const [mapExtraInfo, setMapExtraInfo] = useState(false);
+    const [smartSplit, setSmartSplit] = useState(true);
 
     const [results, setResults] = useState<{ tag: string, count: number }[]>([]);
     const [processedData, setProcessedData] = useState<any[]>([]);
@@ -211,7 +214,17 @@ const UploadContacts = () => {
                     console.log('Processing TXT/CSV, total lines:', lines.length);
 
                     extractedContacts = lines.map((line) => {
-                        return smartParseRow(line);
+                        if (smartSplit) {
+                            const parsed = smartParseRow(line);
+                            return parsed;
+                        } else {
+                            const separator = line.includes(';') ? ';' : ',';
+                            const parts = line.split(separator);
+                            return { 
+                                telefone: normalizePhone(parts[0] || ''), 
+                                nome: (parts[1] || '').trim() 
+                            };
+                        }
                     }).filter(c => c && c.telefone && c.telefone.length === 13);
                     
                     setInvalidCount(lines.length - extractedContacts.length);
@@ -236,10 +249,12 @@ const UploadContacts = () => {
                                 phoneColIndex = col;
                                 break;
                             }
-                            const parsed = smartParseRow(raw);
-                            if (parsed && parsed.telefone?.length === 13) {
-                                phoneColIndex = col;
-                                break;
+                            if (smartSplit) {
+                                const parsed = smartParseRow(raw);
+                                if (parsed && parsed.telefone?.length === 13) {
+                                    phoneColIndex = col;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -250,9 +265,11 @@ const UploadContacts = () => {
                             const rawCell = String(row[phoneColIndex] || '');
                             let contact: any = null;
 
-                            const parsed = smartParseRow(rawCell);
-                            if (parsed && parsed.telefone?.length === 13) {
-                                contact = parsed;
+                            if (smartSplit) {
+                                const parsed = smartParseRow(rawCell);
+                                if (parsed && parsed.telefone?.length === 13) {
+                                    contact = parsed;
+                                }
                             }
 
                             if (!contact) {
@@ -262,6 +279,10 @@ const UploadContacts = () => {
                                         telefone: phone,
                                         nome: String(row[phoneColIndex === 0 ? 1 : 0] || '').trim()
                                     };
+                                    if (mapExtraInfo) {
+                                        contact.cpf = String(row[2] || '');
+                                        contact.email = String(row[3] || '');
+                                    }
                                 }
                             }
 
@@ -285,6 +306,10 @@ const UploadContacts = () => {
                     });
                     setDuplicateCount(beforeDedup - filtered.length);
                 }
+                if (discardNoName) {
+                    filtered = filtered.filter(item => item.nome.length > 0);
+                }
+
                 const total = filtered.length;
                 if (total === 0) {
                     alert("Nenhum número válido encontrado.");
@@ -299,7 +324,9 @@ const UploadContacts = () => {
                     return {
                         info_2: item.nome || '',
                         Número: item.telefone,
-                        Etiquetas: `${baseTag}_${batchNumber}`
+                        Etiquetas: `${baseTag}_${batchNumber}`,
+                        info_3: item.cpf || '',
+                        'E-mail': item.email || ''
                     };
                 });
 
@@ -591,6 +618,27 @@ const UploadContacts = () => {
                                     {removeDuplicates && <Check size={14} color="black" strokeWidth={4} />}
                                 </div>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Remover duplicatas</span>
+                            </label>
+                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
+                                <div className="flex items-center justify-center" onClick={() => setDiscardNoName(!discardNoName)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)', background: discardNoName ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
+                                    {discardNoName && <Check size={14} color="black" strokeWidth={4} />}
+                                </div>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Exigir nome do lead</span>
+                            </label>
+                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
+                                <div className="flex items-center justify-center" onClick={() => setMapExtraInfo(!mapExtraInfo)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)', background: mapExtraInfo ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
+                                    {mapExtraInfo && <Check size={14} color="black" strokeWidth={4} />}
+                                </div>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Capturar CPF/Email</span>
+                            </label>
+                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
+                                <div className="flex items-center justify-center" onClick={() => setSmartSplit(!smartSplit)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(172, 248, 0, 0.4)', background: smartSplit ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
+                                    {smartSplit && <Check size={14} color="black" strokeWidth={4} />}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Smart Split (Separar Colunas)</span>
+                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Detecta Nome, CPF e Email na mesma linha</span>
+                                </div>
                             </label>
                         </div>
                     </div>
