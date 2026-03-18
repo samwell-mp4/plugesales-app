@@ -47,7 +47,7 @@ const UploadContacts = () => {
     const [filterTag, setFilterTag] = useState('');
     const [filterDate, setFilterDate] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
+    const itemsPerPage = 5;
 
     useEffect(() => {
         dbService.getUploadHistory().then(history => {
@@ -580,99 +580,6 @@ const UploadContacts = () => {
                 <p className="subtitle">Mantenha sua audiência unificada e formatada para disparos inteligentes</p>
             </div>
 
-            {/* History Table */}
-            <div className="history-container shadow-glass animate-fade-in">
-                <div className="flex items-center justify-between p-5 history-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className="flex items-center gap-3">
-                        <Database size={24} color="var(--primary-color)" />
-                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Histórico de Uploads</h3>
-                    </div>
-                    <div className="flex gap-4 history-filters">
-                        <div style={{ position: 'relative' }}>
-                            <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
-                            <input
-                                className="input-field"
-                                style={{ width: '220px', padding: '10px 12px 10px 36px', fontSize: '0.85rem', borderRadius: '12px' }}
-                                placeholder="Filtrar etiqueta..."
-                                value={filterTag}
-                                onChange={e => { setFilterTag(e.target.value); setCurrentPage(1); }}
-                            />
-                        </div>
-                        <input
-                            type="date"
-                            className="input-field"
-                            style={{ width: '160px', padding: '10px 12px', fontSize: '0.85rem', borderRadius: '12px' }}
-                            value={filterDate}
-                            onChange={e => { setFilterDate(e.target.value); setCurrentPage(1); }}
-                        />
-                    </div>
-                </div>
-
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="history-table">
-                        <thead>
-                            <tr>
-                                <th>Data/Hora</th>
-                                <th>Etiqueta Base</th>
-                                <th>Volume</th>
-                                <th>Validador</th>
-                                <th>Status</th>
-                                <th style={{ textAlign: 'right' }}>Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {isLoadingHistory ? (
-                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Carregando histórico...</td></tr>
-                            ) : paginatedHistory.length > 0 ? paginatedHistory.map(item => (
-                                <tr key={item.id} className="hover-row">
-                                    <td style={{ color: 'var(--text-secondary)' }}>{item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : item.date}</td>
-                                    <td style={{ fontWeight: 800, color: 'var(--primary-color)' }}>{item.tag}</td>
-                                    <td style={{ fontWeight: 700 }}>{item.count} Lds</td>
-                                    <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{item.validator}</td>
-                                    <td>
-                                        <span className="badge-premium" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', border: '1px solid rgba(172, 248, 0, 0.2)' }}>{item.status}</span>
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div className="flex gap-2 justify-end">
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '6px', minWidth: '34px', borderRadius: '8px' }}
-                                                onClick={() => handleDownloadHistory(item.tag)}
-                                                title="Baixar Lista"
-                                            >
-                                                <Download size={14} />
-                                            </button>
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '6px', minWidth: '34px', borderRadius: '8px', color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.2)' }}
-                                                onClick={() => handleDeleteHistory(item.id, item.tag)}
-                                                title="Excluir Registro"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan={6} style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
-                                        Nenhuma lista processada encontrada.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-6 p-6" style={{ background: 'rgba(0,0,0,0.1)' }}>
-                        <button className="btn btn-secondary" disabled={currentPage === 1} onClick={() => setCurrentPage(v => v - 1)} style={{ padding: '8px 20px', borderRadius: '10px' }}>Anterior</button>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{currentPage} / {totalPages}</span>
-                        <button className="btn btn-secondary" disabled={currentPage === totalPages} onClick={() => setCurrentPage(v => v + 1)} style={{ padding: '8px 20px', borderRadius: '10px' }}>Próxima</button>
-                    </div>
-                )}
-            </div>
-
             <div className="upload-grid mt-8">
                 {/* Main Config & Dropzone */}
                 <div className="glass-card flex-col gap-8" style={{ padding: '32px', borderRadius: '24px' }}>
@@ -873,6 +780,99 @@ const UploadContacts = () => {
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* History Table */}
+            <div className="history-container shadow-glass animate-fade-in mt-12">
+                <div className="flex items-center justify-between p-5 history-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="flex items-center gap-3">
+                        <Database size={24} color="var(--primary-color)" />
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Histórico de Uploads</h3>
+                    </div>
+                    <div className="flex gap-4 history-filters">
+                        <div style={{ position: 'relative' }}>
+                            <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+                            <input
+                                className="input-field"
+                                style={{ width: '220px', padding: '10px 12px 10px 36px', fontSize: '0.85rem', borderRadius: '12px' }}
+                                placeholder="Filtrar etiqueta..."
+                                value={filterTag}
+                                onChange={e => { setFilterTag(e.target.value); setCurrentPage(1); }}
+                            />
+                        </div>
+                        <input
+                            type="date"
+                            className="input-field"
+                            style={{ width: '160px', padding: '10px 12px', fontSize: '0.85rem', borderRadius: '12px' }}
+                            value={filterDate}
+                            onChange={e => { setFilterDate(e.target.value); setCurrentPage(1); }}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="history-table">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Etiqueta Base</th>
+                                <th>Volume</th>
+                                <th>Validador</th>
+                                <th>Status</th>
+                                <th style={{ textAlign: 'right' }}>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {isLoadingHistory ? (
+                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Carregando histórico...</td></tr>
+                            ) : paginatedHistory.length > 0 ? paginatedHistory.map(item => (
+                                <tr key={item.id} className="hover-row">
+                                    <td style={{ color: 'var(--text-secondary)' }}>{item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : item.date}</td>
+                                    <td style={{ fontWeight: 800, color: 'var(--primary-color)' }}>{item.tag}</td>
+                                    <td style={{ fontWeight: 700 }}>{item.count} Lds</td>
+                                    <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{item.validator}</td>
+                                    <td>
+                                        <span className="badge-premium" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', border: '1px solid rgba(172, 248, 0, 0.2)' }}>{item.status}</span>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div className="flex gap-2 justify-end">
+                                            <button
+                                                className="btn btn-secondary"
+                                                style={{ padding: '6px', minWidth: '34px', borderRadius: '8px' }}
+                                                onClick={() => handleDownloadHistory(item.tag)}
+                                                title="Baixar Lista"
+                                            >
+                                                <Download size={14} />
+                                            </button>
+                                            <button
+                                                className="btn btn-secondary"
+                                                style={{ padding: '6px', minWidth: '34px', borderRadius: '8px', color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.2)' }}
+                                                onClick={() => handleDeleteHistory(item.id, item.tag)}
+                                                title="Excluir Registro"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={6} style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+                                        Nenhuma lista processada encontrada.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-6 p-6" style={{ background: 'rgba(0,0,0,0.1)' }}>
+                        <button className="btn btn-secondary" disabled={currentPage === 1} onClick={() => setCurrentPage(v => v - 1)} style={{ padding: '8px 20px', borderRadius: '10px' }}>Anterior</button>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{currentPage} / {totalPages}</span>
+                        <button className="btn btn-secondary" disabled={currentPage === totalPages} onClick={() => setCurrentPage(v => v + 1)} style={{ padding: '8px 20px', borderRadius: '10px' }}>Próxima</button>
+                    </div>
+                )}
             </div>
         </div>
     );
