@@ -16,7 +16,11 @@ import {
     User,
     Library,
     Upload,
-    Video
+    Video,
+    FileEdit,
+    Trash2,
+    BookMarked,
+    PlayCircle
 } from 'lucide-react';
 
 interface PlaceholderField {
@@ -81,6 +85,27 @@ const TemplateDispatch = () => {
     const [showLibrary, setShowLibrary] = useState(false);
     const [isUploadingHeader, setIsUploadingHeader] = useState(false);
 
+    // --- DRAFT SYSTEM ---
+    interface Draft {
+        id: string;
+        label: string;
+        templateName: string;
+        language: string;
+        tag: string;
+        toNumber: string;
+        placeholders: PlaceholderField[];
+        headerType: 'IMAGE' | 'VIDEO' | 'NONE';
+        mediaUrl: string;
+        includeButton: boolean;
+        buttonType: 'QUICK_REPLY' | 'URL' | null;
+        buttonPayload: string;
+        savedAt: string;
+        editedOnce: boolean;
+    }
+    const [drafts, setDrafts] = useState<Draft[]>([]);
+    const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+    const [draftEditedOnce, setDraftEditedOnce] = useState(false);
+
     useEffect(() => {
         if (location.state?.key) setApiKey(location.state.key);
         if (location.state?.sender) setFromNumber(location.state.sender);
@@ -100,6 +125,27 @@ const TemplateDispatch = () => {
                 shortUrl: m.short_url,
                 originalName: m.name,
             })));
+        });
+
+        // Load saved drafts from DB
+        dbService.getPlannerDrafts().then((dbDrafts: any[]) => {
+            const mapped = dbDrafts.filter((d: any) => d._draft === true).map((d: any) => ({
+                id: d.id || d._db_id || String(Date.now()),
+                label: d.label || d.templateName || 'Rascunho',
+                templateName: d.templateName || '',
+                language: d.language || 'pt_BR',
+                tag: d.tag || '',
+                toNumber: d.toNumber || '',
+                placeholders: d.placeholders || [],
+                headerType: d.headerType || 'NONE',
+                mediaUrl: d.mediaUrl || '',
+                includeButton: d.includeButton || false,
+                buttonType: d.buttonType || null,
+                buttonPayload: d.buttonPayload || '',
+                savedAt: d.savedAt || new Date().toISOString(),
+                editedOnce: d.editedOnce || false,
+            }));
+            setDrafts(mapped);
         });
     }, [location.state]);
 
@@ -401,6 +447,104 @@ const TemplateDispatch = () => {
         setSendStats({ success: true, message: 'Configuração enviada para o Planner com sucesso!' });
     };
 
+    // --- DRAFT FUNCTIONS ---
+    const saveDraft = async (customLabel?: string) => {
+        const label = customLabel || `${templateName} – ${selectedTag || toNumber.slice(0, 15) || 'Manual'}`;
+        const draftPayload = {
+            _draft: true,
+            label,
+            templateName,
+            language,
+            tag: selectedTag,
+            toNumber,
+            placeholders,
+            headerType,
+            mediaUrl,
+            includeButton,
+            buttonType,
+            buttonPayload,
+            savedAt: new Date().toISOString(),
+            editedOnce: false,
+            author: user?.name || 'Admin',
+        };
+        await dbService.addPlannerDraft(draftPayload);
+
+        // Optimistically add to local state
+        const newDraft: Draft = {
+            id: String(Date.now()),
+            label,
+            templateName,
+            language,
+            tag: selectedTag,
+            toNumber,
+            placeholders,
+            headerType,
+            mediaUrl,
+            includeButton,
+            buttonType,
+            buttonPayload,
+            savedAt: new Date().toISOString(),
+            editedOnce: false,
+        };
+        setDrafts(prev => [newDraft, ...prev]);
+        setSendStats({ success: true, message: `Rascunho "${label}" salvo com sucesso!` });
+    };
+
+    const loadDraft = (draft: Draft) => {
+        setActiveDraftId(draft.id);
+        setTemplateName(draft.templateName);
+        setLanguage(draft.language);
+        setSelectedTag(draft.tag);
+        setToNumber(draft.toNumber);
+        setPlaceholders(draft.placeholders);
+        setHeaderType(draft.headerType);
+        setMediaUrl(draft.mediaUrl);
+        setIncludeButton(draft.includeButton);
+        setButtonType(draft.buttonType);
+        setButtonPayload(draft.buttonPayload);
+
+        // Mark as edited once (enables action buttons)
+        const updated = drafts.map(d =>
+            d.id === draft.id ? { ...d, editedOnce: true } : d
+        );
+        setDrafts(updated);
+        setDraftEditedOnce(true);
+
+        // Re-select the matching template
+        const matchingTemplate = allTemplates.find(t => t.name === draft.templateName);
+        if (matchingTemplate) setSelectedTemplate(matchingTemplate);
+
+        // Navigate to step 3 so user can see/edit
+        setStep(3);
+        setSendStats(null);
+
+        // Load contacts if tag exists
+        if (draft.tag) {
+            dbService.getContactsByTag(draft.tag).then(contacts => {
+                if (contacts) {
+                    setBulkContacts(contacts);
+                    setIsBulkMode(true);
+                    setToNumber(`${contacts.length} contatos da etiqueta ${draft.tag}`);
+                }
+            });
+        }
+    };
+
+    const sendDraft = async (draft: Draft) => {
+        // Load draft into state first
+        loadDraft(draft);
+        // Then trigger send after state is applied
+        setTimeout(() => sendMessage(), 300);
+    };
+
+    const deleteDraft = (draftId: string) => {
+        setDrafts(prev => prev.filter(d => d.id !== draftId));
+        if (activeDraftId === draftId) {
+            setActiveDraftId(null);
+            setDraftEditedOnce(false);
+        }
+    };
+
     const handleHeaderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -456,6 +600,12 @@ const TemplateDispatch = () => {
                 
                 .step-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--surface-border); transition: all 0.3s; }
                 .step-dot.active { background: var(--primary-color); box-shadow: 0 0 10px var(--primary-color); }
+
+                .draft-card { background: rgba(255,255,255,0.02); border: 1px solid var(--surface-border); border-radius: 14px; padding: 14px 16px; transition: all 0.2s; cursor: default; }
+                .draft-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(172,248,0,0.2); }
+                .draft-card.active-draft { border-color: var(--primary-color); background: rgba(172,248,0,0.04); }
+                .draft-action-btn { background: transparent; border: none; cursor: pointer; padding: 6px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
+                .draft-action-btn:hover { background: rgba(255,255,255,0.05); }
 
                 @media (max-width: 1000px) {
                     .dispatch-container { grid-template-columns: 1fr; }
@@ -747,7 +897,14 @@ const TemplateDispatch = () => {
 
                             <div className="flex gap-4 mt-6">
                                 <button className="btn btn-secondary flex-1" onClick={() => setStep(2)}>VOLTAR</button>
-                                <button className="btn btn-secondary flex-1" style={{ border: '1px solid var(--primary-color)', color: 'var(--primary-color)' }} onClick={addToPlanner}>SALVAR NO PLANNER</button>
+                                <button 
+                                    className="btn btn-secondary flex-1" 
+                                    style={{ border: '1px solid rgba(172,248,0,0.4)', color: 'var(--primary-color)' }} 
+                                    onClick={() => saveDraft()}
+                                >
+                                    <BookMarked size={16} /> SALVAR RASCUNHO
+                                </button>
+                                <button className="btn btn-secondary flex-1" style={{ border: '1px solid var(--primary-color)', color: 'var(--primary-color)' }} onClick={addToPlanner}>PLANNER</button>
                                 <button
                                     className="btn btn-primary flex-2"
                                     style={{ color: 'black', fontWeight: 900, fontSize: '1.2rem' }}
@@ -823,6 +980,60 @@ const TemplateDispatch = () => {
                             {JSON.stringify(generatePayload(toNumber.split(',')[0]), null, 2)}
                         </pre>
                     </div>
+
+                    {/* Draft Panel */}
+                    {drafts.length > 0 && (
+                        <div className="animate-fade-in" style={{ marginTop: '24px', borderTop: '1px solid #222d34', paddingTop: '20px' }}>
+                            <div className="flex items-center gap-2 mb-4">
+                                <BookMarked size={16} color="var(--primary-color)" />
+                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white' }}>Rascunhos Salvos</span>
+                                <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: 'var(--text-muted)', background: 'rgba(172,248,0,0.1)', padding: '2px 8px', borderRadius: '10px', fontWeight: 800 }}>{drafts.length} rascunho(s)</span>
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                {drafts.map(draft => {
+                                    const isActive = activeDraftId === draft.id;
+                                    const canSendEdit = isActive && draftEditedOnce;
+                                    return (
+                                        <div key={draft.id} className={`draft-card ${isActive ? 'active-draft' : ''}`}>
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                <div className="flex flex-col" style={{ flex: 1, minWidth: 0 }}>
+                                                    <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label}</span>
+                                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                        {new Date(draft.savedAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        {draft.tag && <> · <span style={{ color: 'var(--primary-color)' }}>{draft.tag}</span></>}
+                                                    </span>
+                                                </div>
+                                                <button className="draft-action-btn" style={{ color: '#f87171' }} onClick={() => deleteDraft(draft.id)} title="Excluir rascunho">
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
+
+                                            {/* Action buttons - always Edit, Send only after edited once */}
+                                            <div className="flex gap-2 mt-2">
+                                                <button
+                                                    className="draft-action-btn"
+                                                    style={{ color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.25)', borderRadius: '8px', flex: 1, justifyContent: 'center' }}
+                                                    onClick={() => loadDraft(draft)}
+                                                >
+                                                    <FileEdit size={13} /> Editar Rascunho
+                                                </button>
+
+                                                {canSendEdit && (
+                                                    <button
+                                                        className="draft-action-btn"
+                                                        style={{ color: 'black', background: 'var(--primary-color)', borderRadius: '8px', flex: 1, justifyContent: 'center', fontWeight: 900 }}
+                                                        onClick={() => sendDraft(draft)}
+                                                    >
+                                                        <PlayCircle size={13} /> Enviar Rascunho
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
