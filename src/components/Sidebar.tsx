@@ -7,8 +7,6 @@ import {
     Send,
     LogOut,
     Home,
-    Layers,
-    Activity,
     ShieldCheck,
     UserCircle
 } from 'lucide-react';
@@ -21,12 +19,10 @@ const Sidebar = () => {
     const menuItems = [
         { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
-        { name: 'Templates WhatsApp', path: '/templates', icon: <MessageSquare size={20} /> },
-        { name: 'Quick Dispatch', path: '/dispatch', icon: <Send size={20} /> },
-        { name: 'Marketing Lists', path: '/upload', icon: <FileSpreadsheet size={20} /> },
-        { name: 'Campaign Flow', path: '/campaigns', icon: <Layers size={20} /> },
-        { name: 'Execution Engine', path: '/engine', icon: <Activity size={20} /> },
-        { name: 'Media Host', path: '/media', icon: <Link size={20} /> },
+        { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
+        { name: 'Criar Tramissão', path: '/dispatch', icon: <Send size={20} /> },
+        { name: 'Preparar Planilha', path: '/upload', icon: <FileSpreadsheet size={20} /> },
+        { name: 'Encurtador de Link', path: '/media', icon: <Link size={20} /> },
     ];
 
     // Add Admin Control only if user is Admin

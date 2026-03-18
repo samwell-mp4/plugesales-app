@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Clock,
-    XCircle,
-    FileSpreadsheet,
     Zap,
+    ShieldCheck,
+    XCircle,
+    Monitor,
     Database,
-    ChevronRight,
     Search,
-    Activity,
+    Clock,
     Send,
     BookMarked,
     Layers,
-    LayoutDashboard,
-    Monitor,
-    ShieldCheck
+    Activity,
+    ChevronRight,
+    FileSpreadsheet
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { dbService } from '../services/dbService';
@@ -194,10 +193,9 @@ const Dashboard = () => {
                             {[
                                 { path: '/dispatch', icon: <Send size={20} />, label: 'Disparo Rápido', color: 'var(--primary-color)' },
                                 { path: '/upload', icon: <FileSpreadsheet size={20} />, label: 'Envio em Lote', color: '#60a5fa' },
-                                { path: '/planner', icon: <LayoutDashboard size={20} />, label: 'Planejador', color: '#a855f7' },
                                 { path: '/accounts', icon: <Monitor size={20} />, label: 'Monitor WABA', color: '#fbbf24' },
                                 { path: '/media', icon: <Database size={20} />, label: 'Hospedagem', color: '#2dd4bf' },
-                                { path: '/control', icon: <Activity size={20} />, label: 'Painel Central', color: '#f43f5e' },
+                                { path: '/control', icon: <ShieldCheck size={20} />, label: 'Painel Central', color: '#f43f5e' },
                             ].map((item, i) => (
                                 <NavLink key={i} to={item.path} className="shortcut-item">
                                     <div className="icon-box" style={{ color: item.color }}>{item.icon}</div>

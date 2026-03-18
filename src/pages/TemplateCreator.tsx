@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, AlertTriangle } from 'lucide-react';
+import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -32,11 +32,11 @@ const TemplateCreator = () => {
     const [headerType, setHeaderType] = useState<'none' | 'image' | 'video'>('none');
     const [headerExampleUrl] = useState('https://i.postimg.cc/xC34d8pf/efdb084f-a76e-45e8-8849-92c7d8c5c2c9.jpg');
 
-    const [bodyText, setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
-    const [footerText, setFooterText] = useState('Digite "sair" para não receber mais mensagens');
+    const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
+    const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
 
     const defaultVars = ['Leandro', 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025', 'O comprovante digital já se encontra disponível para conferência', 'acessar o comprovante digital #54333 e verificar a entrega'];
-    const [variablesExample, setVariablesExample] = useState(defaultVars);
+    const [variablesExample, _setVariablesExample] = useState(defaultVars);
 
     const [buttons, setButtons] = useState<ButtonDef[]>([
         { type: 'url', text: 'Clique Aqui', url: 'https://site.com' }
@@ -76,7 +76,7 @@ const TemplateCreator = () => {
         }
 
         if (buttons.length > 0) {
-            structure.buttons = buttons.map(btn => ({
+            structure.buttons = buttons.map((btn: any) => ({
                 type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
                 text: btn.text,
                 ...(btn.type === 'url' ? { url: btn.url } : {})
@@ -135,7 +135,7 @@ const TemplateCreator = () => {
 
     const getPreviewHtml = () => {
         let text = bodyText;
-        variablesExample.forEach((val, index) => {
+        variablesExample.forEach((val: any, index: number) => {
             const regex = new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g');
             text = text.replace(regex, `<span style="color:var(--primary-color); font-weight:700;">${val || `{{${index + 1}}}`}</span>`);
         });
@@ -154,7 +154,7 @@ const TemplateCreator = () => {
     };
 
     const handleRemoveButton = (index: number) => {
-        setButtons(buttons.filter((_, i) => i !== index));
+        setButtons(buttons.filter((_: any, i: number) => i !== index));
     };
 
     const handleCreateModel = async () => {
@@ -393,42 +393,17 @@ const TemplateCreator = () => {
                                     </div>
                                 )}
 
-                                <div className="input-group">
-                                    <label>Corpo da Mensagem</label>
-                                    <textarea className="input-field" rows={5} style={{ borderRadius: '16px', padding: '16px' }} value={bodyText} onChange={e => setBodyText(e.target.value)} placeholder="Use {{1}}, {{2}} para variáveis..." />
-                                </div>
-
-                                <div className="var-grid">
-                                    {variablesExample.map((v, i) => (
-                                        <div key={i} className="flex flex-col gap-1">
-                                            <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', fontWeight: 800 }}>{`VAR {{${i + 1}}}`}</span>
-                                            <input className="input-field" style={{ padding: '10px 14px', borderRadius: '10px', fontSize: '0.85rem' }} value={v} onChange={e => {
-                                                const newVars = [...variablesExample];
-                                                newVars[i] = e.target.value;
-                                                setVariablesExample(newVars);
-                                            }} />
+                                <div className="input-group" style={{ padding: '16px', borderRadius: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>CONTEÚDO PADRÃO ATIVO</span>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Corpo da mensagem e variáveis serão enviados automaticamente.</span>
                                         </div>
-                                    ))}
-                                </div>
-
-                                <div className="input-group">
-                                    <label>Rodapé (Opcional)</label>
-                                    <input className="input-field" style={{ borderRadius: '12px' }} value={footerText} onChange={e => setFooterText(e.target.value)} placeholder="Sair..." />
+                                        <div className="badge badge-success" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', fontSize: '0.65rem' }}>Otimizado</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="glass-card" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <AlertTriangle size={18} color="#f87171" />
-                                    <h4 style={{ margin: 0, color: '#f87171', fontWeight: 800 }}>Guia Anti-Rejeição Meta</h4>
-                                </div>
-                                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <li><b>Nomes de Teste:</b> Evite usar "test", "samwell" ou nomes genéricos. Use algo real: "venda_concluida_v1".</li>
-                                    <li><b>Botões em UTILITY:</b> A Meta rejeita botões como "Clique Aqui" em categoria Utilitária. Tente usar "Ver Pedido" ou "Baixar Boleto".</li>
-                                    <li><b>Categoria Marketing:</b> Se o template tiver links de site geral ou ofertas, mude a Categoria para <b>MARKETING</b>.</li>
-                                    <li><b>Variáveis em Botões:</b> Iniciar ou terminar mensagens com variáveis {'{{1}}'} sem texto ao redor causa rejeição.</li>
-                                </ul>
-                            </div>
 
                             <div className="glass-card flex-col gap-6" style={{ padding: '32px', borderRadius: '24px' }}>
                                 <div className="flex justify-between items-center">
@@ -436,7 +411,7 @@ const TemplateCreator = () => {
                                     <button className="btn btn-secondary" onClick={handleAddButton} style={{ padding: '6px 14px', borderRadius: '10px', fontSize: '0.75rem' }}><Plus size={16} /> ADICIONAR</button>
                                 </div>
                                 <div className="flex flex-col gap-3">
-                                    {buttons.map((btn, index) => (
+                                    {buttons.map((btn: any, index: number) => (
                                         <div key={index} className="button-editor">
                                             <select className="input-field" style={{ width: '140px', padding: '8px', borderRadius: '8px' }} value={btn.type} onChange={e => handleUpdateButton(index, 'type', e.target.value as any)}>
                                                 <option value="url">Link Externo</option>
@@ -458,8 +433,8 @@ const TemplateCreator = () => {
                         </div>
                     ) : (
                         <div className="glass-card flex-col gap-8 animate-fade-in" style={{ padding: '40px', borderRadius: '24px' }}>
-                            <h2 style={{ fontWeight: 900, marginBottom: 0 }}>Clone em Massa</h2>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>Crie múltiplas variações do template acima para saturar campanhas.</p>
+                            <h2 style={{ fontWeight: 900, marginBottom: 0 }}>Gerador Bulk High-Speed</h2>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>Multiplique seu alcance com threads paralelas conectadas ao PostgreSQL & Redis.</p>
 
                             <div className="flex flex-col gap-6">
                                 <div className="input-group">
@@ -508,7 +483,7 @@ const TemplateCreator = () => {
                                 </div>
                                 {buttons.length > 0 && (
                                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
-                                        {buttons.map((b, i) => (
+                                        {buttons.map((b: any, i: number) => (
                                             <div key={i} style={{ borderBottom: i !== buttons.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none', padding: '12px', textAlign: 'center', color: '#53bdeb', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
                                                 {b.type === 'url' ? <Link size={14} /> : <MessageSquareReply size={14} />} {b.text}
                                             </div>
