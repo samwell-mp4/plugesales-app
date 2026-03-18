@@ -279,7 +279,7 @@ const TemplateDispatch = () => {
             const payload = generatePayload(batch);
 
             // CONFIGURAÇÃO TEMPORÁRIA: Mude para 'true' para voltar a enviar direto pela Infobip
-            const USE_INFOBIP_DIRECT = false;
+            const USE_INFOBIP_DIRECT = true;
 
             try {
                 if (USE_INFOBIP_DIRECT) {
