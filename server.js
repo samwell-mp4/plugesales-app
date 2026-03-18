@@ -16,8 +16,8 @@ const port = process.env.PORT || 3000;
 // --- DB CONFIG ---
 // Em produção/EasyPanel, os hostnames internos são usados se as variáveis de ambiente não existirem.
 // Para rodar localmente fora do Docker, mude o fallback ou use variáveis de ambiente (.env).
-const pgUrl = process.env.DATABASE_URL || "postgres://postgres:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
-const redisUrl = process.env.REDIS_URL || "redis://default:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379";
+const pgUrl = process.env.DATABASE_URL || "postgres://postgres:Marketing%40plugsales2026!@plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
+const redisUrl = process.env.REDIS_URL || "redis://default:Marketing%40plugsales2026!@plug_sales_redis:6379";
 
 console.log('Postgres host source:', process.env.DATABASE_URL ? 'env DATABASE_URL' : 'internal hostname fallback');
 console.log('Redis host source:', process.env.REDIS_URL ? 'env REDIS_URL' : 'internal hostname fallback');
