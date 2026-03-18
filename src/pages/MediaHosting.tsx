@@ -12,49 +12,81 @@ interface HostedMedia {
 }
 
 const MediaHosting = () => {
-    const [hostedFiles, setHostedFiles] = useState<HostedMedia[]>([
-        {
-            id: 'med_9281',
-            name: 'promo_video_março.mp4',
-            type: 'video',
-            size: '4.2 MB',
-            shortUrl: 'https://tiny.flow/v/mar-24',
-            originalName: 'promo_video_vfinal.mp4',
-            uploadedAt: '16 Mar, 10:20'
-        },
-        {
-            id: 'med_1028',
-            name: 'banner_oferta.png',
-            type: 'image',
-            size: '840 KB',
-            shortUrl: 'https://tiny.flow/i/extra-10',
-            originalName: 'banner_oferta_10_extra.png',
-            uploadedAt: '16 Mar, 14:45'
-        },
-    ]);
+    const [hostedFiles, setHostedFiles] = useState<HostedMedia[]>(() => {
+        const saved = localStorage.getItem('hosted_media_library');
+        return saved ? JSON.parse(saved) : [
+            {
+                id: 'med_9281',
+                name: 'promo_video_março.mp4',
+                type: 'video',
+                size: '4.2 MB',
+                shortUrl: 'https://tiny.flow/v/mar-24',
+                originalName: 'promo_video_vfinal.mp4',
+                uploadedAt: '16 Mar, 10:20'
+            }
+        ];
+    });
+
+    const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('media_webhook_url') || 'https://db-n8n.msely6.easypanel.host/webhook/media-upload');
+    const [apiKey, setApiKey] = useState(() => localStorage.getItem('media_api_key') || '');
 
     const [isUploading, setIsUploading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
-    const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setIsUploading(true);
-        setTimeout(() => {
+        localStorage.setItem('media_webhook_url', webhookUrl);
+        localStorage.setItem('media_api_key', apiKey);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fileName', file.name);
+        formData.append('fileType', file.type);
+
+        try {
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'X-API-Key': apiKey,
+                },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Upload falhou no servidor.');
+
+            const result = await response.json();
+            const finalUrl = result.url || result.data?.url || `https://seu-servidor.com/uploads/${file.name}`;
+
             const newFile: HostedMedia = {
-                id: 'med_' + Math.floor(Math.random() * 10000),
+                id: 'med_' + Date.now(),
                 name: file.name,
                 type: file.type.startsWith('video') ? 'video' : 'image',
                 size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-                shortUrl: `https://tiny.flow/${file.type.startsWith('video') ? 'v' : 'i'}/${file.name.split('.')[0].substring(0, 5)}`,
+                shortUrl: finalUrl,
                 originalName: file.name,
                 uploadedAt: new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
             };
-            setHostedFiles([newFile, ...hostedFiles]);
+
+            const updatedList = [newFile, ...hostedFiles];
+            setHostedFiles(updatedList);
+            localStorage.setItem('hosted_media_library', JSON.stringify(updatedList));
+            alert('✅ Arquivo hospedado com sucesso!');
+        } catch (error: any) {
+            console.error('Upload Error:', error);
+            alert(`❌ Erro no Upload: ${error.message}`);
+        } finally {
             setIsUploading(false);
-        }, 1500);
+        }
+    };
+
+    const handleDelete = (id: string) => {
+        const updated = hostedFiles.filter(f => f.id !== id);
+        setHostedFiles(updated);
+        localStorage.setItem('hosted_media_library', JSON.stringify(updated));
     };
 
     const copyToClipboard = (text: string, id: string) => {
@@ -98,7 +130,31 @@ const MediaHosting = () => {
             <div className="flex items-center justify-between mb-2 media-header">
                 <div className="flex flex-col">
                     <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', letterSpacing: '-1px' }}>Media Hosting</h1>
-                    <p className="subtitle">Hospedagem ultra-rápida e encurtador para campanhas</p>
+                    <p className="subtitle">Hospedagem direta no seu servidor via n8n/webhook</p>
+                </div>
+            </div>
+
+            <div className="glass-card mt-6 p-6 flex gap-6 items-center" style={{ background: 'rgba(172, 248, 0, 0.03)', border: '1px solid rgba(172, 248, 0, 0.1)', borderRadius: '20px' }}>
+                <div className="flex flex-col gap-1 flex-1">
+                    <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-color)' }}>ENDPOINT DE UPLOAD (N8N)</label>
+                    <input 
+                        className="input-field" 
+                        style={{ height: '40px', fontSize: '0.85rem', borderRadius: '10px' }} 
+                        value={webhookUrl} 
+                        onChange={e => setWebhookUrl(e.target.value)}
+                        placeholder="https://seu-n8n.com/webhook/upload"
+                    />
+                </div>
+                <div className="flex flex-col gap-1" style={{ width: '200px' }}>
+                    <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-color)' }}>CHAVE DE ACESSO</label>
+                    <input 
+                        className="input-field" 
+                        type="password"
+                        style={{ height: '40px', fontSize: '0.85rem', borderRadius: '10px' }} 
+                        value={apiKey} 
+                        onChange={e => setApiKey(e.target.value)}
+                        placeholder="Token de segurança..."
+                    />
                 </div>
             </div>
 
@@ -182,7 +238,7 @@ const MediaHosting = () => {
                                                     <button className="btn btn-secondary" style={{ padding: '8px', borderRadius: '8px' }} title="Visualizar">
                                                         <ExternalLink size={16} />
                                                     </button>
-                                                    <button className="btn btn-secondary" style={{ padding: '8px', borderRadius: '8px', color: '#ff4d4d' }} onClick={() => setHostedFiles(hostedFiles.filter(f => f.id !== file.id))}>
+                                                    <button className="btn btn-secondary" style={{ padding: '8px', borderRadius: '8px', color: '#ff4d4d' }} onClick={() => handleDelete(file.id)}>
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
