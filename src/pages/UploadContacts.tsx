@@ -187,14 +187,13 @@ const UploadContacts = () => {
 
                 const formattedList = filtered.map((item, index) => {
                     const batchNumber = Math.floor(index / batchSize) + 1;
-                    const rowParts = [
-                        item.nome || '',
-                        item.telefone,
-                        `${baseTag}_${batchNumber}`,
-                        item.cpf || '',
-                        item.email || ''
-                    ];
-                    return { formatted: rowParts.join(',') };
+                    return {
+                        Nome: item.nome || '',
+                        Telefone: item.telefone,
+                        Etiqueta: `${baseTag}_${batchNumber}`,
+                        CPF: item.cpf || '',
+                        Email: item.email || ''
+                    };
                 });
 
                 setProcessedData(formattedList);
@@ -232,7 +231,7 @@ const UploadContacts = () => {
 
     const exportCSVs = () => {
         if (processedData.length === 0) return;
-        const worksheet = XLSX.utils.json_to_sheet(processedData, { header: ["formatted"], skipHeader: true });
+        const worksheet = XLSX.utils.json_to_sheet(processedData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Contatos");
         XLSX.writeFile(workbook, `${baseTag}_unificado.csv`, { bookType: 'csv' });
@@ -252,11 +251,15 @@ const UploadContacts = () => {
         if (!saved) return alert("Dados da lista não encontrados para download.");
         
         const contacts = JSON.parse(saved);
-        const csvData = contacts.map((c: any) => ({
-            formatted: `${c.nome || ''},${c.telefone},${tag}_CONSOLIDADO,${c.cpf || ''},${c.email || ''}`
+        const exportData = contacts.map((c: any) => ({
+            Nome: c.nome || '',
+            Telefone: c.telefone,
+            Etiqueta: `${tag}_CONSOLIDADO`,
+            CPF: c.cpf || '',
+            Email: c.email || ''
         }));
 
-        const worksheet = XLSX.utils.json_to_sheet(csvData, { header: ["formatted"], skipHeader: true });
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Contatos_Export");
         XLSX.writeFile(workbook, `${tag}_reexport.csv`, { bookType: 'csv' });
