@@ -12,7 +12,10 @@ import {
     Layers,
     Activity,
     Check,
-    User
+    User,
+    Library,
+    Upload,
+    Video
 } from 'lucide-react';
 
 interface PlaceholderField {
@@ -71,6 +74,14 @@ const TemplateDispatch = () => {
     // Dynamic Config Sync
     const [apiKey, setApiKey] = useState(() => location.state?.key || localStorage.getItem('infobip_key') || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
     const [fromNumber, setFromNumber] = useState(() => location.state?.sender || localStorage.getItem('infobip_sender') || '5511997625247');
+
+    // Media Library Integration
+    const [hostedFiles, setHostedFiles] = useState<any[]>(() => {
+        const saved = localStorage.getItem('hosted_media_library');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [showLibrary, setShowLibrary] = useState(false);
+    const [isUploadingHeader, setIsUploadingHeader] = useState(false);
 
     useEffect(() => {
         if (location.state?.key) setApiKey(location.state.key);
@@ -392,6 +403,53 @@ const TemplateDispatch = () => {
         setSendStats({ success: true, message: 'Configuração enviada para o Planner com sucesso!' });
     };
 
+    const handleHeaderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingHeader(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Falha no upload para VPS.');
+
+            const result = await response.json();
+            let finalUrl = result.url;
+            if (finalUrl && !finalUrl.startsWith('http')) {
+                finalUrl = window.location.origin + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
+            }
+
+            if (finalUrl) {
+                setMediaUrl(finalUrl);
+                
+                // Salvar na biblioteca também para uso futuro
+                const newFile = {
+                    id: 'med_' + Date.now(),
+                    name: file.name,
+                    type: file.type.startsWith('video') ? 'video' : 'image',
+                    size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+                    shortUrl: finalUrl,
+                    originalName: file.name,
+                    uploadedAt: new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                };
+                const updatedList = [newFile, ...hostedFiles];
+                setHostedFiles(updatedList);
+                localStorage.setItem('hosted_media_library', JSON.stringify(updatedList));
+            }
+        } catch (error: any) {
+            console.error('Header Upload Error:', error);
+            alert('Erro ao subir arquivo para VPS');
+        } finally {
+            setIsUploadingHeader(false);
+        }
+    };
+
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '100px' }}>
             <style>{`
@@ -555,7 +613,7 @@ const TemplateDispatch = () => {
                         </div>
                     )}
 
-                    {/* Step 3: Media & Sending */}
+                     {/* Step 3: Media & Sending */}
                     {step === 3 && (
                         <div className="glass-card flex-col gap-6 p-8 animate-fade-in">
                             <div className="flex items-center gap-3">
@@ -563,15 +621,69 @@ const TemplateDispatch = () => {
                                 <h3 style={{ margin: 0, fontWeight: 800 }}>Revisão & Mídia</h3>
                             </div>
 
-                            {headerType !== 'NONE' && (
+                             {headerType !== 'NONE' && (
                                 <div className="input-group">
-                                    <label>URL do Cabeçalho ({headerType})</label>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label style={{ margin: 0 }}>URL do Cabeçalho ({headerType})</label>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                className="btn btn-secondary" 
+                                                style={{ padding: '4px 10px', fontSize: '0.65rem', height: '28px', border: '1px solid rgba(172, 248, 0, 0.3)' }}
+                                                onClick={() => setShowLibrary(!showLibrary)}
+                                            >
+                                                <Library size={12} /> {showLibrary ? 'FECHAR BIBLIOTECA' : 'MINHA BIBLIOTECA'}
+                                            </button>
+                                            <label 
+                                                className="btn btn-secondary" 
+                                                style={{ padding: '4px 10px', fontSize: '0.65rem', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                            >
+                                                <input type="file" style={{ display: 'none' }} onChange={handleHeaderUpload} accept={headerType === 'VIDEO' ? 'video/*' : 'image/*'} />
+                                                {isUploadingHeader ? <Activity size={12} className="animate-spin" /> : <Upload size={12} />} UPLOAD VPS
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    {showLibrary && (
+                                        <div className="library-picker animate-fade-in p-4 mb-4" style={{ 
+                                            background: 'rgba(0,0,0,0.2)', 
+                                            borderRadius: '12px', 
+                                            maxHeight: '200px', 
+                                            overflowY: 'auto',
+                                            border: '1px solid var(--surface-border)'
+                                        }}>
+                                            <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+                                                {hostedFiles.filter(f => headerType === 'VIDEO' ? f.type === 'video' : f.type === 'image').map(file => (
+                                                    <div 
+                                                        key={file.id} 
+                                                        onClick={() => { setMediaUrl(file.shortUrl); setShowLibrary(false); }}
+                                                        style={{ 
+                                                            cursor: 'pointer', 
+                                                            borderRadius: '8px', 
+                                                            overflow: 'hidden', 
+                                                            border: mediaUrl === file.shortUrl ? '2px solid var(--primary-color)' : '1px solid transparent',
+                                                            aspectRatio: '1',
+                                                            background: '#000',
+                                                            position: 'relative'
+                                                        }}
+                                                    >
+                                                        {file.type === 'video' ? (
+                                                            <div className="flex items-center justify-center h-full"><Video size={20} /></div>
+                                                        ) : (
+                                                            <img src={file.shortUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={file.name} />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                {hostedFiles.length === 0 && <p style={{ gridColumn: '1/-1', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>Nenhuma mídia encontrada na biblioteca.</p>}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div style={{ position: 'relative' }}>
                                         <ImageIcon size={18} style={{ position: 'absolute', left: '14px', top: '14px', opacity: 0.5 }} />
                                         <input
                                             className="input-field"
                                             style={{ paddingLeft: '44px', borderRadius: '12px' }}
-                                            placeholder="https://sua-imagem.com/foto.jpg"
+                                            placeholder="https://sua-vps.com/uploads/foto.jpg"
                                             value={mediaUrl}
                                             onChange={e => setMediaUrl(e.target.value)}
                                         />
