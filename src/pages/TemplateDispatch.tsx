@@ -68,8 +68,20 @@ const TemplateDispatch = () => {
     const [isSending, setIsSending] = useState(false);
     const [sendStats, setSendStats] = useState<{ success: boolean; message: string } | null>(null);
 
-    const apiKey = '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8';
-    const fromNumber = '5511997625247';
+    // Dynamic Config Sync
+    const [apiKey, setApiKey] = useState(() => location.state?.key || localStorage.getItem('infobip_key') || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
+    const [fromNumber, setFromNumber] = useState(() => location.state?.sender || localStorage.getItem('infobip_sender') || '5511997625247');
+
+    useEffect(() => {
+        if (location.state?.key) setApiKey(location.state.key);
+        if (location.state?.sender) setFromNumber(location.state.sender);
+    }, [location.state]);
+
+    // Bidirectional Sync
+    useEffect(() => {
+        localStorage.setItem('infobip_key', apiKey);
+        localStorage.setItem('infobip_sender', fromNumber);
+    }, [apiKey, fromNumber]);
 
     useEffect(() => {
         // Fetch all templates if none passed
@@ -397,11 +409,24 @@ const TemplateDispatch = () => {
                     <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>Template Dispatch</h1>
                     <p className="subtitle">Simulador e disparador de alta precisão para Templates Aprovados</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    {[1, 2, 3].map(s => (
-                        <div key={s} className={`step-dot ${step >= s ? 'active' : ''}`}></div>
-                    ))}
-                    <span style={{ fontSize: '0.8rem', fontWeight: 800, marginLeft: '10px' }}>PASSO {step} DE 3</span>
+                <div className="flex items-center gap-6">
+                    <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-2">
+                            <Smartphone size={16} color="var(--primary-color)" />
+                            <input 
+                                style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.9rem', outline: 'none', textAlign: 'right', width: '130px' }}
+                                value={fromNumber}
+                                onChange={e => setFromNumber(e.target.value)}
+                            />
+                        </div>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.5px' }}>SENDER ATIVO</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {[1, 2, 3].map(s => (
+                            <div key={s} className={`step-dot ${step >= s ? 'active' : ''}`}></div>
+                        ))}
+                        <span style={{ fontSize: '0.8rem', fontWeight: 800, marginLeft: '10px' }}>PASSO {step} DE 3</span>
+                    </div>
                 </div>
             </div>
 
