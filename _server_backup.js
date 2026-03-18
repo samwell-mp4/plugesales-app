@@ -14,38 +14,24 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // --- DB CONFIG ---
-// Em produção/EasyPanel, sempre prioriza host interno.
-// Para rodar localmente, defina LOCAL_DEV=true no ambiente.
-const isLocal = process.env.LOCAL_DEV === 'true';
+const isLocal = process.platform === 'win32' || !fs.existsSync('/.dockerenv');
 
-const pgUrl = process.env.DATABASE_URL || (
-    isLocal
-        ? "postgres://postgres:Marketing%40plugsales2026!@localhost:5432/plug_sales_dispatch_app?sslmode=disable"
-        : "postgres://postgres:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable"
+const pgUrl = process.env.DATABASE_URL || (isLocal 
+    ? "postgres://postgres:Marketing%40plugsales2026!@localhost:5432/plug_sales_dispatch_app?sslmode=disable"
+    : "postgres://postgres:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable"
 );
 
-const redisUrl = process.env.REDIS_URL || (
-    isLocal
-        ? "redis://default:Marketing%40plugsales2026!@localhost:6379"
-        : "redis://default:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379"
+const redisUrl = process.env.REDIS_URL || (isLocal
+    ? "redis://default:Marketing%40plugsales2026!@localhost:6379"
+    : "redis://default:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379"
 );
-
-console.log('Running mode:', isLocal ? 'LOCAL_DEV' : 'EASYPANEL/PRODUCTION');
-console.log('Postgres host source:', process.env.DATABASE_URL ? 'env DATABASE_URL' : 'fallback');
-console.log('Redis host source:', process.env.REDIS_URL ? 'env REDIS_URL' : 'fallback');
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: pgUrl });
 
 const redisClient = createClient({ url: redisUrl });
 redisClient.on('error', err => console.error('Redis Error:', err));
-
-try {
-    await redisClient.connect();
-    console.log('Redis connected successfully.');
-} catch (e) {
-    console.error('Redis Connect Error:', e);
-}
+await redisClient.connect().catch(e => console.error('Redis Connect Error:', e));
 
 // Initialize Database Tables
 const initDB = async () => {
@@ -139,9 +125,7 @@ app.get('/api/settings', async (req, res) => {
         const settings = {};
         result.rows.forEach(row => settings[row.key] = row.value);
         res.json(settings);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/settings', async (req, res) => {
@@ -152,9 +136,7 @@ app.post('/api/settings', async (req, res) => {
             [key, value]
         );
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Audit Logs (dispatch, template, engine)
@@ -169,9 +151,7 @@ app.get('/api/logs', async (req, res) => {
         }
         const result = await pool.query(query, params);
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/logs', async (req, res) => {
@@ -182,9 +162,7 @@ app.post('/api/logs', async (req, res) => {
             [logType, author, name, template, mode, total || 0, success || 0, transmissionId, campaignName, stepIndex]
         );
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Media Library
@@ -192,18 +170,14 @@ app.get('/api/media', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM media_library ORDER BY created_at DESC');
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/media/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM media_library WHERE id = $1', [req.params.id]);
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Upload History
@@ -211,9 +185,7 @@ app.get('/api/upload-history', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM upload_history ORDER BY created_at DESC');
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/upload-history', async (req, res) => {
@@ -224,18 +196,14 @@ app.post('/api/upload-history', async (req, res) => {
             [tag, count, validator || 'N/A', creator || 'Admin', status || 'CONCLUÍDO']
         );
         res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/upload-history/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM upload_history WHERE id = $1', [req.params.id]);
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Contacts Lists (from UploadContacts)
@@ -243,21 +211,15 @@ app.get('/api/contacts', async (req, res) => {
     try {
         const result = await pool.query('SELECT id, tag, count, creator, status, updated_at FROM contacts_list ORDER BY updated_at DESC');
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/contacts/:tag', async (req, res) => {
     try {
         const result = await pool.query('SELECT data FROM contacts_list WHERE tag = $1', [req.params.tag]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Tag not found' });
-        }
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Tag not found' });
         res.json(result.rows[0].data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/contacts', async (req, res) => {
@@ -270,18 +232,14 @@ app.post('/api/contacts', async (req, res) => {
             [tag, JSON.stringify(data), count, validator || 'N/A', creator || 'Admin']
         );
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/contacts/:tag', async (req, res) => {
     try {
         await pool.query('DELETE FROM contacts_list WHERE tag = $1', [req.params.tag]);
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Campaigns (from CampaignPlanner)
@@ -289,22 +247,17 @@ app.get('/api/campaigns', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM campaigns ORDER BY updated_at DESC');
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/campaigns/active', async (req, res) => {
     try {
+        // Return the most recently updated campaign as "active"
         const result = await pool.query('SELECT * FROM campaigns ORDER BY updated_at DESC LIMIT 1');
-        if (result.rows.length === 0) {
-            return res.json(null);
-        }
+        if (result.rows.length === 0) return res.json(null);
         const row = result.rows[0];
         res.json({ id: row.id, name: row.name, steps: row.steps, createdAt: row.created_at });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/campaigns', async (req, res) => {
@@ -315,9 +268,7 @@ app.post('/api/campaigns', async (req, res) => {
             [name, JSON.stringify(steps)]
         );
         res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.put('/api/campaigns/:id', async (req, res) => {
@@ -328,9 +279,7 @@ app.put('/api/campaigns/:id', async (req, res) => {
             [name, JSON.stringify(steps), req.params.id]
         );
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Engine Logs (real-time execution logs)
@@ -338,9 +287,7 @@ app.get('/api/engine-logs', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM engine_logs ORDER BY timestamp DESC LIMIT 500');
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/engine-logs', async (req, res) => {
@@ -351,18 +298,14 @@ app.post('/api/engine-logs', async (req, res) => {
             [transmissionId, logType, waba, recipient, message, payload ? JSON.stringify(payload) : null]
         );
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/engine-logs', async (req, res) => {
     try {
         await pool.query('TRUNCATE TABLE engine_logs');
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Engine stats (stored in Redis for speed)
@@ -370,13 +313,8 @@ app.get('/api/engine-stats', async (req, res) => {
     try {
         const successStr = await redisClient.get('engine_stats_success');
         const errorStr = await redisClient.get('engine_stats_error');
-        res.json({
-            success: parseInt(successStr || '0'),
-            error: parseInt(errorStr || '0')
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+        res.json({ success: parseInt(successStr || '0'), error: parseInt(errorStr || '0') });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/engine-stats', async (req, res) => {
@@ -385,9 +323,7 @@ app.post('/api/engine-stats', async (req, res) => {
         await redisClient.set('engine_stats_success', String(success));
         await redisClient.set('engine_stats_error', String(error));
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Planner Drafts (for TemplateDispatch -> CampaignPlanner flow)
@@ -395,27 +331,21 @@ app.get('/api/planner-drafts', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM planner_drafts ORDER BY created_at DESC');
         res.json(result.rows.map(r => ({ ...r.data, _db_id: r.id })));
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/planner-drafts', async (req, res) => {
     try {
         await pool.query('INSERT INTO planner_drafts (data) VALUES ($1)', [JSON.stringify(req.body)]);
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/planner-drafts', async (req, res) => {
     try {
         await pool.query('TRUNCATE TABLE planner_drafts');
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // --- REDIS: Dispatch Queue Control ---
@@ -427,9 +357,7 @@ app.post('/api/dispatch/queue', async (req, res) => {
         }
         const queueLen = await redisClient.lLen('dispatch_queue');
         res.json({ success: true, count: messages.length, queueLength: queueLen });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/dispatch/queue/status', async (req, res) => {
@@ -442,18 +370,14 @@ app.get('/api/dispatch/queue/status', async (req, res) => {
             isRunning: isRunning === 'true',
             processed: parseInt(processedStr || '0')
         });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/dispatch/queue/stop', async (req, res) => {
     try {
         await redisClient.set('dispatch_stop', 'true');
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/dispatch/queue', async (req, res) => {
@@ -463,9 +387,7 @@ app.delete('/api/dispatch/queue', async (req, res) => {
         await redisClient.del('dispatch_processed');
         await redisClient.set('dispatch_running', 'false');
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // --- Pasta de uploads ---
@@ -478,13 +400,13 @@ if (!fs.existsSync(uploadDir)) {
 const storage = multer.diskStorage({
     destination: (req, file, cb) => { cb(null, uploadDir); },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
 
 const upload = multer({
-    storage,
+    storage: storage,
     limits: { fileSize: 50 * 1024 * 1024 }
 });
 
@@ -500,7 +422,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     let protocol = 'http';
     const forwardedProto = req.headers['x-forwarded-proto'];
-
     if (forwardedProto) {
         protocol = forwardedProto.split(',')[0].trim();
     } else {
@@ -519,26 +440,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         size: req.file.size
     });
 
+    // Save to DB Library
     pool.query(
         'INSERT INTO media_library (name, type, url, short_url) VALUES ($1, $2, $3, $4)',
-        [
-            req.file.originalname,
-            req.file.mimetype.includes('video') ? 'video' : 'image',
-            fileUrl,
-            fileUrl
-        ]
+        [req.file.originalname, req.file.mimetype.includes('video') ? 'video' : 'image', fileUrl, fileUrl]
     ).catch(err => console.error("Error saving media to DB:", err));
 });
 
 // --- REDIS WORKER ---
 const dispatchWorker = async () => {
     try {
-        if (!redisClient.isOpen) {
-            console.warn('Redis is not connected yet. Retrying worker...');
-            setTimeout(dispatchWorker, 5000);
-            return;
-        }
-
         const stopSignal = await redisClient.get('dispatch_stop');
         if (stopSignal === 'true') {
             await redisClient.del('dispatch_stop');
@@ -554,8 +465,10 @@ const dispatchWorker = async () => {
             const msg = JSON.parse(msgStr);
             console.log(`Processing dispatch for ${msg.to}...`);
 
+            // Increment processed counter
             await redisClient.incr('dispatch_processed');
 
+            // Space the next pop
             setTimeout(dispatchWorker, 12000);
         } else {
             await redisClient.set('dispatch_running', 'false');
@@ -566,7 +479,6 @@ const dispatchWorker = async () => {
         setTimeout(dispatchWorker, 5000);
     }
 };
-
 dispatchWorker();
 
 // SPA fallback
