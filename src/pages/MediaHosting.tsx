@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, Link, FileVideo, ImageIcon, Copy, ExternalLink, Trash2, Search, Zap, Check, Plus, Activity } from 'lucide-react';
+import { dbService } from '../services/dbService';
 
 interface HostedMedia {
     id: string;
@@ -12,10 +13,21 @@ interface HostedMedia {
 }
 
 const MediaHosting = () => {
-    const [hostedFiles, setHostedFiles] = useState<HostedMedia[]>(() => {
-        const saved = localStorage.getItem('hosted_media_library');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [hostedFiles, setHostedFiles] = useState<HostedMedia[]>([]);
+
+    useEffect(() => {
+        dbService.getMedia().then(media => {
+            setHostedFiles(media.map((m: any) => ({
+                id: String(m.id),
+                name: m.name,
+                type: m.type as 'image' | 'video',
+                size: '--',
+                shortUrl: m.short_url,
+                originalName: m.name,
+                uploadedAt: new Date(m.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+            })));
+        });
+    }, []);
 
     const [isUploading, setIsUploading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -74,7 +86,7 @@ const MediaHosting = () => {
                 newHostedFiles.unshift(newFile);
                 // Atualizar state local imediatamente para feedback visual
                 setHostedFiles([...newHostedFiles]);
-                localStorage.setItem('hosted_media_library', JSON.stringify(newHostedFiles));
+                // DB is updated server-side automatically on upload
 
             } catch (error: any) {
                 console.error('Upload Error for', file.name, ':', error);
@@ -87,10 +99,9 @@ const MediaHosting = () => {
         alert(`✅ Processamento concluído! ${fileArray.length} arquivo(s) processado(s).`);
     };
 
-    const handleDelete = (id: string) => {
-        const updated = hostedFiles.filter(f => f.id !== id);
-        setHostedFiles(updated);
-        localStorage.setItem('hosted_media_library', JSON.stringify(updated));
+    const handleDelete = async (id: string) => {
+        setHostedFiles(prev => prev.filter(f => String(f.id) !== id));
+        await dbService.deleteMedia(Number(id));
     };
 
     const copyToClipboard = (text: string, id: string) => {

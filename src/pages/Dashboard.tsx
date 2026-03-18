@@ -15,6 +15,7 @@ import {
     Activity
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { dbService } from '../services/dbService';
 
 const StatCard = ({ title, value, subtitle, icon, color }: { title: string, value: string, subtitle: string, icon: React.ReactNode, color: string }) => {
     return (
@@ -82,10 +83,9 @@ const Dashboard = () => {
                 rejected: list.filter((t: any) => t.status === 'REJECTED' || t.status === 'DISABLED').length
             });
 
-            const savedHistory = localStorage.getItem('uploadHistory');
-            if (savedHistory) {
-                setUploadHistory(JSON.parse(savedHistory).slice(0, 4));
-            }
+            // Load upload history from DB
+            const history = await dbService.getUploadHistory();
+            setUploadHistory(history.slice(0, 4));
         } catch (error) {
             console.error('Erro ao buscar dados do Dashboard:', error);
         } finally {

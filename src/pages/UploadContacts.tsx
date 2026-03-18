@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileSpreadsheet,
@@ -13,6 +13,7 @@ import {
     Check
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { dbService } from '../services/dbService';
 
 const UploadContacts = () => {
     const navigate = useNavigate();
@@ -30,16 +31,21 @@ const UploadContacts = () => {
     const [processedData, setProcessedData] = useState<any[]>([]);
     const [totalContacts, setTotalContacts] = useState(0);
     const [validatorNumber, setValidatorNumber] = useState('');
-    const [uploadHistory, setUploadHistory] = useState<any[]>(() => {
-        const saved = localStorage.getItem('uploadHistory');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [uploadHistory, setUploadHistory] = useState<any[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
     // History Filters & Pagination
     const [filterTag, setFilterTag] = useState('');
     const [filterDate, setFilterDate] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
+
+    useEffect(() => {
+        dbService.getUploadHistory().then(history => {
+            setUploadHistory(history);
+            setIsLoadingHistory(false);
+        });
+    }, []);
 
     const normalizePhone = (input: string) => {
         // 1. Remove non-digits
@@ -198,20 +204,20 @@ const UploadContacts = () => {
 
                 setProcessedData(formattedList);
 
-                const newHistoryItem = {
-                    id: Date.now(),
-                    date: new Date().toLocaleString('pt-BR'),
+                // Save contacts data to DB
+                await dbService.saveContacts(baseTag, filtered, total, validatorNumber || 'N/A', 'Admin');
+
+                // Save upload history entry to DB
+                const newHistoryItem = await dbService.addUploadHistory({
                     tag: baseTag,
                     count: total,
                     validator: validatorNumber || 'N/A',
-                    status: 'CONCLUÍDO',
-                    creator: 'Admin'
-                };
-                const updatedHistory = [newHistoryItem, ...uploadHistory];
-                setUploadHistory(updatedHistory);
-                localStorage.setItem('uploadHistory', JSON.stringify(updatedHistory));
-                localStorage.setItem('lastProcessedList', JSON.stringify(formattedList));
-                localStorage.setItem(`contacts_${baseTag}`, JSON.stringify(filtered));
+                    creator: 'Admin',
+                    status: 'CONCLUÍDO'
+                });
+                if (newHistoryItem) {
+                    setUploadHistory(prev => [newHistoryItem, ...prev]);
+                }
 
                 const finalResult = [{ tag: `${baseTag}_CONSOLIDADO`, count: total }];
                 setTimeout(() => {
@@ -237,20 +243,18 @@ const UploadContacts = () => {
         XLSX.writeFile(workbook, `${baseTag}_unificado.csv`, { bookType: 'csv' });
     };
 
-    const handleDeleteHistory = (id: number, tag: string) => {
+    const handleDeleteHistory = async (id: number, tag: string) => {
         if (!window.confirm("Deseja realmente excluir este registro de histórico?")) return;
         
-        const updatedHistory = uploadHistory.filter(h => h.id !== id);
-        setUploadHistory(updatedHistory);
-        localStorage.setItem('uploadHistory', JSON.stringify(updatedHistory));
-        localStorage.removeItem(`contacts_${tag}`);
+        setUploadHistory(prev => prev.filter(h => h.id !== id));
+        await dbService.deleteUploadHistory(id);
+        await dbService.deleteContacts(tag);
     };
 
-    const handleDownloadHistory = (tag: string) => {
-        const saved = localStorage.getItem(`contacts_${tag}`);
-        if (!saved) return alert("Dados da lista não encontrados para download.");
+    const handleDownloadHistory = async (tag: string) => {
+        const contacts = await dbService.getContactsByTag(tag);
+        if (!contacts) return alert("Dados da lista não encontrados para download.");
         
-        const contacts = JSON.parse(saved);
         const exportData = contacts.map((c: any) => ({
             Nome: c.nome || '',
             Telefone: c.telefone,
@@ -364,9 +368,11 @@ const UploadContacts = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedHistory.length > 0 ? paginatedHistory.map(item => (
-                                <tr key={item.id} className="hover-row">
-                                    <td style={{ color: 'var(--text-secondary)' }}>{item.date}</td>
+                            {isLoadingHistory ? (
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Carregando histórico...</td></tr>
+            ) : paginatedHistory.length > 0 ? paginatedHistory.map(item => (
+                <tr key={item.id} className="hover-row">
+                    <td style={{ color: 'var(--text-secondary)' }}>{item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : item.date}</td>
                                     <td style={{ fontWeight: 800, color: 'var(--primary-color)' }}>{item.tag}</td>
                                     <td style={{ fontWeight: 700 }}>{item.count} Lds</td>
                                     <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{item.validator}</td>

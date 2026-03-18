@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, Play, Square, RefreshCcw, CheckCircle2, AlertCircle, AlertTriangle, Terminal, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { dbService } from '../services/dbService';
 
 const EngineExecution = () => {
     const { user } = useAuth();
@@ -35,22 +36,31 @@ const EngineExecution = () => {
     const apiKey = '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8';
 
     useEffect(() => {
-        const savedStrategy = localStorage.getItem('activeStrategy');
-        if (savedStrategy) {
-            setCampaign(JSON.parse(savedStrategy));
-        }
+        // Load campaign from DB
+        dbService.getActiveCampaign().then(activeCampaign => {
+            if (activeCampaign) setCampaign(activeCampaign);
+        });
         
-        const savedLogs = localStorage.getItem('engine_logs_v2');
-        if (savedLogs) {
-            setLogs(JSON.parse(savedLogs).slice(0, 500));
-        }
+        // Load logs from DB
+        dbService.getEngineLogs().then(dbLogs => {
+            const mapped = dbLogs.map((l: any) => ({
+                id: l.id,
+                time: new Date(l.timestamp).toLocaleTimeString('pt-BR'),
+                type: l.log_type as any,
+                waba: l.waba,
+                recipient: l.recipient,
+                transmissionId: l.transmission_id || '',
+                message: l.message,
+                payload: l.payload
+            }));
+            setLogs(mapped);
+        });
 
-        const stats = localStorage.getItem('engine_stats');
-        if (stats) {
-            const { success, error } = JSON.parse(stats);
-            setSuccessCount(success);
-            setErrorCount(error);
-        }
+        // Load stats from Redis
+        dbService.getEngineStats().then(stats => {
+            setSuccessCount(stats.success || 0);
+            setErrorCount(stats.error || 0);
+        });
 
         // Handle Auto-Start
         const params = new URLSearchParams(window.location.search);
@@ -58,14 +68,9 @@ const EngineExecution = () => {
         const idx = params.get('idx');
 
         if (start === 'all') {
-            setTimeout(() => {
-                runEngine();
-            }, 1000);
+            setTimeout(() => { runEngine(); }, 1000);
         } else if (start === 'single' && idx !== null) {
-            const index = parseInt(idx);
-            setTimeout(() => {
-                runEngine(index);
-            }, 1000);
+            setTimeout(() => { runEngine(parseInt(idx)); }, 1000);
         }
     }, []);
 
@@ -82,21 +87,25 @@ const EngineExecution = () => {
             transmissionId: transmissionId,
             ...logData
         };
-        setLogs(prev => {
-            const updated = [newLog, ...prev].slice(0, 1000);
-            localStorage.setItem('engine_logs_v2', JSON.stringify(updated));
-            return updated;
-        });
+        setLogs(prev => [newLog, ...prev].slice(0, 1000));
+        
+        // Persist to DB (fire and forget)
+        dbService.addEngineLog({
+            transmissionId: transmissionId,
+            logType: logData.type,
+            waba: logData.waba,
+            recipient: logData.recipient,
+            message: logData.message,
+            payload: logData.payload
+        }).catch(console.error);
     };
 
     useEffect(() => {
-        localStorage.setItem('engine_stats', JSON.stringify({ success: successCount, error: errorCount }));
+        dbService.saveEngineStats(successCount, errorCount).catch(console.error);
     }, [successCount, errorCount]);
 
     const runEngine = async (specificIndex?: number) => {
-        const savedStrategy = localStorage.getItem('activeStrategy');
-        const activeCampaign = savedStrategy ? JSON.parse(savedStrategy) : campaign;
-        
+        const activeCampaign = campaign || await dbService.getActiveCampaign();
         if (!activeCampaign) return;
         const tid = `TX_${Date.now()}`;
         setTransmissionId(tid);
@@ -115,12 +124,11 @@ const EngineExecution = () => {
             : activeCampaign.steps;
 
         // Calculate real total from contact lists
-        const enrichedSteps = stepsToProcess.map((s: any) => {
-            const listData = localStorage.getItem(`contacts_${s.listTag}`);
-            const contacts = listData ? JSON.parse(listData) : [];
+        const enrichedSteps = await Promise.all(stepsToProcess.map(async (s: any) => {
+            const contacts = await dbService.getContactsByTag(s.listTag) || [];
             totalRecords += contacts.length;
             return { ...s, contacts };
-        });
+        }));
 
         for (let sIdx = 0; sIdx < enrichedSteps.length; sIdx++) {
             if (!isRunning && processed > 0) break;
@@ -205,18 +213,15 @@ const EngineExecution = () => {
             }
         }
 
-        // Track for admin control
-        const engineLog = JSON.parse(localStorage.getItem('admin_engine_logs') || '[]');
-        engineLog.push({
+        // Track in audit_logs (DB)
+        await dbService.addLog({
+            logType: 'ENGINE',
             author: user?.name || 'Sistema',
-            timestamp: new Date().toISOString(),
             mode: specificIndex !== undefined ? 'SINGLE_STEP' : 'FULL_STRATEGY',
-            stepIndex: specificIndex,
             transmissionId: tid,
             campaignName: activeCampaign.name,
-            totalRecords: totalRecords
+            total: totalRecords
         });
-        localStorage.setItem('admin_engine_logs', JSON.stringify(engineLog));
 
         setIsRunning(false);
         addLog({ type: 'SYSTEM', waba: 'LOCAL', message: '✅ Ciclo de execução finalizado.' });
@@ -329,7 +334,7 @@ const EngineExecution = () => {
                                     <option value="SYSTEM">Sistema</option>
                                 </select>
                                 <button 
-                                    onClick={() => { setLogs([]); localStorage.removeItem('engine_logs_v2'); }}
+                                    onClick={() => { setLogs([]); dbService.clearEngineLogs(); }}
                                     style={{ background: 'transparent', border: 'none', color: '#ff5f56', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 800 }}
                                 >
                                     LIMPAR

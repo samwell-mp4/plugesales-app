@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Route, Plus, Save, PlayCircle, Play, Settings2, Trash2, Smartphone, Database, Activity } from 'lucide-react';
+import { dbService } from '../services/dbService';
 
 type Step = {
     id: number;
@@ -34,11 +35,9 @@ const CampaignPlanner = () => {
     const loadData = async () => {
         setIsFetching(true);
         try {
-            // Load Lists from LocalStorage (from Upload Page)
-            const savedHistory = localStorage.getItem('uploadHistory');
-            if (savedHistory) {
-                setAvailableLists(JSON.parse(savedHistory));
-            }
+            // Load Lists from DB
+            const contactsList = await dbService.getContacts();
+            setAvailableLists(contactsList.map((c: any) => ({ tag: c.tag, count: c.count })));
 
             // Load Templates from Infobip
             const tResponse = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${fromNumber}/templates`, {
@@ -57,43 +56,34 @@ const CampaignPlanner = () => {
     useEffect(() => {
         loadData();
         
-        // Load Drafts from Dispatcher
-        const savedDrafts = localStorage.getItem('planner_draft_steps');
-        if (savedDrafts) {
-            const drafts = JSON.parse(savedDrafts);
-            if (drafts.length > 0) {
-                // Map draft format to Step format
+        // Load Drafts from TemplateDispatch (stored in DB)
+        dbService.getPlannerDrafts().then(drafts => {
+            if (drafts && drafts.length > 0) {
                 const mappedDrafts = drafts.map((d: any, idx: number) => ({
                     id: d.id || Date.now() + idx,
                     wabaId: d.wabaId,
                     listTag: d.listTag,
-                    templateInstance: d.templateName,
+                    templateInstance: d.templateName || d.templateInstance,
                     delay: d.delay || 5,
-                    // Additional metadata for the execution engine
                     meta: {
-                        placeholders: d.placeholders,
-                        headerType: d.headerType,
-                        mediaUrl: d.mediaUrl,
-                        includeButton: d.includeButton,
-                        buttonPayload: d.buttonPayload,
-                        language: d.language
+                        placeholders: d.placeholders || d.meta?.placeholders,
+                        headerType: d.headerType || d.meta?.headerType,
+                        mediaUrl: d.mediaUrl || d.meta?.mediaUrl,
+                        includeButton: d.includeButton || d.meta?.includeButton,
+                        buttonPayload: d.buttonPayload || d.meta?.buttonPayload,
+                        language: d.language || d.meta?.language
                     }
                 }));
                 setSteps(mappedDrafts);
-                // Clear drafts after loading to avoid double import? 
-                // Or maybe keep it and add a clear button. Let's keep for now but add a note.
             }
-        }
+        });
     }, []);
 
-    const saveStrategy = () => {
-        const strategy = {
-            name: campaignName,
-            steps: steps,
-            createdAt: new Date().toISOString()
-        };
-        localStorage.setItem('activeStrategy', JSON.stringify(strategy));
-        alert('Estratégia salva com sucesso!');
+    const saveStrategy = async () => {
+        const campaign = await dbService.saveCampaign(campaignName, steps);
+        if (campaign) {
+            alert('Estratégia salva com sucesso no banco de dados!');
+        }
     };
 
     const addStep = () => {
@@ -165,7 +155,7 @@ const CampaignPlanner = () => {
                     <p className="subtitle">Configure o sequenciamento inteligente de disparo em massa</p>
                 </div>
                 <div className="flex gap-3 header-actions">
-                    <button className="btn btn-secondary" style={{ borderRadius: '12px', padding: '12px 20px', background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.2)' }} onClick={() => { localStorage.removeItem('planner_draft_steps'); setSteps([{ id: 1, wabaId: fromNumber, listTag: '', templateInstance: '', delay: 5 }]); }}><Trash2 size={18} /> Limpar</button>
+                    <button className="btn btn-secondary" style={{ borderRadius: '12px', padding: '12px 20px', background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.2)' }} onClick={() => { dbService.clearPlannerDrafts(); setSteps([{ id: 1, wabaId: fromNumber, listTag: '', templateInstance: '', delay: 5 }]); }}><Trash2 size={18} /> Limpar</button>
                     <button className="btn btn-secondary" style={{ borderRadius: '12px', padding: '12px 20px' }} onClick={saveStrategy}><Save size={18} /> Salvar</button>
                     <button className="btn btn-primary" style={{ borderRadius: '12px', padding: '12px 20px', color: 'black', fontWeight: 800 }} onClick={() => runEngine()}><PlayCircle size={18} /> Iniciar Motor</button>
                 </div>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { dbService } from '../services/dbService';
 
 const StatCard = ({ title, value, subtitle, icon, color }: { title: string, value: string, subtitle: string, icon: React.ReactNode, color: string }) => {
     return (
@@ -50,15 +51,24 @@ const AdminControl = () => {
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<'ALL' | 'TEMPLATE' | 'DISPATCH' | 'ENGINE'>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
-        const tLogs = JSON.parse(localStorage.getItem('admin_template_logs') || '[]');
-        const dLogs = JSON.parse(localStorage.getItem('admin_dispatch_logs') || '[]');
-        const eLogs = JSON.parse(localStorage.getItem('admin_engine_logs') || '[]');
-        
-        setTemplateLogs(tLogs.reverse());
-        setDispatchLogs(dLogs.reverse());
-        setEngineLogs(eLogs.reverse());
+        dbService.getLogs().then(logs => {
+            setTemplateLogs(logs.filter((l: any) => l.log_type === 'TEMPLATE').map((l: any) => ({
+                author: l.author, name: l.name, template: l.template, mode: l.mode,
+                timestamp: l.timestamp, logType: 'TEMPLATE'
+            })));
+            setDispatchLogs(logs.filter((l: any) => l.log_type === 'DISPATCH').map((l: any) => ({
+                author: l.author, name: l.name, template: l.template, mode: l.mode,
+                total: l.total, success: l.success, logType: 'DISPATCH', timestamp: l.timestamp
+            })));
+            setEngineLogs(logs.filter((l: any) => l.log_type === 'ENGINE').map((l: any) => ({
+                author: l.author, mode: l.mode, transmissionId: l.transmission_id,
+                campaignName: l.campaign_name, total: l.total, logType: 'ENGINE', timestamp: l.timestamp
+            })));
+        });
     }, []);
 
     const employees = [
@@ -91,6 +101,18 @@ const AdminControl = () => {
                 (l.template && l.template.toLowerCase().includes(searchTerm.toLowerCase()))
             );
     }, [templateLogs, dispatchLogs, engineLogs, selectedEmployee, activeFilter, searchTerm]);
+
+    const paginatedLogs = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredLogs.slice(start, start + ITEMS_PER_PAGE);
+    }, [filteredLogs, currentPage]);
+
+    const totalPages = Math.ceil(filteredLogs.length / ITEMS_PER_PAGE);
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeFilter, searchTerm, selectedEmployee]);
 
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '80px' }}>
@@ -288,11 +310,14 @@ const AdminControl = () => {
                             ))}
                         </div>
 
-                        <div className="flex-col gap-2 overflow-y-auto" style={{ maxHeight: '720px', paddingRight: '12px' }}>
-                            {filteredLogs.map((log, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 hover-row" style={{ 
-                                    borderBottom: '1px solid rgba(255,255,255,0.03)', 
-                                    transition: 'all 0.2s' 
+                        <div className="flex-col gap-3" style={{ paddingRight: '12px' }}>
+                            {paginatedLogs.map((log, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-4 hover-row shadow-sm" style={{ 
+                                    border: '1px solid rgba(255,255,255,0.03)', 
+                                    background: 'rgba(255,255,255,0.01)',
+                                    borderRadius: '16px',
+                                    transition: 'all 0.2s',
+                                    marginBottom: '8px'
                                 }}>
                                     <div className="flex items-center gap-4">
                                         <div style={{
@@ -332,12 +357,37 @@ const AdminControl = () => {
                                 </div>
                             ))}
                             {filteredLogs.length === 0 && (
-                                <div className="p-20 flex-col items-center justify-center gap-4 opacity-20">
+                                <div className="p-20 flex-col items-center justify-center gap-4 opacity-20" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <Search size={48} />
                                     <p style={{ fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', fontSize: '0.75rem' }}>Nenhuma atividade para exibir</p>
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between mt-6 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                                <button 
+                                    className="btn btn-secondary" 
+                                    style={{ padding: '8px 16px', fontSize: '0.75rem', borderRadius: '10px' }}
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    Anterior
+                                </button>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                    Página <span style={{ color: 'white' }}>{currentPage}</span> de {totalPages}
+                                </span>
+                                <button 
+                                    className="btn btn-secondary" 
+                                    style={{ padding: '8px 16px', fontSize: '0.75rem', borderRadius: '10px' }}
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Próxima
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

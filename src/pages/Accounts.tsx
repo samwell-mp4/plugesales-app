@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar } from 'lucide-react';
+import { dbService } from '../services/dbService';
 
 interface InfobipTemplate {
     id: string;
@@ -17,13 +18,21 @@ interface InfobipTemplate {
 const Accounts = () => {
     const navigate = useNavigate();
     // --- API / CONFIG STATE ---
-    const [apiKey, setApiKey] = useState(() => localStorage.getItem('infobip_key') || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [senderNumber, setSenderNumber] = useState(() => localStorage.getItem('infobip_sender') || '5511997625247');
+    const [apiKey, setApiKey] = useState('5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
+    const [senderNumber, setSenderNumber] = useState('5511997625247');
 
-    // Save on change
+    // Load settings from DB on mount
     useEffect(() => {
-        localStorage.setItem('infobip_key', apiKey);
-        localStorage.setItem('infobip_sender', senderNumber);
+        dbService.getSettings().then(settings => {
+            if (settings['infobip_key']) setApiKey(settings['infobip_key']);
+            if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
+        });
+    }, []);
+
+    // Save to DB on change
+    useEffect(() => {
+        dbService.saveSetting('infobip_key', apiKey);
+        dbService.saveSetting('infobip_sender', senderNumber);
     }, [apiKey, senderNumber]);
 
     const [templates, setTemplates] = useState<InfobipTemplate[]>([]);

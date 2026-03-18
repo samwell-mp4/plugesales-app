@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { dbService } from '../services/dbService';
 
 type ButtonDef = {
     type: 'url' | 'reply';
@@ -13,13 +14,15 @@ const TemplateCreator = () => {
     const [activeTab, setActiveTab] = useState<'MODEL' | 'BULK'>('MODEL');
 
     // --- API / CONFIG STATE ---
-    const [apiKey, setApiKey] = useState(() => localStorage.getItem('infobip_key') || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [senderNumber, setSenderNumber] = useState(() => localStorage.getItem('infobip_sender') || '5511997625247');
+    const [apiKey, setApiKey] = useState('5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
+    const [senderNumber, setSenderNumber] = useState('5511997625247');
 
     useEffect(() => {
-        localStorage.setItem('infobip_key', apiKey);
-        localStorage.setItem('infobip_sender', senderNumber);
-    }, [apiKey, senderNumber]);
+        dbService.getSettings().then(settings => {
+            if (settings['infobip_key']) setApiKey(settings['infobip_key']);
+            if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
+        });
+    }, []);
 
     // --- MODEL STATE ---
     const [modelName, setModelName] = useState('pagamento_confirmado');
@@ -43,6 +46,7 @@ const TemplateCreator = () => {
     const [bulkPrefix, setBulkPrefix] = useState('pagamento_');
     const [bulkQuantity, setBulkQuantity] = useState(10);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
 
     // --- HELPER: MAP TO INFOBIP STRUCTURE ---
     const buildInfobipPayload = (nameOverride?: string) => {
@@ -156,20 +160,21 @@ const TemplateCreator = () => {
     const handleCreateModel = async () => {
         if (!modelName) return alert("Defina um nome para o template.");
         setIsGenerating(true);
+        setGeneratingProgress({ current: 1, total: 1, msg: `Criando template "${modelName}"...` });
+        
         const payload = buildInfobipPayload();
         const res = await callInfobipAPI(payload);
+        
         setIsGenerating(false);
 
         if (res.success) {
-            // Track for admin control
-            const templateLog = JSON.parse(localStorage.getItem('admin_template_logs') || '[]');
-            templateLog.push({
+            // Track in DB
+            dbService.addLog({
+                logType: 'TEMPLATE',
                 name: modelName,
                 author: user?.name,
-                timestamp: new Date().toISOString(),
-                type: 'SINGLE'
+                mode: 'SINGLE'
             });
-            localStorage.setItem('admin_template_logs', JSON.stringify(templateLog));
             
             // Send to Webhook
             await sendToWebhook(payload);
@@ -190,18 +195,18 @@ const TemplateCreator = () => {
 
         for (let i = 1; i <= bulkQuantity; i++) {
             const name = `${bulkPrefix}${String(i).padStart(3, '0')}`;
+            setGeneratingProgress({ current: i, total: bulkQuantity, msg: `Processando ${name}...` });
+            
             const payload = buildInfobipPayload(name);
             const res = await callInfobipAPI(payload);
             if (res.success) {
                 successCount++;
-                const templateLog = JSON.parse(localStorage.getItem('admin_template_logs') || '[]');
-                templateLog.push({
+                dbService.addLog({
+                    logType: 'TEMPLATE',
                     name: name,
                     author: user?.name,
-                    timestamp: new Date().toISOString(),
-                    type: 'BULK'
+                    mode: 'BULK'
                 });
-                localStorage.setItem('admin_template_logs', JSON.stringify(templateLog));
                 await sendToWebhook(payload);
             }
             else errors.push(`${name}: ${res.error}`);
@@ -214,6 +219,26 @@ const TemplateCreator = () => {
 
     return (
         <div className="animate-fade-in creator-page" style={{ paddingBottom: '80px' }}>
+            {isGenerating && (
+                <div className="loading-overlay">
+                    <div className="pulse-loader">
+                        <Activity size={40} className="animate-spin" />
+                    </div>
+                    <div className="flex-col items-center gap-1 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div className="loading-text" style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px', textAlign: 'center' }}>
+                            {generatingProgress.total > 1 
+                                ? "CRIANDO TEMPLATES EM MASSA" 
+                                : "PUBLICANDO NA INFOBIP"}
+                        </div>
+                        <div className="loading-subtext" style={{ fontSize: '0.9rem', opacity: 0.7, fontWeight: 500 }}>
+                            {generatingProgress.total > 1 
+                                ? `${generatingProgress.current} de ${generatingProgress.total} - ${generatingProgress.msg}`
+                                : "Aguarde a validação da Meta..."}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style>{`
                 .creator-layout { display: grid; grid-template-columns: 1fr 400px; gap: 32px; align-items: start; }
                 .config-bar { background: rgba(172, 248, 0, 0.03); border: 1px solid rgba(172, 248, 0, 0.1); border-radius: 20px; padding: 24px; display: flex; gap: 24px; }
@@ -231,6 +256,37 @@ const TemplateCreator = () => {
                     .config-bar { flex-direction: column; }
                     .header-grid { grid-template-columns: 1fr !important; }
                     .tab-btns { flex-direction: column; }
+                }
+
+                .loading-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    backdrop-filter: blur(8px);
+                    z-index: 10000;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 24px;
+                    color: white;
+                }
+                .pulse-loader {
+                    width: 80px;
+                    height: 80px;
+                    background: var(--primary-color);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: black;
+                    box-shadow: 0 0 40px rgba(172, 248, 0, 0.4);
+                    animation: pulse-ring 2s infinite ease-in-out;
+                }
+                @keyframes pulse-ring {
+                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0.4); }
+                    70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(172, 248, 0, 0); }
+                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0); }
                 }
             `}</style>
 

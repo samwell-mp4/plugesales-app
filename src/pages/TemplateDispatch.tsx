@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { dbService } from '../services/dbService';
 import {
     Send,
     Smartphone,
@@ -71,28 +72,36 @@ const TemplateDispatch = () => {
     const [isSending, setIsSending] = useState(false);
     const [sendStats, setSendStats] = useState<{ success: boolean; message: string } | null>(null);
 
-    // Dynamic Config Sync
-    const [apiKey, setApiKey] = useState(() => location.state?.key || localStorage.getItem('infobip_key') || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [fromNumber, setFromNumber] = useState(() => location.state?.sender || localStorage.getItem('infobip_sender') || '5511997625247');
+    // Dynamic Config Sync - loaded from DB on mount
+    const [apiKey, setApiKey] = useState(() => location.state?.key || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
+    const [fromNumber, setFromNumber] = useState(() => location.state?.sender || '5511997625247');
 
     // Media Library Integration
-    const [hostedFiles, setHostedFiles] = useState<any[]>(() => {
-        const saved = localStorage.getItem('hosted_media_library');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [hostedFiles, setHostedFiles] = useState<any[]>([]);
     const [showLibrary, setShowLibrary] = useState(false);
     const [isUploadingHeader, setIsUploadingHeader] = useState(false);
 
     useEffect(() => {
         if (location.state?.key) setApiKey(location.state.key);
         if (location.state?.sender) setFromNumber(location.state.sender);
-    }, [location.state]);
+        
+        // Load settings from DB
+        dbService.getSettings().then(settings => {
+            if (!location.state?.key && settings['infobip_key']) setApiKey(settings['infobip_key']);
+            if (!location.state?.sender && settings['infobip_sender']) setFromNumber(settings['infobip_sender']);
+        });
 
-    // Bidirectional Sync
-    useEffect(() => {
-        localStorage.setItem('infobip_key', apiKey);
-        localStorage.setItem('infobip_sender', fromNumber);
-    }, [apiKey, fromNumber]);
+        // Load hosted media from DB
+        dbService.getMedia().then(media => {
+            setHostedFiles(media.map((m: any) => ({
+                id: m.id,
+                name: m.name,
+                type: m.type,
+                shortUrl: m.short_url,
+                originalName: m.name,
+            })));
+        });
+    }, [location.state]);
 
     useEffect(() => {
         // Fetch all templates if none passed
@@ -115,12 +124,10 @@ const TemplateDispatch = () => {
             }
         };
 
-        const loadTags = () => {
-            const history = localStorage.getItem('uploadHistory');
-            if (history) {
-                const tags = JSON.parse(history).map((h: any) => h.tag);
-                setAvailableTags([...new Set(tags)] as string[]);
-            }
+        const loadTags = async () => {
+            const contacts = await dbService.getContacts();
+            const tags = contacts.map((c: any) => c.tag);
+            setAvailableTags([...new Set(tags)] as string[]);
         };
 
         fetchTemplates();
@@ -188,12 +195,12 @@ const TemplateDispatch = () => {
 
         if (urlButton) {
             setButtonType('URL');
-            setIncludeButton(true);
+            setIncludeButton(false);
             const isDynamicUrl = urlButton.url?.includes('{{');
             setButtonPayload(isDynamicUrl ? (urlButton.example || 'https://google.com') : (urlButton.url || 'https://google.com'));
         } else if (quickReplyButtons.length > 0) {
             setButtonType('QUICK_REPLY');
-            setIncludeButton(true);
+            setIncludeButton(false);
             setButtonPayload('YES_INTERESTED');
         } else {
             setButtonType(null);
@@ -225,13 +232,12 @@ const TemplateDispatch = () => {
         }
     };
 
-    const handleTagChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleTagChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const tag = e.target.value;
         setSelectedTag(tag);
         if (tag) {
-            const saved = localStorage.getItem(`contacts_${tag}`);
-            if (saved) {
-                const contacts = JSON.parse(saved);
+            const contacts = await dbService.getContactsByTag(tag);
+            if (contacts) {
                 setBulkContacts(contacts);
                 setIsBulkMode(true);
                 setToNumber(`${contacts.length} contatos da etiqueta ${tag}`);
@@ -355,17 +361,15 @@ const TemplateDispatch = () => {
         if (successCount === total) {
             setSendStats({ success: true, message: `${successCount} mensagem(ns) disparada(s) com sucesso!` });
 
-            // Track for admin control
-            const dispatchLog = JSON.parse(localStorage.getItem('admin_dispatch_logs') || '[]');
-            dispatchLog.push({
+            // Track in DB
+            await dbService.addLog({
+                logType: 'DISPATCH',
                 author: user?.name,
+                template: templateName,
+                mode: isBulkMode ? 'BULK' : 'SINGLE',
                 total: total,
                 success: successCount,
-                template: templateName,
-                timestamp: new Date().toISOString(),
-                type: isBulkMode ? 'BULK' : 'SINGLE'
             });
-            localStorage.setItem('admin_dispatch_logs', JSON.stringify(dispatchLog));
         } else {
             setSendStats({ success: false, message: `Sucesso em ${successCount}/${total}. Último erro: ${lastError}` });
         }
@@ -373,29 +377,23 @@ const TemplateDispatch = () => {
         setIsSending(false);
     };
 
-    const addToPlanner = () => {
+    const addToPlanner = async () => {
         const stepData = {
-            id: Date.now(),
             wabaId: fromNumber,
             listTag: selectedTag || 'Manual/Individual',
-            templateInstance: templateName, // Standardized name
+            templateName: templateName,
+            templateInstance: templateName,
             delay: 5,
-            meta: {
-                templateName: templateName,
-                language: language,
-                headerType: headerType,
-                mediaUrl: mediaUrl,
-                placeholders: placeholders,
-                includeButton: includeButton,
-                buttonType: buttonType,
-                buttonPayload: buttonPayload
-            }
+            language: language,
+            headerType: headerType,
+            mediaUrl: mediaUrl,
+            placeholders: placeholders,
+            includeButton: includeButton,
+            buttonType: buttonType,
+            buttonPayload: buttonPayload
         };
 
-        const saved = localStorage.getItem('planner_draft_steps');
-        const draftSteps = saved ? JSON.parse(saved) : [];
-        draftSteps.push(stepData);
-        localStorage.setItem('planner_draft_steps', JSON.stringify(draftSteps));
+        await dbService.addPlannerDraft(stepData);
 
         // Send to Webhook
         sendToWebhook({ type: 'PLANNER_SAVE', ...stepData });
@@ -427,20 +425,17 @@ const TemplateDispatch = () => {
 
             if (finalUrl) {
                 setMediaUrl(finalUrl);
-                
-                // Salvar na biblioteca também para uso futuro
-                const newFile = {
-                    id: 'med_' + Date.now(),
-                    name: file.name,
-                    type: file.type.startsWith('video') ? 'video' : 'image',
-                    size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-                    shortUrl: finalUrl,
-                    originalName: file.name,
-                    uploadedAt: new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                };
-                const updatedList = [newFile, ...hostedFiles];
-                setHostedFiles(updatedList);
-                localStorage.setItem('hosted_media_library', JSON.stringify(updatedList));
+                // The media is already saved to DB by the upload endpoint
+                // Refresh local media list
+                dbService.getMedia().then(media => {
+                    setHostedFiles(media.map((m: any) => ({
+                        id: m.id,
+                        name: m.name,
+                        type: m.type,
+                        shortUrl: m.short_url,
+                        originalName: m.name,
+                    })));
+                });
             }
         } catch (error: any) {
             console.error('Header Upload Error:', error);
@@ -691,28 +686,31 @@ const TemplateDispatch = () => {
                                 </div>
                             )}
 
-                            <div className="input-group">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <div className="flex items-center justify-center" onClick={() => setIncludeButton(!includeButton)} style={{ width: 22, height: 22, borderRadius: 6, border: '2px solid var(--primary-color)', background: includeButton ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
-                                        {includeButton && <Check size={14} color="black" strokeWidth={4} />}
-                                    </div>
-                                    <span style={{ fontWeight: 700 }}>Incluir Payload de Botão</span>
-                                </label>
-                                {includeButton && (
-                                    <div className="flex gap-2 items-center mt-2">
-                                        <select
-                                            className="input-field"
-                                            style={{ borderRadius: '12px', background: 'rgba(0,0,0,0.1)', fontSize: '0.8rem', flex: 1, height: '42px' }}
-                                            value={buttonType || 'QUICK_REPLY'}
-                                            onChange={e => setButtonType(e.target.value as any)}
-                                        >
-                                            <option value="QUICK_REPLY">Tipo: Resposta</option>
-                                            <option value="URL">Tipo: Link (URL)</option>
-                                        </select>
-                                        <input className="input-field" style={{ borderRadius: '12px', flex: 2, height: '42px' }} value={buttonPayload} onChange={e => setButtonPayload(e.target.value)} placeholder={buttonType === 'URL' ? 'https://link-final.com' : 'Sua resposta aqui...'} />
-                                    </div>
-                                )}
-                            </div>
+                            {/* Payload Button Hidden due to bugs (User request) */}
+                            {false && (
+                                <div className="input-group">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <div className="flex items-center justify-center" onClick={() => setIncludeButton(!includeButton)} style={{ width: 22, height: 22, borderRadius: 6, border: '2px solid var(--primary-color)', background: includeButton ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
+                                            {includeButton && <Check size={14} color="black" strokeWidth={4} />}
+                                        </div>
+                                        <span style={{ fontWeight: 700 }}>Incluir Payload de Botão</span>
+                                    </label>
+                                    {includeButton && (
+                                        <div className="flex gap-2 items-center mt-2">
+                                            <select
+                                                className="input-field"
+                                                style={{ borderRadius: '12px', background: 'rgba(0,0,0,0.1)', fontSize: '0.8rem', flex: 1, height: '42px' }}
+                                                value={buttonType || 'QUICK_REPLY'}
+                                                onChange={e => setButtonType(e.target.value as any)}
+                                            >
+                                                <option value="QUICK_REPLY">Tipo: Resposta</option>
+                                                <option value="URL">Tipo: Link (URL)</option>
+                                            </select>
+                                            <input className="input-field" style={{ borderRadius: '12px', flex: 2, height: '42px' }} value={buttonPayload} onChange={e => setButtonPayload(e.target.value)} placeholder={buttonType === 'URL' ? 'https://link-final.com' : 'Sua resposta aqui...'} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {isSending && queueProgress.total > 0 && (
                                 <div className="flex-col gap-2 mt-4">

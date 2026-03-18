@@ -15,8 +15,11 @@ import Login from './pages/Login';
 
 import Control from './pages/Control';
 
+
+
 function AppContent() {
   const { user } = useAuth();
+
 
   if (!user) {
     return <Login />;
