@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -105,6 +105,7 @@ const TemplateDispatch = () => {
     const [drafts, setDrafts] = useState<Draft[]>([]);
     const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
     const [draftEditedOnce, setDraftEditedOnce] = useState(false);
+    const autoDispatchTriggered = useRef(false);
 
     useEffect(() => {
         if (location.state?.key) setApiKey(location.state.key);
@@ -151,16 +152,17 @@ const TemplateDispatch = () => {
 
     // Handle draft passed from Control page
     useEffect(() => {
-        if (location.state?.draft && allTemplates.length > 0) {
+        if (location.state?.draft && allTemplates.length > 0 && !autoDispatchTriggered.current) {
             const draft = location.state.draft;
             loadDraft(draft);
             
             if (location.state.autoSend) {
+                autoDispatchTriggered.current = true;
                 // Small delay to ensure state and templates are applied
                 setTimeout(() => {
-                    console.log('Triggering Auto-Dispatch for Draft:', draft.templateName);
+                    console.log('🚀 Triggering AUTO-DISPATCH');
                     sendMessage();
-                }, 1000);
+                }, 1200);
             }
             
             // Clear navigation state to prevent re-load on refresh
@@ -387,6 +389,7 @@ const TemplateDispatch = () => {
 
             try {
                 if (USE_INFOBIP_DIRECT) {
+                    console.log('📤 Sending Infobip Payload:', JSON.stringify(payload, null, 2));
                     const response = await fetch('https://8k6xv1.api-us.infobip.com/whatsapp/1/message/template', {
                         method: 'POST',
                         headers: {
@@ -396,15 +399,21 @@ const TemplateDispatch = () => {
                         body: JSON.stringify(payload)
                     });
 
+                    const responseBody = await response.json();
+                    console.log('📥 Infobip Response Status:', response.status);
+                    console.log('📥 Infobip Response Body:', responseBody);
+
                     if (response.ok) {
                         successCount += batch.length;
                         await sendToWebhook(payload);
                     } else {
-                        const err = await response.json();
-                        console.error('Infobip Dispatch Error:', err);
+                        const err = responseBody;
                         lastError = err.requestError?.serviceException?.text ||
+                            err.requestError?.serviceException?.messageId ||
                             err.errorMessage ||
+                            err.message ||
                             JSON.stringify(err);
+                        console.error('❌ Infobip Error Parsed:', lastError);
                     }
                 } else {
                     // MODO WEBHOOK APENAS: Envia apenas para o n8n
