@@ -50,7 +50,7 @@ const UploadContacts = () => {
     const normalizePhone = (input: string) => {
         // 1. Remove non-digits
         let cleaned = input.replace(/\D/g, '');
-        
+
         // 1b. Remove leading zero if present (common in manually typed DDDs)
         if (cleaned.startsWith('0')) {
             cleaned = cleaned.substring(1);
@@ -117,9 +117,9 @@ const UploadContacts = () => {
                         const rawPhone = parts[0] || '';
                         const phone = normalizePhone(rawPhone);
                         const name = parts[1] || '';
-                        
+
                         if (idx < 5) console.log(`Line ${idx}: raw="${rawPhone}" normalized="${phone}" len=${phone.length}`);
-                        
+
                         return { telefone: phone, nome: name };
                     }).filter(c => c.telefone.length === 13);
                 }
@@ -152,7 +152,7 @@ const UploadContacts = () => {
                         if (row && row.length > 0) {
                             const rawPhone = String(row[phoneColIndex] || '');
                             const phone = normalizePhone(rawPhone);
-                            
+
                             if (i < startIndex + 5) {
                                 console.log(`Excel Row ${i}: col${phoneColIndex}="${rawPhone}" normalized="${phone}" len=${phone.length}`);
                             }
@@ -245,7 +245,7 @@ const UploadContacts = () => {
 
     const handleDeleteHistory = async (id: number, tag: string) => {
         if (!window.confirm("Deseja realmente excluir este registro de histórico?")) return;
-        
+
         setUploadHistory(prev => prev.filter(h => h.id !== id));
         await dbService.deleteUploadHistory(id);
         await dbService.deleteContacts(tag);
@@ -254,7 +254,7 @@ const UploadContacts = () => {
     const handleDownloadHistory = async (tag: string) => {
         const contacts = await dbService.getContactsByTag(tag);
         if (!contacts) return alert("Dados da lista não encontrados para download.");
-        
+
         const exportData = contacts.map((c: any) => ({
             Nome: c.nome || '',
             Telefone: c.telefone,
@@ -281,29 +281,55 @@ const UploadContacts = () => {
     return (
         <div className="animate-fade-in upload-page" style={{ paddingBottom: '80px' }}>
             <style>{`
-                .upload-grid { display: grid; grid-template-columns: 1fr 400px; gap: 32px; align-items: start; }
+                .upload-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 32px; align-items: start; }
                 .history-container { 
                     border-radius: 20px; 
                     background: rgba(15, 23, 42, 0.4); 
-                    border: 1px solid var(--surface-border);
+                    border: 1px solid rgba(255,255,255,0.05);
                     overflow: hidden;
-                    margin-top: 32px;
+                    margin-top: 24px;
+                    margin-bottom: 32px;
                 }
                 .history-table { width: 100%; border-collapse: collapse; }
-                .history-table th { padding: 16px; background: rgba(0,0,0,0.2); color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; text-align: left; }
-                .history-table td { padding: 16px; border-bottom: 1px solid var(--surface-border); font-size: 0.85rem; }
+                .history-table th { padding: 20px; background: rgba(0,0,0,0.2); color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; text-align: left; }
+                .history-table td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
                 
                 .upload-zone {
-                    border: 2px dashed var(--surface-border);
-                    border-radius: 24px;
-                    padding: 40px;
+                    border: 1px dashed rgba(255,255,255,0.1);
+                    border-radius: 18px;
+                    padding: 20px;
                     text-align: center;
-                    background: rgba(15, 23, 42, 0.4);
+                    background: rgba(0, 0, 0, 0.2);
                     cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    transition: all 0.3s ease;
+                    max-width: 320px;
                 }
-                .upload-zone:hover { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.02); }
-                .upload-zone.active { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.05); }
+                .upload-zone:hover { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.04); }
+                
+                .upload-action-row {
+                    display: flex;
+                    align-items: flex-end;
+                    gap: 20px;
+                    margin-top: 10px;
+                }
+                
+                .input-field {
+                    border-radius: 16px !important;
+                    background: rgba(0, 0, 0, 0.3) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                    transition: all 0.2s ease;
+                }
+                .input-field:focus {
+                    border-color: var(--primary-color) !important;
+                    box-shadow: 0 0 0 4px rgba(172, 248, 0, 0.1) !important;
+                    background: rgba(0, 0, 0, 0.4) !important;
+                }
+                
+                .btn-sm-custom {
+                    padding: 10px 20px !important;
+                    font-size: 0.85rem !important;
+                    border-radius: 14px !important;
+                }
 
                 @media (max-width: 1100px) {
                     .upload-grid { grid-template-columns: 1fr; }
@@ -329,7 +355,7 @@ const UploadContacts = () => {
 
             {/* History Table */}
             <div className="history-container shadow-glass animate-fade-in">
-                <div className="flex items-center justify-between p-6 history-header" style={{ borderBottom: '1px solid var(--surface-border)' }}>
+                <div className="flex items-center justify-between p-5 history-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <div className="flex items-center gap-3">
                         <Database size={24} color="var(--primary-color)" />
                         <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Histórico de Uploads</h3>
@@ -369,10 +395,10 @@ const UploadContacts = () => {
                         </thead>
                         <tbody>
                             {isLoadingHistory ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Carregando histórico...</td></tr>
-            ) : paginatedHistory.length > 0 ? paginatedHistory.map(item => (
-                <tr key={item.id} className="hover-row">
-                    <td style={{ color: 'var(--text-secondary)' }}>{item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : item.date}</td>
+                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Carregando histórico...</td></tr>
+                            ) : paginatedHistory.length > 0 ? paginatedHistory.map(item => (
+                                <tr key={item.id} className="hover-row">
+                                    <td style={{ color: 'var(--text-secondary)' }}>{item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : item.date}</td>
                                     <td style={{ fontWeight: 800, color: 'var(--primary-color)' }}>{item.tag}</td>
                                     <td style={{ fontWeight: 700 }}>{item.count} Lds</td>
                                     <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{item.validator}</td>
@@ -381,21 +407,21 @@ const UploadContacts = () => {
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         <div className="flex gap-2 justify-end">
-                                            <button 
-                                                className="btn btn-secondary" 
-                                                style={{ padding: '8px', minWidth: '40px', borderRadius: '10px' }}
+                                            <button
+                                                className="btn btn-secondary"
+                                                style={{ padding: '6px', minWidth: '34px', borderRadius: '8px' }}
                                                 onClick={() => handleDownloadHistory(item.tag)}
                                                 title="Baixar Lista"
                                             >
-                                                <Download size={16} />
+                                                <Download size={14} />
                                             </button>
-                                            <button 
-                                                className="btn btn-secondary" 
-                                                style={{ padding: '8px', minWidth: '40px', borderRadius: '10px', color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.2)' }}
+                                            <button
+                                                className="btn btn-secondary"
+                                                style={{ padding: '6px', minWidth: '34px', borderRadius: '8px', color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.2)' }}
                                                 onClick={() => handleDeleteHistory(item.id, item.tag)}
                                                 title="Excluir Registro"
                                             >
-                                                <Trash2 size={16} />
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
                                     </td>
@@ -428,7 +454,7 @@ const UploadContacts = () => {
                         <h3 style={{ margin: 0, fontWeight: 800 }}>Mapeamento & Filtros</h3>
                     </div>
 
-                    <div className="flex gap-8 config-row">
+                    <div className="flex gap-10 config-row" style={{ marginBottom: '10px' }}>
                         <div className="flex-col gap-4" style={{ flex: 1 }}>
                             <div className="input-group">
                                 <label style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Etiqueta Principal *</label>
@@ -442,31 +468,31 @@ const UploadContacts = () => {
                             </div>
                             <div className="flex gap-4">
                                 <div className="input-group" style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '0.75rem' }}>Batch Size</label>
-                                    <input type="number" className="input-field" style={{ borderRadius: '12px' }} value={batchSize} onChange={e => setBatchSize(Number(e.target.value))} />
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>Batch Size</label>
+                                    <input type="number" className="input-field" style={{ padding: '12px' }} value={batchSize} onChange={e => setBatchSize(Number(e.target.value))} />
                                 </div>
                                 <div className="input-group" style={{ flex: 2 }}>
-                                    <label style={{ fontSize: '0.75rem' }}>Número de Teste</label>
-                                    <input className="input-field" style={{ borderRadius: '12px' }} placeholder="5511..." value={validatorNumber} onChange={e => setValidatorNumber(e.target.value)} />
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>Número de Teste</label>
+                                    <input className="input-field" style={{ padding: '12px' }} placeholder="5511..." value={validatorNumber} onChange={e => setValidatorNumber(e.target.value)} />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex-col gap-4 checkbox-group" style={{ flex: 1, borderLeft: '1px solid var(--surface-border)', paddingLeft: '32px' }}>
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <div className="flex items-center justify-center" onClick={() => setRemoveDuplicates(!removeDuplicates)} style={{ width: 22, height: 22, borderRadius: 6, border: '2px solid var(--primary-color)', background: removeDuplicates ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
+                        <div className="flex-col gap-5 checkbox-group" style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: '32px' }}>
+                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
+                                <div className="flex items-center justify-center" onClick={() => setRemoveDuplicates(!removeDuplicates)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid var(--primary-color)', background: removeDuplicates ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
                                     {removeDuplicates && <Check size={14} color="black" strokeWidth={4} />}
                                 </div>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Remover duplicatas</span>
                             </label>
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <div className="flex items-center justify-center" onClick={() => setDiscardNoName(!discardNoName)} style={{ width: 22, height: 22, borderRadius: 6, border: '2px solid var(--surface-border)', background: discardNoName ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
+                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
+                                <div className="flex items-center justify-center" onClick={() => setDiscardNoName(!discardNoName)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)', background: discardNoName ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
                                     {discardNoName && <Check size={14} color="black" strokeWidth={4} />}
                                 </div>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Exigir nome do lead</span>
                             </label>
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <div className="flex items-center justify-center" onClick={() => setMapExtraInfo(!mapExtraInfo)} style={{ width: 22, height: 22, borderRadius: 6, border: '2px solid var(--surface-border)', background: mapExtraInfo ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
+                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
+                                <div className="flex items-center justify-center" onClick={() => setMapExtraInfo(!mapExtraInfo)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)', background: mapExtraInfo ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
                                     {mapExtraInfo && <Check size={14} color="black" strokeWidth={4} />}
                                 </div>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Capturar CPF/Email</span>
@@ -474,28 +500,28 @@ const UploadContacts = () => {
                         </div>
                     </div>
 
-                    <div className="flex gap-4 upload-action-row">
+                    <div className="upload-action-row">
                         <div
-                            className={`upload-zone flex-1 ${file ? 'active' : ''}`}
+                            className={`upload-zone ${file ? 'active' : ''}`}
                             onDragOver={handleDragOver}
                             onDrop={handleDrop}
                             onClick={() => document.getElementById('fileUpload')?.click()}
                         >
                             <input type="file" id="fileUpload" style={{ display: 'none' }} accept=".xlsx,.xls,.csv,.txt" onChange={handleFileSelect} />
-                            <div className="flex items-center justify-center gap-4">
-                                <div style={{ background: file ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '16px' }}>
-                                    <FileSpreadsheet size={32} color={file ? 'var(--primary-color)' : 'var(--text-muted)'} />
+                            <div className="flex items-center gap-3">
+                                <div style={{ background: file ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '12px' }}>
+                                    <FileSpreadsheet size={20} color={file ? 'var(--primary-color)' : 'var(--text-muted)'} />
                                 </div>
                                 <div style={{ textAlign: 'left' }}>
-                                    <h4 style={{ margin: 0, fontWeight: 800 }}>{file ? file.name : 'Selecione a Lista'}</h4>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>Excel, CSV ou TXT (UTF-8)</p>
+                                    <h4 style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>{file ? file.name : 'Selecione a Lista'}</h4>
+                                    <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Excel, CSV ou TXT</p>
                                 </div>
                             </div>
                         </div>
 
                         <button
-                            className="btn btn-primary"
-                            style={{ minWidth: '240px', fontSize: '1.1rem', fontWeight: 900, color: 'black', borderRadius: '24px' }}
+                            className="btn btn-primary btn-sm-custom"
+                            style={{ height: '56px', flex: 1, fontWeight: 900, color: 'black' }}
                             onClick={processFile}
                             disabled={isProcessing}
                         >
@@ -528,8 +554,8 @@ const UploadContacts = () => {
                             </div>
 
                             <div className="flex flex-col gap-3 mt-8">
-                                <button className="btn btn-primary w-full" style={{ padding: '16px', fontWeight: 800 }} onClick={() => navigate('/campaigns')}>PLANEJAR DISPARO</button>
-                                <button className="btn btn-secondary w-full" style={{ padding: '14px', borderRadius: '16px' }} onClick={exportCSVs}>EXPORTAR CSV</button>
+                                <button className="btn btn-primary w-full btn-sm-custom" style={{ fontWeight: 800 }} onClick={() => navigate('/campaigns')}>PLANEJAR DISPARO</button>
+                                <button className="btn btn-secondary w-full btn-sm-custom" onClick={exportCSVs}>EXPORTAR CSV</button>
                             </div>
                         </div>
                     ) : (
