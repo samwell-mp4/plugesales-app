@@ -18,6 +18,8 @@ const TemplateCreator = () => {
     // --- API / CONFIG STATE ---
     const [apiKey, setApiKey] = useState('5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
     const [senderNumber, setSenderNumber] = useState('5511997625247');
+    const [senders, setSenders] = useState<any[]>([]);
+    const [isLoadingSenders, setIsLoadingSenders] = useState(false);
 
     useEffect(() => {
         dbService.getSettings().then(settings => {
@@ -25,6 +27,32 @@ const TemplateCreator = () => {
             if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
         });
     }, []);
+
+    useEffect(() => {
+        if (apiKey) {
+            fetchSenders();
+        }
+    }, [apiKey]);
+
+    const fetchSenders = async () => {
+        setIsLoadingSenders(true);
+        try {
+            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/1/senders`, {
+                headers: {
+                    'Authorization': `App ${apiKey}`,
+                    'Accept': 'application/json'
+                }
+            });
+            const result = await response.json();
+            if (response.ok && result.senders) {
+                setSenders(result.senders);
+            }
+        } catch (err) {
+            console.error('Error fetching senders:', err);
+        } finally {
+            setIsLoadingSenders(false);
+        }
+    };
 
     // --- MODEL STATE ---
     const [modelName, setModelName] = useState('pagamento_confirmado');
@@ -269,20 +297,77 @@ const TemplateCreator = () => {
             )}
 
             <style>{`
-                .creator-layout { display: grid; grid-template-columns: 1fr 400px; gap: 32px; align-items: start; }
-                .config-bar { background: rgba(172, 248, 0, 0.03); border: 1px solid rgba(172, 248, 0, 0.1); border-radius: 20px; padding: 24px; display: flex; gap: 24px; }
-                .var-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-                .button-editor { background: rgba(0,0,0,0.2); padding: 16px; border: 1px solid var(--surface-border); border-radius: 12px; display: flex; gap: 12px; align-items: center; }
-                .preview-sticky { position: sticky; top: 24px; }
-                .wp-bubble { background: #0b141a; border-radius: 12px; padding: 10px; border: 1px solid #1f2c34; max-width: 320px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
-                .wp-content { background: #202c33; border-radius: 10px; position: relative; overflow: hidden; }
+                .creator-layout { display: grid; grid-template-columns: 1fr 420px; gap: 48px; align-items: start; }
+                .config-bar { 
+                    background: rgba(172, 248, 0, 0.05); 
+                    border: 1px solid rgba(172, 248, 0, 0.15); 
+                    border-radius: 28px; 
+                    padding: 32px; 
+                    display: flex; 
+                    align-items: center;
+                    justify-content: space-between;
+                    backdrop-filter: blur(12px);
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+                }
+                .glass-card {
+                    background: rgba(15, 23, 42, 0.4);
+                    backdrop-filter: blur(16px);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+                    transition: all 0.3s ease;
+                }
+                .glass-card:hover {
+                    border-color: rgba(172, 248, 0, 0.2);
+                    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+                }
+                .var-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+                .button-editor { 
+                    background: rgba(0,0,0,0.3); 
+                    padding: 20px; 
+                    border: 1px solid rgba(255,255,255,0.05); 
+                    border-radius: 16px; 
+                    display: flex; 
+                    gap: 16px; 
+                    align-items: center; 
+                }
+                .preview-sticky { position: sticky; top: 32px; }
+                .wp-bubble { 
+                    background: #0b141a; 
+                    border-radius: 20px; 
+                    padding: 12px; 
+                    border: 1px solid #1f2c34; 
+                    max-width: 340px; 
+                    margin: 0 auto; 
+                    box-shadow: 0 20px 80px rgba(0,0,0,0.7); 
+                }
+                .sender-display {
+                    background: rgba(172, 248, 0, 0.1);
+                    border: 1px solid var(--primary-color);
+                    border-radius: 16px;
+                    padding: 8px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    min-width: 280px;
+                }
+                .sender-input {
+                    background: transparent;
+                    border: none;
+                    font-size: 1.1rem;
+                    font-weight: 900;
+                    color: var(--primary-color);
+                    letter-spacing: 1px;
+                    width: 100%;
+                    outline: none;
+                }
+                .sender-input::placeholder { color: rgba(172, 248, 0, 0.4); }
                 
-                @media (max-width: 1100px) {
-                    .creator-layout { grid-template-columns: 1fr; }
-                    .preview-sticky { position: static; margin-top: 32px; }
+                @media (max-width: 1200px) {
+                    .creator-layout { grid-template-columns: 1fr; gap: 32px; }
+                    .preview-sticky { position: static; margin-top: 48px; }
                 }
                 @media (max-width: 768px) {
-                    .config-bar { flex-direction: column; }
+                    .config-bar { flex-direction: column; gap: 20px; text-align: center; }
                     .header-grid { grid-template-columns: 1fr !important; }
                     .tab-btns { flex-direction: column; }
                 }
@@ -290,32 +375,57 @@ const TemplateCreator = () => {
                 .loading-overlay {
                     position: fixed;
                     inset: 0;
-                    background: rgba(0, 0, 0, 0.7);
-                    backdrop-filter: blur(8px);
+                    background: rgba(2, 6, 23, 0.85);
+                    backdrop-filter: blur(12px);
                     z-index: 10000;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    gap: 24px;
+                    gap: 32px;
                     color: white;
                 }
                 .pulse-loader {
-                    width: 80px;
-                    height: 80px;
+                    width: 100px;
+                    height: 100px;
                     background: var(--primary-color);
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     color: black;
-                    box-shadow: 0 0 40px rgba(172, 248, 0, 0.4);
+                    box-shadow: 0 0 60px rgba(172, 248, 0, 0.5);
                     animation: pulse-ring 2s infinite ease-in-out;
                 }
                 @keyframes pulse-ring {
-                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0.4); }
-                    70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(172, 248, 0, 0); }
-                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0); }
+                    0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0.5); }
+                    70% { transform: scale(1.1); box-shadow: 0 0 0 30px rgba(172, 248, 0, 0); }
+                    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0); }
+                }
+
+                .bulk-table-container {
+                    max-height: 450px; 
+                    overflow-y: auto; 
+                    border: 1px solid rgba(255,255,255,0.08); 
+                    border-radius: 20px; 
+                    padding: 8px; 
+                    background: rgba(0,0,0,0.3);
+                }
+                .bulk-table th {
+                    padding: 16px;
+                    background: rgba(0,0,0,0.2);
+                    color: var(--primary-color);
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .bulk-table td {
+                    padding: 12px 16px;
+                    border-bottom: 1px solid rgba(255,255,255,0.03);
+                }
+                .bulk-row:hover {
+                    background: rgba(172, 248, 0, 0.02);
                 }
             `}</style>
 
@@ -324,15 +434,33 @@ const TemplateCreator = () => {
                 <p className="subtitle">Criação oficial de modelos para aprovação da Meta via Infobip Cloud</p>
             </div>
 
-            {/* API Settings Bar */}
-            <div className="config-bar mb-8 animate-fade-in">
-                <div className="input-group" style={{ flex: 1.5 }}>
-                    <label style={{ color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem' }}>CHAVE DE API (INFOBIP)</label>
-                    <input className="input-field" type="password" style={{ borderRadius: '12px', background: 'rgba(0,0,0,0.2)' }} value={apiKey} onChange={e => setApiKey(e.target.value)} />
+            {/* API Settings Bar Redesigned */}
+            <div className="config-bar mb-10 animate-fade-in shadow-xl">
+                <div className="flex flex-col">
+                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Configuração do Canal</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.6 }}>A chave da API está ativa e oculta por segurança.</p>
                 </div>
-                <div className="input-group" style={{ flex: 1 }}>
-                    <label style={{ color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem' }}>NÚMERO DO REMETENTE</label>
-                    <input className="input-field" style={{ borderRadius: '12px', background: 'rgba(0,0,0,0.2)' }} value={senderNumber} onChange={e => setSenderNumber(e.target.value)} />
+                
+                <div className="sender-display shadow-lg group relative">
+                    <Smartphone size={24} color={isLoadingSenders ? "#9ca3af" : "var(--primary-color)"} className={isLoadingSenders ? "animate-pulse" : ""} />
+                    <div className="flex flex-col flex-1">
+                        <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.7, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Remetente Oficial</span>
+                        <input 
+                            list="senders-list"
+                            className="sender-input" 
+                            value={senderNumber} 
+                            onChange={e => {
+                                setSenderNumber(e.target.value);
+                                dbService.saveSetting('infobip_sender', e.target.value);
+                            }}
+                            placeholder="Escolha ou Digite..."
+                        />
+                        <datalist id="senders-list">
+                            {senders.map((s: any) => (
+                                <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                            ))}
+                        </datalist>
+                    </div>
                 </div>
             </div>
 
@@ -350,10 +478,12 @@ const TemplateCreator = () => {
 
                     {activeTab === 'MODEL' ? (
                         <div className="flex flex-col gap-6 animate-fade-in">
-                            <div className="glass-card flex-col gap-6" style={{ padding: '32px', borderRadius: '24px' }}>
-                                <div className="flex items-center gap-3">
-                                    <Settings2 size={24} color="var(--primary-color)" />
-                                    <h3 style={{ margin: 0, fontWeight: 900 }}>Estrutura Básica</h3>
+                            <div className="glass-card flex-col gap-8 shadow-2xl" style={{ padding: '40px', borderRadius: '32px' }}>
+                                <div className="flex items-center gap-4">
+                                    <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}>
+                                        <Settings2 size={28} color="var(--primary-color)" />
+                                    </div>
+                                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.4rem' }}>Estrutura Básica</h3>
                                 </div>
 
                                 <div className="grid header-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '20px' }}>
@@ -483,42 +613,32 @@ const TemplateCreator = () => {
                                 </div>
 
                                 {bulkRows.length > 0 && (
-                                    <div className="flex flex-col gap-4">
-                                        <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--surface-border)', borderRadius: '16px', padding: '16px', background: 'rgba(0,0,0,0.1)' }}>
-                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                    <div className="flex flex-col gap-6">
+                                        <div className="bulk-table-container shadow-inner">
+                                            <table className="bulk-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                                                 <thead>
-                                                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                                                        <th style={{ textAlign: 'left', padding: '12px', color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 800 }}>
-                                                            <div className="flex items-center gap-2"><Settings2 size={14} /> SUFIXO</div>
-                                                        </th>
-                                                        <th style={{ textAlign: 'left', padding: '12px', color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 800 }}>
-                                                            <div className="flex items-center gap-2"><ImageIcon size={14} /> TIPO MÍDIA</div>
-                                                        </th>
-                                                        {buttons.length > 0 && (
-                                                            <th style={{ textAlign: 'left', padding: '12px', color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 800 }}>
-                                                                <div className="flex items-center gap-2"><Smartphone size={14} /> BOTÕES</div>
-                                                            </th>
-                                                        )}
+                                                    <tr>
+                                                        <th>Sufixo</th>
+                                                        <th>Tipo Mídia</th>
+                                                        {buttons.length > 0 && <th>Botões</th>}
                                                         {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
-                                                            <th key={urlIdx} style={{ textAlign: 'left', padding: '12px', color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 800 }}>
-                                                                <div className="flex items-center gap-2"><Link size={14} /> LINK BOTÃO {urlIdx + 1}</div>
-                                                            </th>
+                                                            <th key={urlIdx}>Link {urlIdx + 1}</th>
                                                         ))}
                                                         <th style={{ width: '40px' }}></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {bulkRows.map((row, i) => (
-                                                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                            <td style={{ padding: '8px' }}>
-                                                                <input className="input-field" style={{ padding: '6px', borderRadius: '8px', fontSize: '0.8rem' }} value={row.suffix} onChange={e => {
+                                                        <tr key={i} className="bulk-row">
+                                                            <td>
+                                                                <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.suffix} onChange={e => {
                                                                     const n = [...bulkRows];
                                                                     n[i].suffix = e.target.value;
                                                                     setBulkRows(n);
                                                                 }} />
                                                             </td>
-                                                            <td style={{ padding: '8px' }}>
-                                                                <select className="input-field" style={{ padding: '6px', borderRadius: '8px', fontSize: '0.8rem' }} value={row.headerType} onChange={e => {
+                                                            <td>
+                                                                <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.headerType} onChange={e => {
                                                                     const n = [...bulkRows];
                                                                     n[i].headerType = e.target.value;
                                                                     if (e.target.value === 'none') n[i].mediaUrl = '';
@@ -531,8 +651,8 @@ const TemplateCreator = () => {
                                                                 </select>
                                                             </td>
                                                             {buttons.length > 0 && (
-                                                                <td style={{ padding: '8px' }}>
-                                                                    <select className="input-field" style={{ padding: '6px', borderRadius: '8px', fontSize: '0.8rem' }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={e => {
+                                                                <td>
+                                                                    <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={e => {
                                                                         const n = [...bulkRows];
                                                                         n[i].hasButtons = e.target.value === 'yes';
                                                                         setBulkRows(n);
@@ -543,24 +663,24 @@ const TemplateCreator = () => {
                                                                 </td>
                                                             )}
                                                             {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
-                                                                <td key={urlIdx} style={{ padding: '8px' }}>
-                                                                    <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '6px', borderRadius: '8px', fontSize: '0.8rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
+                                                                <td key={urlIdx}>
+                                                                    <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
                                                                         const n = [...bulkRows];
                                                                         n[i].buttonUrls[urlIdx] = e.target.value;
                                                                         setBulkRows(n);
                                                                     }} />
                                                                 </td>
                                                             ))}
-                                                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                                                                <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer' }}>✕</button>
+                                                            <td style={{ textAlign: 'center' }}>
+                                                                <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
                                                             </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
                                             </table>
                                         </div>
-
-                                        <button className="btn btn-primary" style={{ padding: '20px', fontSize: '1.2rem', fontWeight: 900, color: 'black', borderRadius: '20px' }} onClick={handleGenerateBulk} disabled={isGenerating}>
+ 
+                                        <button className="btn btn-primary shadow-lg" style={{ padding: '24px', fontSize: '1.2rem', fontWeight: 900, color: 'black', borderRadius: '24px', textTransform: 'uppercase', letterSpacing: '1px' }} onClick={handleGenerateBulk} disabled={isGenerating}>
                                             {isGenerating ? `Publicando ${generatingProgress.current}/${generatingProgress.total}...` : 'CRIAR TEMPLATE EM MASSA'}
                                         </button>
                                     </div>

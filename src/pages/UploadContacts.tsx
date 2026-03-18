@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
     FileSpreadsheet,
     Trash2,
@@ -15,7 +14,6 @@ import * as XLSX from 'xlsx';
 import { dbService } from '../services/dbService';
 
 const UploadContacts = () => {
-    const navigate = useNavigate();
     const [file, setFile] = useState<File | null>(null);
     const [baseTag, setBaseTag] = useState('');
     const [batchSize, setBatchSize] = useState(5000);
@@ -32,8 +30,6 @@ const UploadContacts = () => {
     const [totalContacts, setTotalContacts] = useState(0);
     const [duplicateCount, setDuplicateCount] = useState(0);
     const [invalidCount, setInvalidCount] = useState(0);
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [validatorNumber, setValidatorNumber] = useState('');
     const [uploadHistory, setUploadHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
@@ -369,84 +365,6 @@ const UploadContacts = () => {
         reader.readAsArrayBuffer(file);
     };
 
-    const syncToInfobip = async () => {
-        if (processedData.length === 0) return;
-        setIsSyncing(true);
-        setSyncStatus('idle');
-
-        try {
-            const settings = await dbService.getSettings();
-            // Fallback to user provided key if settings are empty/server is down
-            const apiKey = settings.infobip_key || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8';
-            let baseUrl = settings.infobip_url || 'https://api.infobip.com';
-            if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-
-            if (!apiKey) {
-                alert("API Key da Infobip não encontrada!");
-                setIsSyncing(false);
-                return;
-            }
-
-            // Map to Infobip Person schema
-            const people = processedData.map(item => ({
-                firstName: item.info_2 || '',
-                type: 'CUSTOMER',
-                contactInformation: {
-                    phone: [{ number: item.Número }],
-                    email: item['E-mail'] ? [{ address: item['E-mail'] }] : []
-                },
-                customAttributes: {
-                    info_2: item.info_2 || '',
-                    info_3: item.info_3 || ''
-                },
-                tags: [baseTag]
-            }));
-
-            // Sync in chunks of 100 (Infobip limit for persons batch)
-            const chunkSize = 100;
-            let successCount = 0;
-
-            for (let i = 0; i < people.length; i += chunkSize) {
-                const chunk = people.slice(i, i + chunkSize);
-                const res = await fetch(`${baseUrl}/people/2/persons/batch`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `App ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ people: chunk })
-                });
-
-                if (res.ok) {
-                    successCount += chunk.length;
-                } else {
-                    const err = await res.json();
-                    throw new Error(err.description || err.message || 'Erro na API Infobip');
-                }
-            }
-
-            setSyncStatus('success');
-            
-            // Audit Log
-            await dbService.addLog({
-                logType: 'INFOBIP_SYNC',
-                author: 'Admin',
-                name: baseTag,
-                total: people.length,
-                success: successCount
-            });
-
-            alert(`${successCount} contatos sincronizados com sucesso na Infobip!`);
-
-        } catch (error: any) {
-            console.error("Sync Error:", error);
-            setSyncStatus('error');
-            alert(`Falha na sincronização: ${error.message}`);
-        } finally {
-            setIsSyncing(false);
-        }
-    };
-
     const exportCSVs = () => {
         if (processedData.length === 0) return;
         const worksheet = XLSX.utils.json_to_sheet(processedData);
@@ -699,48 +617,6 @@ const UploadContacts = () => {
                                 </div>
 
                             <div className="flex flex-col gap-3 mt-8">
-                                <button 
-                                    className="btn btn-primary w-full btn-sm-custom" 
-                                    style={{ 
-                                        fontWeight: 900, 
-                                        background: syncStatus === 'success' 
-                                            ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' 
-                                            : syncStatus === 'error'
-                                                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'
-                                                : 'linear-gradient(135deg, var(--primary-color) 0%, #8af800 100%)',
-                                        color: syncStatus === 'idle' ? 'black' : 'white',
-                                        boxShadow: syncStatus === 'success' 
-                                            ? '0 10px 20px -5px rgba(16, 185, 129, 0.3)' 
-                                            : syncStatus === 'error'
-                                                ? '0 10px 20px -5px rgba(239, 68, 68, 0.3)'
-                                                : '0 10px 20px -5px rgba(172, 248, 0, 0.3)'
-                                    }} 
-                                    onClick={syncToInfobip}
-                                    disabled={isSyncing}
-                                >
-                                    {isSyncing ? (
-                                        <div className="flex items-center gap-2">
-                                            <Activity size={18} className="animate-spin" />
-                                            <span>SINCRONIZANDO...</span>
-                                        </div>
-                                    ) : syncStatus === 'success' ? (
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <CheckCircle size={18} />
-                                            <span>SINCRO CONCLUÍDA</span>
-                                        </div>
-                                    ) : syncStatus === 'error' ? (
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <Activity size={18} />
-                                            <span>FALHA NA SINCRO</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <UploadCloud size={18} />
-                                            <span>SINCRONIZAR INFOBIP</span>
-                                        </div>
-                                    )}
-                                </button>
-                                <button className="btn btn-secondary w-full btn-sm-custom" style={{ fontWeight: 800 }} onClick={() => navigate('/campaigns')}>PLANEJAR DISPARO</button>
                                 <button className="btn btn-secondary w-full btn-sm-custom" onClick={exportCSVs}>EXPORTAR CSV</button>
                             </div>
                         </div>

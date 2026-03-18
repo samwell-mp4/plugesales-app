@@ -47,6 +47,9 @@ const Accounts = () => {
     // --- API / CONFIG STATE ---
     const [apiKey, setApiKey] = useState('5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
     const [senderNumber, setSenderNumber] = useState('5511997625247');
+    const [senders, setSenders] = useState<any[]>([]);
+    const [recentNumbers, setRecentNumbers] = useState<string[]>([]);
+    const [isLoadingSenders, setIsLoadingSenders] = useState(false);
 
     // Load settings from DB on mount
     useEffect(() => {
@@ -54,13 +57,55 @@ const Accounts = () => {
             if (settings['infobip_key']) setApiKey(settings['infobip_key']);
             if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
         });
+        
+        const savedRecents = localStorage.getItem('recent_senders');
+        if (savedRecents) setRecentNumbers(JSON.parse(savedRecents));
     }, []);
 
     // Save to DB on change
     useEffect(() => {
-        dbService.saveSetting('infobip_key', apiKey);
-        dbService.saveSetting('infobip_sender', senderNumber);
-    }, [apiKey, senderNumber]);
+        if (apiKey) {
+            dbService.saveSetting('infobip_key', apiKey);
+            fetchSenders();
+        }
+    }, [apiKey]);
+
+    useEffect(() => {
+        if (senderNumber) {
+            dbService.saveSetting('infobip_sender', senderNumber);
+            addToRecents(senderNumber);
+        }
+    }, [senderNumber]);
+
+    const addToRecents = (num: string) => {
+        if (!num || num.length < 5) return;
+        setRecentNumbers(prev => {
+            const filtered = prev.filter(n => n !== num);
+            const newList = [num, ...filtered].slice(0, 5); // Keep last 5
+            localStorage.setItem('recent_senders', JSON.stringify(newList));
+            return newList;
+        });
+    };
+
+    const fetchSenders = async () => {
+        setIsLoadingSenders(true);
+        try {
+            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/1/senders`, {
+                headers: {
+                    'Authorization': `App ${apiKey}`,
+                    'Accept': 'application/json'
+                }
+            });
+            const result = await response.json();
+            if (response.ok && result.senders) {
+                setSenders(result.senders);
+            }
+        } catch (err) {
+            console.error('Error fetching senders:', err);
+        } finally {
+            setIsLoadingSenders(false);
+        }
+    };
 
     const [templates, setTemplates] = useState<InfobipTemplate[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -199,6 +244,22 @@ const Accounts = () => {
                     border-radius: 8px;
                     white-space: nowrap;
                 }
+                .recent-tag {
+                    padding: 4px 12px;
+                    background: rgba(172, 248, 0, 0.05);
+                    border: 1px solid rgba(172, 248, 0, 0.1);
+                    border-radius: 20px;
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    color: var(--primary-color);
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .recent-tag:hover {
+                    background: var(--primary-color);
+                    color: black;
+                    transform: translateY(-2px);
+                }
             `}</style>
 
             <div className="flex-col gap-6 mb-8">
@@ -326,26 +387,56 @@ const Accounts = () => {
                                 </div>
                             </div>
 
-                            <div className="flex gap-6 items-center pt-2 config-row" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                                <div className="flex items-center gap-3">
-                                    <Smartphone size={16} color="var(--primary-color)" />
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>SENDER:</span>
-                                    <input
-                                        style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 800, width: '120px', outline: 'none' }}
-                                        value={senderNumber}
-                                        onChange={e => setSenderNumber(e.target.value)}
-                                    />
+                            <div className="flex flex-col gap-3 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                                <div className="flex items-center gap-6 config-row">
+                                    <div className="flex items-center gap-3 flex-1 max-w-[300px]">
+                                        <Smartphone size={18} color="var(--primary-color)" />
+                                        <div className="flex flex-col flex-1">
+                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Remetente</span>
+                                            <input
+                                                list="monitor-senders"
+                                                className={`input-field ${isLoadingSenders ? 'opacity-50' : ''}`}
+                                                style={{ background: 'transparent', border: 'none', borderBottom: '1px solid rgba(172,248,0,0.2)', color: 'var(--primary-color)', fontSize: '1rem', fontWeight: 900, outline: 'none', padding: '4px 0' }}
+                                                value={senderNumber}
+                                                onChange={e => setSenderNumber(e.target.value)}
+                                                placeholder="Escolha ou digite..."
+                                            />
+                                            <datalist id="monitor-senders">
+                                                {senders.map((s: any) => (
+                                                    <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                                                ))}
+                                            </datalist>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4 flex-1">
+                                        <RefreshCcw size={18} color="rgba(255,255,255,0.2)" />
+                                        <div className="flex flex-col flex-1">
+                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>API Key Ativa</span>
+                                            <input
+                                                type="password"
+                                                style={{ background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'white', opacity: 0.5, fontSize: '0.85rem', fontWeight: 600, outline: 'none', padding: '4px 0' }}
+                                                value={apiKey}
+                                                onChange={e => setApiKey(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <RefreshCcw size={16} color="var(--primary-color)" />
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>API KEY:</span>
-                                    <input
-                                        type="password"
-                                        style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 800, width: '160px', outline: 'none' }}
-                                        value={apiKey}
-                                        onChange={e => setApiKey(e.target.value)}
-                                    />
-                                </div>
+
+                                {recentNumbers.length > 0 && (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, marginRight: '4px' }}>FAVORITOS RECENTES:</span>
+                                        {recentNumbers.map(num => (
+                                            <button 
+                                                key={num} 
+                                                className="recent-tag hover-lift"
+                                                onClick={() => setSenderNumber(num)}
+                                            >
+                                                {num}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
