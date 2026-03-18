@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
     ShieldCheck, MessageSquare, Send, Activity, 
     ChevronRight, User, 
-    Search, BarChart3, Zap
+    Search, Zap
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';

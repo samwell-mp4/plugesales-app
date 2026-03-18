@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Play, Square, RefreshCcw, CheckCircle2, AlertCircle, AlertTriangle, Terminal, BarChart3, Trash2, Smartphone, Database, Clock, Settings2, SkipForward, Pause } from 'lucide-react';
+import { Activity, Play, Square, RefreshCcw, CheckCircle2, AlertCircle, AlertTriangle, Terminal, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const EngineExecution = () => {

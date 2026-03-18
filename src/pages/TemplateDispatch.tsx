@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Send,
@@ -33,7 +33,6 @@ interface InfobipTemplate {
 const TemplateDispatch = () => {
     const location = useLocation();
     const { user } = useAuth();
-    const navigate = useNavigate();
     const passedTemplate = location.state?.template as InfobipTemplate;
 
     // Multi-Template Support (Selector)
