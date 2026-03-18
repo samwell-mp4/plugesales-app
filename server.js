@@ -42,15 +42,33 @@ console.log('Redis connection source:', redisUrl === DEFAULT_REDIS ? 'internal f
 const { Pool } = pg;
 const pool = new Pool({ connectionString: pgUrl });
 
-const redisClient = createClient({ url: redisUrl });
-redisClient.on('error', err => console.error('Redis Error:', err));
+// --- MOCK REDIS PARA TESTES (SEM CONEXÃO REAL) ---
+// Desabilitamos o Redis temporariamente conforme solicitado. 
+// O servidor vai subir sem tentar se conectar ao Redis.
+const redisClient = {
+    on: () => {},
+    connect: async () => { console.log('Mock Redis: Connect (Ignored)'); return Promise.resolve(); },
+    get: async (key) => { return Promise.resolve(null); },
+    set: async (key, val) => { return Promise.resolve(); },
+    del: async (key) => { return Promise.resolve(); },
+    lLen: async (key) => { return Promise.resolve(0); },
+    lPush: async (key, val) => { return Promise.resolve(); },
+    rPop: async (key) => { return Promise.resolve(null); },
+    incr: async (key) => { return Promise.resolve(0); },
+    isOpen: true // Fingimos que está aberto
+};
+
+/* --- CÓDIGO DO REDIS ORIGINAL COMENTADO PARA TESTES ---
+const redisClientReal = createClient({ url: redisUrl });
+redisClientReal.on('error', err => console.error('Redis Error:', err));
 
 try {
-    await redisClient.connect();
+    await redisClientReal.connect();
     console.log('Redis connected successfully.');
 } catch (e) {
     console.error('Redis Connect Error:', e);
 }
+--- FIM DO CÓDIGO ORIGINAL --- */
 
 // Initialize Database Tables
 const initDB = async () => {
