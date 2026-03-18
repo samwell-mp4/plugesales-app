@@ -73,29 +73,8 @@ const UploadContacts = () => {
     const smartParseRow = (input: string) => {
         if (!input || !input.trim()) return null;
 
-        // Try delimiters: ;, |, Tab, and finally Comma
-        // We avoid splitting by comma immediately if it's potentially part of a name, 
-        // unless it's clearly a CSV-style line.
-        const delimiters = [';', '|', '\t'];
-        let parts: string[] = [input];
-
-        let foundDelimiter = false;
-        for (const d of delimiters) {
-            if (input.includes(d)) {
-                parts = input.split(d).map(p => p.trim()).filter(p => p.length > 0);
-                foundDelimiter = true;
-                break;
-            }
-        }
-
-        // If no primary delimiter, try comma but only if it results in something that looks like 
-        // multiple fields (at least one part being numeric or email)
-        if (!foundDelimiter && input.includes(',')) {
-            const commaParts = input.split(',').map(p => p.trim());
-            if (commaParts.length > 1) {
-                parts = commaParts;
-            }
-        }
+        // Split by all common delimiters at once
+        const parts = input.split(/[;,|\t]/).map(p => p.trim()).filter(p => p.length > 0);
 
         let phone = '';
         let name = '';
@@ -103,7 +82,7 @@ const UploadContacts = () => {
         let email = '';
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const cpfRegex = /(\d{3}\.?\d{3}\.?\d{3}-?\d{2})/;
+        const cpfRegex = /([0-9]{3}[\.]?[0-9]{3}[\.]?[0-9]{3}[-]?[0-9]{2})/;
         const remainingParts: string[] = [];
 
         parts.forEach(part => {
@@ -206,16 +185,22 @@ const UploadContacts = () => {
 
                     console.log('Excel/XLSX Rows:', json.length, 'startIndex:', startIndex);
 
-                    // Auto-detect phone column (0 to 3)
+                    // Auto-detect phone column (0 to 5)
                     let phoneColIndex = 0;
                     if (json.length > startIndex) {
                         const firstDataRow = json[startIndex];
-                        for (let col = 0; col < Math.min(firstDataRow.length, 5); col++) {
-                            const val = normalizePhone(String(firstDataRow[col] || ''));
-                            if (val.length === 13) {
+                        for (let col = 0; col < Math.min(firstDataRow.length, 6); col++) {
+                            const raw = String(firstDataRow[col] || '');
+                            if (normalizePhone(raw).length === 13) {
                                 phoneColIndex = col;
-                                console.log('Auto-detected phone column:', col, 'Value:', val);
                                 break;
+                            }
+                            if (smartSplit) {
+                                const parsed = smartParseRow(raw);
+                                if (parsed && parsed.telefone?.length === 13) {
+                                    phoneColIndex = col;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -223,28 +208,31 @@ const UploadContacts = () => {
                     for (let i = startIndex; i < json.length; i++) {
                         const row = json[i];
                         if (row && row.length > 0) {
-                            const rawPhone = String(row[phoneColIndex] || '');
-                            const phone = normalizePhone(rawPhone);
+                            const rawCell = String(row[phoneColIndex] || '');
+                            let contact: any = null;
 
-                            if (i < startIndex + 5) {
-                                console.log(`Excel Row ${i}: col${phoneColIndex}="${rawPhone}" normalized="${phone}" len=${phone.length}`);
+                            if (smartSplit) {
+                                const parsed = smartParseRow(rawCell);
+                                if (parsed && parsed.telefone?.length === 13) {
+                                    contact = parsed;
+                                }
                             }
 
-                            if (phone.length === 13) {
-                                let contact: any = {
-                                    telefone: phone,
-                                    nome: String(row[phoneColIndex === 0 ? 1 : 0] || '').trim()
-                                };
-
-                                // If smartSplit is on and only one real column has data, try splitting it
-                                if (smartSplit && row.filter((c:any) => String(c||'').trim()).length === 1) {
-                                    const parsed = smartParseRow(String(row[phoneColIndex] || ''));
-                                    if (parsed) contact = parsed;
-                                } else if (mapExtraInfo) {
-                                    contact.cpf = String(row[2] || '');
-                                    contact.email = String(row[3] || '');
+                            if (!contact) {
+                                const phone = normalizePhone(rawCell);
+                                if (phone.length === 13) {
+                                    contact = {
+                                        telefone: phone,
+                                        nome: String(row[phoneColIndex === 0 ? 1 : 0] || '').trim()
+                                    };
+                                    if (mapExtraInfo) {
+                                        contact.cpf = String(row[2] || '');
+                                        contact.email = String(row[3] || '');
+                                    }
                                 }
+                            }
 
+                            if (contact) {
                                 extractedContacts.push(contact);
                             }
                         }
