@@ -149,6 +149,22 @@ const TemplateDispatch = () => {
         });
     }, [location.state]);
 
+    // Handle draft passed from Control page
+    useEffect(() => {
+        if (location.state?.draft && allTemplates.length > 0) {
+            const draft = location.state.draft;
+            loadDraft(draft);
+            
+            if (location.state.autoSend) {
+                // Small delay to ensure state and templates are applied
+                setTimeout(() => sendMessage(), 500);
+            }
+            
+            // Clear navigation state to prevent re-load on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, allTemplates]);
+
     useEffect(() => {
         // Fetch all templates if none passed
         const fetchTemplates = async () => {

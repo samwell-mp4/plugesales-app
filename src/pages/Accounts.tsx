@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar } from 'lucide-react';
+import { Plus, CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar, BookMarked, FileEdit, LayoutDashboard } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 interface InfobipTemplate {
@@ -40,6 +40,8 @@ const Accounts = () => {
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'REJECTED'>('ALL');
+    const [activeTab, setActiveTab] = useState<'TEMPLATES' | 'RASCUNHOS'>('TEMPLATES');
+    const [drafts, setDrafts] = useState<any[]>([]);
 
     const fetchTemplates = async () => {
         setIsLoading(true);
@@ -77,6 +79,12 @@ const Accounts = () => {
     useEffect(() => {
         fetchTemplates();
         const interval = setInterval(fetchTemplates, 20000); // Relaxed for quota
+        
+        // Fetch drafts from DB
+        dbService.getPlannerDrafts().then(dbDrafts => {
+            setDrafts(dbDrafts.filter((d: any) => d._draft === true));
+        });
+
         return () => clearInterval(interval);
     }, [senderNumber, apiKey]);
 
@@ -156,207 +164,300 @@ const Accounts = () => {
                 }
             `}</style>
 
-            <div className="header-row">
-                <div>
-                    <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', letterSpacing: '-1px' }}>Monitor de WhatsApp</h1>
-                    <p className="subtitle" style={{ margin: 0 }}>Gerencie seus templates autorizados pela Meta via Infobip</p>
+            <div className="flex-col gap-6 mb-8">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>Monitor de WhatsApp</h1>
+                        <p className="subtitle">Gerencie seus templates autorizados pela Meta via Infobip</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button className="btn btn-secondary" onClick={() => fetchTemplates()} disabled={isLoading} style={{ borderRadius: '12px', background: 'rgba(255,255,255,0.03)' }}>
+                            <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        </button>
+                        <button className="btn btn-primary" style={{ borderRadius: '12px', padding: '10px 24px', color: '#000', fontWeight: 800 }}>
+                            <Plus size={18} /> Nova WABA
+                        </button>
+                    </div>
                 </div>
-                <div className="flex gap-3">
-                    <button className="btn btn-secondary" onClick={() => fetchTemplates()} disabled={isLoading} style={{ borderRadius: '12px', background: 'rgba(255,255,255,0.03)' }}>
-                        <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+
+                <div className="flex gap-4 mt-6">
+                    <button 
+                        onClick={() => setActiveTab('TEMPLATES')}
+                        className={`btn flex-1 py-4 flex items-center justify-center gap-3 ${activeTab === 'TEMPLATES' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ 
+                            borderRadius: '16px', 
+                            fontWeight: 900, 
+                            fontSize: '1rem',
+                            color: activeTab === 'TEMPLATES' ? 'black' : 'white',
+                            border: activeTab === 'TEMPLATES' ? 'none' : '1px solid rgba(255,255,255,0.05)'
+                        }}
+                    >
+                        <LayoutDashboard size={20} /> MEUS TEMPLATES (META)
                     </button>
-                    <button className="btn btn-primary" style={{ borderRadius: '12px', padding: '10px 24px', color: '#000', fontWeight: 800 }}>
-                        <Plus size={18} /> Nova WABA
+                    <button 
+                        onClick={() => setActiveTab('RASCUNHOS')}
+                        className={`btn flex-1 py-4 flex items-center justify-center gap-3 ${activeTab === 'RASCUNHOS' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ 
+                            borderRadius: '16px', 
+                            fontWeight: 900, 
+                            fontSize: '1rem',
+                            color: activeTab === 'RASCUNHOS' ? 'black' : 'white',
+                            border: activeTab === 'RASCUNHOS' ? 'none' : '1px solid rgba(172,248,0,0.2)'
+                        }}
+                    >
+                        <BookMarked size={20} /> PRONTOS PARA DISPARO (RASCUNHOS)
                     </button>
                 </div>
             </div>
 
-            {/* Quick Stats Dashboard */}
-            <div className="stats-grid">
-                <div className="glass-card" style={{ borderLeft: '4px solid var(--primary-color)', padding: '20px' }}>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>APROVADOS</p>
-                    <div className="flex items-center justify-between mt-2">
-                        <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{approvedCount}</h2>
-                        <CheckCircle size={28} color="var(--primary-color)" opacity={0.4} />
-                    </div>
-                </div>
-                <div className="glass-card" style={{ borderLeft: '4px solid #facc15', padding: '20px' }}>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>PENDENTES</p>
-                    <div className="flex items-center justify-between mt-2">
-                        <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{pendingCount}</h2>
-                        <Layers size={28} color="#facc15" opacity={0.4} />
-                    </div>
-                </div>
-                <div className="glass-card" style={{ borderLeft: '4px solid #ff4d4d', padding: '20px' }}>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>REJEITADOS</p>
-                    <div className="flex items-center justify-between mt-2">
-                        <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{rejectedCount}</h2>
-                        <AlertTriangle size={28} color="#ff4d4d" opacity={0.4} />
-                    </div>
-                </div>
-                <div className="glass-card" style={{ background: 'rgba(172, 248, 0, 0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px' }}>
-                    <div className="flex items-center gap-2">
-                        <div style={{ width: 8, height: 8, background: 'var(--primary-color)', borderRadius: '50%', boxShadow: '0 0 8px var(--primary-color)' }}></div>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-color)' }}>LIVE SYNC</span>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Última vez: {lastUpdated?.toLocaleTimeString()}</span>
-                </div>
-            </div>
-
-            {/* Filtering Section */}
-            <div className="glass-card mt-8 p-6" style={{ background: 'rgba(255,255,255,0.01)' }}>
-                <div className="flex flex-col gap-6">
-                    <div className="flex items-center justify-between gap-6" style={{ flexWrap: 'wrap' }}>
-                        <div className="filter-tabs" style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            {[
-                                { id: 'ALL', label: 'Todos', count: templates.length },
-                                { id: 'APPROVED', label: 'Aprovados', count: approvedCount },
-                                { id: 'PENDING', label: 'Pendentes', count: pendingCount },
-                                { id: 'REJECTED', label: 'Rejeitados', count: rejectedCount }
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setFilterStatus(tab.id as any)}
-                                    style={{
-                                        padding: '8px 20px',
-                                        border: 'none',
-                                        background: filterStatus === tab.id ? 'rgba(172, 248, 0, 0.1)' : 'transparent',
-                                        color: filterStatus === tab.id ? 'var(--primary-color)' : 'var(--text-muted)',
-                                        fontSize: '0.85rem',
-                                        fontWeight: 700,
-                                        borderRadius: '10px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    {tab.label}
-                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{tab.count}</span>
-                                </button>
-                            ))}
+            {activeTab === 'TEMPLATES' ? (
+                <div className="animate-fade-in">
+                    <div className="stats-grid">
+                        <div className="glass-card" style={{ borderLeft: '4px solid var(--primary-color)', padding: '20px' }}>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>APROVADOS</p>
+                            <div className="flex items-center justify-between mt-2">
+                                <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{approvedCount}</h2>
+                                <CheckCircle size={28} color="var(--primary-color)" opacity={0.4} />
+                            </div>
                         </div>
-
-                        <div className="search-bar-container">
-                            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.5 }} />
-                            <input
-                                className="input-field"
-                                style={{ paddingLeft: '48px', background: 'rgba(0,0,0,0.2)', fontSize: '0.9rem', borderRadius: '12px' }}
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                placeholder="Filtrar por nome ou identificador..."
-                            />
+                        <div className="glass-card" style={{ borderLeft: '4px solid #facc15', padding: '20px' }}>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>PENDENTES</p>
+                            <div className="flex items-center justify-between mt-2">
+                                <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{pendingCount}</h2>
+                                <Layers size={28} color="#facc15" opacity={0.4} />
+                            </div>
+                        </div>
+                        <div className="glass-card" style={{ borderLeft: '4px solid #ff4d4d', padding: '20px' }}>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>REJEITADOS</p>
+                            <div className="flex items-center justify-between mt-2">
+                                <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 800 }}>{rejectedCount}</h2>
+                                <AlertTriangle size={28} color="#ff4d4d" opacity={0.4} />
+                            </div>
+                        </div>
+                        <div className="glass-card" style={{ background: 'rgba(172, 248, 0, 0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px' }}>
+                            <div className="flex items-center gap-2">
+                                <div style={{ width: 8, height: 8, background: 'var(--primary-color)', borderRadius: '50%', boxShadow: '0 0 8px var(--primary-color)' }}></div>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-color)' }}>LIVE SYNC</span>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Última vez: {lastUpdated?.toLocaleTimeString()}</span>
                         </div>
                     </div>
 
-                    <div className="flex gap-6 items-center pt-2 config-row" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                        <div className="flex items-center gap-3">
-                            <Smartphone size={16} color="var(--primary-color)" />
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>SENDER:</span>
-                            <input
-                                style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 800, width: '120px', outline: 'none' }}
-                                value={senderNumber}
-                                onChange={e => setSenderNumber(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <RefreshCcw size={16} color="var(--primary-color)" />
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>API KEY:</span>
-                            <input
-                                type="password"
-                                style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 800, width: '160px', outline: 'none' }}
-                                value={apiKey}
-                                onChange={e => setApiKey(e.target.value)}
-                            />
+                    <div className="glass-card mt-8 p-6" style={{ background: 'rgba(255,255,255,0.01)' }}>
+                        <div className="flex flex-col gap-6">
+                            <div className="flex items-center justify-between gap-6" style={{ flexWrap: 'wrap' }}>
+                                <div className="filter-tabs" style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    {[
+                                        { id: 'ALL', label: 'Todos', count: templates.length },
+                                        { id: 'APPROVED', label: 'Aprovados', count: approvedCount },
+                                        { id: 'PENDING', label: 'Pendentes', count: pendingCount },
+                                        { id: 'REJECTED', label: 'Rejeitados', count: rejectedCount }
+                                    ].map(tab => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setFilterStatus(tab.id as any)}
+                                            style={{
+                                                padding: '8px 20px',
+                                                border: 'none',
+                                                background: filterStatus === tab.id ? 'rgba(172, 248, 0, 0.1)' : 'transparent',
+                                                color: filterStatus === tab.id ? 'var(--primary-color)' : 'var(--text-muted)',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 700,
+                                                borderRadius: '10px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}
+                                        >
+                                            {tab.label}
+                                            <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{tab.count}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="search-bar-container">
+                                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.5 }} />
+                                    <input
+                                        className="input-field"
+                                        style={{ paddingLeft: '48px', background: 'rgba(0,0,0,0.2)', fontSize: '0.9rem', borderRadius: '12px' }}
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        placeholder="Filtrar por nome ou identificador..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-6 items-center pt-2 config-row" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                                <div className="flex items-center gap-3">
+                                    <Smartphone size={16} color="var(--primary-color)" />
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>SENDER:</span>
+                                    <input
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 800, width: '120px', outline: 'none' }}
+                                        value={senderNumber}
+                                        onChange={e => setSenderNumber(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <RefreshCcw size={16} color="var(--primary-color)" />
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>API KEY:</span>
+                                    <input
+                                        type="password"
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 800, width: '160px', outline: 'none' }}
+                                        value={apiKey}
+                                        onChange={e => setApiKey(e.target.value)}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* Template List Table */}
-            <div className="table-container shadow-glass">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>TEMPLATE</th>
-                            <th>CATEGORIA</th>
-                            <th>STATUS META</th>
-                            <th>ATUALIZADO</th>
-                            <th style={{ textAlign: 'right' }}>AÇÕES</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {isLoading && templates.length === 0 ? (
-                            <tr><td colSpan={5} style={{ padding: '80px', textAlign: 'center' }}>
-                                <RefreshCcw className="animate-spin mb-4" size={40} color="var(--primary-color)" style={{ margin: '0 auto' }} />
-                                <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Syncing with Meta Cloud...</p>
-                            </td></tr>
-                        ) : filteredTemplates.length === 0 ? (
-                            <tr><td colSpan={5} style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                <Search size={40} className="mb-4" opacity={0.1} style={{ margin: '0 auto' }} />
-                                <p>Nenhum modelo encontrado.</p>
-                            </td></tr>
-                        ) : (
-                            filteredTemplates.map((t, index) => (
-                                <tr key={index} className="hover-row">
-                                    <td>
-                                        <div className="flex flex-col">
-                                            <span style={{ fontWeight: 800, color: 'white' }}>{t.name}</span>
-                                            <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', opacity: 0.6, fontFamily: 'monospace', marginTop: '2px' }}>{t.id.slice(0, 15)}...</span>
+                    <div className="table-container shadow-glass">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>TEMPLATE</th>
+                                    <th>CATEGORIA</th>
+                                    <th>STATUS META</th>
+                                    <th>ATUALIZADO</th>
+                                    <th style={{ textAlign: 'right' }}>AÇÕES</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {isLoading && templates.length === 0 ? (
+                                    <tr><td colSpan={5} style={{ padding: '80px', textAlign: 'center' }}>
+                                        <RefreshCcw className="animate-spin mb-4" size={40} color="var(--primary-color)" style={{ margin: '0 auto' }} />
+                                        <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Syncing with Meta Cloud...</p>
+                                    </td></tr>
+                                ) : filteredTemplates.length === 0 ? (
+                                    <tr><td colSpan={5} style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <Search size={40} className="mb-4" opacity={0.1} style={{ margin: '0 auto' }} />
+                                        <p>Nenhum modelo encontrado.</p>
+                                    </td></tr>
+                                ) : (
+                                    filteredTemplates.map((t, index) => (
+                                        <tr key={index} className="hover-row">
+                                            <td>
+                                                <div className="flex flex-col">
+                                                    <span style={{ fontWeight: 800, color: 'white' }}>{t.name}</span>
+                                                    <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', opacity: 0.6, fontFamily: 'monospace', marginTop: '2px' }}>{t.id.slice(0, 15)}...</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="flex flex-col">
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t.category}</span>
+                                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>pt_BR</span>
+                                                </div>
+                                            </td>
+                                            <td>{getStatusBadge(t.status, t.rejectionReason)}</td>
+                                            <td>
+                                                <div className="flex items-center gap-2" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                                    <Calendar size={12} opacity={0.4} />
+                                                    {formatDate(t.lastUpdatedAt || t.createdAt)}
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        className="btn btn-secondary"
+                                                        style={{ padding: '10px', minWidth: '40px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px' }}
+                                                        onClick={() => alert(`JSON Structure:\n\n${JSON.stringify(t.structure, null, 2)}`)}
+                                                        title="View Structure"
+                                                    >
+                                                        <Eye size={16} />
+                                                    </button>
+                                                    {t.status.toUpperCase() === 'APPROVED' && (
+                                                        <button
+                                                            className="btn btn-primary"
+                                                            style={{ padding: '10px', minWidth: '40px', borderRadius: '10px' }}
+                                                            onClick={() => navigate(`/dispatch`, { state: { template: t, sender: senderNumber, key: apiKey } })}
+                                                            title="Go to Dispatch"
+                                                        >
+                                                            <Send size={16} color="black" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ) : (
+                <div className="animate-fade-in flex-col gap-8">
+                    <div className="glass-card flex-col" style={{ padding: '32px' }}>
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 style={{ fontSize: '1.5rem', borderLeft: '5px solid var(--primary-color)', paddingLeft: '20px', margin: 0, fontWeight: 900 }}>Prontos para Disparo</h2>
+                            <div className="badge badge-success" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '8px 16px', borderRadius: '12px', fontWeight: 900 }}>
+                                {drafts.length} AGUARDANDO
+                            </div>
+                        </div>
+
+                        {drafts.length > 0 ? (
+                            <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
+                                {drafts.map((draft, idx) => (
+                                    <div key={idx} className="glass-card flex-col p-6 hover-lift" style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid var(--surface-border)', borderRadius: '24px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)' }}>
+                                        <div className="flex items-start justify-between mb-6">
+                                            <div style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', padding: '14px', borderRadius: '16px' }}>
+                                                <BookMarked size={28} />
+                                            </div>
+                                            <div className="flex-col items-end">
+                                                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Criado em</span>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{new Date(draft.savedAt || draft.timestamp).toLocaleDateString()}</span>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <div className="flex flex-col">
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t.category}</span>
-                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>pt_BR</span>
-                                        </div>
-                                    </td>
-                                    <td>{getStatusBadge(t.status, t.rejectionReason)}</td>
-                                    <td>
-                                        <div className="flex items-center gap-2" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                            <Calendar size={12} opacity={0.4} />
-                                            {formatDate(t.lastUpdatedAt || t.createdAt)}
-                                        </div>
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '10px', minWidth: '40px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px' }}
-                                                onClick={() => alert(`JSON Structure:\n\n${JSON.stringify(t.structure, null, 2)}`)}
-                                                title="View Structure"
-                                            >
-                                                <Eye size={16} />
-                                            </button>
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '10px', minWidth: '40px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px' }}
-                                                onClick={() => alert('Editing local draft...')}
-                                                title="Edit Template"
-                                            >
-                                                <Layers size={16} />
-                                            </button>
-                                            {t.status.toUpperCase() === 'APPROVED' && (
-                                                <button
-                                                    className="btn btn-primary"
-                                                    style={{ padding: '10px', minWidth: '40px', borderRadius: '10px' }}
-                                                    onClick={() => navigate(`/dispatch`, { state: { template: t, sender: senderNumber, key: apiKey } })}
-                                                    title="Go to Dispatch"
-                                                >
-                                                    <Send size={16} color="black" />
-                                                </button>
+                                        
+                                        <div className="flex-col gap-2 mb-8">
+                                            <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>{draft.label}</h4>
+                                            <div className="flex items-center gap-2">
+                                                <Layers size={14} color="var(--text-muted)" />
+                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{draft.templateName}</span>
+                                            </div>
+                                            {draft.tag && (
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <Smartphone size={14} color="var(--primary-color)" />
+                                                    <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)', fontWeight: 800 }}>LOTE: {draft.tag}</span>
+                                                </div>
                                             )}
                                         </div>
-                                    </td>
-                                </tr>
-                            ))
+
+                                        <div className="flex gap-4 mt-auto">
+                                            <button 
+                                                className="btn btn-secondary flex-1 flex items-center justify-center gap-2 py-3"
+                                                onClick={() => navigate('/dispatch', { state: { draft: draft } })}
+                                                style={{ fontSize: '0.8rem', fontWeight: 800, borderRadius: '14px' }}
+                                            >
+                                                <FileEdit size={16} /> EDITAR
+                                            </button>
+                                            <button 
+                                                className="btn btn-primary flex-1 flex items-center justify-center gap-2 py-3"
+                                                onClick={() => navigate('/dispatch', { state: { draft: draft, autoSend: true } })}
+                                                style={{ color: 'black', fontSize: '0.8rem', fontWeight: 900, borderRadius: '14px' }}
+                                            >
+                                                <Send size={16} /> DISPARAR
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-24 flex-col items-center justify-center gap-6 opacity-20" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <BookMarked size={100} strokeWidth={1} />
+                                <div className="flex-col items-center gap-2">
+                                    <p style={{ fontWeight: 900, fontSize: '1.4rem', letterSpacing: '2px', textTransform: 'uppercase', margin: 0 }}>Fila de rascunhos vazia</p>
+                                    <p style={{ fontSize: '1rem', margin: 0 }}>Crie novos rascunhos no Quick Dispatch para gerenciar aqui.</p>
+                                </div>
+                            </div>
                         )}
-                    </tbody>
-                </table>
-            </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+
 
 export default Accounts;
