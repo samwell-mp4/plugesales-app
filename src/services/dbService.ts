@@ -1,6 +1,4 @@
-const API_BASE = window.location.hostname === 'localhost' 
-    ? 'https://plug-sales-dispatch-app-dispatch-app.hx8235.easypanel.host/api' 
-    : '/api';
+const API_BASE = '/api';
 
 export const dbService = {
     // --- Settings ---
