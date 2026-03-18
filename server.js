@@ -14,13 +14,30 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // --- DB CONFIG ---
-// Em produção/EasyPanel, os hostnames internos são usados se as variáveis de ambiente não existirem.
-// Para rodar localmente fora do Docker, mude o fallback ou use variáveis de ambiente (.env).
-const pgUrl = process.env.DATABASE_URL || "postgres://postgres:Marketing%40plugsales2026!@plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
-const redisUrl = process.env.REDIS_URL || "redis://default:Marketing%40plugsales2026!@plug_sales_redis:6379";
+// Fallbacks for Easypanel/Docker hosts
+const DEFAULT_PG = "postgres://postgres:Marketing%40plugsales2026!@plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
+const DEFAULT_REDIS = "redis://default:Marketing%40plugsales2026!@plug_sales_redis:6379";
 
-console.log('Postgres host source:', process.env.DATABASE_URL ? 'env DATABASE_URL' : 'internal hostname fallback');
-console.log('Redis host source:', process.env.REDIS_URL ? 'env REDIS_URL' : 'internal hostname fallback');
+let pgUrl = process.env.DATABASE_URL || DEFAULT_PG;
+let redisUrl = process.env.REDIS_URL || DEFAULT_REDIS;
+
+// CORREÇÃO CRÍTICA DE VPS/DOCKER: 
+// Se detectarmos que estamos dentro de um contêiner (Docker), mas a URL capturada 
+// for localhost/127.0.0.1, ignoramos e forçamos o hostname interno do Docker. 
+// Isso resolve o erro de REDIS_URL/DATABASE_URL errados no painel do Easypanel.
+if (fs.existsSync('/.dockerenv')) {
+    if (pgUrl.includes('localhost') || pgUrl.includes('127.0.0.1')) {
+        console.warn('⚠️ VPS DETECTADA: Corrigindo PG_URL de localhost para host interno do Docker.');
+        pgUrl = DEFAULT_PG;
+    }
+    if (redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1')) {
+        console.warn('⚠️ VPS DETECTADA: Corrigindo REDIS_URL de localhost para host interno do Docker.');
+        redisUrl = DEFAULT_REDIS;
+    }
+}
+
+console.log('Postgres connection source:', pgUrl === DEFAULT_PG ? 'internal fallback' : 'env DATABASE_URL');
+console.log('Redis connection source:', redisUrl === DEFAULT_REDIS ? 'internal fallback' : 'env REDIS_URL');
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: pgUrl });
