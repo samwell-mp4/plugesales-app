@@ -114,7 +114,11 @@ const Dashboard = () => {
     }, []);
 
     const recentlyApproved = [...templates].filter(t => t.status === 'APPROVED')
-        .sort((a, b) => new Date(b.lastStatusUpdate || 0).getTime() - new Date(a.lastStatusUpdate || 0).getTime())
+        .sort((a: any, b: any) => {
+            const dateA = new Date(a.lastUpdatedAt || a.lastUpdateAt || a.createdAt || 0).getTime();
+            const dateB = new Date(b.lastUpdatedAt || b.lastUpdateAt || b.createdAt || 0).getTime();
+            return dateB - dateA;
+        })
         .slice(0, 5);
 
     const formatDate = (dateStr: string) => {
@@ -256,7 +260,12 @@ const Dashboard = () => {
 
                     <div className="approval-list flex-col gap-0">
                         {recentlyApproved.map((t, idx) => (
-                            <div key={idx} className="approval-item">
+                            <div 
+                                key={idx} 
+                                className="approval-item clickable" 
+                                onClick={() => navigate('/dispatch', { state: { template: t, sender: fromNumber, key: apiKey } })}
+                                style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
+                            >
                                 <div className="flex items-center gap-4">
                                     <div className="index-number">#{idx + 1}</div>
                                     <div className="flex-col" style={{ overflow: 'hidden' }}>
@@ -270,7 +279,9 @@ const Dashboard = () => {
                                 </div>
                                 <div className="flex-col items-end">
                                     <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary-color)', letterSpacing: '0.5px' }}>APROVADO</span>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>{formatDate(t.lastStatusUpdate)}</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                        {formatDate(t.lastUpdatedAt || t.lastUpdateAt || t.createdAt)}
+                                    </span>
                                 </div>
                             </div>
                         ))}
@@ -337,13 +348,15 @@ const Dashboard = () => {
                 
                 .approval-item {
                     display: flex;
-                    align-items: center;
                     justify-content: space-between;
-                    padding: 20px;
-                    border-bottom: 1px solid rgba(255,255,255,0.03);
+                    align-items: center;
+                    padding: 16px;
+                    border-bottom: 1px solid rgba(255,255,255,0.02);
                     transition: background 0.2s;
                 }
-                .approval-item:hover { background: rgba(255,255,255,0.01); }
+                .approval-item:hover {
+                    background: rgba(172, 248, 0, 0.03);
+                }
                 .approval-item:last-child { border-bottom: none; }
                 .index-number {
                     width: 32px;
