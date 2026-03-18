@@ -1,27 +1,28 @@
 # Stage 1: Build the application
 FROM node:20-alpine AS build
-
 WORKDIR /app
-
-# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install
-
-# Copy the rest of the application and build
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve the application using Nginx
-FROM nginx:stable-alpine
+# Stage 2: Runtime
+FROM node:20-alpine
+WORKDIR /app
 
-# Copy the custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm install --production
 
-# Copy the build output from the build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copy build and server files
+COPY --from=build /app/dist ./dist
+COPY server.js ./
 
-# Expose port 80
-EXPOSE 80
+# Create uploads directory
+RUN mkdir -p uploads
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Expose port 3000
+EXPOSE 3000
+
+# Start the Node.js server
+CMD ["node", "server.js"]
