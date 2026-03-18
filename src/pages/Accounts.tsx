@@ -427,14 +427,14 @@ const Accounts = () => {
                                         <div className="flex gap-4 mt-auto">
                                             <button 
                                                 className="btn btn-secondary flex-1 flex items-center justify-center gap-2 py-3"
-                                                onClick={() => navigate('/dispatch', { state: { draft: draft } })}
+                                                onClick={() => navigate('/dispatch', { state: { draft: draft, sender: senderNumber, key: apiKey } })}
                                                 style={{ fontSize: '0.8rem', fontWeight: 800, borderRadius: '14px' }}
                                             >
                                                 <FileEdit size={16} /> EDITAR
                                             </button>
                                             <button 
                                                 className="btn btn-primary flex-1 flex items-center justify-center gap-2 py-3"
-                                                onClick={() => navigate('/dispatch', { state: { draft: draft, autoSend: true } })}
+                                                onClick={() => navigate('/dispatch', { state: { draft: draft, autoSend: true, sender: senderNumber, key: apiKey } })}
                                                 style={{ color: 'black', fontSize: '0.8rem', fontWeight: 900, borderRadius: '14px' }}
                                             >
                                                 <Send size={16} /> DISPARAR

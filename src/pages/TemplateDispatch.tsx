@@ -157,7 +157,10 @@ const TemplateDispatch = () => {
             
             if (location.state.autoSend) {
                 // Small delay to ensure state and templates are applied
-                setTimeout(() => sendMessage(), 500);
+                setTimeout(() => {
+                    console.log('Triggering Auto-Dispatch for Draft:', draft.templateName);
+                    sendMessage();
+                }, 1000);
             }
             
             // Clear navigation state to prevent re-load on refresh
@@ -316,39 +319,42 @@ const TemplateDispatch = () => {
 
         const payload: any = {
             messages: targets.map(target => {
-                const msg: any = {
-                    from: fromNumber,
-                    to: target.trim(),
-                    content: {
-                        templateName: templateName,
-                        templateData: {
-                            body: {
-                                placeholders: placeholders.map(p => p.value)
-                            }
-                        },
-                        language: language
-                    }
-                };
+                const templateData: any = {};
 
+                // Only include body if there are placeholders
+                if (placeholders.length > 0) {
+                    templateData.body = {
+                        placeholders: placeholders.map(p => p.value)
+                    };
+                }
+
+                // Only include header if needed and media is provided
                 if (headerType !== 'NONE' && mediaUrl) {
-                    msg.content.templateData.header = {
+                    templateData.header = {
                         type: headerType,
                         mediaUrl: mediaUrl
                     };
                 }
 
-                if (includeButton) {
-
-
-                    if (includeButton && buttonType) {
-                        msg.content.templateData.buttons = [
-                            {
-                                type: buttonType,
-                                ...(buttonType === 'QUICK_REPLY' ? { payload: buttonPayload } : { parameter: buttonPayload })
-                            }
-                        ];
-                    }
+                // Only include buttons if enabled and type is set
+                if (includeButton && buttonType) {
+                    templateData.buttons = [
+                        {
+                            type: buttonType,
+                            ...(buttonType === 'QUICK_REPLY' ? { payload: buttonPayload } : { parameter: buttonPayload })
+                        }
+                    ];
                 }
+
+                const msg: any = {
+                    from: fromNumber,
+                    to: target.trim(),
+                    content: {
+                        templateName: templateName,
+                        templateData: Object.keys(templateData).length > 0 ? templateData : undefined,
+                        language: language
+                    }
+                };
 
                 return msg;
             })
