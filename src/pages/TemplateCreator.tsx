@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -11,6 +12,7 @@ type ButtonDef = {
 
 const TemplateCreator = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'MODEL' | 'BULK'>('MODEL');
 
     // --- API / CONFIG STATE ---
@@ -44,12 +46,11 @@ const TemplateCreator = () => {
 
     // --- BULK STATE ---
     const [bulkPrefix, setBulkPrefix] = useState('pagamento_');
-    const [bulkQuantity, setBulkQuantity] = useState(10);
+    const [bulkRows, setBulkRows] = useState<any[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
 
-    // --- HELPER: MAP TO INFOBIP STRUCTURE ---
-    const buildInfobipPayload = (nameOverride?: string) => {
+    const buildInfobipPayload = (name: string, overrideHeaderType?: 'none' | 'image' | 'video', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean) => {
         const varMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
         const varCount = varMatches.length;
         const examples = variablesExample.slice(0, varCount);
@@ -64,10 +65,12 @@ const TemplateCreator = () => {
             }
         };
 
-        if (headerType !== 'none') {
+        const effectiveHeaderType = overrideHeaderType || headerType;
+
+        if (effectiveHeaderType !== 'none') {
             structure.header = {
-                format: headerType.toUpperCase(),
-                example: headerExampleUrl
+                format: effectiveHeaderType.toUpperCase(),
+                example: mediaUrl || headerExampleUrl
             };
         }
 
@@ -75,16 +78,24 @@ const TemplateCreator = () => {
             structure.footer = { text: footerText };
         }
 
-        if (buttons.length > 0) {
-            structure.buttons = buttons.map((btn: any) => ({
-                type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
-                text: btn.text,
-                ...(btn.type === 'url' ? { url: btn.url } : {})
-            }));
+        const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
+
+        if (effectiveHasButtons && buttons.length > 0) {
+            structure.buttons = buttons.map((btn: any, idx: number) => {
+                const bPayload: any = {
+                    type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
+                    text: btn.text,
+                };
+                if (btn.type === 'url') {
+                    // Use override if available for this specific button index
+                    bPayload.url = (buttonUrlOverrides && buttonUrlOverrides[idx]) || btn.url;
+                }
+                return bPayload;
+            });
         }
 
         return {
-            name: nameOverride || modelName,
+            name: name,
             language: language,
             category: category,
             structure: structure
@@ -161,10 +172,10 @@ const TemplateCreator = () => {
         if (!modelName) return alert("Defina um nome para o template.");
         setIsGenerating(true);
         setGeneratingProgress({ current: 1, total: 1, msg: `Criando template "${modelName}"...` });
-        
-        const payload = buildInfobipPayload();
+
+        const payload = buildInfobipPayload(modelName);
         const res = await callInfobipAPI(payload);
-        
+
         setIsGenerating(false);
 
         if (res.success) {
@@ -175,29 +186,31 @@ const TemplateCreator = () => {
                 author: user?.name,
                 mode: 'SINGLE'
             });
-            
+
             // Send to Webhook
             await sendToWebhook(payload);
 
             alert(`✅ Template "${modelName}" criado com sucesso!`);
+            navigate('/accounts');
         }
         else alert(`❌ Erro: ${res.error}`);
     };
 
     const handleGenerateBulk = async () => {
-        if (!bulkPrefix) return alert("Forneça um prefixo base.");
-        const confirmBulk = window.confirm(`Isso irá disparar ${bulkQuantity} chamadas de API. Continuar?`);
+        if (bulkRows.length === 0) return alert("Adicione pelo menos uma linha no gerador.");
+        const confirmBulk = window.confirm(`Isso irá disparar ${bulkRows.length} chamadas de API. Continuar?`);
         if (!confirmBulk) return;
 
         setIsGenerating(true);
         let successCount = 0;
         let errors = [];
 
-        for (let i = 1; i <= bulkQuantity; i++) {
-            const name = `${bulkPrefix}${String(i).padStart(3, '0')}`;
-            setGeneratingProgress({ current: i, total: bulkQuantity, msg: `Processando ${name}...` });
-            
-            const payload = buildInfobipPayload(name);
+        for (let i = 0; i < bulkRows.length; i++) {
+            const row = bulkRows[i];
+            const name = `${bulkPrefix}${row.suffix}`;
+            setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Processando ${name}...` });
+
+            const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, row.buttonUrls, row.hasButtons);
             const res = await callInfobipAPI(payload);
             if (res.success) {
                 successCount++;
@@ -215,6 +228,22 @@ const TemplateCreator = () => {
 
         setIsGenerating(false);
         alert(`Finalizado!\nSucesso: ${successCount}\nErros: ${errors.length}`);
+        if (successCount > 0) navigate('/accounts');
+    };
+
+    const autoGenerateRows = (qty: number) => {
+        const urlButtons = buttons.filter(b => b.type === 'url');
+        const newRows = [];
+        for (let i = 1; i <= qty; i++) {
+            newRows.push({
+                suffix: String(i).padStart(3, '0'),
+                headerType: headerType,
+                mediaUrl: headerType !== 'none' ? headerExampleUrl : '',
+                hasButtons: buttons.length > 0,
+                buttonUrls: urlButtons.map(b => b.url || '')
+            });
+        }
+        setBulkRows(newRows);
     };
 
     return (
@@ -226,12 +255,12 @@ const TemplateCreator = () => {
                     </div>
                     <div className="flex-col items-center gap-1 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div className="loading-text" style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px', textAlign: 'center' }}>
-                            {generatingProgress.total > 1 
-                                ? "CRIANDO TEMPLATES EM MASSA" 
+                            {generatingProgress.total > 1
+                                ? "CRIANDO TEMPLATES EM MASSA"
                                 : "PUBLICANDO NA INFOBIP"}
                         </div>
                         <div className="loading-subtext" style={{ fontSize: '0.9rem', opacity: 0.7, fontWeight: 500 }}>
-                            {generatingProgress.total > 1 
+                            {generatingProgress.total > 1
                                 ? `${generatingProgress.current} de ${generatingProgress.total} - ${generatingProgress.msg}`
                                 : "Aguarde a validação da Meta..."}
                         </div>
@@ -312,10 +341,10 @@ const TemplateCreator = () => {
                 <div className="flex-col gap-8">
                     <div className="flex gap-3 tab-btns">
                         <button className={`btn ${activeTab === 'MODEL' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('MODEL')} style={{ flex: 1, borderRadius: '14px', height: '54px' }}>
-                            <Layers size={18} /> MODELO PADRÃO
+                            <Layers size={18} /> GERAR INDIVIDUALMENTE
                         </button>
                         <button className={`btn ${activeTab === 'BULK' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('BULK')} style={{ flex: 1, borderRadius: '14px', height: '54px' }}>
-                            <Settings2 size={18} /> GERADOR BULK
+                            <Settings2 size={18} /> GERAR EM MASSA
                         </button>
                     </div>
 
@@ -376,20 +405,14 @@ const TemplateCreator = () => {
                                 </div>
 
                                 {headerType !== 'none' && (
-                                    <div className="input-group animate-fade-in" style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <label style={{ color: 'var(--primary-color)', fontSize: '0.7rem' }}>URL DE EXEMPLO ({headerType.toUpperCase()})</label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                className="input-field"
-                                                style={{ borderRadius: '10px', opacity: 0.7, cursor: 'not-allowed' }}
-                                                value={headerExampleUrl}
-                                                readOnly
-                                                placeholder="https://i.postimg.cc/xC34d8pf/efdb084f-a76e-45e8-8849-92c7d8c5c2c9.jpg"
-                                            />
-                                            {headerType === 'image' && <ImageIcon size={20} style={{ alignSelf: 'center', opacity: 0.5 }} />}
-                                            {headerType === 'video' && <Video size={20} style={{ alignSelf: 'center', opacity: 0.5 }} />}
+                                    <div className="input-group animate-fade-in" style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                {headerType === 'image' ? <ImageIcon size={16} color="var(--primary-color)" /> : <Video size={16} color="var(--primary-color)" />}
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-color)' }}>MÍDIA PADRÃO ATIVA ({headerType.toUpperCase()})</span>
+                                            </div>
+                                            <div className="badge" style={{ fontSize: '0.6rem', opacity: 0.6 }}>Oculto</div>
                                         </div>
-                                        <p style={{ margin: '8px 0 0 0', fontSize: '0.65rem', color: 'var(--text-muted)' }}>* A Meta exige uma URL válida para aprovar o template.</p>
                                     </div>
                                 )}
 
@@ -428,35 +451,120 @@ const TemplateCreator = () => {
                             </div>
 
                             <button className="btn btn-primary" onClick={handleCreateModel} disabled={isGenerating} style={{ padding: '18px', borderRadius: '20px', fontSize: '1.1rem', fontWeight: 900, color: 'black' }}>
-                                {isGenerating ? <Activity className="animate-spin" /> : <><Send size={20} /> PUBLICAR NA INFOBIP</>}
+                                {isGenerating ? <Activity className="animate-spin" /> : <><Send size={20} /> CRIAR TEMPLATE</>}
                             </button>
                         </div>
                     ) : (
                         <div className="glass-card flex-col gap-8 animate-fade-in" style={{ padding: '40px', borderRadius: '24px' }}>
-                            <h2 style={{ fontWeight: 900, marginBottom: 0 }}>Gerador Bulk High-Speed</h2>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>Multiplique seu alcance com threads paralelas conectadas ao PostgreSQL & Redis.</p>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h2 style={{ fontWeight: 900, marginBottom: '4px' }}>Gerador Bulk High-Speed</h2>
+
+                                </div>
+                                <button className="btn btn-secondary" onClick={() => setBulkRows([])} style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '0.75rem' }}>LIMPAR TUDO</button>
+                            </div>
 
                             <div className="flex flex-col gap-6">
-                                <div className="input-group">
-                                    <label>Prefixo Base</label>
-                                    <input className="input-field" style={{ borderRadius: '12px', padding: '14px' }} value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value)} placeholder="ex: black_friday_" />
+                                <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div className="input-group">
+                                        <label>Prefixo Base</label>
+                                        <input className="input-field" style={{ borderRadius: '12px' }} value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value)} placeholder="ex: v1_" />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Auto-Gerar Linhas</label>
+                                        <div className="flex gap-2">
+                                            <input type="number" className="input-field" style={{ borderRadius: '12px', width: '80px' }} defaultValue={10} id="bulk_qty" />
+                                            <button className="btn btn-primary" style={{ flex: 1, borderRadius: '12px', color: 'black' }} onClick={() => {
+                                                const qty = Number((document.getElementById('bulk_qty') as HTMLInputElement)?.value || 0);
+                                                autoGenerateRows(qty);
+                                            }}>GERAR FILA</button>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="input-group">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <label>Quantidade Total</label>
-                                        <span style={{ color: 'var(--primary-color)', fontSize: '1.8rem', fontWeight: 900 }}>{bulkQuantity}</span>
-                                    </div>
-                                    <input type="range" min="1" max="50" value={bulkQuantity} onChange={e => setBulkQuantity(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--primary-color)' }} />
-                                    <div className="flex justify-between mt-2" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                        <span>1 un</span>
-                                        <span>50 un (MAX)</span>
-                                    </div>
-                                </div>
+                                {bulkRows.length > 0 && (
+                                    <div className="flex flex-col gap-4">
+                                        <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--surface-border)', borderRadius: '16px', padding: '16px', background: 'rgba(0,0,0,0.1)' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                                                        <th style={{ textAlign: 'left', padding: '12px', color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 800 }}>
+                                                            <div className="flex items-center gap-2"><Settings2 size={14} /> SUFIXO</div>
+                                                        </th>
+                                                        <th style={{ textAlign: 'left', padding: '12px', color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 800 }}>
+                                                            <div className="flex items-center gap-2"><ImageIcon size={14} /> TIPO MÍDIA</div>
+                                                        </th>
+                                                        {buttons.length > 0 && (
+                                                            <th style={{ textAlign: 'left', padding: '12px', color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 800 }}>
+                                                                <div className="flex items-center gap-2"><Smartphone size={14} /> BOTÕES</div>
+                                                            </th>
+                                                        )}
+                                                        {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
+                                                            <th key={urlIdx} style={{ textAlign: 'left', padding: '12px', color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 800 }}>
+                                                                <div className="flex items-center gap-2"><Link size={14} /> LINK BOTÃO {urlIdx + 1}</div>
+                                                            </th>
+                                                        ))}
+                                                        <th style={{ width: '40px' }}></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {bulkRows.map((row, i) => (
+                                                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                            <td style={{ padding: '8px' }}>
+                                                                <input className="input-field" style={{ padding: '6px', borderRadius: '8px', fontSize: '0.8rem' }} value={row.suffix} onChange={e => {
+                                                                    const n = [...bulkRows];
+                                                                    n[i].suffix = e.target.value;
+                                                                    setBulkRows(n);
+                                                                }} />
+                                                            </td>
+                                                            <td style={{ padding: '8px' }}>
+                                                                <select className="input-field" style={{ padding: '6px', borderRadius: '8px', fontSize: '0.8rem' }} value={row.headerType} onChange={e => {
+                                                                    const n = [...bulkRows];
+                                                                    n[i].headerType = e.target.value;
+                                                                    if (e.target.value === 'none') n[i].mediaUrl = '';
+                                                                    else if (!n[i].mediaUrl) n[i].mediaUrl = headerExampleUrl;
+                                                                    setBulkRows(n);
+                                                                }}>
+                                                                    <option value="none">SEM</option>
+                                                                    <option value="image">IMAGE</option>
+                                                                    <option value="video">VIDEO</option>
+                                                                </select>
+                                                            </td>
+                                                            {buttons.length > 0 && (
+                                                                <td style={{ padding: '8px' }}>
+                                                                    <select className="input-field" style={{ padding: '6px', borderRadius: '8px', fontSize: '0.8rem' }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={e => {
+                                                                        const n = [...bulkRows];
+                                                                        n[i].hasButtons = e.target.value === 'yes';
+                                                                        setBulkRows(n);
+                                                                    }}>
+                                                                        <option value="yes">COM</option>
+                                                                        <option value="no">SEM</option>
+                                                                    </select>
+                                                                </td>
+                                                            )}
+                                                            {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
+                                                                <td key={urlIdx} style={{ padding: '8px' }}>
+                                                                    <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '6px', borderRadius: '8px', fontSize: '0.8rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
+                                                                        const n = [...bulkRows];
+                                                                        n[i].buttonUrls[urlIdx] = e.target.value;
+                                                                        setBulkRows(n);
+                                                                    }} />
+                                                                </td>
+                                                            ))}
+                                                            <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                                <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer' }}>✕</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
 
-                                <button className="btn btn-primary" style={{ padding: '20px', fontSize: '1.2rem', fontWeight: 900, color: 'black', borderRadius: '20px' }} onClick={handleGenerateBulk} disabled={isGenerating}>
-                                    {isGenerating ? `Subindo (${bulkQuantity})...` : 'EXECUTAR CRIAÇÃO EM MASSA'}
-                                </button>
+                                        <button className="btn btn-primary" style={{ padding: '20px', fontSize: '1.2rem', fontWeight: 900, color: 'black', borderRadius: '20px' }} onClick={handleGenerateBulk} disabled={isGenerating}>
+                                            {isGenerating ? `Publicando ${generatingProgress.current}/${generatingProgress.total}...` : 'CRIAR TEMPLATE EM MASSA'}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -497,7 +605,7 @@ const TemplateCreator = () => {
                             <h4 style={{ color: 'var(--text-secondary)', marginBottom: '10px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
                             <div style={{ background: '#020617', padding: '20px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
                                 <pre style={{ margin: 0, fontSize: '0.7rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
-                                    <code>{JSON.stringify(buildInfobipPayload(), null, 2)}</code>
+                                    <code>{JSON.stringify(buildInfobipPayload(modelName), null, 2)}</code>
                                 </pre>
                             </div>
                         </div>
