@@ -39,6 +39,10 @@ const UploadContacts = () => {
     const [uploadHistory, setUploadHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
+    // Results Pagination
+    const [currentResultsPage, setCurrentResultsPage] = useState(1);
+    const resultsPerPage = 5;
+
     // History Filters & Pagination
     const [filterTag, setFilterTag] = useState('');
     const [filterDate, setFilterDate] = useState('');
@@ -343,9 +347,16 @@ const UploadContacts = () => {
                     setUploadHistory(prev => [newHistoryItem, ...prev]);
                 }
 
-                const finalResult = [{ tag: `${baseTag}_CONSOLIDADO`, count: total }];
+                const batchCount = Math.ceil(total / batchSize);
+                const resultsList: { tag: string, count: number }[] = [];
+                for (let i = 0; i < batchCount; i++) {
+                    const count = (i === batchCount - 1) ? total % batchSize || batchSize : batchSize;
+                    resultsList.push({ tag: `${baseTag}_${i + 1}`, count });
+                }
+
                 setTimeout(() => {
-                    setResults(finalResult);
+                    setResults(resultsList);
+                    setCurrentResultsPage(1); // Reset to first page
                     setIsProcessing(false);
                 }, 400);
 
@@ -547,7 +558,21 @@ const UploadContacts = () => {
                     .upload-action-row button { width: 100%; }
                 }
 
+
                 .badge-premium { padding: 4px 10px; font-size: 0.65rem; font-weight: 800; border-radius: 8px; }
+                .btn-p-control {
+                    background: transparent;
+                    border: none;
+                    color: var(--primary-color);
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    transition: all 0.2s;
+                }
+                .btn-p-control:hover:not(:disabled) {
+                    opacity: 0.7;
+                    transform: translateX(2px);
+                }
             `}</style>
 
             <div className="flex flex-col mb-2">
@@ -750,25 +775,49 @@ const UploadContacts = () => {
                                 <h3 style={{ margin: 0, fontWeight: 900 }}>Pronto!</h3>
                             </div>
 
-                            <div className="flex flex-col gap-4">
-                                <div className="p-5" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--surface-border)' }}>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Contatos Processados</span>
-                                    <div className="flex items-baseline gap-4">
-                                        <span style={{ fontSize: '2rem', fontWeight: 900, color: 'white' }}>{totalContacts.toLocaleString()}</span>
-                                        <div className="flex flex-col">
-                                            {duplicateCount > 0 && <span style={{ fontSize: '0.65rem', color: '#fca5a5' }}>-{duplicateCount} Duplicados</span>}
-                                            {invalidCount > 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>-{invalidCount} Inválidos</span>}
+                                <div className="flex flex-col gap-4">
+                                    <div className="p-5" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--surface-border)' }}>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Contatos Processados</span>
+                                        <div className="flex items-baseline gap-4">
+                                            <span style={{ fontSize: '2rem', fontWeight: 900, color: 'white' }}>{totalContacts.toLocaleString()}</span>
+                                            <div className="flex flex-col">
+                                                {duplicateCount > 0 && <span style={{ fontSize: '0.65rem', color: '#fca5a5' }}>-{duplicateCount} Duplicados</span>}
+                                                {invalidCount > 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>-{invalidCount} Inválidos</span>}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                {results.map((r, i) => (
-                                    <div key={i} className="flex justify-between items-center p-4" style={{ background: 'rgba(172, 248, 0, 0.03)', border: '1px solid rgba(172, 248, 0, 0.1)', borderRadius: '14px' }}>
-                                        <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.9rem' }}>{r.tag}</span>
-                                        <span className="badge-premium" style={{ background: 'var(--primary-color)', color: 'black' }}>{r.count}</span>
-                                    </div>
-                                ))}
-                            </div>
+                                    {results.slice((currentResultsPage - 1) * resultsPerPage, currentResultsPage * resultsPerPage).map((r, i) => (
+                                        <div key={i} className="flex justify-between items-center p-4" style={{ background: 'rgba(172, 248, 0, 0.03)', border: '1px solid rgba(172, 248, 0, 0.1)', borderRadius: '14px' }}>
+                                            <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.9rem' }}>{r.tag}</span>
+                                            <span className="badge-premium" style={{ background: 'var(--primary-color)', color: 'black' }}>{r.count}</span>
+                                        </div>
+                                    ))}
+
+                                    {results.length > resultsPerPage && (
+                                        <div className="flex items-center justify-between mt-2 px-2">
+                                            <button 
+                                                className="btn-p-control" 
+                                                disabled={currentResultsPage === 1} 
+                                                onClick={() => setCurrentResultsPage(v => v - 1)}
+                                                style={{ opacity: currentResultsPage === 1 ? 0.3 : 1, cursor: currentResultsPage === 1 ? 'default' : 'pointer', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem' }}
+                                            >
+                                                ← Anterior
+                                            </button>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                                {currentResultsPage} / {Math.ceil(results.length / resultsPerPage)}
+                                            </span>
+                                            <button 
+                                                className="btn-p-control" 
+                                                disabled={currentResultsPage === Math.ceil(results.length / resultsPerPage)} 
+                                                onClick={() => setCurrentResultsPage(v => v + 1)}
+                                                style={{ opacity: currentResultsPage === Math.ceil(results.length / resultsPerPage) ? 0.3 : 1, cursor: currentResultsPage === Math.ceil(results.length / resultsPerPage) ? 'default' : 'pointer', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem' }}
+                                            >
+                                                Próxima →
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
 
                             <div className="flex flex-col gap-3 mt-8">
                                 <button 

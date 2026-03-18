@@ -15,6 +15,33 @@ interface InfobipTemplate {
     createdAt?: string;
 }
 
+const Pagination = ({ currentPage, totalPages, onPageChange }: { currentPage: number, totalPages: number, onPageChange: (p: number) => void }) => {
+    if (totalPages <= 1) return null;
+    return (
+        <div className="flex items-center justify-center gap-4 mt-8">
+            <button 
+                className="btn btn-secondary" 
+                disabled={currentPage === 1}
+                onClick={() => onPageChange(currentPage - 1)}
+                style={{ height: '44px', width: '44px', borderRadius: '12px', padding: 0, opacity: currentPage === 1 ? 0.3 : 1 }}
+            >
+                ←
+            </button>
+            <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                PÁGINA <span style={{ color: 'var(--primary-color)' }}>{currentPage}</span> DE {totalPages}
+            </span>
+            <button 
+                className="btn btn-secondary" 
+                disabled={currentPage === totalPages}
+                onClick={() => onPageChange(currentPage + 1)}
+                style={{ height: '44px', width: '44px', borderRadius: '12px', padding: 0, opacity: currentPage === totalPages ? 0.3 : 1 }}
+            >
+                →
+            </button>
+        </div>
+    );
+};
+
 const Accounts = () => {
     const navigate = useNavigate();
     // --- API / CONFIG STATE ---
@@ -42,6 +69,11 @@ const Accounts = () => {
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'REJECTED'>('ALL');
     const [activeTab, setActiveTab] = useState<'TEMPLATES' | 'RASCUNHOS'>('TEMPLATES');
     const [drafts, setDrafts] = useState<any[]>([]);
+
+    // Pagination
+    const [templatesPage, setTemplatesPage] = useState(1);
+    const [draftsPage, setDraftsPage] = useState(1);
+    const itemsPerPage = 8;
 
     const fetchTemplates = async () => {
         setIsLoading(true);
@@ -101,6 +133,11 @@ const Accounts = () => {
         if (filterStatus === 'REJECTED') return matchesSearch && status === 'REJECTED';
         return matchesSearch;
     });
+
+    // Reset pagination on filter
+    useEffect(() => {
+        setTemplatesPage(1);
+    }, [searchTerm, filterStatus]);
 
     const getStatusBadge = (status: string, reason?: string) => {
         const s = status.toUpperCase();
@@ -336,7 +373,7 @@ const Accounts = () => {
                                         <p>Nenhum modelo encontrado.</p>
                                     </td></tr>
                                 ) : (
-                                    filteredTemplates.map((t, index) => (
+                                    filteredTemplates.slice((templatesPage - 1) * itemsPerPage, templatesPage * itemsPerPage).map((t, index) => (
                                         <tr key={index} className="hover-row">
                                             <td>
                                                 <div className="flex flex-col">
@@ -385,6 +422,12 @@ const Accounts = () => {
                             </tbody>
                         </table>
                     </div>
+                    
+                    <Pagination 
+                        currentPage={templatesPage} 
+                        totalPages={Math.ceil(filteredTemplates.length / itemsPerPage)} 
+                        onPageChange={setTemplatesPage} 
+                    />
                 </div>
             ) : (
                 <div className="animate-fade-in flex-col gap-8">
@@ -397,52 +440,59 @@ const Accounts = () => {
                         </div>
 
                         {drafts.length > 0 ? (
-                            <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
-                                {drafts.map((draft, idx) => (
-                                    <div key={idx} className="glass-card flex-col p-6 hover-lift" style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid var(--surface-border)', borderRadius: '24px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)' }}>
-                                        <div className="flex items-start justify-between mb-6">
-                                            <div style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', padding: '14px', borderRadius: '16px' }}>
-                                                <BookMarked size={28} />
-                                            </div>
-                                            <div className="flex-col items-end">
-                                                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Criado em</span>
-                                                <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{new Date(draft.savedAt || draft.timestamp).toLocaleDateString()}</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="flex-col gap-2 mb-8">
-                                            <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>{draft.label}</h4>
-                                            <div className="flex items-center gap-2">
-                                                <Layers size={14} color="var(--text-muted)" />
-                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{draft.templateName}</span>
-                                            </div>
-                                            {draft.tag && (
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <Smartphone size={14} color="var(--primary-color)" />
-                                                    <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)', fontWeight: 800 }}>LOTE: {draft.tag}</span>
+                            <>
+                                <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
+                                    {drafts.slice((draftsPage - 1) * itemsPerPage, draftsPage * itemsPerPage).map((draft, idx) => (
+                                        <div key={idx} className="glass-card flex-col p-6 hover-lift" style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid var(--surface-border)', borderRadius: '24px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)' }}>
+                                            <div className="flex items-start justify-between mb-6">
+                                                <div style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', padding: '14px', borderRadius: '16px' }}>
+                                                    <BookMarked size={28} />
                                                 </div>
-                                            )}
-                                        </div>
+                                                <div className="flex-col items-end">
+                                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Criado em</span>
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{new Date(draft.savedAt || draft.timestamp).toLocaleDateString()}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex-col gap-2 mb-8">
+                                                <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>{draft.label}</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <Layers size={14} color="var(--text-muted)" />
+                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{draft.templateName}</span>
+                                                </div>
+                                                {draft.tag && (
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <Smartphone size={14} color="var(--primary-color)" />
+                                                        <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)', fontWeight: 800 }}>LOTE: {draft.tag}</span>
+                                                    </div>
+                                                )}
+                                            </div>
 
-                                        <div className="flex gap-4 mt-auto">
-                                            <button 
-                                                className="btn btn-secondary flex-1 flex items-center justify-center gap-2 py-3"
-                                                onClick={() => navigate('/dispatch', { state: { draft: draft, sender: senderNumber, key: apiKey } })}
-                                                style={{ fontSize: '0.8rem', fontWeight: 800, borderRadius: '14px' }}
-                                            >
-                                                <FileEdit size={16} /> EDITAR
-                                            </button>
-                                            <button 
-                                                className="btn btn-primary flex-1 flex items-center justify-center gap-2 py-3"
-                                                onClick={() => navigate('/dispatch', { state: { draft: draft, autoSend: true, sender: senderNumber, key: apiKey } })}
-                                                style={{ color: 'black', fontSize: '0.8rem', fontWeight: 900, borderRadius: '14px' }}
-                                            >
-                                                <Send size={16} /> DISPARAR
-                                            </button>
+                                            <div className="flex gap-4 mt-auto">
+                                                <button 
+                                                    className="btn btn-secondary flex-1 flex items-center justify-center gap-2 py-3"
+                                                    onClick={() => navigate('/dispatch', { state: { draft: draft, sender: senderNumber, key: apiKey } })}
+                                                    style={{ fontSize: '0.8rem', fontWeight: 800, borderRadius: '14px' }}
+                                                >
+                                                    <FileEdit size={16} /> EDITAR
+                                                </button>
+                                                <button 
+                                                    className="btn btn-primary flex-1 flex items-center justify-center gap-2 py-3"
+                                                    onClick={() => navigate('/dispatch', { state: { draft: draft, autoSend: true, sender: senderNumber, key: apiKey } })}
+                                                    style={{ color: 'black', fontSize: '0.8rem', fontWeight: 900, borderRadius: '14px' }}
+                                                >
+                                                    <Send size={16} /> DISPARAR
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                                <Pagination 
+                                    currentPage={draftsPage} 
+                                    totalPages={Math.ceil(drafts.length / itemsPerPage)} 
+                                    onPageChange={setDraftsPage} 
+                                />
+                            </>
                         ) : (
                             <div className="p-24 flex-col items-center justify-center gap-6 opacity-20" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                 <BookMarked size={100} strokeWidth={1} />
