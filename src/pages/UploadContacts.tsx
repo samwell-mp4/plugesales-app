@@ -26,6 +26,7 @@ const UploadContacts = () => {
     const [removeDuplicates, setRemoveDuplicates] = useState(true);
     const [discardNoName, setDiscardNoName] = useState(false);
     const [mapExtraInfo, setMapExtraInfo] = useState(false);
+    const [smartSplit, setSmartSplit] = useState(true);
 
     const [results, setResults] = useState<{ tag: string, count: number }[]>([]);
     const [processedData, setProcessedData] = useState<any[]>([]);
@@ -69,6 +70,77 @@ const UploadContacts = () => {
         return cleaned;
     };
 
+    const smartParseRow = (input: string) => {
+        if (!input || !input.trim()) return null;
+
+        // Try delimiters: ;, |, Tab, and finally Comma
+        // We avoid splitting by comma immediately if it's potentially part of a name, 
+        // unless it's clearly a CSV-style line.
+        const delimiters = [';', '|', '\t'];
+        let parts: string[] = [input];
+
+        let foundDelimiter = false;
+        for (const d of delimiters) {
+            if (input.includes(d)) {
+                parts = input.split(d).map(p => p.trim()).filter(p => p.length > 0);
+                foundDelimiter = true;
+                break;
+            }
+        }
+
+        // If no primary delimiter, try comma but only if it results in something that looks like 
+        // multiple fields (at least one part being numeric or email)
+        if (!foundDelimiter && input.includes(',')) {
+            const commaParts = input.split(',').map(p => p.trim());
+            if (commaParts.length > 1) {
+                parts = commaParts;
+            }
+        }
+
+        let phone = '';
+        let name = '';
+        let cpf = '';
+        let email = '';
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const cpfRegex = /(\d{3}\.?\d{3}\.?\d{3}-?\d{2})/;
+        const remainingParts: string[] = [];
+
+        parts.forEach(part => {
+            const cleanPart = part.trim();
+            if (!cleanPart) return;
+
+            // 1. Check for Email
+            if (emailRegex.test(cleanPart)) {
+                email = cleanPart;
+                return;
+            }
+
+            // 2. Check for CPF
+            const cpfMatch = cleanPart.match(cpfRegex);
+            if (cleanPart.toUpperCase().includes('CPF:') || (cpfMatch && !normalizePhone(cleanPart).startsWith('55') && cleanPart.length <= 15)) {
+                cpf = cleanPart.replace(/CPF:/i, '').replace(/[^\d.-]/g, '').trim();
+                return;
+            }
+
+            // 3. Check for Phone
+            const normalized = normalizePhone(cleanPart);
+            if (normalized.length === 13 && !phone) {
+                phone = normalized;
+                return;
+            }
+
+            remainingParts.push(cleanPart);
+        });
+
+        if (remainingParts.length > 0) {
+            // Pick longest remaining part as name
+            name = remainingParts.sort((a, b) => b.length - a.length)[0];
+        }
+
+        return { telefone: phone, nome: name, cpf, email };
+    };
+
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
     };
@@ -110,18 +182,19 @@ const UploadContacts = () => {
 
                     console.log('Processing TXT/CSV, total lines:', lines.length);
 
-                    extractedContacts = lines.map((line, idx) => {
-                        // Support both comma and semicolon
-                        const separator = line.includes(';') ? ';' : ',';
-                        const parts = line.split(separator);
-                        const rawPhone = parts[0] || '';
-                        const phone = normalizePhone(rawPhone);
-                        const name = parts[1] || '';
-
-                        if (idx < 5) console.log(`Line ${idx}: raw="${rawPhone}" normalized="${phone}" len=${phone.length}`);
-
-                        return { telefone: phone, nome: name };
-                    }).filter(c => c.telefone.length === 13);
+                    extractedContacts = lines.map((line) => {
+                        if (smartSplit) {
+                            const parsed = smartParseRow(line);
+                            return parsed;
+                        } else {
+                            const separator = line.includes(';') ? ';' : ',';
+                            const parts = line.split(separator);
+                            return { 
+                                telefone: normalizePhone(parts[0] || ''), 
+                                nome: (parts[1] || '').trim() 
+                            };
+                        }
+                    }).filter(c => c && c.telefone && c.telefone.length === 13);
                 }
                 else {
                     const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -158,12 +231,21 @@ const UploadContacts = () => {
                             }
 
                             if (phone.length === 13) {
-                                extractedContacts.push({
+                                let contact: any = {
                                     telefone: phone,
-                                    nome: String(row[phoneColIndex === 0 ? 1 : 0] || '').trim(), // Guess name column
-                                    cpf: mapExtraInfo ? String(row[2] || '') : undefined,
-                                    email: mapExtraInfo ? String(row[3] || '') : undefined
-                                });
+                                    nome: String(row[phoneColIndex === 0 ? 1 : 0] || '').trim()
+                                };
+
+                                // If smartSplit is on and only one real column has data, try splitting it
+                                if (smartSplit && row.filter((c:any) => String(c||'').trim()).length === 1) {
+                                    const parsed = smartParseRow(String(row[phoneColIndex] || ''));
+                                    if (parsed) contact = parsed;
+                                } else if (mapExtraInfo) {
+                                    contact.cpf = String(row[2] || '');
+                                    contact.email = String(row[3] || '');
+                                }
+
+                                extractedContacts.push(contact);
                             }
                         }
                     }
@@ -496,6 +578,15 @@ const UploadContacts = () => {
                                     {mapExtraInfo && <Check size={14} color="black" strokeWidth={4} />}
                                 </div>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Capturar CPF/Email</span>
+                            </label>
+                            <label className="flex items-center gap-4 cursor-pointer group hover-opacity" style={{ transition: 'opacity 0.2s' }}>
+                                <div className="flex items-center justify-center" onClick={() => setSmartSplit(!smartSplit)} style={{ width: 22, height: 22, borderRadius: 8, border: '2px solid rgba(172, 248, 0, 0.4)', background: smartSplit ? 'var(--primary-color)' : 'transparent', transition: 'all 0.2s' }}>
+                                    {smartSplit && <Check size={14} color="black" strokeWidth={4} />}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Smart Split (Separar Colunas)</span>
+                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Detecta Nome, CPF e Email na mesma linha</span>
+                                </div>
                             </label>
                         </div>
                     </div>

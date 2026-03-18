@@ -111,7 +111,7 @@ const TemplateDispatch = () => {
     useEffect(() => {
         if (location.state?.key) setApiKey(location.state.key);
         if (location.state?.sender) setFromNumber(location.state.sender);
-        
+
         // Load settings from DB
         dbService.getSettings().then(settings => {
             if (!location.state?.key && settings['infobip_key']) setApiKey(settings['infobip_key']);
@@ -157,7 +157,7 @@ const TemplateDispatch = () => {
         if (location.state?.draft && allTemplates.length > 0 && !autoDispatchTriggered.current) {
             const draft = location.state.draft;
             loadDraft(draft);
-            
+
             if (location.state.autoSend) {
                 autoDispatchTriggered.current = true;
                 // Small delay to ensure state and templates are applied
@@ -166,7 +166,7 @@ const TemplateDispatch = () => {
                     sendMessage();
                 }, 1200);
             }
-            
+
             // Clear navigation state to prevent re-load on refresh
             window.history.replaceState({}, document.title);
         }
@@ -181,7 +181,7 @@ const TemplateDispatch = () => {
                 });
                 const data = await response.json();
                 let fetchedTemplates = data.templates || [];
-                
+
                 // Filtrar apenas os aprovados e ordenar (criados primeiro = cronológico)
                 const approvedTemplates = fetchedTemplates
                     .filter((t: any) => t.status === 'APPROVED')
@@ -636,7 +636,7 @@ const TemplateDispatch = () => {
                     <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
                             <Smartphone size={16} color="var(--primary-color)" />
-                            <input 
+                            <input
                                 style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.9rem', outline: 'none', textAlign: 'right', width: '130px' }}
                                 value={fromNumber}
                                 onChange={e => setFromNumber(e.target.value)}
@@ -771,7 +771,7 @@ const TemplateDispatch = () => {
                         </div>
                     )}
 
-                     {/* Step 3: Media & Sending */}
+                    {/* Step 3: Media & Sending */}
                     {step === 3 && (
                         <div className="glass-card flex-col gap-6 p-8 animate-fade-in">
                             <div className="flex items-center gap-3">
@@ -779,20 +779,98 @@ const TemplateDispatch = () => {
                                 <h3 style={{ margin: 0, fontWeight: 800 }}>Revisão & Mídia</h3>
                             </div>
 
-                             {headerType !== 'NONE' && (
+                            {/* Dispatch Summary - Premium UI */}
+                            <div className="mb-8" style={{
+                                background: 'linear-gradient(145deg, rgba(172, 248, 0, 0.05) 0%, rgba(0,0,0,0.2) 100%)',
+                                borderRadius: '32px',
+                                border: '1px solid rgba(172, 248, 0, 0.15)',
+                                boxShadow: '0 20px 50px -15px rgba(0,0,0,0.7)',
+                                padding: '25px'
+                            }}>
+                                <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '30px' }}>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-2" style={{ color: 'var(--primary-color)', opacity: 0.8 }}>
+                                            <User size={14} />
+                                            <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px' }}>RESPONSÁVEL</span>
+                                        </div>
+                                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'white' }}>{user?.name || 'Sistema (Admin)'}</span>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-2" style={{ color: 'var(--primary-color)', opacity: 0.8 }}>
+                                            <Smartphone size={14} />
+                                            <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px' }}>SENDER ATIVO</span>
+                                        </div>
+                                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'white' }}>{fromNumber}</span>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-2" style={{ color: 'var(--primary-color)', opacity: 0.8 }}>
+                                            <Layers size={14} />
+                                            <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px' }}>DESTINATÁRIOS</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-color)' }}>
+                                                {isBulkMode ? `${bulkContacts.length} contatos` : `${toNumber.split(',').filter(n => n.trim()).length} número(s)`}
+                                            </span>
+                                            {selectedTag && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>🏷️ Etiqueta: {selectedTag}</span>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                    <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--primary-color)', opacity: 0.8 }}>
+                                        <Type size={14} />
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px' }}>MAPEAMENTO DE VARIÁVEIS</span>
+                                    </div>
+                                    <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
+                                        {placeholders.length > 0 ? placeholders.map(p => (
+                                            <div key={p.id} style={{
+                                                background: 'rgba(255,255,255,0.03)',
+                                                padding: '14px 22px',
+                                                borderRadius: '16px',
+                                                border: '1px solid rgba(255,255,255,0.05)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '14px'
+                                            }}>
+                                                <div style={{
+                                                    background: 'rgba(172, 248, 0, 0.1)',
+                                                    color: 'var(--primary-color)',
+                                                    fontSize: '0.65rem',
+                                                    fontWeight: 900,
+                                                    padding: '2px 6px',
+                                                    borderRadius: '6px'
+                                                }}>
+                                                    {'{'}{p.id}{'}'}
+                                                </div>
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {p.value}
+                                                </span>
+                                            </div>
+                                        )) : (
+                                            <div style={{ gridColumn: '1/-1', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                                Template estático sem variáveis dinâmicas.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {headerType !== 'NONE' && (
                                 <div className="input-group">
                                     <div className="flex items-center justify-between mb-2">
                                         <label style={{ margin: 0 }}>URL do Cabeçalho ({headerType})</label>
                                         <div className="flex gap-2">
-                                            <button 
-                                                className="btn btn-secondary" 
+                                            <button
+                                                className="btn btn-secondary"
                                                 style={{ padding: '4px 10px', fontSize: '0.65rem', height: '28px', border: '1px solid rgba(172, 248, 0, 0.3)' }}
                                                 onClick={() => setShowLibrary(!showLibrary)}
                                             >
                                                 <Library size={12} /> {showLibrary ? 'FECHAR BIBLIOTECA' : 'MINHA BIBLIOTECA'}
                                             </button>
-                                            <label 
-                                                className="btn btn-secondary" 
+                                            <label
+                                                className="btn btn-secondary"
                                                 style={{ padding: '4px 10px', fontSize: '0.65rem', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                             >
                                                 <input type="file" style={{ display: 'none' }} onChange={handleHeaderUpload} accept={headerType === 'VIDEO' ? 'video/*' : 'image/*'} />
@@ -800,24 +878,24 @@ const TemplateDispatch = () => {
                                             </label>
                                         </div>
                                     </div>
-                                    
+
                                     {showLibrary && (
-                                        <div className="library-picker animate-fade-in p-4 mb-4" style={{ 
-                                            background: 'rgba(0,0,0,0.2)', 
-                                            borderRadius: '12px', 
-                                            maxHeight: '200px', 
+                                        <div className="library-picker animate-fade-in p-4 mb-4" style={{
+                                            background: 'rgba(0,0,0,0.2)',
+                                            borderRadius: '12px',
+                                            maxHeight: '200px',
                                             overflowY: 'auto',
                                             border: '1px solid var(--surface-border)'
                                         }}>
                                             <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
                                                 {hostedFiles.filter(f => headerType === 'VIDEO' ? f.type === 'video' : f.type === 'image').map(file => (
-                                                    <div 
-                                                        key={file.id} 
+                                                    <div
+                                                        key={file.id}
                                                         onClick={() => { setMediaUrl(file.shortUrl); setShowLibrary(false); }}
-                                                        style={{ 
-                                                            cursor: 'pointer', 
-                                                            borderRadius: '8px', 
-                                                            overflow: 'hidden', 
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            borderRadius: '8px',
+                                                            overflow: 'hidden',
                                                             border: mediaUrl === file.shortUrl ? '2px solid var(--primary-color)' : '1px solid transparent',
                                                             aspectRatio: '1',
                                                             background: '#000',
@@ -910,9 +988,9 @@ const TemplateDispatch = () => {
 
                             <div className="flex gap-4 mt-6">
                                 <button className="btn btn-secondary flex-1" onClick={() => setStep(2)}>VOLTAR</button>
-                                <button 
-                                    className="btn btn-secondary flex-1" 
-                                    style={{ border: '1px solid rgba(172,248,0,0.4)', color: 'var(--primary-color)' }} 
+                                <button
+                                    className="btn btn-secondary flex-1"
+                                    style={{ border: '1px solid rgba(172,248,0,0.4)', color: 'var(--primary-color)' }}
                                     onClick={() => saveDraft()}
                                 >
                                     <BookMarked size={16} /> SALVAR RASCUNHO

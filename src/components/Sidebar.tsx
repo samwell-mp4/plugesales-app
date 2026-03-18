@@ -20,9 +20,9 @@ const Sidebar = () => {
         { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
         { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
-        { name: 'Criar Tramissão', path: '/dispatch', icon: <Send size={20} /> },
         { name: 'Preparar Planilha', path: '/upload', icon: <FileSpreadsheet size={20} /> },
         { name: 'Encurtador de Link', path: '/media', icon: <Link size={20} /> },
+        { name: 'Criar Transmissão', path: '/dispatch', icon: <Send size={20} />, special: true },
     ];
 
     // Add Admin Control only if user is Admin
@@ -98,6 +98,27 @@ const Sidebar = () => {
                     }
                     .logout-btn { display: none !important; }
                 }
+
+                @keyframes nav-pulse {
+                    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0.4); }
+                    70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(172, 248, 0, 0); }
+                    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0); }
+                }
+
+                .special-nav {
+                    background: var(--primary-color) !important;
+                    color: black !important;
+                    font-weight: 800 !important;
+                    margin-top: 16px !important;
+                    animation: nav-pulse 2s infinite;
+                    box-shadow: 0 4px 15px rgba(172, 248, 0, 0.3);
+                }
+                .special-nav:hover {
+                    background: #c3ff5c !important;
+                    transform: translateY(-2px);
+                }
+                .special-nav span { color: black !important; font-weight: 900 !important; }
+                .special-nav svg { color: black !important; }
             `}</style>
 
             <div>
@@ -109,12 +130,12 @@ const Sidebar = () => {
                 </div>
 
                 <nav className="flex-col gap-1 mt-6">
-                    {menuItems.map((item) => (
+                    {menuItems.map((item: any) => (
                         <NavLink
                             key={item.path}
                             to={item.path}
                             className={({ isActive }) =>
-                                `nav-link flex items-center gap-4 ${isActive ? 'active' : ''}`
+                                `nav-link flex items-center gap-4 ${isActive ? 'active' : ''} ${item.special ? 'special-nav' : ''}`
                             }
                             style={{
                                 padding: '12px 16px',
@@ -124,8 +145,8 @@ const Sidebar = () => {
                                 textDecoration: 'none',
                                 fontWeight: 500,
                                 transition: 'all 0.2s ease',
-                                borderLeft: '3px solid transparent',
-                                marginBottom: '2px'
+                                borderLeft: item.special ? 'none' : '3px solid transparent',
+                                marginBottom: item.special ? '8px' : '2px'
                             }}
                         >
                             {item.icon}
@@ -135,38 +156,66 @@ const Sidebar = () => {
                 </nav>
             </div>
 
-            <div className="mt-auto px-2 mb-4">
-                <div className="flex items-center gap-3 p-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className="flex items-center justify-center h-10 w-10 rounded-xl" style={{ background: user?.role === 'ADMIN' ? 'var(--primary-gradient)' : 'rgba(255,255,255,0.1)' }}>
-                        <UserCircle size={22} color={user?.role === 'ADMIN' ? 'white' : 'var(--text-secondary)'} />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-bold text-white truncate">{user?.name}</span>
-                        <span className="text-[10px] font-medium uppercase tracking-wider opacity-40">{user?.role}</span>
+            <div className="mt-auto flex flex-col gap-2">
+                <div className="mx-2 mb-2 p-4 rounded-[24px]" style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+                }}>
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <div className="flex items-center justify-center h-12 w-12 rounded-2xl overflow-hidden" style={{
+                                background: user?.role === 'ADMIN' ? 'var(--primary-gradient)' : 'rgba(255,255,255,0.05)',
+                                border: '2px solid rgba(172, 248, 0, 0.2)',
+                                boxShadow: user?.role === 'ADMIN' ? '0 0 20px rgba(172, 248, 0, 0.15)' : 'none'
+                            }}>
+                                <UserCircle size={28} color={user?.role === 'ADMIN' ? 'black' : 'var(--text-secondary)'} strokeWidth={1.5} />
+                            </div>
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '-2px',
+                                right: '-2px',
+                                width: 14,
+                                height: 14,
+                                borderRadius: '50%',
+                                background: 'var(--primary-color)',
+                                border: '3px solid #0f172a',
+                                boxShadow: '0 0 10px var(--primary-color)'
+                            }}></div>
+                        </div>
+
+                        <div className="flex flex-col min-w-0">
+                            <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'white', letterSpacing: '-0.2px' }}>{user?.name}</span>
+                            <span style={{
+                                fontSize: '0.6rem',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                color: 'var(--primary-color)',
+                                opacity: 0.9,
+                                marginTop: '1px'
+                            }}>{user?.role}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <button
-                onClick={handleLogout}
-                className="nav-link flex items-center gap-4 logout-btn"
-                style={{
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    color: '#ff4d4d',
-                    background: 'transparent',
-                    border: 'none',
-                    borderLeft: '3px solid transparent',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'left',
-                    fontWeight: 600,
-                    transition: 'all 0.2s ease'
-                }}
-            >
-                <LogOut size={20} />
-                <span style={{ fontSize: '0.85rem' }}>Encerrar Sessão</span>
-            </button>
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 mx-2 mb-4 p-3 rounded-xl transition-all duration-200"
+                    style={{
+                        background: 'rgba(255, 77, 77, 0.05)',
+                        border: '1px solid rgba(255, 77, 77, 0.1)',
+                        color: '#ff4d4d',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <LogOut size={16} /> Entrar com outra conta
+                </button>
+            </div>
         </aside>
     );
 }
