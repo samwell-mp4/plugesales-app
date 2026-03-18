@@ -49,13 +49,22 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
     }
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    // Detectar protocolo considerando proxies (Easypanel/Nginx)
+    let protocol = 'http';
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    if (forwardedProto) {
+        protocol = forwardedProto.split(',')[0].trim();
+    } else {
+        protocol = req.protocol;
+    }
+
     const host = req.get('host');
     const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
 
     res.json({
         success: true,
         url: fileUrl,
+        path: `/uploads/${req.file.filename}`, // Fornecer também o path relativo
         fileName: req.file.filename,
         originalName: req.file.originalname,
         size: req.file.size

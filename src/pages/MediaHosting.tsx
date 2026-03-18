@@ -17,8 +17,6 @@ const MediaHosting = () => {
         return saved ? JSON.parse(saved) : [];
     });
 
-    const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('media_webhook_url') || '/api/upload');
-
     const [isUploading, setIsUploading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -32,21 +30,35 @@ const MediaHosting = () => {
         formData.append('file', file);
 
         try {
-            const response = await fetch(webhookUrl, {
+            const response = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
 
-            if (!response.ok) throw new Error('Upload falhou no servidor.');
+            if (!response.ok) throw new Error('Falha na comunicação com o servidor VPS.');
 
             const result = await response.json();
-            const finalUrl = result.url || result.data?.url || `https://seu-servidor.com/uploads/${file.name}`;
+            
+            // Garantir que a URL seja absoluta baseada no domínio atual se o servidor retornar relativa
+            let finalUrl = result.url;
+            if (finalUrl && !finalUrl.startsWith('http')) {
+                finalUrl = window.location.origin + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
+            }
+            
+            if (!finalUrl) {
+                throw new Error('O servidor não retornou uma URL válida para o arquivo.');
+            }
+
+            const fileSizeMB = file.size / (1024 * 1024);
+            const sizeDisplay = fileSizeMB < 0.1 
+                ? (file.size / 1024).toFixed(1) + ' KB' 
+                : fileSizeMB.toFixed(1) + ' MB';
 
             const newFile: HostedMedia = {
                 id: 'med_' + Date.now(),
                 name: file.name,
                 type: file.type.startsWith('video') ? 'video' : 'image',
-                size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+                size: sizeDisplay,
                 shortUrl: finalUrl,
                 originalName: file.name,
                 uploadedAt: new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -108,30 +120,10 @@ const MediaHosting = () => {
                 }
             `}</style>
 
-            <div className="flex items-center justify-between mb-2 media-header">
+            <div className="flex items-center justify-between mb-8 media-header">
                 <div className="flex flex-col">
                     <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', letterSpacing: '-1px' }}>Media Hosting</h1>
-                    <p className="subtitle">Hospedagem direta no seu servidor via n8n/webhook</p>
-                </div>
-            </div>
-
-            <div className="glass-card mt-6 p-6 flex gap-6 items-center" style={{ background: 'rgba(172, 248, 0, 0.03)', border: '1px solid rgba(172, 248, 0, 0.1)', borderRadius: '20px' }}>
-                <div className="flex flex-col gap-1 flex-1">
-                    <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-color)' }}>ENDPOINT DE HOSPEDAGEM (VPS)</label>
-                    <input 
-                        className="input-field" 
-                        style={{ height: '40px', fontSize: '0.85rem', borderRadius: '10px' }} 
-                        value={webhookUrl} 
-                        onChange={e => setWebhookUrl(e.target.value)}
-                        placeholder="/api/upload"
-                    />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Status do Host:</span>
-                    <div className="flex items-center gap-2">
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80' }}></div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'white' }}>LOCAL VPS ONLINE</span>
-                    </div>
+                    <p className="subtitle">Armazenamento interno de ativos para campanhas disparadas</p>
                 </div>
             </div>
 
