@@ -93,9 +93,9 @@ const Accounts = () => {
     const rejectedCount = templates.filter(t => t.status === 'REJECTED').length;
 
     const filteredTemplates = templates.filter(t => {
-        const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.id.toLowerCase().includes(searchTerm.toLowerCase());
-        const status = t.status.toUpperCase();
+        const matchesSearch = (t.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+            (t.id || '').toLowerCase().includes((searchTerm || '').toLowerCase());
+        const status = (t.status || '').toUpperCase();
         if (filterStatus === 'APPROVED') return matchesSearch && status === 'APPROVED';
         if (filterStatus === 'PENDING') return matchesSearch && (status === 'PENDING' || status === 'IN_REVIEW' || status === 'REVIEW');
         if (filterStatus === 'REJECTED') return matchesSearch && status === 'REJECTED';

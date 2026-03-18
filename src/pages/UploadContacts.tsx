@@ -270,8 +270,8 @@ const UploadContacts = () => {
     };
 
     const filteredHistory = uploadHistory.filter(item => {
-        const matchesTag = item.tag.toLowerCase().includes(filterTag.toLowerCase());
-        const matchesDate = item.date.includes(filterDate);
+        const matchesTag = (item.tag || '').toLowerCase().includes((filterTag || '').toLowerCase());
+        const matchesDate = (item.date || '').includes(filterDate || '');
         return matchesTag && matchesDate;
     });
 
