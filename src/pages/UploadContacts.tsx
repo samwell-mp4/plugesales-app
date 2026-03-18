@@ -31,6 +31,8 @@ const UploadContacts = () => {
     const [results, setResults] = useState<{ tag: string, count: number }[]>([]);
     const [processedData, setProcessedData] = useState<any[]>([]);
     const [totalContacts, setTotalContacts] = useState(0);
+    const [duplicateCount, setDuplicateCount] = useState(0);
+    const [invalidCount, setInvalidCount] = useState(0);
     const [validatorNumber, setValidatorNumber] = useState('');
     const [uploadHistory, setUploadHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
@@ -148,6 +150,8 @@ const UploadContacts = () => {
         }
 
         setIsProcessing(true);
+        setDuplicateCount(0);
+        setInvalidCount(0);
         const reader = new FileReader();
 
         reader.onload = async (e) => {
@@ -174,6 +178,8 @@ const UploadContacts = () => {
                             };
                         }
                     }).filter(c => c && c.telefone && c.telefone.length === 13);
+                    
+                    setInvalidCount(lines.length - extractedContacts.length);
                 }
                 else {
                     const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -237,16 +243,20 @@ const UploadContacts = () => {
                             }
                         }
                     }
+                    
+                    setInvalidCount((json.length - startIndex) - extractedContacts.length);
                 }
 
                 let filtered = [...extractedContacts];
                 if (removeDuplicates) {
                     const seen = new Set();
+                    const beforeDedup = filtered.length;
                     filtered = filtered.filter(item => {
                         const duplicate = seen.has(item.telefone);
                         seen.add(item.telefone);
                         return !duplicate;
                     });
+                    setDuplicateCount(beforeDedup - filtered.length);
                 }
                 if (discardNoName) {
                     filtered = filtered.filter(item => item.nome.length > 0);
@@ -621,7 +631,13 @@ const UploadContacts = () => {
                             <div className="flex flex-col gap-4">
                                 <div className="p-5" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--surface-border)' }}>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Contatos Processados</span>
-                                    <span style={{ fontSize: '2rem', fontWeight: 900, color: 'white' }}>{totalContacts.toLocaleString()}</span>
+                                    <div className="flex items-baseline gap-4">
+                                        <span style={{ fontSize: '2rem', fontWeight: 900, color: 'white' }}>{totalContacts.toLocaleString()}</span>
+                                        <div className="flex flex-col">
+                                            {duplicateCount > 0 && <span style={{ fontSize: '0.65rem', color: '#fca5a5' }}>-{duplicateCount} Duplicados</span>}
+                                            {invalidCount > 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>-{invalidCount} Inválidos</span>}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {results.map((r, i) => (
