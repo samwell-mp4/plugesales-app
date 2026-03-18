@@ -42,33 +42,23 @@ console.log('Redis connection source:', redisUrl === DEFAULT_REDIS ? 'internal f
 const { Pool } = pg;
 const pool = new Pool({ connectionString: pgUrl });
 
-// --- MOCK REDIS PARA TESTES (SEM CONEXÃO REAL) ---
-// Desabilitamos o Redis temporariamente conforme solicitado. 
-// O servidor vai subir sem tentar se conectar ao Redis.
-const redisClient = {
-    on: () => {},
-    connect: async () => { console.log('Mock Redis: Connect (Ignored)'); return Promise.resolve(); },
-    get: async (key) => { return Promise.resolve(null); },
-    set: async (key, val) => { return Promise.resolve(); },
-    del: async (key) => { return Promise.resolve(); },
-    lLen: async (key) => { return Promise.resolve(0); },
-    lPush: async (key, val) => { return Promise.resolve(); },
-    rPop: async (key) => { return Promise.resolve(null); },
-    incr: async (key) => { return Promise.resolve(0); },
-    isOpen: true // Fingimos que está aberto
+const redisClient = createClient({ url: redisUrl });
+redisClient.on('error', err => console.error('Redis Client Error:', err));
+
+const connectRedis = async () => {
+    try {
+        if (!redisClient.isOpen) {
+            await redisClient.connect();
+            console.log('✅ Redis connected successfully.');
+        }
+    } catch (e) {
+        console.warn(`❌ Redis connection failed: ${e.message}. Retrying in 5s...`);
+        setTimeout(connectRedis, 5000);
+    }
 };
 
-/* --- CÓDIGO DO REDIS ORIGINAL COMENTADO PARA TESTES ---
-const redisClientReal = createClient({ url: redisUrl });
-redisClientReal.on('error', err => console.error('Redis Error:', err));
-
-try {
-    await redisClientReal.connect();
-    console.log('Redis connected successfully.');
-} catch (e) {
-    console.error('Redis Connect Error:', e);
-}
---- FIM DO CÓDIGO ORIGINAL --- */
+// Inicia a conexão em segundo plano (não trava o boot do servidor Express)
+connectRedis();
 
 // Initialize Database Tables
 const initDB = async () => {
@@ -391,6 +381,9 @@ app.delete('/api/engine-logs', async (req, res) => {
 // Engine stats (stored in Redis for speed)
 app.get('/api/engine-stats', async (req, res) => {
     try {
+        if (!redisClient.isOpen) {
+            return res.json({ success: 0, error: 0 });
+        }
         const successStr = await redisClient.get('engine_stats_success');
         const errorStr = await redisClient.get('engine_stats_error');
         res.json({
@@ -405,6 +398,9 @@ app.get('/api/engine-stats', async (req, res) => {
 app.post('/api/engine-stats', async (req, res) => {
     const { success, error } = req.body;
     try {
+        if (!redisClient.isOpen) {
+            return res.status(503).json({ error: 'Redis is not connected' });
+        }
         await redisClient.set('engine_stats_success', String(success));
         await redisClient.set('engine_stats_error', String(error));
         res.json({ success: true });
@@ -445,6 +441,9 @@ app.delete('/api/planner-drafts', async (req, res) => {
 app.post('/api/dispatch/queue', async (req, res) => {
     const { messages } = req.body;
     try {
+        if (!redisClient.isOpen) {
+            return res.status(503).json({ error: 'Redis is not connected' });
+        }
         for (const msg of messages) {
             await redisClient.lPush('dispatch_queue', JSON.stringify(msg));
         }
@@ -457,6 +456,9 @@ app.post('/api/dispatch/queue', async (req, res) => {
 
 app.get('/api/dispatch/queue/status', async (req, res) => {
     try {
+        if (!redisClient.isOpen) {
+            return res.json({ queueLength: 0, isRunning: false, processed: 0, warning: 'Redis offline' });
+        }
         const queueLen = await redisClient.lLen('dispatch_queue');
         const isRunning = await redisClient.get('dispatch_running');
         const processedStr = await redisClient.get('dispatch_processed');
@@ -472,6 +474,9 @@ app.get('/api/dispatch/queue/status', async (req, res) => {
 
 app.post('/api/dispatch/queue/stop', async (req, res) => {
     try {
+        if (!redisClient.isOpen) {
+            return res.status(503).json({ error: 'Redis is not connected' });
+        }
         await redisClient.set('dispatch_stop', 'true');
         res.json({ success: true });
     } catch (err) {
@@ -481,6 +486,9 @@ app.post('/api/dispatch/queue/stop', async (req, res) => {
 
 app.delete('/api/dispatch/queue', async (req, res) => {
     try {
+        if (!redisClient.isOpen) {
+            return res.status(503).json({ error: 'Redis is not connected' });
+        }
         await redisClient.del('dispatch_queue');
         await redisClient.del('dispatch_stop');
         await redisClient.del('dispatch_processed');
