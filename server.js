@@ -15,7 +15,7 @@ const port = process.env.PORT || 3000;
 
 // --- DB CONFIG ---
 const pgUrl = process.env.DATABASE_URL || "postgres://postgres:Marketing%40plugsales2026!@localhost:5432/plug_sales_dispatch_app?sslmode=disable";
-const redisUrl = process.env.REDIS_URL || "redis://default:Marketing%40plugsales2026!@localhost:6379";
+const redisUrl = process.env.REDIS_URL || "redis://default:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_redis6379";
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: pgUrl });
