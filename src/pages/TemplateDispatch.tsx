@@ -93,6 +93,7 @@ const TemplateDispatch = () => {
         language: string;
         tag: string;
         toNumber: string;
+        contactCount?: number;
         placeholders: PlaceholderField[];
         headerType: 'IMAGE' | 'VIDEO' | 'NONE';
         mediaUrl: string;
@@ -137,6 +138,7 @@ const TemplateDispatch = () => {
                 language: d.language || 'pt_BR',
                 tag: d.tag || '',
                 toNumber: d.toNumber || '',
+                contactCount: d.contactCount || 0,
                 placeholders: d.placeholders || [],
                 headerType: d.headerType || 'NONE',
                 mediaUrl: d.mediaUrl || '',
@@ -454,33 +456,11 @@ const TemplateDispatch = () => {
         setIsSending(false);
     };
 
-    const addToPlanner = async () => {
-        const stepData = {
-            wabaId: fromNumber,
-            listTag: selectedTag || 'Manual/Individual',
-            templateName: templateName,
-            templateInstance: templateName,
-            delay: 5,
-            language: language,
-            headerType: headerType,
-            mediaUrl: mediaUrl,
-            placeholders: placeholders,
-            includeButton: includeButton,
-            buttonType: buttonType,
-            buttonPayload: buttonPayload
-        };
-
-        await dbService.addPlannerDraft(stepData);
-
-        // Send to Webhook
-        sendToWebhook({ type: 'PLANNER_SAVE', ...stepData });
-
-        setSendStats({ success: true, message: 'Configuração enviada para o Planner com sucesso!' });
-    };
 
     // --- DRAFT FUNCTIONS ---
     const saveDraft = async (customLabel?: string) => {
-        const label = customLabel || `${templateName} – ${selectedTag || toNumber.slice(0, 15) || 'Manual'}`;
+        const cCount = isBulkMode ? bulkContacts.length : toNumber.split(',').filter(n => n.trim()).length;
+        const label = customLabel || `${templateName} – ${selectedTag || (isBulkMode ? 'Lista' : toNumber.slice(0, 15))}`;
         const draftPayload = {
             _draft: true,
             label,
@@ -488,6 +468,7 @@ const TemplateDispatch = () => {
             language,
             tag: selectedTag,
             toNumber,
+            contactCount: cCount,
             placeholders,
             headerType,
             mediaUrl,
@@ -508,6 +489,7 @@ const TemplateDispatch = () => {
             language,
             tag: selectedTag,
             toNumber,
+            contactCount: cCount,
             placeholders,
             headerType,
             mediaUrl,
@@ -935,7 +917,6 @@ const TemplateDispatch = () => {
                                 >
                                     <BookMarked size={16} /> SALVAR RASCUNHO
                                 </button>
-                                <button className="btn btn-secondary flex-1" style={{ border: '1px solid var(--primary-color)', color: 'var(--primary-color)' }} onClick={addToPlanner}>PLANNER</button>
                                 <button
                                     className="btn btn-primary flex-2"
                                     style={{ color: 'black', fontWeight: 900, fontSize: '1.2rem' }}
@@ -1032,7 +1013,17 @@ const TemplateDispatch = () => {
                                                     <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                                                         {new Date(draft.savedAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                         {draft.tag && <> · <span style={{ color: 'var(--primary-color)' }}>{draft.tag}</span></>}
+                                                        {draft.contactCount ? <> · <span style={{ fontWeight: 800 }}>({draft.contactCount} contatos)</span></> : ''}
                                                     </span>
+                                                    {draft.placeholders && draft.placeholders.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-2">
+                                                            {draft.placeholders.map(p => (
+                                                                <span key={p.id} style={{ fontSize: '0.6rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', padding: '2px 5px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                                    {'{'}{p.id}{'}'}: {p.value.length > 15 ? p.value.slice(0, 12) + '...' : p.value}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <button className="draft-action-btn" style={{ color: '#f87171' }} onClick={() => deleteDraft(draft.id)} title="Excluir rascunho">
                                                     <Trash2 size={13} />
