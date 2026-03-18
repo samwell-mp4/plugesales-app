@@ -20,60 +20,71 @@ const MediaHosting = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
 
+        const fileArray = Array.from(files);
+        setUploadProgress({ current: 0, total: fileArray.length });
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
 
-        try {
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
+        const newHostedFiles = [...hostedFiles];
 
-            if (!response.ok) throw new Error('Falha na comunicação com o servidor VPS.');
+        for (let i = 0; i < fileArray.length; i++) {
+            const file = fileArray[i];
+            setUploadProgress(prev => ({ ...prev, current: i + 1 }));
 
-            const result = await response.json();
-            
-            // Garantir que a URL seja absoluta baseada no domínio atual se o servidor retornar relativa
-            let finalUrl = result.url;
-            if (finalUrl && !finalUrl.startsWith('http')) {
-                finalUrl = window.location.origin + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error(`Falha no upload de ${file.name}`);
+
+                const result = await response.json();
+                
+                let finalUrl = result.url;
+                if (finalUrl && !finalUrl.startsWith('http')) {
+                    finalUrl = window.location.origin + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
+                }
+                
+                if (!finalUrl) throw new Error('URL inválida rertornada para ' + file.name);
+
+                const fileSizeMB = file.size / (1024 * 1024);
+                const sizeDisplay = fileSizeMB < 0.1 
+                    ? (file.size / 1024).toFixed(1) + ' KB' 
+                    : fileSizeMB.toFixed(1) + ' MB';
+
+                const newFile: HostedMedia = {
+                    id: 'med_' + Date.now() + '_' + i,
+                    name: file.name,
+                    type: file.type.startsWith('video') ? 'video' : 'image',
+                    size: sizeDisplay,
+                    shortUrl: finalUrl,
+                    originalName: file.name,
+                    uploadedAt: new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                };
+
+                newHostedFiles.unshift(newFile);
+                // Atualizar state local imediatamente para feedback visual
+                setHostedFiles([...newHostedFiles]);
+                localStorage.setItem('hosted_media_library', JSON.stringify(newHostedFiles));
+
+            } catch (error: any) {
+                console.error('Upload Error for', file.name, ':', error);
+                // Não paramos o loop por erro em um arquivo individual
             }
-            
-            if (!finalUrl) {
-                throw new Error('O servidor não retornou uma URL válida para o arquivo.');
-            }
-
-            const fileSizeMB = file.size / (1024 * 1024);
-            const sizeDisplay = fileSizeMB < 0.1 
-                ? (file.size / 1024).toFixed(1) + ' KB' 
-                : fileSizeMB.toFixed(1) + ' MB';
-
-            const newFile: HostedMedia = {
-                id: 'med_' + Date.now(),
-                name: file.name,
-                type: file.type.startsWith('video') ? 'video' : 'image',
-                size: sizeDisplay,
-                shortUrl: finalUrl,
-                originalName: file.name,
-                uploadedAt: new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-            };
-
-            const updatedList = [newFile, ...hostedFiles];
-            setHostedFiles(updatedList);
-            localStorage.setItem('hosted_media_library', JSON.stringify(updatedList));
-            alert('✅ Arquivo hospedado com sucesso!');
-        } catch (error: any) {
-            console.error('Upload Error:', error);
-            alert(`❌ Erro no Upload: ${error.message}`);
-        } finally {
-            setIsUploading(false);
         }
+
+        setIsUploading(false);
+        setUploadProgress({ current: 0, total: 0 });
+        alert(`✅ Processamento concluído! ${fileArray.length} arquivo(s) processado(s).`);
     };
 
     const handleDelete = (id: string) => {
@@ -131,7 +142,7 @@ const MediaHosting = () => {
                 {/* Upload Section */}
                 <div className="flex flex-col gap-6">
                     <label className="upload-zone flex flex-col items-center gap-6">
-                        <input type="file" style={{ display: 'none' }} onChange={handleUpload} accept="image/*,video/*" />
+                        <input type="file" style={{ display: 'none' }} onChange={handleUpload} accept="image/*,video/*" multiple />
                         <div style={{
                             width: 80, height: 80, borderRadius: '24px', background: 'var(--primary-color)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black',
@@ -140,8 +151,10 @@ const MediaHosting = () => {
                             {isUploading ? <Activity className="animate-spin" size={32} /> : <Upload size={32} strokeWidth={3} />}
                         </div>
                         <div className="flex flex-col gap-2">
-                            <h2 style={{ margin: 0, fontWeight: 900 }}>{isUploading ? 'PROCESSANDO...' : 'SOLTE SEU ARQUIVO AQUI'}</h2>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Suporta PNG, JPG, MP4. Limite de 50MB por arquivo.</p>
+                            <h2 style={{ margin: 0, fontWeight: 900 }}>
+                                {isUploading ? `ENVIANDO ${uploadProgress.current}/${uploadProgress.total}...` : 'SOLTE SEUS ARQUIVOS AQUI'}
+                            </h2>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Suporta múltiplos arquivos PNG, JPG, MP4.</p>
                         </div>
                         {!isUploading && (
                             <div className="btn btn-primary" style={{ padding: '12px 32px', borderRadius: '14px', color: 'black', fontWeight: 800 }}>
