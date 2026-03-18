@@ -91,7 +91,14 @@ const TemplateDispatch = () => {
                     headers: { 'Authorization': `App ${apiKey}` }
                 });
                 const data = await response.json();
-                setAllTemplates(data.templates || []);
+                let fetchedTemplates = data.templates || [];
+                
+                // Filtrar apenas os aprovados e ordenar (criados primeiro = cronológico)
+                const approvedTemplates = fetchedTemplates
+                    .filter((t: any) => t.status === 'APPROVED')
+                    .sort((a: any, b: any) => a.id.localeCompare(b.id));
+
+                setAllTemplates(approvedTemplates);
             } catch (error) {
                 console.error('Error fetching templates:', error);
             }
