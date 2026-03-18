@@ -33,6 +33,8 @@ const UploadContacts = () => {
     const [totalContacts, setTotalContacts] = useState(0);
     const [duplicateCount, setDuplicateCount] = useState(0);
     const [invalidCount, setInvalidCount] = useState(0);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [validatorNumber, setValidatorNumber] = useState('');
     const [uploadHistory, setUploadHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
@@ -115,8 +117,50 @@ const UploadContacts = () => {
         });
 
         if (remainingParts.length > 0) {
-            // Pick longest remaining part as name
-            name = remainingParts.sort((a, b) => b.length - a.length)[0];
+            // Heuristic scoring to select the best "Name" candidate
+            const scoredParts = remainingParts.map(part => {
+                let score = 0;
+                // Clean quotes and trim
+                const clean = part.replace(/^["']|["']$/g, '').trim();
+                
+                if (!clean) return { part: '', score: -1000 };
+
+                // 1. Heavy penalties for obviously non-name characters
+                if (clean.includes(':')) score -= 60; // Labels, timestamps or status
+                if (clean.includes('/')) score -= 50; // Dates
+                if (/\d{4,}/.test(clean)) score -= 40; // Long number sequences (like IDs or CPFs)
+                if (/\d/.test(clean)) score -= 15; // Any digit is slightly suspicious for a real name
+
+                // 2. Penalty for all-caps (often system messages, statuses or technical IDs)
+                if (clean.length > 8 && clean === clean.toUpperCase()) score -= 20;
+
+                // 3. Penalty for very short or very long strings
+                if (clean.length < 3) score -= 30;
+                if (clean.length > 50) score -= 25;
+
+                // 4. Bonus for Proper Case (Typical for names like "Joaquim Silva")
+                const words = clean.split(/\s+/).filter(w => w.length > 0);
+                const isProperCase = words.length > 0 && words.every(w => {
+                    if (w.length <= 2) return true; // Ignore small particles like "da", "dos", "de"
+                    const firstChar = w[0];
+                    const isCapitalized = firstChar === firstChar.toUpperCase();
+                    const isRestLower = w.slice(1) === w.slice(1).toLowerCase();
+                    return isCapitalized && isRestLower;
+                });
+                if (isProperCase) score += 45;
+
+                // 5. Bonus for typical number of words in a name (2 to 4)
+                if (words.length >= 2 && words.length <= 4) score += 30;
+
+                // 6. Tie-breaker: slight bonus for length if it's otherwise a good candidate
+                score += (clean.length * 0.1);
+
+                return { part: clean, score };
+            });
+
+            // Pick the best score
+            const best = scoredParts.sort((a, b) => b.score - a.score)[0];
+            name = best ? best.part : '';
         }
 
         return { telefone: phone, nome: name, cpf, email };
@@ -274,11 +318,11 @@ const UploadContacts = () => {
                 const formattedList = filtered.map((item, index) => {
                     const batchNumber = Math.floor(index / batchSize) + 1;
                     return {
-                        Nome: item.nome || '',
-                        Telefone: item.telefone,
-                        Etiqueta: `${baseTag}_${batchNumber}`,
-                        CPF: item.cpf || '',
-                        Email: item.email || ''
+                        info_2: item.nome || '',
+                        Número: item.telefone,
+                        Etiquetas: `${baseTag}_${batchNumber}`,
+                        info_3: item.cpf || '',
+                        'E-mail': item.email || ''
                     };
                 });
 
@@ -315,6 +359,84 @@ const UploadContacts = () => {
         reader.readAsArrayBuffer(file);
     };
 
+    const syncToInfobip = async () => {
+        if (processedData.length === 0) return;
+        setIsSyncing(true);
+        setSyncStatus('idle');
+
+        try {
+            const settings = await dbService.getSettings();
+            // Fallback to user provided key if settings are empty/server is down
+            const apiKey = settings.infobip_key || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8';
+            let baseUrl = settings.infobip_url || 'https://api.infobip.com';
+            if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+
+            if (!apiKey) {
+                alert("API Key da Infobip não encontrada!");
+                setIsSyncing(false);
+                return;
+            }
+
+            // Map to Infobip Person schema
+            const people = processedData.map(item => ({
+                firstName: item.info_2 || '',
+                type: 'CUSTOMER',
+                contactInformation: {
+                    phone: [{ number: item.Número }],
+                    email: item['E-mail'] ? [{ address: item['E-mail'] }] : []
+                },
+                customAttributes: {
+                    info_2: item.info_2 || '',
+                    info_3: item.info_3 || ''
+                },
+                tags: [baseTag]
+            }));
+
+            // Sync in chunks of 100 (Infobip limit for persons batch)
+            const chunkSize = 100;
+            let successCount = 0;
+
+            for (let i = 0; i < people.length; i += chunkSize) {
+                const chunk = people.slice(i, i + chunkSize);
+                const res = await fetch(`${baseUrl}/people/2/persons/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `App ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ people: chunk })
+                });
+
+                if (res.ok) {
+                    successCount += chunk.length;
+                } else {
+                    const err = await res.json();
+                    throw new Error(err.description || err.message || 'Erro na API Infobip');
+                }
+            }
+
+            setSyncStatus('success');
+            
+            // Audit Log
+            await dbService.addLog({
+                logType: 'INFOBIP_SYNC',
+                author: 'Admin',
+                name: baseTag,
+                total: people.length,
+                success: successCount
+            });
+
+            alert(`${successCount} contatos sincronizados com sucesso na Infobip!`);
+
+        } catch (error: any) {
+            console.error("Sync Error:", error);
+            setSyncStatus('error');
+            alert(`Falha na sincronização: ${error.message}`);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     const exportCSVs = () => {
         if (processedData.length === 0) return;
         const worksheet = XLSX.utils.json_to_sheet(processedData);
@@ -336,11 +458,11 @@ const UploadContacts = () => {
         if (!contacts) return alert("Dados da lista não encontrados para download.");
 
         const exportData = contacts.map((c: any) => ({
-            Nome: c.nome || '',
-            Telefone: c.telefone,
-            Etiqueta: `${tag}_CONSOLIDADO`,
-            CPF: c.cpf || '',
-            Email: c.email || ''
+            info_2: c.nome || '',
+            Número: c.telefone,
+            Etiquetas: `${tag}_CONSOLIDADO`,
+            info_3: c.cpf || '',
+            'E-mail': c.email || ''
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -649,7 +771,48 @@ const UploadContacts = () => {
                             </div>
 
                             <div className="flex flex-col gap-3 mt-8">
-                                <button className="btn btn-primary w-full btn-sm-custom" style={{ fontWeight: 800 }} onClick={() => navigate('/campaigns')}>PLANEJAR DISPARO</button>
+                                <button 
+                                    className="btn btn-primary w-full btn-sm-custom" 
+                                    style={{ 
+                                        fontWeight: 900, 
+                                        background: syncStatus === 'success' 
+                                            ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' 
+                                            : syncStatus === 'error'
+                                                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'
+                                                : 'linear-gradient(135deg, var(--primary-color) 0%, #8af800 100%)',
+                                        color: syncStatus === 'idle' ? 'black' : 'white',
+                                        boxShadow: syncStatus === 'success' 
+                                            ? '0 10px 20px -5px rgba(16, 185, 129, 0.3)' 
+                                            : syncStatus === 'error'
+                                                ? '0 10px 20px -5px rgba(239, 68, 68, 0.3)'
+                                                : '0 10px 20px -5px rgba(172, 248, 0, 0.3)'
+                                    }} 
+                                    onClick={syncToInfobip}
+                                    disabled={isSyncing}
+                                >
+                                    {isSyncing ? (
+                                        <div className="flex items-center gap-2">
+                                            <Activity size={18} className="animate-spin" />
+                                            <span>SINCRONIZANDO...</span>
+                                        </div>
+                                    ) : syncStatus === 'success' ? (
+                                        <div className="flex items-center gap-2 justify-center">
+                                            <CheckCircle size={18} />
+                                            <span>SINCRO CONCLUÍDA</span>
+                                        </div>
+                                    ) : syncStatus === 'error' ? (
+                                        <div className="flex items-center gap-2 justify-center">
+                                            <Activity size={18} />
+                                            <span>FALHA NA SINCRO</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 justify-center">
+                                            <UploadCloud size={18} />
+                                            <span>SINCRONIZAR INFOBIP</span>
+                                        </div>
+                                    )}
+                                </button>
+                                <button className="btn btn-secondary w-full btn-sm-custom" style={{ fontWeight: 800 }} onClick={() => navigate('/campaigns')}>PLANEJAR DISPARO</button>
                                 <button className="btn btn-secondary w-full btn-sm-custom" onClick={exportCSVs}>EXPORTAR CSV</button>
                             </div>
                         </div>
