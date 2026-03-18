@@ -14,8 +14,17 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // --- DB CONFIG ---
-const pgUrl = process.env.DATABASE_URL || "postgres://postgres:Marketing%40plugsales2026!@localhost:5432/plug_sales_dispatch_app?sslmode=disable";
-const redisUrl = process.env.REDIS_URL || "redis://default:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_redis6379";
+const isLocal = process.platform === 'win32' || !fs.existsSync('/.dockerenv');
+
+const pgUrl = process.env.DATABASE_URL || (isLocal 
+    ? "postgres://postgres:Marketing%40plugsales2026!@localhost:5432/plug_sales_dispatch_app?sslmode=disable"
+    : "postgres://postgres:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable"
+);
+
+const redisUrl = process.env.REDIS_URL || (isLocal
+    ? "redis://default:Marketing%40plugsales2026!@localhost:6379"
+    : "redis://default:Marketing%40plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379"
+);
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: pgUrl });
