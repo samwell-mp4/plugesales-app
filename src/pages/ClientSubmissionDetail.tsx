@@ -146,7 +146,7 @@ const ClientSubmissionDetail = () => {
     const currentAd = ads[activeAdIdx];
 
     return (
-        <div style={{ minHeight: '100vh', background: '#020617', color: 'white', padding: '28px 24px' }}>
+        <div className="container-root" style={{ minHeight: '100vh', background: '#020617', color: 'white', padding: '28px 24px' }}>
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -217,14 +217,28 @@ const ClientSubmissionDetail = () => {
                     border-color: rgba(255,255,255,0.12);
                     transform: scale(1.02);
                 }
+
+                @media (max-width: 1024px) {
+                    .controls-wrapper { grid-template-columns: 1fr !important; }
+                    .ad-analyzer-grid { grid-template-columns: 1fr !important; }
+                    .header-content { flex-direction: column; align-items: flex-start !important; gap: 20px !important; }
+                    .header-actions { width: 100%; justify-content: space-between; }
+                }
+
+                @media (max-width: 640px) {
+                    .container-root { padding: 16px !important; }
+                    .control-card { padding: 16px !important; }
+                    .ad-tabs-container { flex-wrap: wrap; }
+                    .header-profile-info { flex-direction: column; align-items: flex-start !important; }
+                }
             `}</style>            <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
                 {/* ── HEADER ── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', gap: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <button onClick={() => navigate('/client-submissions')} className="action-btn ghost-btn" style={{ width: 44, height: 44, padding: 0 }}>
+                <div className="header-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', gap: '24px' }}>
+                    <div className="header-profile-info" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <button onClick={() => navigate('/client-submissions')} className="action-btn ghost-btn" style={{ width: 44, height: 44, padding: 0, flexShrink: 0 }}>
                             <ChevronLeft size={20} />
                         </button>
-                        <div style={{ position: 'relative' }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
                             {sub.profile_photo ? (
                                 <img src={sub.profile_photo} alt="" style={{ width: 64, height: 64, borderRadius: '20px', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.1)' }} />
                             ) : (
@@ -238,7 +252,7 @@ const ClientSubmissionDetail = () => {
                         </div>
                         <div>
                             <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', letterSpacing: '-1px' }}>{sub.profile_name}</h1>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                                 <span className="info-chip" style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.2)' }}>
                                     REGIONAL {sub.ddd}
                                 </span>
@@ -249,7 +263,7 @@ const ClientSubmissionDetail = () => {
                         </div>
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <button onClick={load} className="action-btn ghost-btn" style={{ width: 44, height: 44, padding: 0 }}>
                             <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
                         </button>
@@ -260,7 +274,7 @@ const ClientSubmissionDetail = () => {
                 </div>
 
                 {/* ── CONTROL GRID ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
+                <div className="controls-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
                     
                     {/* CARD 1: STATUS & ACTIONS */}
                     <div className="control-card" style={{ animationDelay: '0.1s' }}>
@@ -349,9 +363,9 @@ const ClientSubmissionDetail = () => {
 
                 {/* ── ADS ANALYZER ── */}
                 <div className="control-card" style={{ animationDelay: '0.4s' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
                         <label className="field-label" style={{ marginBottom: 0 }}><Layers size={14} /> Navegador de Anúncios ({ads.length})</label>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="ad-tabs-container" style={{ display: 'flex', gap: '8px' }}>
                             {ads.map((_, idx) => (
                                 <button
                                     key={idx}
@@ -365,7 +379,7 @@ const ClientSubmissionDetail = () => {
                     </div>
 
                     {currentAd ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+                        <div className="ad-analyzer-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
