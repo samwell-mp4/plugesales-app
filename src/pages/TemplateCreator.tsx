@@ -598,7 +598,7 @@ const TemplateCreator = () => {
                                 <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                     <div className="input-group">
                                         <label>Prefixo Base</label>
-                                        <input className="input-field" style={{ borderRadius: '12px' }} value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value)} placeholder="ex: v1_" />
+                                        <input className="input-field" style={{ borderRadius: '12px' }} value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value.toLowerCase())} placeholder="ex: v1_" />
                                     </div>
                                     <div className="input-group">
                                         <label>Auto-Gerar Linhas</label>
@@ -633,7 +633,7 @@ const TemplateCreator = () => {
                                                             <td>
                                                                 <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.suffix} onChange={e => {
                                                                     const n = [...bulkRows];
-                                                                    n[i].suffix = e.target.value;
+                                                                    n[i].suffix = e.target.value.toLowerCase();
                                                                     setBulkRows(n);
                                                                 }} />
                                                             </td>

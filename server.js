@@ -17,9 +17,18 @@ const port = process.env.PORT || 3000;
 // Fallbacks for Easypanel/Docker hosts
 const DEFAULT_PG = "postgres://postgres:Marketing%40plugsales2026!@plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
 const DEFAULT_REDIS = "redis://default:Marketing%40plugsales2026!@plug_sales_redis:6379";
+const LOCAL_PG = "postgres://postgres:postgres@localhost:5432/plug_sales_dispatch_app";
+const LOCAL_REDIS = "redis://localhost:6379";
 
-let pgUrl = process.env.DATABASE_URL || DEFAULT_PG;
-let redisUrl = process.env.REDIS_URL || DEFAULT_REDIS;
+let pgUrl, redisUrl;
+
+if (fs.existsSync('/.dockerenv')) {
+    pgUrl = process.env.DATABASE_URL || DEFAULT_PG;
+    redisUrl = process.env.REDIS_URL || DEFAULT_REDIS;
+} else {
+    pgUrl = LOCAL_PG;
+    redisUrl = LOCAL_REDIS;
+}
 
 // CORREÇÃO CRÍTICA DE VPS/DOCKER: 
 // Se detectarmos que estamos dentro de um contêiner (Docker), mas a URL capturada 
@@ -36,8 +45,8 @@ if (fs.existsSync('/.dockerenv')) {
     }
 }
 
-console.log('Postgres connection source:', pgUrl === DEFAULT_PG ? 'internal fallback' : 'env DATABASE_URL');
-console.log('Redis connection source:', redisUrl === DEFAULT_REDIS ? 'internal fallback' : 'env REDIS_URL');
+console.log('Postgres connection source:', pgUrl === DEFAULT_PG ? 'internal production fallback' : pgUrl === LOCAL_PG ? 'internal local fallback' : 'env DATABASE_URL');
+console.log('Redis connection source:', redisUrl === DEFAULT_REDIS ? 'internal production fallback' : redisUrl === LOCAL_REDIS ? 'internal local fallback' : 'env REDIS_URL');
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: pgUrl });
@@ -62,79 +71,68 @@ connectRedis();
 
 // Initialize Database Tables
 const initDB = async () => {
+    let client;
     try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            );
-            CREATE TABLE IF NOT EXISTS media_library (
-                id SERIAL PRIMARY KEY,
-                name TEXT,
-                type TEXT,
-                url TEXT,
-                short_url TEXT,
+        client = await pool.connect();
+        const tables = [
+            `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`,
+            `CREATE TABLE IF NOT EXISTS media_library (
+                id SERIAL PRIMARY KEY, name TEXT, type TEXT, url TEXT, short_url TEXT, 
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS audit_logs (
-                id SERIAL PRIMARY KEY,
-                log_type TEXT,
-                author TEXT,
-                name TEXT,
-                template TEXT,
-                mode TEXT,
-                total INTEGER DEFAULT 0,
-                success INTEGER DEFAULT 0,
-                transmission_id TEXT,
-                campaign_name TEXT,
-                step_index INTEGER,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS contacts_list (
-                id SERIAL PRIMARY KEY,
-                tag TEXT UNIQUE,
-                data JSONB,
-                count INTEGER DEFAULT 0,
-                validator TEXT,
-                creator TEXT DEFAULT 'Admin',
-                status TEXT DEFAULT 'CONCLUÍDO',
+            )`,
+            `CREATE TABLE IF NOT EXISTS audit_logs (
+                id SERIAL PRIMARY KEY, log_type TEXT, author TEXT, name TEXT, template TEXT, mode TEXT, 
+                total INTEGER DEFAULT 0, success INTEGER DEFAULT 0, transmission_id TEXT, 
+                campaign_name TEXT, step_index INTEGER, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS contacts_list (
+                id SERIAL PRIMARY KEY, tag TEXT UNIQUE, data JSONB, count INTEGER DEFAULT 0, 
+                validator TEXT, creator TEXT DEFAULT 'Admin', status TEXT DEFAULT 'CONCLUÍDO', 
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS upload_history (
-                id SERIAL PRIMARY KEY,
-                tag TEXT,
-                count INTEGER DEFAULT 0,
-                validator TEXT,
-                creator TEXT DEFAULT 'Admin',
-                status TEXT DEFAULT 'CONCLUÍDO',
+            )`,
+            `CREATE TABLE IF NOT EXISTS upload_history (
+                id SERIAL PRIMARY KEY, tag TEXT, count INTEGER DEFAULT 0, validator TEXT, 
+                creator TEXT DEFAULT 'Admin', status TEXT DEFAULT 'CONCLUÍDO', 
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS campaigns (
+            )`,
+            `CREATE TABLE IF NOT EXISTS campaigns (
+                id SERIAL PRIMARY KEY, name TEXT, steps JSONB, 
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS engine_logs (
+                id SERIAL PRIMARY KEY, transmission_id TEXT, log_type TEXT, waba TEXT, 
+                recipient TEXT, message TEXT, payload JSONB, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS planner_drafts (
+                id SERIAL PRIMARY KEY, data JSONB, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`
+        ];
+
+        for (const sql of tables) {
+            await client.query(sql);
+        }
+        console.log('✅ Core database tables verified/created.');
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS client_submissions (
                 id SERIAL PRIMARY KEY,
-                name TEXT,
-                steps JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS engine_logs (
-                id SERIAL PRIMARY KEY,
-                transmission_id TEXT,
-                log_type TEXT,
-                waba TEXT,
-                recipient TEXT,
-                message TEXT,
-                payload JSONB,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS planner_drafts (
-                id SERIAL PRIMARY KEY,
-                data JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
+                profile_photo TEXT,
+                profile_name TEXT NOT NULL,
+                ddd TEXT NOT NULL,
+                template_type TEXT DEFAULT 'none',
+                media_url TEXT,
+                ad_copy TEXT,
+                button_link TEXT,
+                spreadsheet_url TEXT,
+                status TEXT DEFAULT 'PENDENTE',
+                timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
         `);
-        console.log("Database initialized successfully.");
+        console.log('✅ Table client_submissions verified/created.');
     } catch (err) {
-        console.error("Database initialization failed:", err);
+        console.error('❌ FATAL DB ERROR during initDB:', err.message);
+    } finally {
+        if (client) client.release();
     }
 };
 initDB();
@@ -428,9 +426,45 @@ app.post('/api/planner-drafts', async (req, res) => {
     }
 });
 
-app.delete('/api/planner-drafts', async (req, res) => {
+// Client Submissions
+app.get('/api/client-submissions', async (req, res) => {
     try {
-        await pool.query('TRUNCATE TABLE planner_drafts');
+        const result = await pool.query('SELECT * FROM client_submissions ORDER BY timestamp DESC');
+        res.json(result.rows || []);
+    } catch (err) {
+        console.error('Error fetching client-submissions:', err);
+        res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
+
+app.post('/api/client-submissions', async (req, res) => {
+    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, spreadsheet_url, status } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO client_submissions 
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, spreadsheet_url, status) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, spreadsheet_url, status || 'PENDENTE']
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/client-submissions/:id', async (req, res) => {
+    const { status } = req.body;
+    try {
+        await pool.query('UPDATE client_submissions SET status = $1 WHERE id = $2', [status, req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/client-submissions/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM client_submissions WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -525,6 +559,8 @@ app.use('/uploads', express.static(uploadDir));
 
 // API: Upload de arquivos
 app.post('/api/upload', upload.single('file'), async (req, res) => {
+    console.log('--- UPLOAD REQUEST RECEIVED ---');
+    console.log('File:', req.file);
     if (!req.file) {
         return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
     }

@@ -8,6 +8,7 @@ import CampaignPlanner from './pages/CampaignPlanner';
 import EngineExecution from './pages/EngineExecution';
 import MediaHosting from './pages/MediaHosting';
 import TemplateDispatch from './pages/TemplateDispatch';
+import ClientSubmissions from './pages/ClientSubmissions';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -34,6 +35,7 @@ function AppContent() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/templates" element={<TemplateCreator />} />
+          <Route path="/client-submissions" element={<ClientSubmissions />} />
           <Route path="/upload" element={<UploadContacts />} />
           <Route path="/campaigns" element={<CampaignPlanner />} />
           <Route path="/engine" element={<EngineExecution />} />

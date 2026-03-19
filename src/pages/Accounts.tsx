@@ -237,20 +237,13 @@ const Accounts = () => {
                     .table-container { border-radius: 0; margin-left: -32px; margin-right: -32px; width: calc(100% + 64px); }
                 }
                 
-                .badge-premium {
-                    padding: 4px 10px;
-                    font-size: 0.65rem;
-                    font-weight: 800;
-                    border-radius: 8px;
-                    white-space: nowrap;
-                }
                 .recent-tag {
-                    padding: 4px 12px;
-                    background: rgba(172, 248, 0, 0.05);
-                    border: 1px solid rgba(172, 248, 0, 0.1);
-                    border-radius: 20px;
-                    font-size: 0.7rem;
-                    font-weight: 700;
+                    padding: 8px 16px;
+                    background: rgba(172, 248, 0, 0.08);
+                    border: 1px solid rgba(172, 248, 0, 0.15);
+                    border-radius: 14px;
+                    font-size: 0.85rem;
+                    font-weight: 800;
                     color: var(--primary-color);
                     cursor: pointer;
                     transition: all 0.2s;
@@ -259,6 +252,15 @@ const Accounts = () => {
                     background: var(--primary-color);
                     color: black;
                     transform: translateY(-2px);
+                    box-shadow: 0 0 15px rgba(172, 248, 0, 0.3);
+                }
+                .config-command-center {
+                    background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+                    border: 1px solid rgba(172, 248, 0, 0.1);
+                    border-radius: 24px;
+                    padding: 32px;
+                    margin-bottom: 32px;
+                    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.5);
                 }
             `}</style>
 
@@ -341,91 +343,58 @@ const Accounts = () => {
                         </div>
                     </div>
 
-                    <div className="glass-card mt-8 p-6" style={{ background: 'rgba(255,255,255,0.01)' }}>
+                    <div className="config-command-center mt-8 animate-fade-in">
                         <div className="flex flex-col gap-6">
-                            <div className="flex items-center justify-between gap-6" style={{ flexWrap: 'wrap' }}>
-                                <div className="filter-tabs" style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                    {[
-                                        { id: 'ALL', label: 'Todos', count: templates.length },
-                                        { id: 'APPROVED', label: 'Aprovados', count: approvedCount },
-                                        { id: 'PENDING', label: 'Pendentes', count: pendingCount },
-                                        { id: 'REJECTED', label: 'Rejeitados', count: rejectedCount }
-                                    ].map(tab => (
-                                        <button
-                                            key={tab.id}
-                                            onClick={() => setFilterStatus(tab.id as any)}
-                                            style={{
-                                                padding: '8px 20px',
-                                                border: 'none',
-                                                background: filterStatus === tab.id ? 'rgba(172, 248, 0, 0.1)' : 'transparent',
-                                                color: filterStatus === tab.id ? 'var(--primary-color)' : 'var(--text-muted)',
-                                                fontSize: '0.85rem',
-                                                fontWeight: 700,
-                                                borderRadius: '10px',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px'
+                            <div className="flex items-center gap-8 config-row">
+                                <div className="flex items-center gap-4 flex-1">
+                                    <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '16px', borderRadius: '18px', border: '1px solid rgba(172, 248, 0, 0.2)' }}>
+                                        <Smartphone size={32} color="var(--primary-color)" />
+                                    </div>
+                                    <div className="flex flex-col flex-1">
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--primary-color)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Remetente Selecionado (WABA)</span>
+                                        <input
+                                            list="monitor-senders"
+                                            className={`input-field ${isLoadingSenders ? 'opacity-30' : ''}`}
+                                            style={{ 
+                                                background: 'transparent', 
+                                                border: 'none', 
+                                                borderBottom: '2px solid rgba(172, 248, 0, 0.3)', 
+                                                color: 'white', 
+                                                fontSize: '1.8rem', 
+                                                fontWeight: 900, 
+                                                outline: 'none', 
+                                                padding: '8px 0',
+                                                width: '100%',
+                                                letterSpacing: '-0.5px'
                                             }}
-                                        >
-                                            {tab.label}
-                                            <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{tab.count}</span>
-                                        </button>
-                                    ))}
+                                            value={senderNumber}
+                                            onChange={e => setSenderNumber(e.target.value)}
+                                            placeholder="Escolha ou digite o número..."
+                                        />
+                                        <datalist id="monitor-senders">
+                                            {senders.map((s: any) => (
+                                                <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                                            ))}
+                                        </datalist>
+                                    </div>
                                 </div>
-
-                                <div className="search-bar-container">
-                                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.5 }} />
-                                    <input
-                                        className="input-field"
-                                        style={{ paddingLeft: '48px', background: 'rgba(0,0,0,0.2)', fontSize: '0.9rem', borderRadius: '12px' }}
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                        placeholder="Filtrar por nome ou identificador..."
-                                    />
+                                
+                                <div className="flex items-center gap-4 opacity-30">
+                                    <div className="flex flex-col text-right">
+                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>API Status</span>
+                                        <span style={{ fontSize: '0.9rem', color: 'white', fontWeight: 700 }}>Conexão Segura</span>
+                                    </div>
+                                    <CheckCircle size={24} color="var(--primary-color)" />
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                                <div className="flex items-center gap-6 config-row">
-                                    <div className="flex items-center gap-3 flex-1 max-w-[300px]">
-                                        <Smartphone size={18} color="var(--primary-color)" />
-                                        <div className="flex flex-col flex-1">
-                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Remetente</span>
-                                            <input
-                                                list="monitor-senders"
-                                                className={`input-field ${isLoadingSenders ? 'opacity-50' : ''}`}
-                                                style={{ background: 'transparent', border: 'none', borderBottom: '1px solid rgba(172,248,0,0.2)', color: 'var(--primary-color)', fontSize: '1rem', fontWeight: 900, outline: 'none', padding: '4px 0' }}
-                                                value={senderNumber}
-                                                onChange={e => setSenderNumber(e.target.value)}
-                                                placeholder="Escolha ou digite..."
-                                            />
-                                            <datalist id="monitor-senders">
-                                                {senders.map((s: any) => (
-                                                    <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
-                                                ))}
-                                            </datalist>
-                                        </div>
+                            {recentNumbers.length > 0 && (
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <BookMarked size={14} color="var(--primary-color)" />
+                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Favoritos Recentes</span>
                                     </div>
-                                    
-                                    <div className="flex items-center gap-4 flex-1">
-                                        <RefreshCcw size={18} color="rgba(255,255,255,0.2)" />
-                                        <div className="flex flex-col flex-1">
-                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>API Key Ativa</span>
-                                            <input
-                                                type="password"
-                                                style={{ background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'white', opacity: 0.5, fontSize: '0.85rem', fontWeight: 600, outline: 'none', padding: '4px 0' }}
-                                                value={apiKey}
-                                                onChange={e => setApiKey(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {recentNumbers.length > 0 && (
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, marginRight: '4px' }}>FAVORITOS RECENTES:</span>
+                                    <div className="flex items-center gap-3 flex-wrap">
                                         {recentNumbers.map(num => (
                                             <button 
                                                 key={num} 
@@ -436,8 +405,52 @@ const Accounts = () => {
                                             </button>
                                         ))}
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-6 mt-8" style={{ flexWrap: 'wrap' }}>
+                        <div className="filter-tabs" style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            {[
+                                { id: 'ALL', label: 'Todos', count: templates.length },
+                                { id: 'APPROVED', label: 'Aprovados', count: approvedCount },
+                                { id: 'PENDING', label: 'Pendentes', count: pendingCount },
+                                { id: 'REJECTED', label: 'Rejeitados', count: rejectedCount }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setFilterStatus(tab.id as any)}
+                                    style={{
+                                        padding: '8px 20px',
+                                        border: 'none',
+                                        background: filterStatus === tab.id ? 'rgba(172, 248, 0, 0.1)' : 'transparent',
+                                        color: filterStatus === tab.id ? 'var(--primary-color)' : 'var(--text-muted)',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
+                                        borderRadius: '10px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}
+                                >
+                                    {tab.label}
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{tab.count}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="search-bar-container">
+                            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.5 }} />
+                            <input
+                                className="input-field"
+                                style={{ paddingLeft: '48px', background: 'rgba(0,0,0,0.2)', fontSize: '0.9rem', borderRadius: '12px' }}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                placeholder="Filtrar por nome ou identificador..."
+                            />
                         </div>
                     </div>
 

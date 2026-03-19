@@ -288,4 +288,45 @@ export const dbService = {
             return { queueLength: 0, isRunning: false, processed: 0 };
         }
     },
+    // --- Client Submissions ---
+    getClientSubmissions: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/client-submissions`);
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching client submissions:", err);
+            return [];
+        }
+    },
+    addClientSubmission: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/client-submissions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error adding client submission:", err);
+            return null;
+        }
+    },
+    deleteClientSubmission: async (id: number) => {
+        try {
+            await fetch(`${API_BASE}/client-submissions/${id}`, { method: 'DELETE' });
+        } catch (err: any) {
+            console.error("Error deleting client submission:", err);
+        }
+    },
+    updateClientSubmissionStatus: async (id: number, status: string) => {
+        try {
+            await fetch(`${API_BASE}/client-submissions/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+        } catch (err: any) {
+            console.error("Error updating client submission status:", err);
+        }
+    },
 };

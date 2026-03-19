@@ -8,7 +8,8 @@ import {
     LogOut,
     Home,
     ShieldCheck,
-    UserCircle
+    UserCircle,
+    FileUp
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -20,6 +21,7 @@ const Sidebar = () => {
         { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
         { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
+        { name: 'Upload de Clientes', path: '/client-submissions', icon: <FileUp size={20} /> },
         { name: 'Preparar Planilha', path: '/upload', icon: <FileSpreadsheet size={20} /> },
         { name: 'Encurtador de Link', path: '/media', icon: <Link size={20} /> },
         { name: 'Criar Transmissão', path: '/dispatch', icon: <Send size={20} />, special: true },

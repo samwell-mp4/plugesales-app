@@ -399,11 +399,11 @@ const UploadContacts = () => {
         XLSX.writeFile(workbook, `${tag}_reexport.csv`, { bookType: 'csv' });
     };
 
-    const filteredHistory = uploadHistory.filter(item => {
+    const filteredHistory = Array.isArray(uploadHistory) ? uploadHistory.filter(item => {
         const matchesTag = (item.tag || '').toLowerCase().includes((filterTag || '').toLowerCase());
         const matchesDate = (item.date || '').includes(filterDate || '');
         return matchesTag && matchesDate;
-    });
+    }) : [];
 
     const paginatedHistory = filteredHistory.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
