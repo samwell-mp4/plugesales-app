@@ -250,8 +250,22 @@ const TemplateCreator = () => {
                 });
                 await sendToWebhook(payload);
             }
-            else errors.push(`${name}: ${res.error}`);
-            await new Promise(r => setTimeout(r, 400));
+            else {
+                errors.push(`${name}: ${res.error}`);
+                // LOG ERROR TO BACKEND
+                await fetch('/api/logs/template-error', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        error: res.error,
+                        author: user?.name
+                    })
+                }).catch(e => console.error('Failed to log error to backend:', e));
+            }
+            
+            // Safety Delay: 2.5 seconds for Meta/Infobip stability
+            await new Promise(r => setTimeout(r, 2500));
         }
 
         setIsGenerating(false);

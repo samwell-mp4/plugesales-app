@@ -621,6 +621,21 @@ app.post('/api/dispatch/queue', async (req, res) => {
     }
 });
 
+// API: Log Template Creation Error
+app.post('/api/logs/template-error', async (req, res) => {
+    const { name, error, author } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO engine_logs (log_type, recipient, message, payload) VALUES ($1, $2, $3, $4)',
+            ['TEMPLATE_ERROR', name, `Erro na criação: ${name}`, JSON.stringify({ error, author, timestamp: new Date().toISOString() })]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error logging template failure:', err);
+        res.status(500).json({ error: 'Falha ao salvar log de erro.' });
+    }
+});
+
 // --- REDIS WORKER ---
 const dispatchWorker = async () => {
     try {
