@@ -263,7 +263,7 @@ const TemplateCreator = () => {
                     })
                 }).catch(e => console.error('Failed to log error to backend:', e));
             }
-            
+
             // Safety Delay: 2.5 seconds for Meta/Infobip stability
             await new Promise(r => setTimeout(r, 2500));
         }
@@ -500,20 +500,20 @@ const TemplateCreator = () => {
             </div>
 
             {/* API Settings Bar Redesigned */}
-            <div className="config-bar mb-10 animate-fade-in shadow-xl">
+            <div className="config-bar mb-10 animate-fade-in shadow-xl mb-4">
                 <div className="flex flex-col">
                     <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Configuração do Canal</h3>
                     <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.6 }}>A chave da API está ativa e oculta por segurança.</p>
                 </div>
-                
+
                 <div className="sender-display shadow-lg group relative">
                     <Smartphone size={24} color={isLoadingSenders ? "#9ca3af" : "var(--primary-color)"} className={isLoadingSenders ? "animate-pulse" : ""} />
                     <div className="flex flex-col flex-1">
                         <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.7, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Remetente Oficial</span>
-                        <input 
+                        <input
                             list="senders-list"
-                            className="sender-input" 
-                            value={senderNumber} 
+                            className="sender-input"
+                            value={senderNumber}
                             onChange={e => {
                                 setSenderNumber(e.target.value);
                                 dbService.saveSetting('infobip_sender', e.target.value);
@@ -529,9 +529,9 @@ const TemplateCreator = () => {
                 </div>
             </div>
 
-            <div className="creator-layout">
+            <div className="creator-layout mt-4">
                 {/* Form Column */}
-                <div className="flex-col gap-8">
+                <div className="flex-col gap-8 ">
                     <div className="flex gap-3 tab-btns">
                         <button className={`btn ${activeTab === 'MODEL' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('MODEL')} style={{ flex: 1, borderRadius: '14px', height: '54px' }}>
                             <Layers size={18} /> GERAR INDIVIDUALMENTE
@@ -775,7 +775,7 @@ const TemplateCreator = () => {
                                                 </tbody>
                                             </table>
                                         </div>
- 
+
                                         <button className="btn btn-primary shadow-lg" style={{ padding: '24px', fontSize: '1.2rem', fontWeight: 900, color: 'black', borderRadius: '24px', textTransform: 'uppercase', letterSpacing: '1px' }} onClick={handleGenerateBulk} disabled={isGenerating}>
                                             {isGenerating ? `Publicando ${generatingProgress.current}/${generatingProgress.total}...` : 'CRIAR TEMPLATE EM MASSA'}
                                         </button>

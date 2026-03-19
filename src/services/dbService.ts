@@ -311,11 +311,37 @@ export const dbService = {
             return null;
         }
     },
+    bulkAddClientSubmissions: async (submissions: any[]) => {
+        try {
+            const res = await fetch(`${API_BASE}/client-submissions/bulk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ submissions })
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error bulk adding client submissions:", err);
+            return null;
+        }
+    },
     deleteClientSubmission: async (id: number) => {
         try {
             await fetch(`${API_BASE}/client-submissions/${id}`, { method: 'DELETE' });
         } catch (err: any) {
             console.error("Error deleting client submission:", err);
+        }
+    },
+    updateClientSubmission: async (id: number, data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/client-submissions/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error updating client submission:", err);
+            return null;
         }
     },
     updateClientSubmissionStatus: async (id: number, status: string) => {

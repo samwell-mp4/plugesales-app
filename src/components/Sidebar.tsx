@@ -39,16 +39,18 @@ const Sidebar = () => {
     };
 
     return (
-        <aside className="sidebar flex-col glass-sidebar" style={{
-            width: 'var(--sidebar-width)',
-            margin: '16px 0 16px 16px',
-            padding: '24px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            borderRadius: '24px'
-        }}>
+        <aside className="sidebar flex-col glass-sidebar">
             <style>{`
+                .sidebar {
+                    width: var(--sidebar-width);
+                    margin: 16px 0 16px 16px;
+                    padding: 24px 16px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    border-radius: 24px;
+                    transition: all 0.3s ease;
+                }
                 .glass-sidebar { 
                     background: rgba(15, 23, 42, 0.6); 
                     backdrop-filter: blur(20px); 
@@ -73,11 +75,15 @@ const Sidebar = () => {
                         position: fixed;
                         bottom: 0;
                         left: 0;
+                        right: 0;
                         z-index: 1000;
                         border-top: 1px solid var(--surface-border);
-                        border-left: none !important;
                     }
                     .logo-container { display: none !important; }
+                    .sidebar-content {
+                        width: 100%;
+                        height: 100%;
+                    }
                     .sidebar nav {
                         flex-direction: row !important;
                         height: 100%;
@@ -85,20 +91,28 @@ const Sidebar = () => {
                         justify-content: space-around;
                         align-items: center;
                         margin-top: 0 !important;
+                        display: flex !important;
                     }
                     .nav-link {
+                        flex: 1;
                         flex-direction: column !important;
                         gap: 4px !important;
-                        padding: 8px !important;
+                        padding: 8px 4px !important;
                         font-size: 0.6rem !important;
                         border-left: none !important;
                         border-bottom: 3px solid transparent;
+                        justify-content: center;
+                    }
+                    .nav-link span {
+                        font-size: 9px !important;
+                        text-align: center;
+                        white-space: nowrap;
                     }
                     .nav-link.active {
                         border-bottom: 3px solid var(--primary-color) !important;
                         border-left: none !important;
                     }
-                    .logout-btn { display: none !important; }
+                    .user-info-section, .logout-btn { display: none !important; }
                 }
 
                 @keyframes nav-pulse {
@@ -115,15 +129,77 @@ const Sidebar = () => {
                     animation: nav-pulse 2s infinite;
                     box-shadow: 0 4px 15px rgba(172, 248, 0, 0.3);
                 }
+                
+                @media (max-width: 768px) {
+                    .special-nav {
+                        margin-top: 0 !important;
+                        border-radius: 8px !important;
+                    }
+                }
+
                 .special-nav:hover {
                     background: #c3ff5c !important;
                     transform: translateY(-2px);
                 }
                 .special-nav span { color: black !important; font-weight: 900 !important; }
                 .special-nav svg { color: black !important; }
+
+                .user-info-section {
+                    background: rgba(255, 255, 255, 0.03);
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                }
+                .user-avatar-container {
+                    background: rgba(255,255,255,0.05);
+                    border: 2px solid rgba(172, 248, 0, 0.2);
+                }
+                .user-avatar-container.admin {
+                    background: var(--primary-gradient);
+                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.15);
+                    color: black;
+                }
+                .user-status-dot {
+                    position: absolute;
+                    bottom: -2px;
+                    right: -2px;
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    background: var(--primary-color);
+                    border: 3px solid #0f172a;
+                    box-shadow: 0 0 10px var(--primary-color);
+                }
+                .user-name { font-size: 0.9rem; font-weight: 900; color: white; letter-spacing: -0.2px; }
+                .user-role { 
+                    font-size: 0.6rem; 
+                    font-weight: 800; 
+                    text-transform: uppercase; 
+                    letter-spacing: 1px; 
+                    color: var(--primary-color); 
+                    opacity: 0.9; 
+                    margin-top: 1px; 
+                }
+                .logout-btn {
+                    background: rgba(255, 77, 77, 0.05);
+                    border: 1px solid rgba(255, 77, 77, 0.1);
+                    color: #ff4d4d;
+                    cursor: pointer;
+                    font-weight: 700;
+                    font-size: 0.8rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    transition: all 0.2s ease;
+                }
+                .logout-btn:hover {
+                    background: rgba(255, 77, 77, 0.1);
+                    color: #ff6666;
+                }
             `}</style>
 
-            <div>
+            <div className="sidebar-content">
                 <div className="logo-container mb-6 flex items-center justify-center gap-2">
                     <div style={{ background: 'var(--primary-gradient)', padding: '7px', borderRadius: '15px', display: 'flex', boxShadow: '0 0 20px rgba(172, 248, 0, 0.3)' }}>
                         <MessageSquare color="white" size={24} />
@@ -131,7 +207,7 @@ const Sidebar = () => {
                     <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>Plug & Sales</h2>
                 </div>
 
-                <nav className="flex-col gap-1 mt-6">
+                <nav className="flex flex-col gap-1 mt-6">
                     {menuItems.map((item: any) => (
                         <NavLink
                             key={item.path}
@@ -159,62 +235,23 @@ const Sidebar = () => {
             </div>
 
             <div className="mt-auto flex flex-col gap-2">
-                <div className="mx-2 mb-2 p-4 rounded-[24px]" style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
-                }}>
+                <div className="user-info-section mx-2 mb-2 p-4 rounded-[24px]">
                     <div className="flex items-center gap-4">
                         <div className="relative">
-                            <div className="flex items-center justify-center h-12 w-12 rounded-2xl overflow-hidden" style={{
-                                background: user?.role === 'ADMIN' ? 'var(--primary-gradient)' : 'rgba(255,255,255,0.05)',
-                                border: '2px solid rgba(172, 248, 0, 0.2)',
-                                boxShadow: user?.role === 'ADMIN' ? '0 0 20px rgba(172, 248, 0, 0.15)' : 'none'
-                            }}>
-                                <UserCircle size={28} color={user?.role === 'ADMIN' ? 'black' : 'var(--text-secondary)'} strokeWidth={1.5} />
+                            <div className={`user-avatar-container flex items-center justify-center h-12 w-12 rounded-2xl overflow-hidden ${user?.role === 'ADMIN' ? 'admin' : ''}`}>
+                                <UserCircle size={28} strokeWidth={1.5} />
                             </div>
-                            <div style={{
-                                position: 'absolute',
-                                bottom: '-2px',
-                                right: '-2px',
-                                width: 14,
-                                height: 14,
-                                borderRadius: '50%',
-                                background: 'var(--primary-color)',
-                                border: '3px solid #0f172a',
-                                boxShadow: '0 0 10px var(--primary-color)'
-                            }}></div>
+                            <div className="user-status-dot"></div>
                         </div>
 
                         <div className="flex flex-col min-w-0">
-                            <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'white', letterSpacing: '-0.2px' }}>{user?.name}</span>
-                            <span style={{
-                                fontSize: '0.6rem',
-                                fontWeight: 800,
-                                textTransform: 'uppercase',
-                                letterSpacing: '1px',
-                                color: 'var(--primary-color)',
-                                opacity: 0.9,
-                                marginTop: '1px'
-                            }}>{user?.role}</span>
+                            <span className="user-name">{user?.name}</span>
+                            <span className="user-role">{user?.role}</span>
                         </div>
                     </div>
                 </div>
 
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 mx-2 mb-4 p-3 rounded-xl transition-all duration-200"
-                    style={{
-                        background: 'rgba(255, 77, 77, 0.05)',
-                        border: '1px solid rgba(255, 77, 77, 0.1)',
-                        color: '#ff4d4d',
-                        cursor: 'pointer',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
-                        justifyContent: 'center'
-                    }}
-                >
+                <button onClick={handleLogout} className="logout-btn mx-2 mb-4 p-3 rounded-xl">
                     <LogOut size={16} /> Entrar com outra conta
                 </button>
             </div>

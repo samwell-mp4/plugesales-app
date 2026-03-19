@@ -9,6 +9,9 @@ import EngineExecution from './pages/EngineExecution';
 import MediaHosting from './pages/MediaHosting';
 import TemplateDispatch from './pages/TemplateDispatch';
 import ClientSubmissions from './pages/ClientSubmissions';
+import ClientSubmissionDetail from './pages/ClientSubmissionDetail';
+import ClientSubmissionAdd from './pages/ClientSubmissionAdd';
+import ClientExternalForm from './pages/ClientExternalForm';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -36,6 +39,9 @@ function AppContent() {
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/templates" element={<TemplateCreator />} />
           <Route path="/client-submissions" element={<ClientSubmissions />} />
+          <Route path="/client-submissions/:id" element={<ClientSubmissionDetail />} />
+          <Route path="/client-submissions/add" element={<ClientSubmissionAdd />} />
+          <Route path="/client-form" element={<ClientExternalForm />} />
           <Route path="/upload" element={<UploadContacts />} />
           <Route path="/campaigns" element={<CampaignPlanner />} />
           <Route path="/engine" element={<EngineExecution />} />

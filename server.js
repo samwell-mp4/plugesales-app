@@ -124,11 +124,19 @@ const initDB = async () => {
                 ad_copy TEXT,
                 button_link TEXT,
                 spreadsheet_url TEXT,
+                ads JSONB DEFAULT '[]',
                 status TEXT DEFAULT 'PENDENTE',
+                accepted_by TEXT,
+                sender_number TEXT,
                 timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
         console.log('✅ Table client_submissions verified/created.');
+
+        // Backward-compat: add new columns if the table already existed without them
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS accepted_by TEXT`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
+        console.log('✅ client_submissions columns verified/migrated.');
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
     } finally {
@@ -438,13 +446,18 @@ app.get('/api/client-submissions', async (req, res) => {
 });
 
 app.post('/api/client-submissions', async (req, res) => {
-    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, spreadsheet_url, status } = req.body;
+    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status } = req.body;
     try {
         const result = await pool.query(
             `INSERT INTO client_submissions 
-            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, spreadsheet_url, status) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-            [profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, spreadsheet_url, status || 'PENDENTE']
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            [
+                profile_photo, profile_name, ddd, 
+                template_type || 'none', media_url || '', ad_copy || '', button_link || '', 
+                ads ? JSON.stringify(ads) : '[]',
+                spreadsheet_url, status || 'PENDENTE'
+            ]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -452,12 +465,52 @@ app.post('/api/client-submissions', async (req, res) => {
     }
 });
 
-app.put('/api/client-submissions/:id', async (req, res) => {
-    const { status } = req.body;
+app.post('/api/client-submissions/bulk', async (req, res) => {
+    const { submissions } = req.body;
+    if (!Array.isArray(submissions)) {
+        return res.status(400).json({ error: 'Submissions deve ser um array.' });
+    }
+
+    const client = await pool.connect();
     try {
-        await pool.query('UPDATE client_submissions SET status = $1 WHERE id = $2', [status, req.params.id]);
+        await client.query('BEGIN');
+        const results = [];
+        for (const s of submissions) {
+            const result = await client.query(
+                `INSERT INTO client_submissions 
+                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, spreadsheet_url, status) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+                [s.profile_photo, s.profile_name, s.ddd, s.template_type, s.media_url, s.ad_copy, s.button_link, s.spreadsheet_url, s.status || 'PENDENTE']
+            );
+            results.push(result.rows[0]);
+        }
+        await client.query('COMMIT');
+        res.json(results);
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error bulk adding submissions:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+app.put('/api/client-submissions/:id', async (req, res) => {
+    const { id } = req.params;
+    const body = req.body;
+    
+    // Flexible update: handle status-only or full-body
+    const fields = Object.keys(body);
+    if (fields.length === 0) return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
+
+    try {
+        const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+        const values = [...fields.map(f => body[f]), id];
+        
+        await pool.query(`UPDATE client_submissions SET ${setClause} WHERE id = $${values.length}`, values);
         res.json({ success: true });
     } catch (err) {
+        console.error('Error updating submission:', err);
         res.status(500).json({ error: err.message });
     }
 });
