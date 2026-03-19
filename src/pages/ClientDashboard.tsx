@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     User,
     FileText,
+    CheckCircle,
     CheckCircle2,
     Clock,
     AlertCircle,
@@ -9,7 +10,7 @@ import {
     Save,
     Key,
     Smartphone,
-    Hash,
+    Layers,
     ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -85,14 +86,13 @@ const ClientDashboard = () => {
             setIsSavingProfile(false);
         }
     };
-
-    const getStatusInfo = (status: string) => {
+    const statusCfg = (status: string) => {
         switch (status) {
-            case 'PENDENTE': return { color: '#facc15', icon: <Clock size={16} />, text: 'Em Análise' };
-            case 'EM ANDAMENTO': return { color: '#60a5fa', icon: <Hash size={16} />, text: 'Sendo Processada' };
-            case 'CONCLUÍDO': return { color: '#acf800', icon: <CheckCircle2 size={16} />, text: 'Concluído' };
-            case 'CANCELADO': return { color: '#f87171', icon: <AlertCircle size={16} />, text: 'Cancelado' };
-            default: return { color: '#94a3b8', icon: <Clock size={16} />, text: status };
+            case 'PENDENTE': return { label: 'Pendente', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' };
+            case 'EM ANDAMENTO': return { label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' };
+            case 'CONCLUÍDO': return { label: 'Concluído', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' };
+            case 'CANCELADO': return { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' };
+            default: return { label: status, color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' };
         }
     };
 
@@ -103,380 +103,269 @@ const ClientDashboard = () => {
     };
 
     return (
-        <div className="animate-fade-in p-2 lg:p-8 pb-32 max-w-7xl mx-auto">
+        <div className="container-root" style={{ minHeight: '100vh', background: '#020617', color: 'white', padding: '28px 24px' }}>
             <style>{`
-                .active-scale { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-                .active-scale:active { transform: scale(0.96); opacity: 0.8; }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 
-                .premium-glass {
-                    background: rgba(15, 23, 42, 0.4);
-                    backdrop-filter: blur(24px) saturate(180%);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
-                }
-                
-                .premium-header {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
-                    border-radius: 32px;
-                    border: 1px solid rgba(255,255,255,0.08);
-                }
-
-                .stat-card-premium {
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 24px;
-                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                    cursor: default;
-                }
-                .stat-card-premium:hover {
-                    background: rgba(255, 255, 255, 0.05);
-                    border-color: rgba(172, 248, 0, 0.3);
-                    transform: translateY(-8px);
-                    box-shadow: 0 20px 40px -15px rgba(0,0,0,0.6);
-                }
-
-                .tab-btn {
-                    position: relative;
-                    padding: 14px 28px;
-                    font-weight: 800;
-                    font-size: 14px;
-                    letter-spacing: 0.5px;
-                    color: rgba(255,255,255,0.4);
-                    transition: all 0.3s ease;
-                    border-radius: 12px;
-                }
-                .tab-btn.active {
-                    color: white;
-                    background: rgba(255,255,255,0.05);
-                }
-                .tab-btn.active::after {
-                    content: '';
-                    position: absolute;
-                    bottom: 8px;
-                    left: 25%;
-                    width: 50%;
-                    height: 2px;
-                    background: var(--primary-color);
-                    border-radius: 2px;
-                    box-shadow: 0 0 10px var(--primary-color);
-                }
-
-                .submission-row {
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.05);
-                    border-radius: 20px;
+                .control-card { 
+                    background: rgba(255,255,255,0.02); 
+                    border: 1px solid rgba(255,255,255,0.06); 
+                    border-radius: 24px; 
                     padding: 24px;
-                    margin-bottom: 12px;
-                    transition: all 0.3s ease;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    animation: fadeInUp 0.4s ease-out backwards;
                 }
-                .submission-row:hover {
-                    background: rgba(255,255,255,0.04);
+                .control-card:hover { 
+                    background: rgba(255,255,255,0.03); 
                     border-color: rgba(255,255,255,0.1);
-                    transform: scale(1.005);
+                    transform: translateY(-2px);
+                    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
                 }
 
-                .input-premium {
-                    background: rgba(255,255,255,0.03) !important;
-                    border: 1px solid rgba(255,255,255,0.08) !important;
-                    height: 56px !important;
-                    border-radius: 16px !important;
-                    font-weight: 600 !important;
-                    padding: 0 20px !important;
-                    transition: all 0.3s ease !important;
+                .action-btn { padding: 12px 20px; border-radius: 14px; border: none; cursor: pointer; font-weight: 900; font-size: 11px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; text-transform: uppercase; }
+                .primary-btn { background: var(--primary-gradient); color: #000; box-shadow: 0 8px 20px -6px var(--primary); }
+                .ghost-btn { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.08) !important; }
+                .ghost-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2) !important; }
+
+                .nav-tab { padding: 10px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.3); cursor: pointer; font-weight: 900; font-size: 10px; letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase; }
+                .nav-tab:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
+                .nav-tab.active { background: rgba(172,248,0,0.1); border-color: var(--primary-color); color: var(--primary-color); box-shadow: 0 0 15px rgba(172,248,0,0.15); }
+
+                .field-input { width: 100%; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; color: white; font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
+                .field-input:focus { border-color: var(--primary-color); background: rgba(255,255,255,0.04); box-shadow: 0 0 20px rgba(172,248,0,0.1); }
+                
+                .field-label { font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+                .info-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+                
+                .submission-link {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    padding: 16px;
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid rgba(255,255,255,0.06);
+                    border-radius: 18px;
+                    text-decoration: none;
+                    transition: all 0.3s;
+                    margin-bottom: 12px;
                 }
-                .input-premium:focus {
-                    border-color: var(--primary-color) !important;
-                    background: rgba(255,255,255,0.05) !important;
-                    box-shadow: 0 0 0 4px rgba(172, 248, 0, 0.1) !important;
+                .submission-link:hover {
+                    background: rgba(255,255,255,0.04);
+                    border-color: rgba(255,255,255,0.12);
+                    transform: scale(1.01);
+                }
+
+                @media (max-width: 1024px) {
+                    .stats-wrapper { grid-template-columns: 1fr !important; }
+                    .header-content { flex-direction: column; align-items: flex-start !important; gap: 20px !important; }
+                    .header-actions { width: 100%; justify-content: space-between; }
                 }
             `}</style>
 
-            {/* Header Area */}
-            <div className="premium-header mb-10 p-8 lg:p-10">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div className="flex items-center gap-6">
-                        <div style={{
-                            background: 'var(--primary-gradient)',
-                            width: '64px', height: '64px',
-                            minWidth: '64px', minHeight: '64px',
-                            borderRadius: '22px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 12px 30px -8px rgba(172, 248, 0, 0.4)',
-                            flexShrink: 0
-                        }}>
-                            <User size={32} color="black" />
+            <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
+                {/* ── HEADER ── */}
+                <div className="header-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', gap: '24px' }}>
+                    <div className="header-profile-info" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                            <div style={{ 
+                                width: 64, height: 64, borderRadius: '20px', 
+                                background: 'var(--primary-gradient)', 
+                                border: '2px solid rgba(255,255,255,0.1)', 
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 10px 25px -5px rgba(172, 248, 0, 0.4)'
+                            }}>
+                                <User size={32} color="black" />
+                            </div>
+                            <div style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: '6px', background: '#22c55e', border: '3px solid #020617', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
+                            </div>
                         </div>
                         <div>
-                            <h1 style={{ fontWeight: 900, fontSize: '2.4rem', letterSpacing: '-1.5px', marginBottom: '4px', lineHeight: 1.1 }}>
+                            <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', lineHeight: 1 }}>
                                 Central do <span className="text-primary-color">Cliente</span>
                             </h1>
-                            <div className="flex items-center gap-3">
-                                <span className="flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                    <span className="text-[10px] uppercase font-black tracking-wider text-green-400">Online</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
+                                <span className="info-chip" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                    SESSÃO ATIVA
                                 </span>
-                                <span className="text-white/30 text-xs font-bold uppercase tracking-widest leading-none">
-                                    Sessão: {user?.name}
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    Olá, {user?.name}
                                 </span>
                             </div>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-4">
+                    
+                    <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <button
                             onClick={() => navigate('/client-form')}
-                            className="bg-[#acf800] text-black h-14 px-8 rounded-2xl font-black flex items-center gap-3 active-scale hover:brightness-110 shadow-[0_8px_25px_-5px_rgba(172,248,0,0.4)]"
+                            className="action-btn primary-btn"
+                            style={{ height: 48, padding: '0 24px' }}
                         >
-                            <FileText size={20} /> NOVA CAMPANHA
+                            <FileText size={18} /> NOVA CAMPANHA
                         </button>
-
-                        <div className="h-10 w-[1px] bg-white/10 mx-2 hidden lg:block" />
-
-                        <button
-                            onClick={logout}
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all bg-white/5 border border-white/10 text-white/40 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 active-scale"
-                            title="Sair"
-                        >
-                            <LogOut size={22} />
+                        <button onClick={logout} className="action-btn ghost-btn" style={{ width: 48, height: 48, padding: 0 }}>
+                            <LogOut size={18} />
                         </button>
                     </div>
                 </div>
-            </div>
 
-            {/* Robust 3-Column Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                <div className="stat-card-premium p-7 flex items-center gap-6">
-                    <div style={{ background: 'rgba(96, 165, 250, 0.08)', width: '60px', height: '60px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.1)' }}>
-                        <FileText size={28} />
+                {/* ── QUICK STATS ── */}
+                <div className="stats-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
+                    <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.1s' }}>
+                        <div style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                            <Layers size={24} />
+                        </div>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px' }}>{stats.total}</p>
+                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '2px', textTransform: 'uppercase' }}>Total Enviado</p>
+                        </div>
                     </div>
-                    <div>
-                        <span className="text-4xl font-black block tracking-tighter" style={{ lineHeight: 1, color: '#f8fafc' }}>{stats.total}</span>
-                        <span className="text-white/20 text-[10px] font-black uppercase tracking-[2px] mt-2 block">TOTAL ENVIADO</span>
+                    <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.2s' }}>
+                        <div style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b' }}>
+                            <Clock size={24} />
+                        </div>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px' }}>{stats.pending}</p>
+                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '2px', textTransform: 'uppercase' }}>Em Análise</p>
+                        </div>
+                    </div>
+                    <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.3s' }}>
+                        <div style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}>
+                            <CheckCircle2 size={24} />
+                        </div>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px' }}>{stats.completed}</p>
+                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '2px', textTransform: 'uppercase' }}>Finalizadas</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="stat-card-premium p-7 flex items-center gap-6">
-                    <div style={{ background: 'rgba(250, 204, 21, 0.08)', width: '60px', height: '60px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#facc15', border: '1px solid rgba(250, 204, 21, 0.1)' }}>
-                        <Clock size={28} />
-                    </div>
-                    <div>
-                        <span className="text-4xl font-black block tracking-tighter" style={{ lineHeight: 1, color: '#f8fafc' }}>{stats.pending}</span>
-                        <span className="text-white/20 text-[10px] font-black uppercase tracking-[2px] mt-2 block">EM ANÁLISE</span>
-                    </div>
+                {/* ── NAVIGATION TABS ── */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+                    <button
+                        className={`nav-tab ${activeTab === 'submissions' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('submissions')}
+                    >
+                        MINHAS SUBMISSÕES
+                    </button>
+                    <button
+                        className={`nav-tab ${activeTab === 'profile' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('profile')}
+                    >
+                        MEU PERFIL
+                    </button>
                 </div>
 
-                <div className="stat-card-premium p-7 flex items-center gap-6 lg:col-span-1 sm:col-span-2">
-                    <div style={{ background: 'rgba(172, 248, 0, 0.08)', width: '60px', height: '60px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#acf800', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                        <CheckCircle2 size={28} />
-                    </div>
-                    <div>
-                        <span className="text-4xl font-black block tracking-tighter" style={{ lineHeight: 1, color: '#f8fafc' }}>{stats.completed}</span>
-                        <span className="text-white/20 text-[10px] font-black uppercase tracking-[2px] mt-2 block">FINALIZADAS</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Navigation Tabs */}
-            <div className="flex gap-2 mb-10 p-1.5 bg-white/5 w-fit rounded-2xl border border-white/5">
-                <button
-                    onClick={() => setActiveTab('submissions')}
-                    className={`tab-btn ${activeTab === 'submissions' ? 'active' : ''}`}
-                >
-                    MINHAS SUBMISSÕES
-                </button>
-                <button
-                    onClick={() => setActiveTab('profile')}
-                    className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-                >
-                    MEU PERFIL
-                </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className="min-h-[400px]">
-                {activeTab === 'submissions' ? (
-                    <div className="animate-fade-in space-y-3">
-                        {isLoading ? (
-                            <div className="p-32 flex flex-col items-center gap-4 opacity-40">
-                                <Clock className="animate-spin text-primary-color" size={48} strokeWidth={1} />
-                                <span className="text-xs font-black tracking-widest">CARREGANDO...</span>
-                            </div>
-                        ) : submissions.length === 0 ? (
-                            <div className="premium-glass p-24 text-center border-dashed" style={{ borderRadius: '32px' }}>
-                                <div className="w-20 h-20 bg-white/5 rounded-3xl mx-auto flex items-center justify-center mb-6 border border-white/5">
-                                    <FileText size={32} className="opacity-20" />
+                {/* ── CONTENT ── */}
+                <div className="control-card" style={{ animationDelay: '0.4s', padding: activeTab === 'profile' ? '40px' : '24px' }}>
+                    {activeTab === 'submissions' ? (
+                        <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                            {isLoading ? (
+                                <div style={{ padding: '80px', textAlign: 'center' }}>
+                                    <div style={{ width: 32, height: 32, margin: '0 auto 16px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                    <p style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '2px' }}>CARREGANDO...</p>
                                 </div>
-                                <h3 className="text-xl font-black mb-2">Nada por aqui ainda</h3>
-                                <p className="text-white/30 text-sm max-w-xs mx-auto">Suas campanhas aparecerão listadas aqui assim que você realizar o primeiro envio.</p>
-                                <button
-                                    onClick={() => navigate('/client-form')}
-                                    className="mt-8 px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[11px] font-black tracking-widest transition-all"
-                                >
-                                    ENVIAR MINHA PRIMEIRA CAMPANHA
-                                </button>
-                            </div>
-                        ) : (
-                            submissions.map((sub) => {
-                                const status = getStatusInfo(sub.status);
-                                return (
-                                    <div key={sub.id} className="submission-row group">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                            <div className="flex items-center gap-6">
-                                                <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-primary-color/20 transition-all shrink-0">
-                                                    <Smartphone size={24} className="text-white/40 group-hover:text-primary-color transition-all" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-black text-xl m-0 flex items-center gap-3">
-                                                        {sub.profile_name}
-                                                        {status.text === 'Concluído' && <CheckCircle2 size={18} className="text-primary-color" />}
-                                                    </h4>
-                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
-                                                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest flex items-center gap-1.5">
-                                                            <Clock size={12} /> {new Date(sub.timestamp).toLocaleDateString()}
-                                                        </span>
-                                                        <div className="flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-lg border border-white/5">
-                                                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: status.color, boxShadow: `0 0 10px ${status.color}` }} />
-                                                            <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: status.color }}>
-                                                                {status.text}
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                            ) : submissions.length === 0 ? (
+                                <div style={{ padding: '80px', textAlign: 'center', opacity: 0.2 }}>
+                                    <FileText size={48} style={{ marginBottom: '16px' }} />
+                                    <p style={{ fontWeight: 800 }}>Nenhuma submissão encontrada</p>
+                                </div>
+                            ) : (
+                                submissions.map((sub) => {
+                                    const cfg = statusCfg(sub.status);
+                                    return (
+                                        <div key={sub.id} className="submission-link">
+                                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Smartphone size={20} style={{ opacity: 0.3 }} />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {sub.profile_name}
+                                                    {sub.status === 'CONCLUÍDO' && <CheckCircle size={14} className="text-primary-color" />}
+                                                </h4>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                                                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
+                                                    <span style={{ color: 'rgba(255,255,255,0.05)' }}>•</span>
+                                                    <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
+                                                        {cfg.label.toUpperCase()}
+                                                    </span>
                                                 </div>
                                             </div>
-
-                                            <div className="flex items-center gap-8 md:pl-8 border-l border-white/5">
-                                                {sub.sender_number && (
-                                                    <div className="hidden sm:flex flex-col items-end">
-                                                        <span className="text-[9px] text-white/20 uppercase font-black tracking-[2px] mb-1">LINHA DE ENVIO</span>
-                                                        <span className="text-xs font-black text-primary-color/80">{sub.sender_number}</span>
-                                                    </div>
-                                                )}
-
-                                                <button
-                                                    onClick={() => navigate(`/client-submissions/${sub.id}`)}
-                                                    className="h-14 px-8 rounded-2xl flex items-center gap-3 bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-white/20 transition-all font-black text-[11px] tracking-widest active-scale"
-                                                >
-                                                    DETALHES <ExternalLink size={16} />
-                                                </button>
-                                            </div>
+                                            <button 
+                                                onClick={() => navigate(`/client-submissions/${sub.id}`)}
+                                                className="action-btn ghost-btn" 
+                                                style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
+                                            >
+                                                DETALHES <ExternalLink size={14} />
+                                            </button>
                                         </div>
-
-                                        {sub.notes && (
-                                            <div className="mt-6 p-5 rounded-2xl bg-[#acf800]/5 border border-[#acf800]/10 flex gap-4">
-                                                <div className="w-8 h-8 rounded-lg bg-primary-color/10 flex items-center justify-center shrink-0">
-                                                    <AlertCircle size={16} className="text-primary-color" />
-                                                </div>
-                                                <p className="text-xs m-0 text-white/60 leading-relaxed italic">
-                                                    <b className="text-primary-color not-italic uppercase tracking-widest mr-2 block mb-1">Feedback do Suporte:</b>
-                                                    "{sub.notes}"
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                ) : (
-                    <div className="premium-glass p-10 max-w-2xl animate-fade-in" style={{ borderRadius: '32px' }}>
-                        <form onSubmit={handleProfileUpdate} className="flex flex-col gap-8">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-primary-color/10 flex items-center justify-center">
-                                    <User className="text-primary-color" size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="m-0 font-black text-xl italic tracking-tight">DADOS BÁSICOS</h3>
-                                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mt-1">Informações de contato e identificação</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[2px]">Nome da Empresa / Marca</label>
-                                    <input
-                                        className="input-premium"
-                                        value={profileData.name}
-                                        onChange={e => setProfileData({ ...profileData, name: e.target.value })}
-                                        required
-                                        placeholder="Minha Marca"
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[2px]">E-mail de Acesso</label>
-                                    <input
-                                        type="email"
-                                        className="input-premium"
-                                        value={profileData.email}
-                                        onChange={e => setProfileData({ ...profileData, email: e.target.value })}
-                                        required
-                                        placeholder="seu@email.com"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-3">
-                                <label className="text-[10px] font-black text-white/40 uppercase tracking-[2px]">WhatsApp para Notificações</label>
-                                <input
-                                    className="input-premium"
-                                    value={profileData.phone}
-                                    onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
-                                    placeholder="Ex: 11999998888"
-                                />
-                            </div>
-
-                            <div className="h-[1px] bg-white/5 my-2" />
-
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
-                                    <Key className="text-blue-400" size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="m-0 font-black text-xl italic tracking-tight">SEGURANÇA</h3>
-                                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mt-1">Atualize sua senha de acesso</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[2px]">Nova Senha (Opcional)</label>
-                                    <input
-                                        type="password"
-                                        className="input-premium"
-                                        value={profileData.password}
-                                        onChange={e => setProfileData({ ...profileData, password: e.target.value })}
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[2px]">Confirmar Senha</label>
-                                    <input
-                                        type="password"
-                                        className="input-premium"
-                                        value={profileData.confirmPassword}
-                                        onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })}
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                            </div>
-
-                            {profileMessage.text && (
-                                <div className={`p-5 rounded-2xl font-black text-xs tracking-wide flex items-center gap-3 animate-fade-in ${profileMessage.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
-                                    {profileMessage.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
-                                    {profileMessage.text.toUpperCase()}
-                                </div>
+                                    );
+                                })
                             )}
+                        </div>
+                    ) : (
+                        <div style={{ maxWidth: '600px', margin: '0 auto', animation: 'fadeInUp 0.4s ease-out' }}>
+                            <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                <div>
+                                    <label className="field-label"><User size={14} /> Dados Básicos</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                                        <div>
+                                            <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>NOME COMPLETO</label>
+                                            <input className="field-input" value={profileData.name} onChange={e => setProfileData({ ...profileData, name: e.target.value })} required />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>E-MAIL</label>
+                                            <input type="email" className="field-input" value={profileData.email} onChange={e => setProfileData({ ...profileData, email: e.target.value })} required />
+                                        </div>
+                                    </div>
+                                    <div style={{ marginTop: '16px' }}>
+                                        <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>WHATSAPP DE CONTATO</label>
+                                        <input className="field-input" value={profileData.phone} onChange={e => setProfileData({ ...profileData, phone: e.target.value })} placeholder="Ex: 11999998888" />
+                                    </div>
+                                </div>
 
-                            <button
-                                type="submit"
-                                className="bg-[#acf800] text-black h-16 rounded-2xl font-black text-[13px] tracking-widest flex items-center justify-center gap-3 active-scale hover:brightness-110 shadow-[0_10px_30px_-5px_rgba(172,248,0,0.3)] mt-4"
-                                disabled={isSavingProfile}
-                            >
-                                {isSavingProfile ? 'PROCESSANDO...' : 'SALVAR ALTERAÇÕES'}
-                                <Save size={20} />
-                            </button>
-                        </form>
-                    </div>
-                )}
+                                <div style={{ height: '1px', background: 'rgba(255,255,255,0.04)', margin: '8px 0' }} />
+
+                                <div>
+                                    <label className="field-label"><Zap size={14} /> Segurança</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                                        <div>
+                                            <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>NOVA SENHA</label>
+                                            <input type="password" className="field-input" value={profileData.password} onChange={e => setProfileData({ ...profileData, password: e.target.value })} placeholder="••••••••" />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>CONFIRMAR SENHA</label>
+                                            <input type="password" className="field-input" value={profileData.confirmPassword} onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })} placeholder="••••••••" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {profileMessage.text && (
+                                    <div style={{ 
+                                        padding: '16px', 
+                                        borderRadius: '16px', 
+                                        background: profileMessage.type === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                                        border: `1px solid ${profileMessage.type === 'error' ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
+                                        color: profileMessage.type === 'error' ? '#ef4444' : '#22c55e',
+                                        fontSize: '11px', fontWeight: 900, letterSpacing: '1px', textAlign: 'center'
+                                    }}>
+                                        {profileMessage.text.toUpperCase()}
+                                    </div>
+                                )}
+
+                                <button type="submit" className="action-btn primary-btn" disabled={isSavingProfile} style={{ width: '100%', height: 52 }}>
+                                    {isSavingProfile ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+                                </button>
+                            </form>
+                        </div>
+                    )}
+                </div>
+
+                {/* ── FOOTER LOGO ── */}
+                <div style={{ marginTop: '40px', textAlign: 'center', opacity: 0.1 }}>
+                    <h2 style={{ fontSize: '12px', fontWeight: 900, letterSpacing: '4px' }}>PLUG & SALES • PRO</h2>
+                </div>
             </div>
         </div>
     );
