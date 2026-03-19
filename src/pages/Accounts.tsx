@@ -19,8 +19,8 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: { currentPage: nu
     if (totalPages <= 1) return null;
     return (
         <div className="flex items-center justify-center gap-4 mt-8">
-            <button 
-                className="btn btn-secondary" 
+            <button
+                className="btn btn-secondary"
                 disabled={currentPage === 1}
                 onClick={() => onPageChange(currentPage - 1)}
                 style={{ height: '44px', width: '44px', borderRadius: '12px', padding: 0, opacity: currentPage === 1 ? 0.3 : 1 }}
@@ -30,8 +30,8 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: { currentPage: nu
             <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 PÁGINA <span style={{ color: 'var(--primary-color)' }}>{currentPage}</span> DE {totalPages}
             </span>
-            <button 
-                className="btn btn-secondary" 
+            <button
+                className="btn btn-secondary"
                 disabled={currentPage === totalPages}
                 onClick={() => onPageChange(currentPage + 1)}
                 style={{ height: '44px', width: '44px', borderRadius: '12px', padding: 0, opacity: currentPage === totalPages ? 0.3 : 1 }}
@@ -57,7 +57,7 @@ const Accounts = () => {
             if (settings['infobip_key']) setApiKey(settings['infobip_key']);
             if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
         });
-        
+
         const savedRecents = localStorage.getItem('recent_senders');
         if (savedRecents) setRecentNumbers(JSON.parse(savedRecents));
     }, []);
@@ -156,7 +156,7 @@ const Accounts = () => {
     useEffect(() => {
         fetchTemplates();
         const interval = setInterval(fetchTemplates, 20000); // Relaxed for quota
-        
+
         // Fetch drafts from DB
         dbService.getPlannerDrafts().then(dbDrafts => {
             setDrafts(dbDrafts.filter((d: any) => d._draft === true));
@@ -281,12 +281,12 @@ const Accounts = () => {
                 </div>
 
                 <div className="flex gap-4 mt-6">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('TEMPLATES')}
                         className={`btn flex-1 py-4 flex items-center justify-center gap-3 ${activeTab === 'TEMPLATES' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ 
-                            borderRadius: '16px', 
-                            fontWeight: 900, 
+                        style={{
+                            borderRadius: '16px',
+                            fontWeight: 900,
                             fontSize: '1rem',
                             color: activeTab === 'TEMPLATES' ? 'black' : 'white',
                             border: activeTab === 'TEMPLATES' ? 'none' : '1px solid rgba(255,255,255,0.05)'
@@ -294,12 +294,12 @@ const Accounts = () => {
                     >
                         <LayoutDashboard size={20} /> MEUS TEMPLATES (META)
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('RASCUNHOS')}
                         className={`btn flex-1 py-4 flex items-center justify-center gap-3 ${activeTab === 'RASCUNHOS' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ 
-                            borderRadius: '16px', 
-                            fontWeight: 900, 
+                        style={{
+                            borderRadius: '16px',
+                            fontWeight: 900,
                             fontSize: '1rem',
                             color: activeTab === 'RASCUNHOS' ? 'black' : 'white',
                             border: activeTab === 'RASCUNHOS' ? 'none' : '1px solid rgba(172,248,0,0.2)'
@@ -343,10 +343,10 @@ const Accounts = () => {
                         </div>
                     </div>
 
-                    <div className="config-command-center mt-8 animate-fade-in">
+                    <div className="config-command-center mt-8 animate-fade-in mt-4">
                         <div className="flex flex-col gap-6">
-                            <div className="flex items-center gap-8 config-row">
-                                <div className="flex items-center gap-4 flex-1">
+                            <div className="flex items-center gap-8 config-row ">
+                                <div className="flex items-center gap-4 flex-1 ">
                                     <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '16px', borderRadius: '18px', border: '1px solid rgba(172, 248, 0, 0.2)' }}>
                                         <Smartphone size={32} color="var(--primary-color)" />
                                     </div>
@@ -355,14 +355,14 @@ const Accounts = () => {
                                         <input
                                             list="monitor-senders"
                                             className={`input-field ${isLoadingSenders ? 'opacity-30' : ''}`}
-                                            style={{ 
-                                                background: 'transparent', 
-                                                border: 'none', 
-                                                borderBottom: '2px solid rgba(172, 248, 0, 0.3)', 
-                                                color: 'white', 
-                                                fontSize: '1.8rem', 
-                                                fontWeight: 900, 
-                                                outline: 'none', 
+                                            style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                borderBottom: '2px solid rgba(172, 248, 0, 0.3)',
+                                                color: 'white',
+                                                fontSize: '1.8rem',
+                                                fontWeight: 900,
+                                                outline: 'none',
                                                 padding: '8px 0',
                                                 width: '100%',
                                                 letterSpacing: '-0.5px'
@@ -378,7 +378,7 @@ const Accounts = () => {
                                         </datalist>
                                     </div>
                                 </div>
-                                
+
                                 <div className="flex items-center gap-4 opacity-30">
                                     <div className="flex flex-col text-right">
                                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>API Status</span>
@@ -396,8 +396,8 @@ const Accounts = () => {
                                     </div>
                                     <div className="flex items-center gap-3 flex-wrap">
                                         {recentNumbers.map(num => (
-                                            <button 
-                                                key={num} 
+                                            <button
+                                                key={num}
                                                 className="recent-tag hover-lift"
                                                 onClick={() => setSenderNumber(num)}
                                             >
@@ -526,11 +526,11 @@ const Accounts = () => {
                             </tbody>
                         </table>
                     </div>
-                    
-                    <Pagination 
-                        currentPage={templatesPage} 
-                        totalPages={Math.ceil(filteredTemplates.length / itemsPerPage)} 
-                        onPageChange={setTemplatesPage} 
+
+                    <Pagination
+                        currentPage={templatesPage}
+                        totalPages={Math.ceil(filteredTemplates.length / itemsPerPage)}
+                        onPageChange={setTemplatesPage}
                     />
                 </div>
             ) : (
@@ -557,7 +557,7 @@ const Accounts = () => {
                                                     <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{new Date(draft.savedAt || draft.timestamp).toLocaleDateString()}</span>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex-col gap-2 mb-8">
                                                 <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>{draft.label}</h4>
                                                 <div className="flex items-center gap-2">
@@ -573,14 +573,14 @@ const Accounts = () => {
                                             </div>
 
                                             <div className="flex gap-4 mt-auto">
-                                                <button 
+                                                <button
                                                     className="btn btn-secondary flex-1 flex items-center justify-center gap-2 py-3"
                                                     onClick={() => navigate('/dispatch', { state: { draft: draft, sender: senderNumber, key: apiKey } })}
                                                     style={{ fontSize: '0.8rem', fontWeight: 800, borderRadius: '14px' }}
                                                 >
                                                     <FileEdit size={16} /> EDITAR
                                                 </button>
-                                                <button 
+                                                <button
                                                     className="btn btn-primary flex-1 flex items-center justify-center gap-2 py-3"
                                                     onClick={() => navigate('/dispatch', { state: { draft: draft, autoSend: true, sender: senderNumber, key: apiKey } })}
                                                     style={{ color: 'black', fontSize: '0.8rem', fontWeight: 900, borderRadius: '14px' }}
@@ -591,10 +591,10 @@ const Accounts = () => {
                                         </div>
                                     ))}
                                 </div>
-                                <Pagination 
-                                    currentPage={draftsPage} 
-                                    totalPages={Math.ceil(drafts.length / itemsPerPage)} 
-                                    onPageChange={setDraftsPage} 
+                                <Pagination
+                                    currentPage={draftsPage}
+                                    totalPages={Math.ceil(drafts.length / itemsPerPage)}
+                                    onPageChange={setDraftsPage}
                                 />
                             </>
                         ) : (

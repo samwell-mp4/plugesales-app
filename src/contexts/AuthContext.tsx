@@ -15,6 +15,7 @@ interface AuthContextType {
     login: (username: string, password: string) => Promise<boolean>;
     register: (userData: any) => Promise<boolean>;
     logout: () => void;
+    setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,8 +78,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('auth_user');
     };
 
+    const handleSetUser = (u: User | null) => {
+        setUser(u);
+        if (u) localStorage.setItem('auth_user', JSON.stringify(u));
+        else localStorage.removeItem('auth_user');
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, register, logout }}>
+        <AuthContext.Provider value={{ user, login, register, logout, setUser: handleSetUser }}>
             {children}
         </AuthContext.Provider>
     );

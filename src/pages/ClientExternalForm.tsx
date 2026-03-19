@@ -14,12 +14,14 @@ import {
     ChevronDown,
     LayoutGrid
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 import ClientAuth from './ClientAuth';
 
 const ClientExternalForm = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -160,6 +162,9 @@ const ClientExternalForm = () => {
             const result = await dbService.addClientSubmission(payload);
             if (result && result.id) {
                 setStep(4); // Success step
+                setTimeout(() => {
+                    navigate('/client-dashboard');
+                }, 3000);
             } else {
                 alert("Erro ao enviar os dados. Tente novamente.");
             }
@@ -207,7 +212,104 @@ const ClientExternalForm = () => {
                     backdrop-filter: blur(24px);
                     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
                 }
-                .whatsapp-grid { display: flex; flex-direction: column; gap: 32px; max-width: 800px; margin: 0 auto; }
+                .whatsapp-grid { 
+                    display: grid; 
+                    grid-template-columns: 1fr 380px;
+                    gap: 32px; 
+                    max-width: 1200px; 
+                    margin: 0 auto; 
+                    align-items: start;
+                }
+                @media (max-width: 1024px) {
+                    .whatsapp-grid { grid-template-columns: 1fr; }
+                    .preview-side { display: none; }
+                }
+                
+                .preview-side {
+                    position: sticky;
+                    top: 2rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+
+                .iphone-mockup {
+                    width: 300px;
+                    height: 600px;
+                    background: #000;
+                    border: 8px solid #1f2937;
+                    border-radius: 40px;
+                    position: relative;
+                    margin: 0 auto;
+                    overflow: hidden;
+                    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+                }
+                .iphone-screen {
+                    width: 100%;
+                    height: 100%;
+                    background: #0b141a; /* WhatsApp dark mode bg */
+                    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+                    background-size: cover;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .chat-header {
+                    background: #202c33;
+                    padding: 30px 16px 10px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+                .chat-bubble {
+                    align-self: flex-start;
+                    background: #202c33;
+                    color: #e9edef;
+                    padding: 8px 12px;
+                    border-radius: 0 8px 8px 8px;
+                    margin: 10px;
+                    max-width: 85%;
+                    font-size: 13px;
+                    position: relative;
+                    box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+                }
+                .chat-bubble::before {
+                    content: "";
+                    position: absolute;
+                    top: 0;
+                    left: -8px;
+                    width: 8px;
+                    height: 13px;
+                    background: #202c33;
+                    clip-path: polygon(100% 0, 0 0, 100% 100%);
+                }
+                .chat-image {
+                    width: 100%;
+                    border-radius: 8px;
+                    margin-bottom: 8px;
+                    object-fit: cover;
+                    max-height: 200px;
+                }
+                .chat-video {
+                    width: 100%;
+                    border-radius: 8px;
+                    margin-bottom: 8px;
+                    background: #000;
+                    height: 150px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .chat-button {
+                    margin-top: 8px;
+                    padding: 8px;
+                    background: #202c33;
+                    border-top: 1px solid rgba(255,255,255,0.05);
+                    color: #53bdeb;
+                    text-align: center;
+                    font-weight: 500;
+                    border-radius: 0 0 8px 8px;
+                    font-size: 13px;
+                }
                 
 
                 .input-premium {
@@ -417,7 +519,6 @@ const ClientExternalForm = () => {
                                 ))}
                             </div>
 
-                            <div className="glass-card rounded-[32px] p-6 lg:p-10 mb-8">
                                 {step === 1 && (
                                     <div className="space-y-6 animate-fade-in">
                                         <div>
@@ -894,24 +995,73 @@ const ClientExternalForm = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* PREVIEW SIDE */}
+                            <div className="preview-side">
+                                <div className="iphone-mockup">
+                                    <div className="iphone-screen">
+                                        <div className="chat-header">
+                                            <div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
+                                                {formData.profile_photo ? (
+                                                    <img src={formData.profile_photo} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <User size={20} className="opacity-40" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="text-[14px] font-bold m-0 leading-tight">{formData.profile_name || 'Nome da Marca'}</p>
+                                                <p className="text-[10px] opacity-40 m-0">visto por último hoje às 14:00</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto p-4 flex flex-col items-start translate-z-0">
+                                            {formData.ads.map((ad, idx) => (
+                                                <div key={ad.id || idx} className={`chat-bubble ${formData.currentAdIndex === idx ? 'ring-2 ring-primary/50' : 'opacity-40'}`}>
+                                                    {ad.template_type === 'image' && ad.media_url && (
+                                                        <img src={ad.media_url} className="chat-image" />
+                                                    )}
+                                                    {ad.template_type === 'video' && ad.media_url && (
+                                                        <div className="chat-video">
+                                                            <Video size={32} className="text-white/20" />
+                                                        </div>
+                                                    )}
+                                                    <p className="m-0 whitespace-pre-wrap leading-snug text-[13px]">
+                                                        {ad.ad_copy.replace(/{{(\d+)}}/g, (match, n) => ad.variables[parseInt(n)-1] || match)}
+                                                    </p>
+                                                    {ad.button_link && (
+                                                        <div className="chat-button">
+                                                            Abrir Link
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-[10px] font-black uppercase opacity-30 tracking-[3px]">Visualização Real-Time</p>
+                                </div>
+                            </div>
                         </div>
+                    )}
 
-                    </div>
-                )}
-
-
-                {step === 4 && (
-                    <div className="max-w-xl mx-auto py-24 text-center animate-slide-up">
-                        <div className="w-32 h-32 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-12 shadow-[0_0_80px_rgba(172,248,0,0.1)]">
-                            <CheckCircle size={64} className="text-primary" />
+                    {step === 4 && (
+                        <div className="max-w-xl mx-auto py-24 text-center animate-slide-up">
+                            <div className="w-32 h-32 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-12 shadow-[0_0_80px_rgba(172,248,0,0.1)]">
+                                <CheckCircle size={64} className="text-primary" />
+                            </div>
+                            <h1 style={{ fontSize: '4rem', fontWeight: 900, marginBottom: '24px', letterSpacing: '-3px' }}>Tudo <span className="text-primary">Pronto!</span></h1>
+                            <p className="text-xl font-bold opacity-60 mb-12">Seus dados e campanha foram enviados com sucesso. Agora nossa equipe processará sua lista.</p>
+                            <div className="flex flex-wrap gap-4 justify-center">
+                                <button onClick={() => setStep(1)} className="btn btn-secondary px-8 py-4 rounded-[20px] font-black border border-white/10">
+                                    ENVIAR OUTRO FORMULÁRIO
+                                </button>
+                                <button onClick={() => navigate('/client-dashboard')} className="btn btn-primary px-8 py-4 rounded-[20px] font-black">
+                                    IR PARA MEU PAINEL
+                                </button>
+                            </div>
                         </div>
-                        <h1 style={{ fontSize: '4rem', fontWeight: 900, marginBottom: '24px', letterSpacing: '-3px' }}>Tudo <span className="text-primary">Pronto!</span></h1>
-                        <p className="text-xl font-bold opacity-60 mb-12">Seus dados e campanha foram enviados com sucesso. Agora nossa equipe processará sua lista.</p>
-                        <button onClick={() => setStep(1)} className="btn btn-secondary px-8 py-4 rounded-[20px] font-black border border-white/10">
-                            ENVIAR OUTRO FORMULÁRIO
-                        </button>
-                    </div>
-                )}
+                    )}
             </div>
         </div>
     );

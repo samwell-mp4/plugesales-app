@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useLocation, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
@@ -12,6 +12,7 @@ import ClientSubmissions from './pages/ClientSubmissions';
 import ClientSubmissionDetail from './pages/ClientSubmissionDetail';
 import ClientSubmissionAdd from './pages/ClientSubmissionAdd';
 import ClientExternalForm from './pages/ClientExternalForm';
+import ClientDashboard from './pages/ClientDashboard';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -23,9 +24,9 @@ import Control from './pages/Control';
 
 function AppContent() {
   const { user } = useAuth();
+  const location = useLocation();
 
-
-  const isPublicRoute = window.location.pathname === '/client-form';
+  const isPublicRoute = location.pathname === '/client-form';
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -34,7 +35,7 @@ function AppContent() {
   return (
     <div className="app-layout">
       {!isPublicRoute && <Sidebar />}
-      <main className="main-content" style={{ paddingLeft: isPublicRoute ? '0' : 'var(--sidebar-width)' }}>
+      <main className="main-content">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -44,6 +45,7 @@ function AppContent() {
           <Route path="/client-submissions/:id" element={<ClientSubmissionDetail />} />
           <Route path="/client-submissions/add" element={<ClientSubmissionAdd />} />
           <Route path="/client-form" element={<ClientExternalForm />} />
+          <Route path="/client-dashboard" element={<ClientDashboard />} />
           <Route path="/upload" element={<UploadContacts />} />
           <Route path="/campaigns" element={<CampaignPlanner />} />
           <Route path="/engine" element={<EngineExecution />} />

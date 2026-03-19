@@ -205,7 +205,7 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    <div className="glass-card flex-col p-8" style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '32px' }}>
+                    <div className="glass-card flex-col p-8 mt-4 " style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '32px' }}>
                         <h2 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <Clock size={24} color="var(--primary-color)" /> Atividade Recente
                         </h2>
@@ -258,9 +258,9 @@ const Dashboard = () => {
 
                     <div className="approval-list flex-col gap-0">
                         {recentlyApproved.map((t, idx) => (
-                            <div 
-                                key={idx} 
-                                className="approval-item clickable" 
+                            <div
+                                key={idx}
+                                className="approval-item clickable"
                                 onClick={() => navigate('/dispatch', { state: { template: t, sender: fromNumber, key: apiKey } })}
                                 style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
                             >

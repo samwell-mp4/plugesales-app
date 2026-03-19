@@ -396,4 +396,26 @@ export const dbService = {
             return { error: err.message };
         }
     },
+    updateProfile: async (userData: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/auth/profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error updating profile:", err);
+            return { error: err.message };
+        }
+    },
+    getClientSubmissionsByUserId: async (userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/client/submissions?userId=${userId}`);
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching client submissions by individual:", err);
+            return [];
+        }
+    },
 };

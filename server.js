@@ -179,6 +179,28 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
+app.put('/api/auth/profile', async (req, res) => {
+    const { id, name, email, phone, password } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
+    
+    try {
+        const result = await pool.query(
+            `UPDATE users 
+             SET name = COALESCE($1, name), 
+                 email = COALESCE($2, email), 
+                 phone = COALESCE($3, phone), 
+                 password = COALESCE($4, password) 
+             WHERE id = $5 RETURNING id, name, email, phone, role`,
+            [name, email, phone, password, id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ error: 'Este email já está em uso.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -484,8 +506,18 @@ app.get('/api/client-submissions', async (req, res) => {
         const result = await pool.query('SELECT * FROM client_submissions ORDER BY timestamp DESC');
         res.json(result.rows || []);
     } catch (err) {
-        console.error('Error fetching client-submissions:', err);
         res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
+
+app.get('/api/client/submissions', async (req, res) => {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId é obrigatório.' });
+    try {
+        const result = await pool.query('SELECT * FROM client_submissions WHERE user_id = $1 ORDER BY timestamp DESC', [userId]);
+        res.json(result.rows || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -500,17 +532,18 @@ app.get('/api/client-submissions/:id', async (req, res) => {
 });
 
 app.post('/api/client-submissions', async (req, res) => {
-    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status } = req.body;
+    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status, user_id, submitted_by } = req.body;
     try {
         const result = await pool.query(
             `INSERT INTO client_submissions 
-            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status, user_id, submitted_by) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
             [
                 profile_photo, profile_name, ddd, 
                 template_type || 'none', media_url || '', ad_copy || '', button_link || '', 
                 ads ? JSON.stringify(ads) : '[]',
-                spreadsheet_url, status || 'PENDENTE'
+                spreadsheet_url, status || 'PENDENTE',
+                user_id, submitted_by
             ]
         );
         res.json(result.rows[0]);
