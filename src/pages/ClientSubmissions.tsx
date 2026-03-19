@@ -73,7 +73,12 @@ const ClientSubmissions = () => {
         }
     };
 
-    useEffect(() => { loadSubmissions(); }, []);
+    useEffect(() => { 
+        loadSubmissions(); 
+        // Auto-refresh every 15 seconds
+        const interval = setInterval(loadSubmissions, 15000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleDelete = async (id: number) => {
         if (!window.confirm("Deseja realmente excluir este envio?")) return;
@@ -297,6 +302,64 @@ const ClientSubmissions = () => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Interactive mini-charts */}
+                    {allSubmissions.length > 0 && (() => {
+                        const total = allSubmissions.length;
+                        const avail = availableSubmissions.length;
+                        const inProgress = allSubmissions.filter(isAccepted).length;
+                        const done = allSubmissions.filter(s => s.status === 'GERADO').length;
+                        const cancelled = allSubmissions.filter(s => s.status === 'CANCELADO').length;
+
+                        // Template type breakdown
+                        const byType: Record<string, number> = {};
+                        allSubmissions.forEach(s => {
+                            const t = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'none';
+                            byType[t] = (byType[t] || 0) + 1;
+                        });
+                        const typeColors: Record<string, string> = { image: '#a855f7', video: '#3b82f6', none: 'rgba(255,255,255,0.25)', text: 'rgba(255,255,255,0.25)' };
+
+                        return (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                                {/* Status distribution */}
+                                <div style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '18px' }}>
+                                    <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '2px', textTransform: 'uppercase' }}>Distribuição de Status</p>
+                                    {[
+                                        { label: 'Disponíveis', value: avail, color: 'var(--primary-color)' },
+                                        { label: 'Em andamento', value: inProgress, color: '#f59e0b' },
+                                        { label: 'Geradas', value: done, color: '#22c55e' },
+                                        { label: 'Canceladas', value: cancelled, color: '#ef4444' },
+                                    ].map(row => (
+                                        <div key={row.label} style={{ marginBottom: '10px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>{row.label}</span>
+                                                <span style={{ fontSize: '11px', fontWeight: 900, color: row.color }}>{row.value}</span>
+                                            </div>
+                                            <div style={{ height: '5px', background: 'rgba(255,255,255,0.05)', borderRadius: '999px', overflow: 'hidden' }}>
+                                                <div style={{ height: '100%', width: `${total > 0 ? (row.value / total) * 100 : 0}%`, background: row.color, borderRadius: '999px', transition: 'width 0.6s ease', boxShadow: `0 0 8px ${row.color}` }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Template type */}
+                                <div style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '18px' }}>
+                                    <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '2px', textTransform: 'uppercase' }}>Tipos de Template</p>
+                                    {Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([type, count]) => (
+                                        <div key={type} style={{ marginBottom: '10px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>{type}</span>
+                                                <span style={{ fontSize: '11px', fontWeight: 900, color: typeColors[type] || 'rgba(255,255,255,0.4)' }}>{count}</span>
+                                            </div>
+                                            <div style={{ height: '5px', background: 'rgba(255,255,255,0.05)', borderRadius: '999px', overflow: 'hidden' }}>
+                                                <div style={{ height: '100%', width: `${total > 0 ? (count / total) * 100 : 0}%`, background: typeColors[type] || 'rgba(255,255,255,0.3)', borderRadius: '999px', transition: 'width 0.6s ease' }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 {/* ── TABS + SEARCH ── */}

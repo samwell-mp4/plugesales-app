@@ -445,6 +445,16 @@ app.get('/api/client-submissions', async (req, res) => {
     }
 });
 
+app.get('/api/client-submissions/:id', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM client_submissions WHERE id = $1', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/client-submissions', async (req, res) => {
     const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status } = req.body;
     try {

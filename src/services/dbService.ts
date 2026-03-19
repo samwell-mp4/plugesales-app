@@ -298,6 +298,16 @@ export const dbService = {
             return [];
         }
     },
+    getClientSubmissionById: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/client-submissions/${id}`);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching client submission:", err);
+            return null;
+        }
+    },
     addClientSubmission: async (data: any) => {
         try {
             const res = await fetch(`${API_BASE}/client-submissions`, {
