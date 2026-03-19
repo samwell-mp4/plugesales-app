@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity } from 'lucide-react';
+import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -298,11 +298,45 @@ const TemplateCreator = () => {
         })));
     };
 
-    const applyGlobalButtons = (has: boolean) => {
-        setBulkRows(bulkRows.map(row => ({
-            ...row,
-            hasButtons: has
-        })));
+    const applyGlobalButtons = (hasButtons: boolean) => {
+        setBulkRows(prev => prev.map(r => ({ ...r, hasButtons })));
+    };
+
+    const duplicateRow = (index: number) => {
+        const qtyStr = window.prompt("Quantas cópias deseja criar?", "1");
+        const qty = parseInt(qtyStr || "0");
+        if (isNaN(qty) || qty <= 0) return;
+
+        const sourceRow = bulkRows[index];
+        const newRows: any[] = [];
+
+        // Helper to find and increment the numeric part of a string
+        const incrementSuffix = (base: string, count: number) => {
+            const match = base.match(/(\d+)$/);
+            if (match) {
+                const numStr = match[1];
+                const prefixStr = base.slice(0, -numStr.length);
+                const nextNum = parseInt(numStr) + count;
+                // Preserve leading zeros if any
+                return prefixStr + nextNum.toString().padStart(numStr.length, '0');
+            } else {
+                return `${base}_${count}`;
+            }
+        };
+
+        for (let i = 1; i <= qty; i++) {
+            newRows.push({
+                ...sourceRow,
+                suffix: incrementSuffix(sourceRow.suffix, i),
+                buttonUrls: [...sourceRow.buttonUrls] // deep copy array
+            });
+        }
+
+        setBulkRows(prev => [
+            ...prev.slice(0, index + 1),
+            ...newRows,
+            ...prev.slice(index + 1)
+        ]);
     };
 
     return (
@@ -729,7 +763,12 @@ const TemplateCreator = () => {
                                                                 </td>
                                                             ))}
                                                             <td style={{ textAlign: 'center' }}>
-                                                                <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                                                                <div className="flex gap-2 justify-center">
+                                                                    <button onClick={() => duplicateRow(i)} title="Duplicar esta linha" style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '1rem', opacity: 0.7 }}>
+                                                                        <Copy size={16} />
+                                                                    </button>
+                                                                    <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} title="Excluir" style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))}
