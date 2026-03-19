@@ -194,8 +194,9 @@ const ClientSubmissions = () => {
     ];
 
     return (
-        <div style={{ background: '#020617', minHeight: '100vh', padding: '32px 24px' }}>
+        <div style={{ background: '#020617', minHeight: '100vh', padding: '32px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
             <style>{`
+                * { box-sizing: border-box; }
                 .cs-card {
                     background: rgba(255,255,255,0.02);
                     border: 1px solid rgba(255,255,255,0.06);
@@ -225,9 +226,10 @@ const ClientSubmissions = () => {
                 .tab-pill.active { background: var(--primary-color); color: #000; }
                 .tab-pill.inactive { background: transparent; color: rgba(255,255,255,0.35); }
                 .tab-pill.inactive:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
-                .count-badge { font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 999px; }
-                .count-badge.active { background: rgba(0,0,0,0.25); color: #000; }
-                .count-badge.inactive { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
+                .count-badge.active { background: rgba(0,0,0,0.3); color: #000; }
+                .count-badge.inactive { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); }
+                .tab-pill { border: 1px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+                .tab-pill.active { border-color: rgba(172,248,0,0.3); box-shadow: 0 4px 15px rgba(172,248,0,0.2); }
                 .progress-overlay {
                     position: fixed; inset: 0; background: rgba(2,6,23,0.96); z-index: 9999;
                     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -245,9 +247,11 @@ const ClientSubmissions = () => {
                     cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
                 }
                 .open-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.15); }
+                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 24px; }
+                .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 16px; }
             `}</style>
 
-            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
                 {/* ── HEADER ── */}
                 <div style={{ marginBottom: '36px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
@@ -289,16 +293,16 @@ const ClientSubmissions = () => {
                     </div>
 
                     {/* Stats bar */}
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <div className="stats-grid">
                         {[
                             { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
                             { label: 'Disponíveis', value: availableSubmissions.length, color: 'var(--primary-color)' },
                             { label: 'Em andamento', value: allSubmissions.filter(isAccepted).length, color: '#f59e0b' },
                             { label: 'Geradas', value: allSubmissions.filter(s => s.status === 'GERADO').length, color: '#22c55e' },
                         ].map(stat => (
-                            <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '14px', padding: '14px 20px', flex: 1 }}>
-                                <span style={{ fontSize: '22px', fontWeight: 900, color: stat.color, lineHeight: 1, display: 'block' }}>{stat.value}</span>
-                                <span style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '1px' }}>{stat.label}</span>
+                            <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '18px', padding: '18px 24px', backdropFilter: 'blur(10px)', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                                <span style={{ fontSize: '28px', fontWeight: 900, color: stat.color, lineHeight: 1, display: 'block', marginBottom: '4px' }}>{stat.value}</span>
+                                <span style={{ fontSize: '10px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{stat.label}</span>
                             </div>
                         ))}
                     </div>
@@ -320,7 +324,7 @@ const ClientSubmissions = () => {
                         const typeColors: Record<string, string> = { image: '#a855f7', video: '#3b82f6', none: 'rgba(255,255,255,0.25)', text: 'rgba(255,255,255,0.25)' };
 
                         return (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                            <div className="chart-grid">
                                 {/* Status distribution */}
                                 <div style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '18px' }}>
                                     <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '2px', textTransform: 'uppercase' }}>Distribuição de Status</p>
@@ -419,7 +423,7 @@ const ClientSubmissions = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="cs-grid">
+                    <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
                         {filteredSubmissions.map(s => {
                             const accepted = isAccepted(s);
                             const adCount = s.ads?.length || 0;
