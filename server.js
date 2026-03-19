@@ -597,6 +597,30 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     ).catch(err => console.error("Error saving media to DB:", err));
 });
 
+// API: Queue Dispatch (Pushes to Redis)
+app.post('/api/dispatch/queue', async (req, res) => {
+    const { messages, apiKey } = req.body;
+    if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: 'Payload de mensagens inválido.' });
+    }
+
+    try {
+        if (!redisClient.isOpen) throw new Error('Redis não está conectado.');
+
+        // Store messages in Redis
+        for (const msg of messages) {
+            // Attach apiKey to each job so the worker can use it
+            const job = { ...msg, _apiKey: apiKey };
+            await redisClient.lPush('dispatch_queue', JSON.stringify(job));
+        }
+
+        res.json({ success: true, count: messages.length });
+    } catch (err) {
+        console.error('Queue Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- REDIS WORKER ---
 const dispatchWorker = async () => {
     try {
@@ -615,21 +639,72 @@ const dispatchWorker = async () => {
             return;
         }
 
+        // Pop from Right (FIFO)
         const msgStr = await redisClient.rPop('dispatch_queue');
         if (msgStr) {
             await redisClient.set('dispatch_running', 'true');
-            const msg = JSON.parse(msgStr);
-            console.log(`Processing dispatch for ${msg.to}...`);
+            const job = JSON.parse(msgStr);
+            const { _apiKey, ...msgPayload } = job;
 
-            await redisClient.incr('dispatch_processed');
+            console.log(`🚀 Worker: Dispatching to ${job.to}...`);
 
-            setTimeout(dispatchWorker, 12000);
+            // EXECUTE REAL INFOBIP CALL
+            try {
+                const response = await fetch('https://8k6xv1.api-us.infobip.com/whatsapp/1/message/template', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `App ${_apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ messages: [msgPayload] })
+                });
+
+                const result = await response.json();
+                const isSuccess = response.ok;
+
+                // Log to DB
+                await pool.query(
+                    'INSERT INTO engine_logs (transmission_id, log_type, waba, recipient, message, payload) VALUES ($1, $2, $3, $4, $5, $6)',
+                    [
+                        result.messages?.[0]?.messageId || 'N/A',
+                        isSuccess ? 'SUCCESS' : 'ERROR',
+                        msgPayload.from,
+                        msgPayload.to,
+                        msgPayload.content?.templateName,
+                        JSON.stringify(result)
+                    ]
+                );
+
+                if (isSuccess) {
+                    await redisClient.incr('dispatch_processed');
+                    console.log(`✅ Worker: Success for ${job.to}`);
+
+                    // TRIGGER WEBHOOK ON SUCCESS
+                    fetch("https://db-n8n.msely6.easypanel.host/webhook-test/dispacht-control", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ messages: [msgPayload], status: 'sent' })
+                    }).catch(wErr => console.error("Webhook Error:", wErr.message));
+
+                } else {
+                    console.error(`❌ Worker: API Error for ${job.to}:`, JSON.stringify(result));
+                    // Optional: Re-queue on certain errors
+                }
+
+            } catch (apiErr) {
+                console.error(`❌ Worker: Network/Catch Error for ${job.to}:`, apiErr.message);
+                // Re-queue on network error?
+                await redisClient.lPush('dispatch_queue', msgStr); 
+            }
+
+            // Rate Limit: 1.5 seconds between messages
+            setTimeout(dispatchWorker, 1500);
         } else {
             await redisClient.set('dispatch_running', 'false');
-            setTimeout(dispatchWorker, 2000);
+            setTimeout(dispatchWorker, 3000); // Wait longer if idle
         }
     } catch (err) {
-        console.error("Worker Error:", err);
+        console.error("Worker Critical Error:", err);
         setTimeout(dispatchWorker, 5000);
     }
 };

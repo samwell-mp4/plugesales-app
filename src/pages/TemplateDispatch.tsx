@@ -287,19 +287,6 @@ const TemplateDispatch = () => {
         }
     };
 
-    const sendToWebhook = async (payload: any) => {
-        console.log('Enviando para Controle de Disparo:', payload);
-        try {
-            const response = await fetch("https://db-n8n.msely6.easypanel.host/webhook-test/dispacht-control", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            console.log('Resposta Webhook Controle:', response.status);
-        } catch (err) {
-            console.error('Erro de Rede no Webhook Controle:', err);
-        }
-    };
 
     const handleTagChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const tag = e.target.value;
@@ -386,54 +373,36 @@ const TemplateDispatch = () => {
             const batch = targets.slice(i, i + batchSize);
             const payload = generatePayload(batch);
 
-            // CONFIGURAÇÃO TEMPORÁRIA: Mude para 'true' para voltar a enviar direto pela Infobip
-            const USE_INFOBIP_DIRECT = true;
-
             try {
-                if (USE_INFOBIP_DIRECT) {
-                    console.log('📤 Sending Infobip Payload:', JSON.stringify(payload, null, 2));
-                    const response = await fetch('https://8k6xv1.api-us.infobip.com/whatsapp/1/message/template', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `App ${apiKey}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
+                // ENVIAR PARA FILA REDIS (BACKEND)
+                console.log('📤 Queueing batch for backend dispatch...');
+                const response = await fetch('/api/dispatch/queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: payload.messages,
+                        apiKey: apiKey
+                    })
+                });
 
-                    const responseBody = await response.json();
-                    console.log('📥 Infobip Response Status:', response.status);
-                    console.log('📥 Infobip Response Body:', responseBody);
-
-                    if (response.ok) {
-                        successCount += batch.length;
-                        await sendToWebhook(payload);
-                    } else {
-                        const err = responseBody;
-                        lastError = err.requestError?.serviceException?.text ||
-                            err.requestError?.serviceException?.messageId ||
-                            err.errorMessage ||
-                            err.message ||
-                            JSON.stringify(err);
-                        console.error('❌ Infobip Error Parsed:', lastError);
-                    }
+                if (response.ok) {
+                    successCount += batch.length;
                 } else {
-                    // MODO WEBHOOK APENAS: Envia apenas para o n8n
-                    await sendToWebhook(payload);
-                    successCount += batch.length; // Simula sucesso para o progresso da UI
+                    const err = await response.json();
+                    lastError = err.error || 'Erro ao enfileirar no backend.';
+                    console.error('❌ Queue Error:', lastError);
                 }
             } catch (error: any) {
-                console.error('Critical Dispatch Error:', error);
-                lastError = `Erro crítico: ${error.message}`;
+                console.error('Critical Queueing Error:', error);
+                lastError = `Erro crítico de conexão: ${error.message}`;
             }
 
             const currentProgress = Math.min(i + batch.length, total);
             setQueueProgress({ current: currentProgress, total });
 
-            // Delay between batches: 10-15 seconds
+            // No need for long delays here as the worker handles rate limiting
             if (i + batchSize < total) {
-                const delay = Math.floor(Math.random() * 5000) + 10000;
-                await new Promise(resolve => setTimeout(resolve, delay));
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
 

@@ -261,17 +261,34 @@ const TemplateCreator = () => {
 
     const autoGenerateRows = (qty: number) => {
         const urlButtons = buttons.filter(b => b.type === 'url');
+        const startIdx = bulkRows.length + 1;
         const newRows = [];
-        for (let i = 1; i <= qty; i++) {
+        for (let i = 0; i < qty; i++) {
+            const currentNum = startIdx + i;
             newRows.push({
-                suffix: String(i).padStart(3, '0'),
+                suffix: String(currentNum).padStart(3, '0'),
                 headerType: headerType,
                 mediaUrl: headerType !== 'none' ? headerExampleUrl : '',
                 hasButtons: buttons.length > 0,
                 buttonUrls: urlButtons.map(b => b.url || '')
             });
         }
-        setBulkRows(newRows);
+        setBulkRows([...bulkRows, ...newRows]);
+    };
+
+    const applyGlobalHeaderType = (type: 'none' | 'image' | 'video') => {
+        setBulkRows(bulkRows.map(row => ({
+            ...row,
+            headerType: type,
+            mediaUrl: type !== 'none' ? (row.mediaUrl || headerExampleUrl) : ''
+        })));
+    };
+
+    const applyGlobalButtons = (has: boolean) => {
+        setBulkRows(bulkRows.map(row => ({
+            ...row,
+            hasButtons: has
+        })));
     };
 
     return (
@@ -595,22 +612,48 @@ const TemplateCreator = () => {
                             </div>
 
                             <div className="flex flex-col gap-6">
-                                <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr', gap: '20px' }}>
                                     <div className="input-group">
                                         <label>Prefixo Base</label>
                                         <input className="input-field" style={{ borderRadius: '12px' }} value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value.toLowerCase())} placeholder="ex: v1_" />
                                     </div>
                                     <div className="input-group">
-                                        <label>Auto-Gerar Linhas</label>
+                                        <label>Adicionar à Fila</label>
                                         <div className="flex gap-2">
-                                            <input type="number" className="input-field" style={{ borderRadius: '12px', width: '80px' }} defaultValue={10} id="bulk_qty" />
+                                            <input type="number" className="input-field" style={{ borderRadius: '12px', width: '80px' }} defaultValue={5} id="bulk_qty" />
                                             <button className="btn btn-primary" style={{ flex: 1, borderRadius: '12px', color: 'black' }} onClick={() => {
                                                 const qty = Number((document.getElementById('bulk_qty') as HTMLInputElement)?.value || 0);
                                                 autoGenerateRows(qty);
-                                            }}>GERAR FILA</button>
+                                            }}>+ ADICIONAR LINHAS</button>
                                         </div>
                                     </div>
                                 </div>
+
+                                {bulkRows.length > 0 && (
+                                    <div className="animate-fade-in p-5 rounded-2xl border border-primary-color/20 bg-primary-color/5 flex items-center justify-between gap-6">
+                                        <div className="flex flex-col">
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Editar Todos ({bulkRows.length})</span>
+                                            <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Aplica a mudança em todas as linhas da fila abaixo</span>
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <div className="flex flex-col gap-1">
+                                                <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Mídia Geral</span>
+                                                <div className="flex bg-black/20 p-1 rounded-lg">
+                                                    {(['none', 'image', 'video'] as const).map(t => (
+                                                        <button key={t} onClick={() => applyGlobalHeaderType(t)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>{t === 'none' ? 'SEM' : t}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Botões Geral</span>
+                                                <div className="flex bg-black/20 p-1 rounded-lg">
+                                                    <button onClick={() => applyGlobalButtons(true)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>COM</button>
+                                                    <button onClick={() => applyGlobalButtons(false)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>SEM</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {bulkRows.length > 0 && (
                                     <div className="flex flex-col gap-6">
