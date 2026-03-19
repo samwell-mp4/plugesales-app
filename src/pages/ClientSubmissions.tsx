@@ -12,7 +12,6 @@ import {
     Layers, 
     Search,
     Activity,
-    Pencil,
     ChevronRight,
     Clock,
     Users,
@@ -441,9 +440,9 @@ const ClientSubmissions = () => {
 
                                     {/* Message preview */}
                                     {(s.ad_copy || s.ads?.[0]?.ad_copy) && (
-                                        <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.04)' }}>
-                                            <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                                {s.ad_copy || s.ads?.[0]?.ad_copy}
+                                        <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden', maxHeight: '52px' }}>
+                                            <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, overflow: 'hidden' }}>
+                                                {(s.ad_copy || s.ads?.[0]?.ad_copy || '').substring(0, 120)}
                                             </p>
                                         </div>
                                     )}
