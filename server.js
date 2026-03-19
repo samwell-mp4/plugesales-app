@@ -134,6 +134,8 @@ const initDB = async () => {
         console.log('✅ Table client_submissions verified/created.');
 
         // Backward-compat: add new columns if the table already existed without them
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS ads JSONB DEFAULT '[]'`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS accepted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
         console.log('✅ client_submissions columns verified/migrated.');
