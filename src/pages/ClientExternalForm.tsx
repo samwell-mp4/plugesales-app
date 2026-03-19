@@ -112,22 +112,56 @@ const ClientExternalForm = () => {
 
     const handleSubmit = async () => {
         const errors = getValidationErrors();
-        if (errors.length > 0) {
-            alert("⚠️ ALERTA DE CAMPOS OBRIGATÓRIOS:\n\n" + errors.join("\n"));
+        
+        if (!formData.profile_name || !formData.ddd) {
+            alert("⚠️ Por favor preencha o Nome do Atendimento e o DDD antes de continuar.");
             return;
+        }
+
+        if (errors.length > 0) {
+            const continuar = window.confirm(
+                "⚠️ ATENÇÃO - Campos Incompletos:\n\n" + errors.join("\n") + "\n\nDeseja enviar mesmo assim?"
+            );
+            if (!continuar) return;
         }
 
         setIsSubmitting(true);
         try {
-            const success = await dbService.addClientSubmission(formData);
-            if (success) {
+            // Build clean payload (exclude currentAdIndex from submission)
+            const payload = {
+                profile_photo: formData.profile_photo,
+                profile_name: formData.profile_name,
+                ddd: formData.ddd,
+                status: formData.status,
+                ads: formData.ads.map(ad => ({
+                    ad_name: ad.ad_name,
+                    template_type: ad.template_type,
+                    media_url: ad.media_url,
+                    ad_copy: ad.ad_copy,
+                    ad_copy_file: ad.ad_copy_file,
+                    button_link: ad.button_link,
+                    spreadsheet_url: ad.spreadsheet_url,
+                    message_mode: ad.message_mode,
+                    variables: ad.variables,
+                    id: ad.id,
+                })),
+                // Keep top-level fields for backward compat (first ad)
+                template_type: formData.ads[0]?.template_type || 'none',
+                media_url: formData.ads[0]?.media_url || '',
+                ad_copy: formData.ads[0]?.ad_copy || '',
+                button_link: formData.ads[0]?.button_link || '',
+                spreadsheet_url: formData.ads[0]?.spreadsheet_url || '',
+            };
+
+            const result = await dbService.addClientSubmission(payload);
+            if (result && result.id) {
                 setStep(4); // Success step
             } else {
                 alert("Erro ao enviar os dados. Tente novamente.");
             }
         } catch (err) {
             console.error("Submission error:", err);
-            alert("Erro crítico ao salvar.");
+            alert("Erro crítico ao salvar. Verifique a conexão.");
         } finally {
             setIsSubmitting(false);
         }
@@ -974,10 +1008,12 @@ const ClientExternalForm = () => {
                                             </button>
                                             <button
                                                 onClick={handleSubmit}
-                                                disabled={isSubmitting || formData.ads.some(ad => !ad.spreadsheet_url)}
-                                                className={`nav-btn font-black text-sm flex items-center gap-2 transition-all mt-6 ${formData.ads.some(ad => !ad.spreadsheet_url) ? 'bg-white/5 text-white/20 cursor-not-allowed opacity-50' : 'nav-btn-primary shadow-[0_0_50px_rgba(172,248,0,0.3)]'}`}
+                                                disabled={isSubmitting}
+                                                className={`nav-btn nav-btn-primary font-black text-sm flex items-center gap-2 transition-all mt-6 ${
+                                                    isSubmitting ? 'opacity-50 cursor-not-allowed' : 'shadow-[0_0_50px_rgba(172,248,0,0.3)]'
+                                                }`}
                                             >
-                                                {isSubmitting ? <Activity className="animate-spin" size={18} /> : <>FINALIZAR DISPARO <Send size={18} /></>}
+                                                {isSubmitting ? <Activity className="animate-spin" size={18} /> : <>GERAR CLIENTE <Send size={18} /></>}
                                             </button>
                                         </div>
                                     </div>
