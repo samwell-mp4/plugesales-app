@@ -25,14 +25,16 @@ function AppContent() {
   const { user } = useAuth();
 
 
-  if (!user) {
+  const isPublicRoute = window.location.pathname === '/client-form';
+
+  if (!user && !isPublicRoute) {
     return <Login />;
   }
 
   return (
     <div className="app-layout">
-      <Sidebar />
-      <main className="main-content">
+      {!isPublicRoute && <Sidebar />}
+      <main className="main-content" style={{ paddingLeft: isPublicRoute ? '0' : 'var(--sidebar-width)' }}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -47,7 +49,7 @@ function AppContent() {
           <Route path="/engine" element={<EngineExecution />} />
           <Route path="/media" element={<MediaHosting />} />
           <Route path="/dispatch" element={<TemplateDispatch />} />
-          <Route path="/control" element={user.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
+          <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
         </Routes>
       </main>
     </div>

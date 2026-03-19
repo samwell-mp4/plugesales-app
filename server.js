@@ -15,9 +15,9 @@ const port = process.env.PORT || 3000;
 
 // --- DB CONFIG ---
 // Fallbacks for Easypanel/Docker hosts
-const DEFAULT_PG = "postgres://postgres:Marketing%40plugsales2026!@plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
-const DEFAULT_REDIS = "redis://default:Marketing%40plugsales2026!@plug_sales_redis:6379";
-const LOCAL_PG = "postgres://postgres:postgres@localhost:5432/plug_sales_dispatch_app";
+const DEFAULT_PG = "postgres://postgres:Marketing@plugsales2026!@plug_sales_dispatch_app_plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
+const DEFAULT_REDIS = "redis://default:Marketing@plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379";
+const LOCAL_PG = "postgres://postgres:Marketing@plugsales2026!@localhost:5432/plug_sales_dispatch_app";
 const LOCAL_REDIS = "redis://localhost:6379";
 
 let pgUrl, redisUrl;
@@ -105,6 +105,15 @@ const initDB = async () => {
             )`,
             `CREATE TABLE IF NOT EXISTS planner_drafts (
                 id SERIAL PRIMARY KEY, data JSONB, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                phone TEXT,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'CLIENT',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
@@ -138,6 +147,8 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS accepted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_by TEXT`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS user_id INTEGER`);
         console.log('✅ client_submissions columns verified/migrated.');
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
@@ -150,6 +161,37 @@ initDB();
 // Configuração de CORS
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// --- AUTH ENDPOINTS ---
+app.post('/api/auth/register', async (req, res) => {
+    const { name, email, phone, password } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ error: 'Campos obrigatórios: nome, email, senha.' });
+    
+    try {
+        const result = await pool.query(
+            'INSERT INTO users (name, email, phone, password, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role',
+            [name, email, phone, password, 'CLIENT']
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ error: 'Este email já está cadastrado.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const result = await pool.query(
+            'SELECT id, name, email, role FROM users WHERE email = $1 AND password = $2',
+            [email, password]
+        );
+        if (result.rows.length === 0) return res.status(401).json({ error: 'Email ou senha inválidos.' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // --- API ENDPOINTS ---
 

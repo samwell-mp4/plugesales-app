@@ -365,4 +365,35 @@ export const dbService = {
             console.error("Error updating client submission status:", err);
         }
     },
+    // --- Auth ---
+    register: async (userData: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error registering user:", err);
+            return { error: err.message };
+        }
+    },
+    login: async (credentials: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials)
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                return { error: errorData.error || 'Login failed' };
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error logging in:", err);
+            return { error: err.message };
+        }
+    },
 };

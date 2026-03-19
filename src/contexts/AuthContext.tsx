@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useState } from 'react';
 
-type Role = 'ADMIN' | 'EMPLOYEE';
+type Role = 'ADMIN' | 'EMPLOYEE' | 'CLIENT';
 
 interface User {
+    id?: number;
     name: string;
+    email?: string;
+    phone?: string;
     role: Role;
 }
 
 interface AuthContextType {
     user: User | null;
-    login: (username: string, password: string) => boolean;
+    login: (username: string, password: string) => Promise<boolean>;
+    register: (userData: any) => Promise<boolean>;
     logout: () => void;
 }
 
@@ -26,21 +30,43 @@ const VALID_USERS = [
     { name: 'Ricardo', role: 'EMPLOYEE' as Role, password: 'ricardo883' },
 ];
 
+import { dbService } from '../services/dbService';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(() => {
         const saved = localStorage.getItem('auth_user');
         return saved ? JSON.parse(saved) : null;
     });
 
-    const login = (username: string, password: string): boolean => {
-        const found = VALID_USERS.find(u => 
+    const login = async (username: string, password: string): Promise<boolean> => {
+        // Try static login first (Internal Team)
+        const foundStatic = VALID_USERS.find(u => 
             u.name.toLowerCase() === username.toLowerCase() && u.password === password
         );
         
-        if (found) {
-            const userData = { name: found.name, role: found.role };
+        if (foundStatic) {
+            const userData = { name: foundStatic.name, role: foundStatic.role as Role };
             setUser(userData);
             localStorage.setItem('auth_user', JSON.stringify(userData));
+            return true;
+        }
+
+        // Try API login (Clients)
+        const result = await dbService.login({ email: username, password });
+        if (result && !result.error) {
+            setUser(result);
+            localStorage.setItem('auth_user', JSON.stringify(result));
+            return true;
+        }
+
+        return false;
+    };
+
+    const register = async (userData: any): Promise<boolean> => {
+        const result = await dbService.register(userData);
+        if (result && !result.error) {
+            setUser(result);
+            localStorage.setItem('auth_user', JSON.stringify(result));
             return true;
         }
         return false;
@@ -52,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{ user, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     );

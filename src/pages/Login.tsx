@@ -8,9 +8,9 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const success = login(username, password);
+        const success = await login(username, password);
         if (!success) {
             setError('Usuário ou senha incorretos.');
         }
@@ -295,6 +295,12 @@ const Login = () => {
                         <button type="submit" className="premium-btn">
                             ENTRAR NO DASHBOARD
                         </button>
+
+                        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                            <a href="/client-form" style={{ color: 'var(--primary-color)', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(172,248,0,0.2)', padding: '8px 16px', borderRadius: '12px', display: 'inline-block' }}>
+                                SOU CLIENTE - ENVIAR DADOS
+                            </a>
+                        </div>
 
                         <div className="footer-security">
                             <ShieldCheck size={14} />

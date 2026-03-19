@@ -46,6 +46,7 @@ interface ClientSubmission {
     status: string;
     accepted_by?: string | null;
     sender_number?: string;
+    submitted_by?: string;
     ads?: Ad[];
     timestamp: string;
 }
@@ -475,11 +476,16 @@ const ClientSubmissions = () => {
                                         )}
                                         <div style={{ overflow: 'hidden' }}>
                                             <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
                                                 <span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span>
                                                 <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                                                     <Clock size={10} /> {formatDate(s.timestamp)}
                                                 </span>
+                                                {s.submitted_by && (
+                                                    <span style={{ fontSize: '10px', color: '#6366f1', fontWeight: 800, background: 'rgba(99,102,241,0.1)', padding: '1px 6px', borderRadius: '4px' }}>
+                                                        BY: {s.submitted_by}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

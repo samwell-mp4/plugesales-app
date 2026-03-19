@@ -15,8 +15,11 @@ import {
     LayoutGrid
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { useAuth } from '../contexts/AuthContext';
+import ClientAuth from './ClientAuth';
 
 const ClientExternalForm = () => {
+    const { user } = useAuth();
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -41,7 +44,6 @@ const ClientExternalForm = () => {
         status: 'PENDENTE'
     });
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const handleFileUpload = async (file: File, field: 'profile_photo' | 'media_url' | 'spreadsheet_url' | 'ad_copy_file') => {
         const formDataUpload = new FormData();
@@ -133,6 +135,8 @@ const ClientExternalForm = () => {
                 profile_name: formData.profile_name,
                 ddd: formData.ddd,
                 status: formData.status,
+                submitted_by: user?.name || 'cliente', // Atribuição solicitada
+                user_id: user?.id,
                 ads: formData.ads.map(ad => ({
                     ad_name: ad.ad_name,
                     template_type: ad.template_type,
@@ -189,6 +193,10 @@ const ClientExternalForm = () => {
     };
     const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
+    if (!user) {
+        return <ClientAuth />;
+    }
+
     return (
         <div className="min-h-screen bg-[#020617] text-white overflow-x-hidden">
             <style>{`
@@ -199,141 +207,8 @@ const ClientExternalForm = () => {
                     backdrop-filter: blur(24px);
                     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
                 }
-                .whatsapp-grid { display: flex; flex-direction: column; gap: 32px; }
-                @media (min-width: 1024px) { 
-                    .whatsapp-grid { 
-                        display: grid; 
-                        grid-template-columns: 1fr 380px; 
-                        gap: 64px; 
-                        max-width: none;
-                        margin: 0;
-                    } 
-                }
+                .whatsapp-grid { display: flex; flex-direction: column; gap: 32px; max-width: 800px; margin: 0 auto; }
                 
-                .preview-modal-overlay {
-                    position: fixed;
-                    inset: 0;
-                    background: rgba(2, 6, 23, 0.85);
-                    backdrop-filter: blur(12px);
-                    z-index: 2000;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 20px;
-                    animation: fade-in 0.3s ease-out;
-                }
-
-                .preview-modal-content {
-                    position: relative;
-                    max-width: 100%;
-                    max-height: 100%;
-                    animation: slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-
-                .close-modal-btn {
-                    position: absolute;
-                    top: -50px;
-                    right: 0;
-                    width: 40px;
-                    height: 40px;
-                    background: rgba(255,255,255,0.1);
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    border: 1px solid rgba(255,255,255,0.2);
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .close-modal-btn:hover { background: rgba(255,255,255,0.2); transform: rotate(90deg); }
-
-                .fab-preview {
-                    position: fixed;
-                    bottom: 32px;
-                    right: 32px;
-                    z-index: 1000;
-                    background: var(--primary-color);
-                    color: black;
-                    padding: 16px 24px;
-                    border-radius: 20px;
-                    font-weight: 900;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    font-size: 12px;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    box-shadow: 0 10px 30px rgba(172, 248, 0, 0.4);
-                    border: none;
-                    cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-                    animation: fab-entry 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-                }
-                @keyframes fab-entry { from { transform: scale(0) translateY(100px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-                .fab-preview:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 15px 40px rgba(172, 248, 0, 0.6); }
-
-                .phone-mockup {
-                    width: 320px;
-                    height: 640px;
-                    background: #0b141a;
-                    border: 12px solid #222e35;
-                    border-radius: 44px;
-                    box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8);
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                }
-                
-                .sticky-preview {
-                    position: sticky;
-                    top: 40px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                @media (max-width: 480px) {
-                    .phone-mockup {
-                        width: 280px;
-                        height: 560px;
-                    }
-                }
-
-                .wa-header {
-                    background: #202c33;
-                    padding: 10px 14px;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-
-                .wa-body {
-                    flex: 1;
-                    background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-                    background-size: cover;
-                    padding: 12px;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .wa-bubble {
-                    background: #005c4b;
-                    border-radius: 0 10px 10px 10px;
-                    max-width: 90%;
-                    align-self: flex-start;
-                    box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-                }
-
-                .wa-button {
-                    background: #202c33;
-                    border-top: 1px solid rgba(255,255,255,0.05);
-                    padding: 8px;
-                    color: #00a884;
-                    text-align: center;
-                    font-size: 0.8rem;
-                    font-weight: 700;
-                }
 
                 .input-premium {
                     background: rgba(255,255,255,0.02);
@@ -1021,109 +896,9 @@ const ClientExternalForm = () => {
                             </div>
                         </div>
 
-                        {/* DESKTOP SIDE PREVIEW */}
-                        <div className="hidden lg:block">
-                            <div className="sticky-preview">
-                                <p className="text-center font-black text-[10px] uppercase tracking-[4px] opacity-30 mb-8">Visualização em Tempo Real</p>
-                                <div className="phone-mockup scale-90 origin-top">
-                                    <div className="wa-header">
-                                        {formData.profile_photo ? (
-                                            <img 
-                                                src={formData.profile_photo} 
-                                                style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                                                className="border border-white/5" 
-                                            />
-                                        ) : (
-                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }} className="bg-[#6a7175] flex items-center justify-center"><User size={18} color="white" /></div>
-                                        )}
-                                        <div className="flex-1 overflow-hidden">
-                                            <p className="font-bold text-sm text-[#] truncate">{formData.profile_name || 'Seu Nome Aqui'}</p>
-                                            <p className="text-[11px] text-[#8696a0]">online</p>
-                                        </div>
-                                    </div>
-                                    <div className="wa-body">
-                                        <div className="wa-bubble p-1">
-                                            {formData.ads[formData.currentAdIndex].template_type !== 'none' && formData.ads[formData.currentAdIndex].media_url && (
-                                                <div className="rounded-lg overflow-hidden mb-1 aspect-square bg-black/20">
-                                                    {formData.ads[formData.currentAdIndex].template_type === 'image' ? (
-                                                        <img src={formData.ads[formData.currentAdIndex].media_url} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <video src={formData.ads[formData.currentAdIndex].media_url} className="w-full h-full object-cover" controls={false} autoPlay muted loop />
-                                                    )}
-                                                </div>
-                                            )}
-                                            <div className="px-2 py-1 pb-4">
-                                                <p className="text-sm text-[#e9edef] whitespace-pre-wrap">{formData.ads[formData.currentAdIndex].ad_copy || 'Sua mensagem aparecerá aqui...'}</p>
-                                            </div>
-                                            {formData.ads[formData.currentAdIndex].button_link && (
-                                                <div className="wa-button mt-1">
-                                                    Acessar Agora
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 )}
 
-                {/* FAB PREVIEW - MOBILE ONLY */}
-                {step === 2 && !isPreviewOpen && (
-                    <button className="fab-preview lg:hidden" onClick={() => setIsPreviewOpen(true)}>
-                        <LayoutGrid size={20} />
-                        Visualizar Preview
-                    </button>
-                )}
-
-                {/* MODAL PREVIEW */}
-                {isPreviewOpen && (
-                    <div className="preview-modal-overlay" onClick={() => setIsPreviewOpen(false)}>
-                        <div className="preview-modal-content" onClick={e => e.stopPropagation()}>
-                            <button className="close-modal-btn" onClick={() => setIsPreviewOpen(false)}>
-                                <PlusCircle size={24} style={{ transform: 'rotate(45deg)' }} />
-                            </button>
-                            <div className="phone-mockup">
-                                <div className="wa-header">
-                                    {formData.profile_photo ? (
-                                        <img 
-                                            src={formData.profile_photo} 
-                                            style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                                            className="border border-white/5" 
-                                        />
-                                    ) : (
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }} className="bg-[#6a7175] flex items-center justify-center"><User size={18} color="white" /></div>
-                                    )}
-                                    <div className="flex-1 overflow-hidden">
-                                        <p className="font-bold text-sm text-[#e9edef] truncate">{formData.profile_name || 'Seu Nome Aqui'}</p>
-                                        <p className="text-[11px] text-[#8696a0]">online</p>
-                                    </div>
-                                </div>
-                                <div className="wa-body">
-                                    <div className="wa-bubble p-1">
-                                        {formData.ads[formData.currentAdIndex].template_type !== 'none' && formData.ads[formData.currentAdIndex].media_url && (
-                                            <div className="rounded-lg overflow-hidden mb-1 aspect-square bg-black/20">
-                                                {formData.ads[formData.currentAdIndex].template_type === 'image' ? (
-                                                    <img src={formData.ads[formData.currentAdIndex].media_url} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <video src={formData.ads[formData.currentAdIndex].media_url} className="w-full h-full object-cover" controls={false} autoPlay muted loop />
-                                                )}
-                                            </div>
-                                        )}
-                                        <div className="px-2 py-1 pb-4">
-                                            <p className="text-sm text-[#e9edef] whitespace-pre-wrap">{formData.ads[formData.currentAdIndex].ad_copy || 'Sua mensagem aparecerá aqui...'}</p>
-                                        </div>
-                                        {formData.ads[formData.currentAdIndex].button_link && (
-                                            <div className="wa-button mt-1">
-                                                Acessar Agora
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {step === 4 && (
                     <div className="max-w-xl mx-auto py-24 text-center animate-slide-up">
