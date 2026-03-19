@@ -12,10 +12,27 @@ import {
     Layers, 
     Search,
     Activity,
-    Pencil
+    Pencil,
+    ChevronRight,
+    Clock,
+    Users,
+    Inbox,
+    FileSpreadsheet
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
+
+interface Ad {
+    ad_name?: string;
+    template_type?: string;
+    message_mode?: string;
+    media_url?: string;
+    ad_copy?: string;
+    ad_copy_file?: string;
+    button_link?: string;
+    variables?: string[];
+    id?: string;
+}
 
 interface ClientSubmission {
     id: number;
@@ -28,8 +45,9 @@ interface ClientSubmission {
     button_link: string;
     spreadsheet_url: string;
     status: string;
-    accepted_by?: string;
+    accepted_by?: string | null;
     sender_number?: string;
+    ads?: Ad[];
     timestamp: string;
 }
 
@@ -48,7 +66,7 @@ const ClientSubmissions = () => {
         setIsLoading(true);
         try {
             const data = await dbService.getClientSubmissions();
-            setSubmissions(data || []);
+            setSubmissions(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Error loading submissions:", err);
         } finally {
@@ -56,9 +74,7 @@ const ClientSubmissions = () => {
         }
     };
 
-    useEffect(() => {
-        loadSubmissions();
-    }, []);
+    useEffect(() => { loadSubmissions(); }, []);
 
     const handleDelete = async (id: number) => {
         if (!window.confirm("Deseja realmente excluir este envio?")) return;
@@ -70,23 +86,26 @@ const ClientSubmissions = () => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    const filteredSubmissions = Array.isArray(submissions) ? submissions.filter(s => {
-        const matchesSearch = (s.profile_name || "").toLowerCase().includes(searchTerm.toLowerCase()) || (s.ddd || "").includes(searchTerm);
-        
-        if (!matchesSearch) return false;
+    // Fix: treat null, undefined, and empty string as "not accepted"
+    const isAccepted = (s: ClientSubmission) => !!(s.accepted_by && s.accepted_by.trim() !== '');
 
-        if (activeTab === 'available') return !s.accepted_by;
-        if (activeTab === 'mine') return s.accepted_by === user?.name;
-        return true; // 'all'
-    }) : [];
+    const allSubmissions = Array.isArray(submissions) ? submissions : [];
+    
+    const searchFilter = (s: ClientSubmission) =>
+        (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.ddd || '').includes(searchTerm);
+
+    const availableSubmissions = allSubmissions.filter(s => !isAccepted(s) && searchFilter(s));
+    const mySubmissions = allSubmissions.filter(s => isAccepted(s) && s.accepted_by === user?.name && searchFilter(s));
+    const allFiltered = allSubmissions.filter(searchFilter);
+
+    const filteredSubmissions = activeTab === 'available' ? availableSubmissions
+        : activeTab === 'mine' ? mySubmissions
+        : allFiltered;
 
     const selectAll = () => {
         if (selectedIds.length === filteredSubmissions.length) setSelectedIds([]);
         else setSelectedIds(filteredSubmissions.map(s => s.id));
-    };
-
-    const handleEdit = (_sub: ClientSubmission) => {
-        alert("Edição em massa em breve. Use o botão Novo Envio para criar novos.");
     };
 
     const handleAccept = async (e: React.MouseEvent, id: number) => {
@@ -94,6 +113,7 @@ const ClientSubmissions = () => {
         if (!user) return;
         try {
             await dbService.updateClientSubmission(id, { accepted_by: user.name });
+            setActiveTab('mine');
             loadSubmissions();
         } catch (err) {
             console.error("Error accepting task:", err);
@@ -105,21 +125,14 @@ const ClientSubmissions = () => {
             const settings = await dbService.getSettings();
             const apiKey = settings['infobip_key'];
             if (!apiKey) throw new Error("API Key não configurada.");
-
             const res = await fetch('https://qgylyz.api.infobip.com/whatsapp/1/templates', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `App ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
+                method: 'POST', headers: { 'Authorization': `App ${apiKey}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
                 return { success: false, error: errorData.errorMessage || `HTTP ${res.status}` };
             }
-
             return { success: true };
         } catch (err: any) {
             return { success: false, error: err.message };
@@ -128,73 +141,25 @@ const ClientSubmissions = () => {
 
     const handleBulkGenerate = async () => {
         if (selectedIds.length === 0) return;
-        const confirm = window.confirm(`Deseja gerar templates reais na Infobip para ${selectedIds.length} envios selecionados?`);
-        if (!confirm) return;
-
+        if (!window.confirm(`Deseja gerar templates reais na Infobip para ${selectedIds.length} envios selecionados?`)) return;
         setIsProcessing(true);
         setGeneratingProgress({ current: 0, total: selectedIds.length });
-        
-        let successCount = 0;
-        let errorCount = 0;
-
+        let successCount = 0; let errorCount = 0;
         try {
             for (let i = 0; i < selectedIds.length; i++) {
                 const id = selectedIds[i];
                 const sub = submissions.find(s => s.id === id);
                 if (!sub) continue;
-
                 setGeneratingProgress({ current: i + 1, total: selectedIds.length });
-
-                // Construct Technical Name: name_ddd_type
                 const techName = `${sub.profile_name.toLowerCase().replace(/\s+/g, '_')}_${sub.ddd}_${sub.template_type}`;
-                
-                // Build Payload (Marketing/Utility/Authentication - default to Marketing)
-                const payload: any = {
-                    name: techName,
-                    language: 'pt_BR',
-                    category: 'MARKETING',
-                    structure: {
-                        body: { text: sub.ad_copy }
-                    }
-                };
-
-                if (sub.template_type !== 'none') {
-                    payload.structure.header = {
-                        format: sub.template_type.toUpperCase(),
-                        example: sub.media_url
-                    };
-                }
-
-                if (sub.button_link) {
-                    payload.structure.buttons = [{
-                        type: 'URL',
-                        text: 'Acessar Agora',
-                        url: sub.button_link
-                    }];
-                }
-
+                const payload: any = { name: techName, language: 'pt_BR', category: 'MARKETING', structure: { body: { text: sub.ad_copy } } };
+                if (sub.template_type !== 'none') payload.structure.header = { format: sub.template_type.toUpperCase(), example: sub.media_url };
+                if (sub.button_link) payload.structure.buttons = [{ type: 'URL', text: 'Acessar Agora', url: sub.button_link }];
                 const res = await callInfobipAPI(payload);
-
-                if (res.success) {
-                    successCount++;
-                    await dbService.updateClientSubmissionStatus(id, 'GERADO'); 
-                } else {
-                    errorCount++;
-                    console.error(`Error generating ${techName}:`, res.error);
-                    // Log error to backend
-                    await fetch('/api/logs/template-error', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: techName, error: res.error, author: 'Client Area' })
-                    }).catch(() => {});
-                }
-
-                // Delay for stability (2.5s)
-                if (i < selectedIds.length - 1) {
-                    await new Promise(r => setTimeout(r, 2500));
-                }
+                if (res.success) { successCount++; await dbService.updateClientSubmissionStatus(id, 'GERADO'); }
+                else { errorCount++; await fetch('/api/logs/template-error', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: techName, error: res.error, author: 'Client Area' }) }).catch(() => {}); }
+                if (i < selectedIds.length - 1) await new Promise(r => setTimeout(r, 2500));
             }
-
             alert(`Processamento concluído!\nSucesso: ${successCount}\nErros: ${errorCount}`);
             setSelectedIds([]);
             loadSubmissions();
@@ -207,219 +172,317 @@ const ClientSubmissions = () => {
         }
     };
 
+    const getTemplateIcon = (type: string) => {
+        if (type === 'image') return <ImageIcon size={14} className="text-purple-400" />;
+        if (type === 'video') return <Video size={14} className="text-blue-400" />;
+        return <FileText size={14} className="text-white/30" />;
+    };
+
+    const formatDate = (ts: string) => {
+        try { return new Date(ts).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+        catch { return '-'; }
+    };
+
+    const tabs = [
+        { id: 'available' as const, label: 'DISPONÍVEIS', icon: <Inbox size={13} />, count: availableSubmissions.length },
+        { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: mySubmissions.length },
+        ...(user?.role === 'ADMIN' ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: allFiltered.length }] : []),
+    ];
 
     return (
-        <div className="animate-fade-in px-6 py-8" style={{ background: '#020617', minHeight: '100vh' }}>
+        <div style={{ background: '#020617', minHeight: '100vh', padding: '32px 24px' }}>
             <style>{`
-                .client-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-                
-                .glass-card { 
-                    background: rgba(255, 255, 255, 0.02); 
-                    border: 1px solid rgba(255, 255, 255, 0.08); 
-                    backdrop-filter: blur(24px);
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-                }
-
-                .submission-card {
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(255, 255, 255, 0.06);
+                .cs-card {
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid rgba(255,255,255,0.06);
                     border-radius: 20px;
-                    padding: 20px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
                     position: relative;
-                    cursor: pointer;
+                    overflow: hidden;
                 }
-                .submission-card:hover { 
-                    transform: translateY(-4px); 
-                    border-color: var(--primary-color);
-                    background: rgba(172, 248, 0, 0.02);
-                    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5); 
+                .cs-card:hover {
+                    border-color: rgba(172,248,0,0.25);
+                    background: rgba(172,248,0,0.015);
+                    transform: translateY(-3px);
+                    box-shadow: 0 20px 50px -15px rgba(0,0,0,0.7);
                 }
-                .submission-card.selected { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.05); }
-                
-                .card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-                .profile-img { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; border: 1.5px solid rgba(255,255,255,0.1); }
-                .status-badge { font-size: 0.6rem; font-weight: 900; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-                .checkbox-custom {
-                    width: 22px; height: 22px; border: 1.5px solid rgba(255,255,255,0.1); border-radius: 6px;
-                    display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;
+                .cs-card.selected {
+                    border-color: rgba(172,248,0,0.4);
+                    background: rgba(172,248,0,0.04);
                 }
-                .checkbox-custom.checked { background: var(--primary-color); border-color: var(--primary-color); color: black; }
-
+                .cs-card .card-actions {
+                    position: absolute; top: 12px; right: 12px;
+                    display: flex; gap: 6px;
+                    opacity: 0; transform: translateY(-4px); transition: all 0.2s;
+                }
+                .cs-card:hover .card-actions { opacity: 1; transform: translateY(0); }
+                .cs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
+                .tab-pill { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 12px; font-weight: 900; font-size: 10px; letter-spacing: 0.5px; transition: all 0.2s; cursor: pointer; border: none; }
+                .tab-pill.active { background: var(--primary-color); color: #000; }
+                .tab-pill.inactive { background: transparent; color: rgba(255,255,255,0.35); }
+                .tab-pill.inactive:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
+                .count-badge { font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 999px; }
+                .count-badge.active { background: rgba(0,0,0,0.25); color: #000; }
+                .count-badge.inactive { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
                 .progress-overlay {
-                    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(2, 6, 23, 0.95); z-index: 10000;
+                    position: fixed; inset: 0; background: rgba(2,6,23,0.96); z-index: 9999;
                     display: flex; flex-direction: column; align-items: center; justify-content: center;
                     backdrop-filter: blur(20px);
                 }
-                
-                .action-overlay {
-                    position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; opacity: 0; transform: translateY(-5px); transition: all 0.2s;
+                .accept-btn {
+                    width: 100%; background: var(--primary-color); color: #000; font-weight: 900;
+                    font-size: 11px; letter-spacing: 1px; padding: 12px; border-radius: 12px; border: none;
+                    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap-6px;
                 }
-                .submission-card:hover .action-overlay { opacity: 1; transform: translateY(0); }
+                .accept-btn:hover { transform: scale(1.02); box-shadow: 0 8px 20px -4px rgba(172,248,0,0.4); }
+                .open-btn {
+                    width: 100%; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); font-weight: 900;
+                    font-size: 11px; letter-spacing: 1px; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+                    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+                }
+                .open-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.15); }
             `}</style>
 
-            <div className="max-w-[1400px] mx-auto">
-                <div className="flex items-center justify-between mb-10">
-                    <div>
-                        <h1 style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-1px', margin: 0 }}>Upload de Clientes</h1>
-                        <p style={{ opacity: 0.4, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Capture e gerencie solicitações de templates em massa</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 mr-4">
-                            <button 
-                                onClick={() => setActiveTab('available')}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${activeTab === 'available' ? 'bg-primary text-black' : 'text-white/40 hover:text-white'}`}
+            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+                {/* ── HEADER ── */}
+                <div style={{ marginBottom: '36px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
+                        <div>
+                            <p style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '3px', color: 'var(--primary-color)', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.8 }}>ÁREA DO CLIENTE</p>
+                            <h1 style={{ fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', margin: 0, lineHeight: 1 }}>Dashboard de Clientes</h1>
+                            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 600, marginTop: '6px' }}>
+                                Gerencie solicitações de templates e acompanhe suas atividades
+                            </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button
+                                onClick={() => {
+                                    const url = window.location.origin + '/client-form';
+                                    navigator.clipboard.writeText(url);
+                                    alert("Link copiado: " + url);
+                                }}
+                                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
                             >
-                                DISPONÍVEIS
+                                <LinkIcon size={15} /> COPIAR LINK
                             </button>
-                            <button 
-                                onClick={() => setActiveTab('mine')}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${activeTab === 'mine' ? 'bg-primary text-black' : 'text-white/40 hover:text-white'}`}
+                            <button
+                                onClick={() => navigate('/client-submissions/add')}
+                                style={{ background: 'var(--primary-color)', color: '#000', padding: '10px 20px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '12px', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.5px' }}
                             >
-                                MINHAS TAREFAS
+                                <Plus size={16} /> NOVO ENVIO
                             </button>
-                            {user?.role === 'ADMIN' && (
-                                <button 
-                                    onClick={() => setActiveTab('all')}
-                                    className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${activeTab === 'all' ? 'bg-primary text-black' : 'text-white/40 hover:text-white'}`}
+                            {selectedIds.length > 0 && (
+                                <button
+                                    onClick={handleBulkGenerate}
+                                    disabled={isProcessing}
+                                    style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '12px', border: '1px solid rgba(172,248,0,0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}
                                 >
-                                    TODAS (ADM)
+                                    {isProcessing ? <Activity size={15} className="animate-spin" /> : <Layers size={15} />}
+                                    {isProcessing ? 'GERANDO...' : `GERAR (${selectedIds.length})`}
                                 </button>
                             )}
                         </div>
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                const url = window.location.origin + '/client-form';
-                                navigator.clipboard.writeText(url);
-                                alert("Link do formulário copiado: " + url);
-                            }}
-                            className="bg-white/5 hover:bg-white/10 px-6 py-3 rounded-xl transition-all border border-white/5 font-bold text-xs"
-                        >
-                            <LinkIcon size={16} className="inline mr-2" /> COPIAR LINK
-                        </button>
-                        <button className="btn btn-primary px-6 py-3 rounded-xl font-black text-black text-xs" onClick={() => navigate('/client-submissions/add')} style={{ background: 'var(--primary-gradient)' }}>
-                            <Plus size={18} className="inline mr-1" /> NOVO ENVIO
-                        </button>
-                        {selectedIds.length > 0 && (
-                            <button className="bg-primary/20 hover:bg-primary/30 px-6 py-3 rounded-xl border border-primary/30 text-primary font-black text-xs transition-all" onClick={handleBulkGenerate} disabled={isProcessing}>
-                                {isProcessing ? <Activity className="animate-spin" size={16} /> : <Layers size={16} className="inline mr-1" />} {isProcessing ? 'GERANDO...' : `GERAR (${selectedIds.length})`}
+                    </div>
+
+                    {/* Stats bar */}
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                        {[
+                            { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
+                            { label: 'Disponíveis', value: availableSubmissions.length, color: 'var(--primary-color)' },
+                            { label: 'Em andamento', value: allSubmissions.filter(isAccepted).length, color: '#f59e0b' },
+                            { label: 'Geradas', value: allSubmissions.filter(s => s.status === 'GERADO').length, color: '#22c55e' },
+                        ].map(stat => (
+                            <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '14px', padding: '14px 20px', flex: 1 }}>
+                                <span style={{ fontSize: '22px', fontWeight: 900, color: stat.color, lineHeight: 1, display: 'block' }}>{stat.value}</span>
+                                <span style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '1px' }}>{stat.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* ── TABS + SEARCH ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '4px' }}>
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                className={`tab-pill ${activeTab === tab.id ? 'active' : 'inactive'}`}
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                                <span className={`count-badge ${activeTab === tab.id ? 'active' : 'inactive'}`}>{tab.count}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '360px' }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
+                            <Search size={15} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                            <input
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                placeholder="Buscar cliente ou DDD..."
+                                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '13px', padding: '10px 0', width: '100%' }}
+                            />
+                        </div>
+                        {filteredSubmissions.length > 0 && (
+                            <button
+                                onClick={selectAll}
+                                style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontWeight: 900, letterSpacing: '1px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                                {selectedIds.length === filteredSubmissions.length && filteredSubmissions.length > 0 ? 'DESSELECIONAR' : 'SEL. TUDO'}
                             </button>
                         )}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 mb-8 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                    <div className="search-bar-container flex-1 relative">
-                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.4 }} />
-                        <input 
-                            className="bg-transparent border-none text-white w-full text-sm outline-none" 
-                            style={{ paddingLeft: '40px' }} 
-                            placeholder="Buscar por cliente ou DDD..." 
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
+                {/* ── GRID ── */}
+                {isLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '16px' }}>
+                        <div style={{ width: 48, height: 48, border: '3px solid rgba(172,248,0,0.2)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: '12px', letterSpacing: '2px' }}>CARREGANDO...</span>
                     </div>
-                    <button className="text-[10px] font-black tracking-widest text-white/40 hover:text-white transition-colors" onClick={selectAll}>
-                        {selectedIds.length === filteredSubmissions.length ? 'DESSELECIONAR' : 'SELECIONAR TUDO'}
-                    </button>
-                </div>
-
-            {isLoading ? (
-                <div className="flex-col items-center justify-center p-20 gap-4" style={{ display: 'flex' }}>
-                    <Activity className="animate-spin" size={40} color="var(--primary-color)" />
-                    <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Carregando solicitações...</span>
-                </div>
-            ) : filteredSubmissions.length === 0 ? (
-                <div className="flex-col items-center justify-center p-20 opacity-20" style={{ display: 'flex' }}>
-                    <Layers size={80} strokeWidth={1} />
-                    <p style={{ fontWeight: 900, fontSize: '1.2rem', marginTop: '16px' }}>NENHUM ENVIO ENCONTRADO</p>
-                </div>
-            ) : (
-                <div className="client-grid animate-slide-up">
-                    {filteredSubmissions.map(s => (
-                        <div key={s.id} className={`submission-card ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)}>
-                            <div className="action-overlay">
-                                <button className="p-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-md transition-colors" onClick={(e) => { e.stopPropagation(); handleEdit(s); }}>
-                                    <Pencil size={14} />
-                                </button>
-                                <button className="p-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-red-500 rounded-md transition-colors" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}>
-                                    <Trash2 size={14} />
-                                </button>
-                            </div>
-                            
-                            <div className="absolute top-4 left-4">
-                                <div className={`checkbox-custom ${selectedIds.includes(s.id) ? 'checked' : ''}`}>
-                                    {selectedIds.includes(s.id) && <CheckCircle size={14} />}
-                                </div>
-                            </div>
-
-                            <div className="card-header mt-8">
-                                {s.profile_photo ? (
-                                    <img src={s.profile_photo} alt="Perfil" className="profile-img" />
-                                ) : (
-                                    <div className="profile-img bg-white/5 flex items-center justify-center"><User size={24} className="opacity-20" /></div>
-                                )}
-                                <div>
-                                    <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.3px' }}>{s.profile_name}</h4>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', fontWeight: 800 }}>DDD {s.ddd}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex-col gap-3">
-                                <div className="flex items-center gap-3 p-3 bg-black/20 rounded-xl">
-                                    {s.template_type === 'image' ? <ImageIcon size={18} color="#a855f7" /> : s.template_type === 'video' ? <Video size={18} color="#3b82f6" /> : <FileText size={18} color="var(--text-muted)" />}
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{s.template_type.toUpperCase()}</span>
-                                    <span className="status-badge ml-auto" style={{ background: s.status === 'GERADO' ? 'rgba(172, 248, 0, 0.1)' : 'rgba(250, 204, 21, 0.1)', color: s.status === 'GERADO' ? 'var(--primary-color)' : '#facc15' }}>{s.status}</span>
-                                </div>
-                                
-                                <div className="flex flex-col gap-1 p-3 border border-white/5 rounded-xl">
-                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>Mensagem</span>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.ad_copy}</p>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    {!s.accepted_by ? (
-                                        <button 
-                                            className="flex-1 bg-primary text-black font-black text-[10px] py-3 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                                            onClick={(e) => handleAccept(e, s.id)}
+                ) : filteredSubmissions.length === 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '16px', opacity: 0.3 }}>
+                        <Inbox size={70} strokeWidth={1} />
+                        <div style={{ textAlign: 'center' }}>
+                            <p style={{ fontWeight: 900, fontSize: '1.1rem', margin: 0 }}>
+                                {activeTab === 'available' ? 'NENHUMA SOLICITAÇÃO DISPONÍVEL' :
+                                 activeTab === 'mine' ? 'NENHUMA TAREFA ACEITA' : 'SEM REGISTROS'}
+                            </p>
+                            <p style={{ fontSize: '12px', marginTop: '6px', opacity: 0.6 }}>
+                                {activeTab === 'available' ? 'Novas solicitações de clientes aparecerão aqui.' : 'Aceite tarefas na aba "Disponíveis".'}
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="cs-grid">
+                        {filteredSubmissions.map(s => {
+                            const accepted = isAccepted(s);
+                            const adCount = s.ads?.length || 0;
+                            return (
+                                <div
+                                    key={s.id}
+                                    className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`}
+                                    onClick={() => toggleSelect(s.id)}
+                                    style={{ padding: '20px' }}
+                                >
+                                    {/* Action buttons on hover */}
+                                    <div className="card-actions">
+                                        <button
+                                            onClick={e => { e.stopPropagation(); handleDelete(s.id); }}
+                                            style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', display: 'flex' }}
                                         >
-                                            ACEITAR TAREFA
+                                            <Trash2 size={13} />
+                                        </button>
+                                    </div>
+
+                                    {/* Checkbox */}
+                                    <div style={{ position: 'absolute', top: '18px', left: '18px' }}>
+                                        <div style={{ width: 20, height: 20, borderRadius: '6px', border: selectedIds.includes(s.id) ? '1.5px solid var(--primary-color)' : '1.5px solid rgba(255,255,255,0.12)', background: selectedIds.includes(s.id) ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+                                            {selectedIds.includes(s.id) && <CheckCircle size={13} style={{ color: '#000' }} />}
+                                        </div>
+                                    </div>
+
+                                    {/* Status pill */}
+                                    <div style={{ position: 'absolute', top: '16px', right: accepted ? '50px' : '40px' }}>
+                                        <span style={{
+                                            fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '999px',
+                                            letterSpacing: '0.5px', textTransform: 'uppercase',
+                                            background: accepted ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : 'rgba(172,248,0,0.08)',
+                                            color: accepted ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : 'var(--primary-color)',
+                                            border: `1px solid ${accepted ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : 'rgba(172,248,0,0.15)'}`
+                                        }}>
+                                            {accepted ? 'EM ANDAMENTO' : s.status}
+                                        </span>
+                                    </div>
+
+                                    {/* Profile */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '30px', marginBottom: '16px' }}>
+                                        {s.profile_photo ? (
+                                            <img src={s.profile_photo} alt="Perfil" style={{ width: 48, height: 48, borderRadius: '14px', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.1)', flexShrink: 0 }} />
+                                        ) : (
+                                            <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <User size={22} style={{ opacity: 0.2 }} />
+                                            </div>
+                                        )}
+                                        <div style={{ overflow: 'hidden' }}>
+                                            <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                                                <span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span>
+                                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    <Clock size={10} /> {formatDate(s.timestamp)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Info row */}
+                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            {getTemplateIcon(s.template_type || s.ads?.[0]?.template_type || 'none')}
+                                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+                                                {(s.template_type || s.ads?.[0]?.template_type || 'none').toUpperCase()}
+                                            </span>
+                                        </div>
+                                        {adCount > 0 && (
+                                            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Layers size={13} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                                                <span style={{ fontSize: '11px', fontWeight: 900, color: 'rgba(255,255,255,0.5)' }}>{adCount}</span>
+                                            </div>
+                                        )}
+                                        {s.spreadsheet_url && (
+                                            <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center' }}>
+                                                <FileSpreadsheet size={13} style={{ color: '#22c55e' }} />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Message preview */}
+                                    {(s.ad_copy || s.ads?.[0]?.ad_copy) && (
+                                        <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                            <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                {s.ad_copy || s.ads?.[0]?.ad_copy}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Accepted by */}
+                                    {accepted && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', padding: '8px 12px', background: 'rgba(245,158,11,0.06)', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.12)' }}>
+                                            <User size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b' }}>{s.accepted_by}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Action button */}
+                                    {!accepted ? (
+                                        <button className="accept-btn" onClick={e => handleAccept(e, s.id)} style={{ gap: '8px' }}>
+                                            <CheckCircle size={15} /> ACEITAR TAREFA
                                         </button>
                                     ) : (
-                                        <button 
-                                            className="flex-1 bg-white/10 text-white font-black text-[10px] py-3 rounded-xl hover:bg-white/20 transition-all border border-white/5"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/client-submissions/${s.id}`);
-                                            }}
-                                        >
-                                            ABRIR PAINEL
+                                        <button className="open-btn" onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>
+                                            ABRIR PAINEL <ChevronRight size={15} />
                                         </button>
                                     )}
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
-            {/* Bulk Generation Progress Overlay */}
+            {/* Progress Overlay */}
             {generatingProgress.total > 0 && (
-                <div className="progress-overlay animate-fade-in">
-                    <Activity className="animate-spin text-primary mb-8" size={80} />
-                    <h2 style={{ fontWeight: 900, fontSize: '2.5rem', margin: 0, color: 'white' }}>Gerando Templates...</h2>
-                    <p style={{ fontSize: '1.2rem', opacity: 0.7, marginTop: '16px', color: 'white' }}>
-                        Processando {generatingProgress.current} de {generatingProgress.total} envios
+                <div className="progress-overlay">
+                    <div style={{ width: 80, height: 80, border: '4px solid rgba(172,248,0,0.15)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '32px' }} />
+                    <h2 style={{ fontWeight: 900, fontSize: '2rem', margin: 0 }}>Gerando Templates...</h2>
+                    <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)', marginTop: '12px' }}>
+                        Processando {generatingProgress.current} de {generatingProgress.total}
                     </p>
-                    <div className="w-full max-w-md bg-white/10 h-4 rounded-full mt-10 overflow-hidden border border-white/5">
-                        <div 
-                            className="bg-primary h-full transition-all duration-500" 
-                            style={{ width: `${(generatingProgress.current / generatingProgress.total) * 100}%`, boxShadow: '0 0 20px var(--primary-color)', background: 'var(--primary-color)' }}
-                        />
+                    <div style={{ width: '380px', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', marginTop: '32px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: 'var(--primary-color)', borderRadius: '999px', width: `${(generatingProgress.current / generatingProgress.total) * 100}%`, boxShadow: '0 0 16px var(--primary-color)', transition: 'width 0.5s' }} />
                     </div>
                 </div>
             )}
