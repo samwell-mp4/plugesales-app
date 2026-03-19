@@ -143,13 +143,14 @@ const initDB = async () => {
         console.log('✅ Table client_submissions verified/created.');
 
         // Backward-compat: add new columns if the table already existed without them
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'CLIENT'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS ads JSONB DEFAULT '[]'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS accepted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS user_id INTEGER`);
-        console.log('✅ client_submissions columns verified/migrated.');
+        console.log('✅ All columns verified/migrated.');
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
     } finally {
@@ -166,7 +167,7 @@ app.use(express.json({ limit: '50mb' }));
 app.post('/api/auth/register', async (req, res) => {
     const { name, email, phone, password } = req.body;
     if (!name || !email || !password) return res.status(400).json({ error: 'Campos obrigatórios: nome, email, senha.' });
-    
+
     try {
         const result = await pool.query(
             'INSERT INTO users (name, email, phone, password, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role',
@@ -182,7 +183,7 @@ app.post('/api/auth/register', async (req, res) => {
 app.put('/api/auth/profile', async (req, res) => {
     const { id, name, email, phone, password } = req.body;
     if (!id) return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
-    
+
     try {
         const result = await pool.query(
             `UPDATE users 
@@ -539,8 +540,8 @@ app.post('/api/client-submissions', async (req, res) => {
             (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status, user_id, submitted_by) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
             [
-                profile_photo, profile_name, ddd, 
-                template_type || 'none', media_url || '', ad_copy || '', button_link || '', 
+                profile_photo, profile_name, ddd,
+                template_type || 'none', media_url || '', ad_copy || '', button_link || '',
                 ads ? JSON.stringify(ads) : '[]',
                 spreadsheet_url, status || 'PENDENTE',
                 user_id, submitted_by
@@ -585,7 +586,7 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
 app.put('/api/client-submissions/:id', async (req, res) => {
     const { id } = req.params;
     const body = req.body;
-    
+
     // Flexible update: handle status-only or full-body
     const fields = Object.keys(body);
     if (fields.length === 0) return res.status(400).json({ error: 'Nenhum campo para atualizar.' });
@@ -593,7 +594,7 @@ app.put('/api/client-submissions/:id', async (req, res) => {
     try {
         const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
         const values = [...fields.map(f => body[f]), id];
-        
+
         await pool.query(`UPDATE client_submissions SET ${setClause} WHERE id = $${values.length}`, values);
         res.json({ success: true });
     } catch (err) {
@@ -849,7 +850,7 @@ const dispatchWorker = async () => {
             } catch (apiErr) {
                 console.error(`❌ Worker: Network/Catch Error for ${job.to}:`, apiErr.message);
                 // Re-queue on network error?
-                await redisClient.lPush('dispatch_queue', msgStr); 
+                await redisClient.lPush('dispatch_queue', msgStr);
             }
 
             // Rate Limit: 1.5 seconds between messages

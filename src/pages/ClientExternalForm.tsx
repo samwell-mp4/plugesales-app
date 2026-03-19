@@ -1001,9 +1001,9 @@ const ClientExternalForm = () => {
                                 <div className="iphone-mockup">
                                     <div className="iphone-screen">
                                         <div className="chat-header">
-                                            <div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
+                                            <div style={{ width: 40, height: 40, minWidth: 40, minHeight: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                 {formData.profile_photo ? (
-                                                    <img src={formData.profile_photo} className="w-full h-full object-cover" />
+                                                    <img src={formData.profile_photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
                                                     <User size={20} className="opacity-40" />
                                                 )}
