@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
     Upload, 
     Link, 
-    FileVideo, 
     ImageIcon, 
     Copy, 
-    ExternalLink, 
     Trash2, 
     Search, 
     Zap, 
@@ -15,8 +13,7 @@ import {
     X,
     Folder,
     Maximize2,
-    Clock,
-    Smartphone
+    Clock
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 

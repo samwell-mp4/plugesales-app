@@ -5,13 +5,11 @@ import {
     CheckCircle,
     CheckCircle2,
     Clock,
-    AlertCircle,
     LogOut,
-    Save,
-    Key,
-    Smartphone,
     Layers,
-    ExternalLink
+    Smartphone,
+    ExternalLink,
+    Zap
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
