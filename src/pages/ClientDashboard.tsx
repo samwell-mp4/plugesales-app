@@ -104,59 +104,124 @@ const ClientDashboard = () => {
 
     return (
         <div className="animate-fade-in p-2 lg:p-6 pb-20">
-            {/* Header */}
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', marginBottom: '4px' }}>
-                        Portal do <span className="text-gradient">Cliente</span>
-                    </h1>
-                    <p className="text-white/60 font-medium">Bem-vindo de volta, {user?.name}</p>
-                </div>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={() => navigate('/client-form')}
-                        className="btn btn-primary"
-                        style={{ padding: '12px 24px', borderRadius: '14px', fontWeight: 800 }}
-                    >
-                        Nova Campanha
-                    </button>
-                    <button 
-                        onClick={logout}
-                        className="btn btn-secondary"
-                        style={{ padding: '12px', borderRadius: '14px', background: 'rgba(255, 77, 77, 0.1)', color: '#ff4d4d', border: 'none' }}
-                    >
-                        <LogOut size={20} />
-                    </button>
-                </div>
-            </header>
+            <style>{`
+                .active-scale { transition: transform 0.15s ease; }
+                .active-scale:active { transform: scale(0.95); }
+                
+                .glass-card {
+                    background: rgba(255, 255, 255, 0.03);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+                }
+                
+                .stat-card {
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                }
+                .stat-card:hover {
+                    transform: translateY(-5px);
+                    background: rgba(255, 255, 255, 0.05);
+                    border-color: rgba(255, 255, 255, 0.12);
+                }
+                .stat-card::after {
+                    content: '';
+                    position: absolute;
+                    top: 0; left: 0; width: 100%; height: 100%;
+                    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.03), transparent);
+                    transform: translateX(-100%);
+                    transition: 0.5s;
+                }
+                .stat-card:hover::after { transform: translateX(100%); }
+
+                .submission-card {
+                    margin-bottom: 12px;
+                    border-radius: 20px;
+                    padding: 20px;
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    transition: all 0.3s ease;
+                }
+                .submission-card:hover {
+                    background: rgba(255, 255, 255, 0.04);
+                    border-color: rgba(172, 248, 0, 0.2);
+                    transform: scale(1.01);
+                }
+            `}</style>
+            {/* Header / Action Bar */}
+            <div className="glass-card mb-8 p-6 lg:p-8" style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '32px' }}>
+                <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                        <div style={{ 
+                            background: 'var(--primary-gradient)', 
+                            width: '56px', height: '56px', 
+                            borderRadius: '20px', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 10px 25px -5px var(--primary-color)'
+                        }}>
+                            <User size={28} color="black" />
+                        </div>
+                        <div>
+                            <h1 style={{ fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', marginBottom: '4px', lineHeight: 1 }}>
+                                Central do <span className="text-primary-color">Cliente</span>
+                            </h1>
+                            <p className="text-white/40 font-bold text-sm flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                Logado como {user?.name}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={() => navigate('/client-form')}
+                            className="btn btn-primary h-14 px-8 rounded-2xl font-black flex items-center gap-3 active-scale"
+                            style={{ boxShadow: '0 8px 20px -6px var(--primary-color)' }}
+                        >
+                            <FileText size={20} /> NOVA CAMPANHA
+                        </button>
+                        
+                        <div className="h-10 w-[1px] bg-white/10 mx-2 hidden md:block" />
+                        
+                        <button 
+                            onClick={logout}
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all bg-white/5 border border-white/10 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 active-scale"
+                            title="Sair"
+                        >
+                            <LogOut size={22} />
+                        </button>
+                    </div>
+                </header>
+            </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="glass-card flex items-center gap-4 p-6" style={{ borderLeft: '4px solid #60a5fa' }}>
-                    <div style={{ background: 'rgba(96, 165, 250, 0.1)', padding: '12px', borderRadius: '12px', color: '#60a5fa' }}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="glass-card stat-card flex items-center gap-5 p-6" style={{ borderLeft: '4px solid #60a5fa' }}>
+                    <div style={{ background: 'rgba(96, 165, 250, 0.1)', width: '52px', height: '52px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa' }}>
                         <FileText size={24} />
                     </div>
                     <div>
-                        <span className="text-2xl font-black block">{stats.total}</span>
-                        <span className="text-white/50 text-xs font-bold uppercase tracking-wider">Total Enviado</span>
+                        <span className="text-3xl font-black block tracking-tighter" style={{ lineHeight: 1 }}>{stats.total}</span>
+                        <span className="text-white/30 text-[10px] font-black uppercase tracking-[2px] mt-1 block">Total Enviado</span>
                     </div>
                 </div>
-                <div className="glass-card flex items-center gap-4 p-6" style={{ borderLeft: '4px solid #facc15' }}>
-                    <div style={{ background: 'rgba(250, 204, 21, 0.1)', padding: '12px', borderRadius: '12px', color: '#facc15' }}>
+                <div className="glass-card stat-card flex items-center gap-5 p-6" style={{ borderLeft: '4px solid #facc15' }}>
+                    <div style={{ background: 'rgba(250, 204, 21, 0.1)', width: '52px', height: '52px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#facc15' }}>
                         <Clock size={24} />
                     </div>
                     <div>
-                        <span className="text-2xl font-black block">{stats.pending}</span>
-                        <span className="text-white/50 text-xs font-bold uppercase tracking-wider">Em Análise</span>
+                        <span className="text-3xl font-black block tracking-tighter" style={{ lineHeight: 1 }}>{stats.pending}</span>
+                        <span className="text-white/30 text-[10px] font-black uppercase tracking-[2px] mt-1 block">Em Análise</span>
                     </div>
                 </div>
-                <div className="glass-card flex items-center gap-4 p-6" style={{ borderLeft: '4px solid var(--primary-color)' }}>
-                    <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '12px', color: 'var(--primary-color)' }}>
+                <div className="glass-card stat-card flex items-center gap-5 p-6" style={{ borderLeft: '4px solid var(--primary-color)' }}>
+                    <div style={{ background: 'rgba(172, 248, 0, 0.1)', width: '52px', height: '52px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
                         <CheckCircle2 size={24} />
                     </div>
                     <div>
-                        <span className="text-2xl font-black block">{stats.completed}</span>
-                        <span className="text-white/50 text-xs font-bold uppercase tracking-wider">Finalizadas</span>
+                        <span className="text-3xl font-black block tracking-tighter" style={{ lineHeight: 1 }}>{stats.completed}</span>
+                        <span className="text-white/30 text-[10px] font-black uppercase tracking-[2px] mt-1 block">Finalizadas</span>
                     </div>
                 </div>
             </div>
@@ -178,13 +243,13 @@ const ClientDashboard = () => {
             </div>
 
             {activeTab === 'submissions' ? (
-                <div className="grid grid-cols-1 gap-4 animate-fade-in">
+                <div className="grid grid-cols-1 gap-2 animate-fade-in">
                     {isLoading ? (
                         <div className="p-20 flex justify-center">
                             <Clock className="animate-spin text-primary-color" size={40} />
                         </div>
                     ) : submissions.length === 0 ? (
-                        <div className="glass-card p-20 text-center opacity-40">
+                        <div className="glass-card p-20 text-center opacity-40" style={{ borderRadius: '24px' }}>
                             <FileText size={48} className="mx-auto mb-4" />
                             <p className="font-bold">Nenhuma submissão encontrada.</p>
                         </div>
@@ -192,50 +257,57 @@ const ClientDashboard = () => {
                         submissions.map((sub) => {
                             const status = getStatusInfo(sub.status);
                             return (
-                                <div key={sub.id} className="glass-card p-5 hover-lift">
+                                <div key={sub.id} className="submission-card">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div className="flex items-center gap-4">
                                             <div style={{ 
-                                                width: '50px', height: '50px', borderRadius: '14px', 
+                                                width: '52px', height: '52px', borderRadius: '16px', 
                                                 background: 'rgba(255,255,255,0.03)', 
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                border: '1px solid rgba(255,255,255,0.08)'
                                             }}>
                                                 <Smartphone size={24} className="text-white/60" />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-lg m-0">{sub.profile_name}</h4>
+                                                <h4 className="font-black text-lg m-0 flex items-center gap-2">
+                                                    {sub.profile_name}
+                                                    {status.text === 'Concluído' && <CheckCircle2 size={16} className="text-primary-color" />}
+                                                </h4>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-xs text-white/40">{new Date(sub.timestamp).toLocaleDateString()}</span>
+                                                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{new Date(sub.timestamp).toLocaleDateString()}</span>
                                                     <span className="text-white/10">•</span>
-                                                    <span className="text-xs font-bold" style={{ color: status.color }}>
-                                                        {status.text}
-                                                    </span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: status.color }} />
+                                                        <span className="text-[11px] font-black uppercase tracking-wider" style={{ color: status.color }}>
+                                                            {status.text}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-6">
                                             {sub.sender_number && (
                                                 <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] text-white/30 uppercase font-black">Enviado por</span>
-                                                    <span className="text-xs font-bold text-primary-color">{sub.sender_number}</span>
+                                                    <span className="text-[9px] text-white/20 uppercase font-black tracking-widest">Enviado por</span>
+                                                    <span className="text-xs font-black text-primary-color">{sub.sender_number}</span>
                                                 </div>
                                             )}
-                                            <div className="h-10 w-[1px] bg-white/5 hidden md:block" />
-                                            <div className="flex gap-2">
-                                                <button 
-                                                    onClick={() => navigate(`/client-submissions/${sub.id}`)}
-                                                    className="btn btn-secondary w-10 h-10 p-0 rounded-xl"
-                                                >
-                                                    <ExternalLink size={18} />
-                                                </button>
-                                            </div>
+                                            <div className="h-8 w-[1px] bg-white/10 hidden md:block" />
+                                            <button 
+                                                onClick={() => navigate(`/client-submissions/${sub.id}`)}
+                                                className="h-12 px-6 rounded-xl flex items-center gap-2 bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all font-black text-[11px] tracking-widest active-scale"
+                                            >
+                                                DETALHES <ExternalLink size={16} />
+                                            </button>
                                         </div>
                                     </div>
                                     
                                     {sub.notes && (
-                                        <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                                            <p className="text-xs m-0 text-blue-200"><b>Feedback:</b> {sub.notes}</p>
+                                        <div className="mt-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                                            <p className="text-xs m-0 text-blue-200/60 leading-relaxed italic">
+                                                <b className="text-blue-400 not-italic uppercase tracking-widest mr-2">Feedback:</b> "{sub.notes}"
+                                            </p>
                                         </div>
                                     )}
                                 </div>

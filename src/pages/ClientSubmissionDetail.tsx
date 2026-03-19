@@ -20,6 +20,7 @@ import {
     Layers
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Ad {
     ad_name?: string;
@@ -62,6 +63,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 const ClientSubmissionDetail = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [sub, setSub] = useState<Submission | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [senderNumber, setSenderNumber] = useState('');
@@ -77,6 +79,11 @@ const ClientSubmissionDetail = () => {
         try {
             const data = await dbService.getClientSubmissionById(Number(id));
             if (data) {
+                // Security Check: Clients can only see their own submissions
+                if (user?.role === 'CLIENT' && data.user_id !== user.id) {
+                    navigate('/client-dashboard', { replace: true });
+                    return;
+                }
                 setSub(data);
                 setSenderNumber(data.sender_number || '');
                 setNotes(data.notes || '');
@@ -135,7 +142,7 @@ const ClientSubmissionDetail = () => {
         <div style={{ minHeight: '100vh', background: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
             <AlertCircle size={60} style={{ color: 'rgba(255,255,255,0.15)' }} />
             <p style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>Submissão não encontrada</p>
-            <button onClick={() => navigate('/client-submissions')} style={{ background: 'var(--primary-color)', color: '#000', padding: '10px 24px', borderRadius: '12px', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>
+            <button onClick={() => navigate(user?.role === 'CLIENT' ? '/client-dashboard' : '/client-submissions')} style={{ background: 'var(--primary-color)', color: '#000', padding: '10px 24px', borderRadius: '12px', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>
                 VOLTAR
             </button>
         </div>
@@ -235,7 +242,7 @@ const ClientSubmissionDetail = () => {
                 {/* ── HEADER ── */}
                 <div className="header-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', gap: '24px' }}>
                     <div className="header-profile-info" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <button onClick={() => navigate('/client-submissions')} className="action-btn ghost-btn" style={{ width: 44, height: 44, padding: 0, flexShrink: 0 }}>
+                        <button onClick={() => navigate(user?.role === 'CLIENT' ? '/client-dashboard' : '/client-submissions')} className="action-btn ghost-btn" style={{ width: 44, height: 44, padding: 0, flexShrink: 0 }}>
                             <ChevronLeft size={20} />
                         </button>
                         <div style={{ position: 'relative', flexShrink: 0 }}>

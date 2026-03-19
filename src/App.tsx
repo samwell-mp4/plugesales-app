@@ -32,6 +32,29 @@ function AppContent() {
     return <Login />;
   }
 
+  // Role-based protection
+  const isClient = user?.role === 'CLIENT';
+
+  // Prevent clients from accessing the manager's submission list
+  if (isClient && location.pathname === '/client-submissions') {
+    return <Navigate to="/client-dashboard" replace />;
+  }
+
+  // Prevent clients from accessing other admin-only pages
+  const adminOnlyRoutes = [
+    '/accounts', 
+    '/templates', 
+    '/control', 
+    '/upload', 
+    '/campaigns', 
+    '/engine', 
+    '/dispatch',
+    '/client-submissions/add'
+  ];
+  if (isClient && adminOnlyRoutes.includes(location.pathname)) {
+    return <Navigate to="/client-dashboard" replace />;
+  }
+
   return (
     <div className="app-layout">
       {!isPublicRoute && <Sidebar />}
