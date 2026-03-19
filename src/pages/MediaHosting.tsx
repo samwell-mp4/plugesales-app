@@ -1,5 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Upload, Link, FileVideo, ImageIcon, Copy, ExternalLink, Trash2, Search, Zap, Check, Plus, Activity } from 'lucide-react';
+import { 
+    Upload, 
+    Link, 
+    FileVideo, 
+    ImageIcon, 
+    Copy, 
+    ExternalLink, 
+    Trash2, 
+    Search, 
+    Zap, 
+    Check, 
+    Plus, 
+    Activity,
+    X,
+    Folder,
+    Maximize2,
+    Clock,
+    Smartphone
+} from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 interface HostedMedia {
@@ -14,8 +32,13 @@ interface HostedMedia {
 
 const MediaHosting = () => {
     const [hostedFiles, setHostedFiles] = useState<HostedMedia[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+    const [previewFile, setPreviewFile] = useState<HostedMedia | null>(null);
 
-    useEffect(() => {
+    const load = () => {
         dbService.getMedia().then(media => {
             setHostedFiles(media.map((m: any) => ({
                 id: String(m.id),
@@ -24,15 +47,12 @@ const MediaHosting = () => {
                 size: '--',
                 shortUrl: m.short_url,
                 originalName: m.name,
-                uploadedAt: new Date(m.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                uploadedAt: new Date(m.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short' })
             })));
         });
-    }, []);
+    };
 
-    const [isUploading, setIsUploading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [copiedId, setCopiedId] = useState<string | null>(null);
-    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+    useEffect(() => { load(); }, []);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -41,8 +61,6 @@ const MediaHosting = () => {
         const fileArray = Array.from(files);
         setUploadProgress({ current: 0, total: fileArray.length });
         setIsUploading(true);
-
-        const newHostedFiles = [...hostedFiles];
 
         for (let i = 0; i < fileArray.length; i++) {
             const file = fileArray[i];
@@ -58,232 +76,340 @@ const MediaHosting = () => {
                 });
 
                 if (!response.ok) throw new Error(`Falha no upload de ${file.name}`);
-
-                const result = await response.json();
-                
-                let finalUrl = result.url;
-                if (finalUrl && !finalUrl.startsWith('http')) {
-                    finalUrl = window.location.origin + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
-                }
-                
-                if (!finalUrl) throw new Error('URL inválida rertornada para ' + file.name);
-
-                const fileSizeMB = file.size / (1024 * 1024);
-                const sizeDisplay = fileSizeMB < 0.1 
-                    ? (file.size / 1024).toFixed(1) + ' KB' 
-                    : fileSizeMB.toFixed(1) + ' MB';
-
-                const newFile: HostedMedia = {
-                    id: 'med_' + Date.now() + '_' + i,
-                    name: file.name,
-                    type: file.type.startsWith('video') ? 'video' : 'image',
-                    size: sizeDisplay,
-                    shortUrl: finalUrl,
-                    originalName: file.name,
-                    uploadedAt: new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                };
-
-                newHostedFiles.unshift(newFile);
-                // Atualizar state local imediatamente para feedback visual
-                setHostedFiles([...newHostedFiles]);
-                // DB is updated server-side automatically on upload
-
+                load(); // Reload complete list after each successful upload
             } catch (error: any) {
-                console.error('Upload Error for', file.name, ':', error);
-                // Não paramos o loop por erro em um arquivo individual
+                console.error('Upload Error:', error);
             }
         }
 
         setIsUploading(false);
         setUploadProgress({ current: 0, total: 0 });
-        alert(`✅ Processamento concluído! ${fileArray.length} arquivo(s) processado(s).`);
     };
 
     const handleDelete = async (id: string) => {
+        if (!window.confirm('Excluir este arquivo permanentemente?')) return;
         setHostedFiles(prev => prev.filter(f => String(f.id) !== id));
         await dbService.deleteMedia(Number(id));
     };
 
     const copyToClipboard = (text: string, id: string) => {
-        navigator.clipboard.writeText(text);
+        const fullUrl = text.startsWith('http') ? text : window.location.origin + (text.startsWith('/') ? '' : '/') + text;
+        navigator.clipboard.writeText(fullUrl);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
     };
 
+    const filteredFiles = hostedFiles.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
     return (
-        <div className="animate-fade-in media-page" style={{ paddingBottom: '80px' }}>
+        <div className="container-root" style={{ minHeight: '100vh', background: '#020617', color: 'white', padding: '28px 24px' }}>
             <style>{`
-                .media-layout { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+                
+                .control-card { 
+                    background: rgba(255,255,255,0.02); 
+                    border: 1px solid rgba(255,255,255,0.06); 
+                    border-radius: 24px; 
+                    padding: 24px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    animation: fadeInUp 0.4s ease-out backwards;
+                }
+                .control-card:hover { 
+                    background: rgba(255,255,255,0.03); 
+                    border-color: rgba(255,255,255,0.1);
+                    transform: translateY(-2px);
+                    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
+                }
+
+                .action-btn { padding: 12px 20px; border-radius: 14px; border: none; cursor: pointer; font-weight: 900; font-size: 11px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; text-transform: uppercase; }
+                .primary-btn { background: var(--primary-gradient); color: #000; box-shadow: 0 8px 20px -6px var(--primary); }
+                .ghost-btn { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.08) !important; }
+                .ghost-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2) !important; }
+
                 .upload-zone { 
                     border: 2px dashed rgba(172, 248, 0, 0.2); 
                     background: rgba(172, 248, 0, 0.02); 
-                    border-radius: 24px; 
-                    padding: 60px 40px; 
+                    border-radius: 32px; 
+                    padding: 40px; 
                     text-align: center;
                     transition: all 0.3s ease;
                     cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 16px;
                 }
                 .upload-zone:hover { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.05); }
-                .media-card { background: rgba(30, 41, 59, 0.4); border: 1px solid var(--surface-border); border-radius: 20px; padding: 20px; }
-                .short-link-badge { 
-                    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); 
-                    border-radius: 8px; padding: 6px 12px; font-family: monospace; font-size: 0.8rem; 
-                    color: var(--primary-color); display: flex; align-items: center; gap: 8px;
-                }
-                
-                @media (max-width: 1024px) {
-                    .media-layout { grid-template-columns: 1fr; }
-                    .search-container { width: 100% !important; margin-top: 16px; }
+
+                .media-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: 24px;
                 }
 
-                @media (max-width: 768px) {
-                    .table-wrapper { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
-                    .media-header { flex-direction: column; align-items: flex-start !important; }
+                .media-item {
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
                 }
+                .media-preview-box {
+                    height: 180px;
+                    border-radius: 16px;
+                    background: rgba(0,0,0,0.2);
+                    margin-bottom: 16px;
+                    position: relative;
+                    overflow: hidden;
+                    border: 1px solid rgba(255,255,255,0.05);
+                }
+                .media-preview-box img, .media-preview-box video {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    transition: transform 0.5s ease;
+                }
+                .media-item:hover .media-preview-box img { transform: scale(1.1); }
+                
+                .overlay-actions {
+                    position: absolute;
+                    inset: 0;
+                    background: rgba(2,6,23,0.6);
+                    backdrop-filter: blur(4px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    opacity: 0;
+                    transition: all 0.3s;
+                }
+                .media-preview-box:hover .overlay-actions { opacity: 1; }
+
+                .field-input { width: 100%; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; color: white; font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
+                .field-input:focus { border-color: var(--primary-color); background: rgba(255,255,255,0.04); box-shadow: 0 0 20px rgba(172,248,0,0.1); }
+                
+                .info-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
             `}</style>
 
-            <div className="flex items-center justify-between mb-8 media-header">
-                <div className="flex flex-col">
-                    <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', letterSpacing: '-1px' }}>Media Hosting</h1>
-                    <p className="subtitle">Armazenamento interno de ativos para campanhas disparadas</p>
-                </div>
-            </div>
+            <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
+                {/* ── HEADER ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '40px', flexWrap: 'wrap', gap: '24px' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.8rem', letterSpacing: '-2px', lineHeight: 1 }}>
+                            Media <span className="text-primary-color">Hosting</span>
+                        </h1>
+                        <p style={{ margin: '8px 0 0 0', color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                            Gerenciamento de ativos para campanhas
+                        </p>
+                    </div>
 
-            <div className="media-layout mt-8">
-                {/* Upload Section */}
-                <div className="flex flex-col gap-6">
-                    <label className="upload-zone flex flex-col items-center gap-6">
-                        <input type="file" style={{ display: 'none' }} onChange={handleUpload} accept="image/*,video/*" multiple />
-                        <div style={{
-                            width: 80, height: 80, borderRadius: '24px', background: 'var(--primary-color)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black',
-                            boxShadow: '0 0 30px rgba(172, 248, 0, 0.3)'
-                        }}>
-                            {isUploading ? <Activity className="animate-spin" size={32} /> : <Upload size={32} strokeWidth={3} />}
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <h2 style={{ margin: 0, fontWeight: 900 }}>
-                                {isUploading ? `ENVIANDO ${uploadProgress.current}/${uploadProgress.total}...` : 'SOLTE SEUS ARQUIVOS AQUI'}
-                            </h2>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Suporta múltiplos arquivos PNG, JPG, MP4.</p>
-                        </div>
-                        {!isUploading && (
-                            <div className="btn btn-primary" style={{ padding: '12px 32px', borderRadius: '14px', color: 'black', fontWeight: 800 }}>
-                                <Plus size={18} /> SELECIONAR NO DISCO
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                        <div className="control-card" style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(172,248,0,0.1)', border: '1px solid rgba(172,248,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                                <Folder size={20} />
                             </div>
-                        )}
-                    </label>
+                            <div>
+                                <p style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>{hostedFiles.length}</p>
+                                <p style={{ margin: 0, fontSize: '8px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px' }}>ARQUIVOS TOTAIS</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                    <div className="flex items-center justify-between mt-4">
-                        <h3 style={{ margin: 0, fontWeight: 800 }}>Sua Biblioteca</h3>
-                        <div className="search-container" style={{ position: 'relative', width: '300px' }}>
-                            <Search size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)' }} />
-                            <input
-                                className="input-field"
-                                style={{ paddingLeft: '44px', borderRadius: '14px', height: '44px', background: 'rgba(0,0,0,0.2)' }}
-                                placeholder="Filtrar arquivos..."
+                {/* ── MAIN CONTENT ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '32px', alignItems: 'start' }} className="responsive-grid">
+                    
+                    {/* LEFT AREA: GRID */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                        
+                        {/* SEARCH & FILTERS */}
+                        <div style={{ position: 'relative' }}>
+                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                            <input 
+                                className="field-input" 
+                                style={{ paddingLeft: '52px', height: '60px' }} 
+                                placeholder="BUSCAR ARQUIVOS NA BIBLIOTECA..." 
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
                         </div>
+
+                        {/* ACTUAL GRID */}
+                        <div className="media-grid">
+                            {filteredFiles.map((file, idx) => (
+                                <div key={file.id} className="control-card media-item" style={{ animationDelay: `${idx * 0.05}s` }}>
+                                    <div className="media-preview-box">
+                                        {file.type === 'video' ? (
+                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(59,130,246,0.1)' }}>
+                                                <video src={file.shortUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <div style={{ position: 'absolute', top: 12, left: 12, padding: '4px 8px', background: 'rgba(0,0,0,0.5)', borderRadius: '6px', fontSize: '9px', fontWeight: 900 }}>MP4</div>
+                                            </div>
+                                        ) : (
+                                            <img src={file.shortUrl} alt="" />
+                                        )}
+                                        
+                                        <div className="overlay-actions">
+                                            <button 
+                                                onClick={() => setPreviewFile(file)}
+                                                className="action-btn ghost-btn" 
+                                                style={{ width: 44, height: 44, padding: 0, borderRadius: '50%' }}
+                                            >
+                                                <Maximize2 size={18} />
+                                            </button>
+                                            <button 
+                                                onClick={() => copyToClipboard(file.shortUrl, file.id)}
+                                                className="action-btn primary-btn" 
+                                                style={{ width: 44, height: 44, padding: 0, borderRadius: '50%' }}
+                                            >
+                                                {copiedId === file.id ? <Check size={18} /> : <Copy size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {file.name.toUpperCase()}
+                                        </h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                <span style={{ fontSize: '9px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Clock size={12} /> {file.uploadedAt}
+                                                </span>
+                                            </div>
+                                            <button onClick={() => handleDelete(file.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.4)', cursor: 'pointer', padding: '4px' }} className="hover:text-red-500 transition-colors">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {filteredFiles.length === 0 && (
+                            <div className="control-card" style={{ padding: '80px', textAlign: 'center', opacity: 0.2 }}>
+                                <ImageIcon size={64} style={{ marginBottom: '20px' }} />
+                                <h3 style={{ fontWeight: 900 }}>BIBLIOTECA VAZIA</h3>
+                                <p style={{ fontSize: '12px' }}>Nenhum arquivo encontrado conforme sua busca.</p>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="table-wrapper">
-                        <div className="glass-card p-0" style={{ overflow: 'hidden', borderRadius: '20px' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                <thead>
-                                    <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--surface-border)' }}>
-                                        <th style={{ padding: '16px 24px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase' }}>Arquivo</th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase' }}>Tamanho</th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase' }}>URL Encurtada</th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', textAlign: 'right' }}>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {hostedFiles.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).map((file) => (
-                                        <tr key={file.id} style={{ borderBottom: '1px solid var(--surface-border)' }} className="hover:bg-white/5 transition-colors">
-                                            <td style={{ padding: '16px 24px' }}>
-                                                <div className="flex items-center gap-3">
-                                                    <div style={{
-                                                        width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)',
-                                                        border: '1px solid var(--surface-border)'
-                                                    }}>
-                                                        {file.type === 'video' ? <FileVideo size={20} /> : <ImageIcon size={20} />}
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span style={{ fontWeight: 700, color: 'white', fontSize: '0.9rem' }}>{file.name}</span>
-                                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{file.uploadedAt}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{file.size}</td>
-                                            <td style={{ padding: '16px 24px' }}>
-                                                <div className="short-link-badge">
-                                                    {file.shortUrl}
-                                                    <button onClick={() => copyToClipboard(file.shortUrl, file.id)} style={{ background: 'transparent', border: 'none', color: copiedId === file.id ? 'var(--primary-color)' : 'var(--text-muted)', cursor: 'pointer' }}>
-                                                        {copiedId === file.id ? <Check size={14} /> : <Copy size={14} />}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button className="btn btn-secondary" style={{ padding: '8px', borderRadius: '8px' }} title="Visualizar">
-                                                        <ExternalLink size={16} />
-                                                    </button>
-                                                    <button className="btn btn-secondary" style={{ padding: '8px', borderRadius: '8px', color: '#ff4d4d' }} onClick={() => handleDelete(file.id)}>
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    {/* RIGHT AREA: UPLOAD & INFO */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        
+                        <label className="upload-zone">
+                            <input type="file" style={{ display: 'none' }} onChange={handleUpload} accept="image/*,video/*" multiple />
+                            <div style={{ 
+                                width: 72, height: 72, borderRadius: '24px', 
+                                background: 'rgba(172,248,0,0.1)', border: '1px solid rgba(172,248,0,0.2)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)'
+                            }}>
+                                {isUploading ? <Activity className="animate-spin" size={32} /> : <Upload size={32} />}
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '16px' }}>
+                                    {isUploading ? `UPDATING...` : 'NOVO UPLOAD'}
+                                </h3>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'rgba(255,255,255,0.3)', fontWeight: 800 }}>DRAG & DROP DISPONÍVEL</p>
+                            </div>
+                            {isUploading && (
+                                <div style={{ width: '100%', marginTop: '16px' }}>
+                                    <div style={{ height: '4px', background: 'rgba(172,248,0,0.1)', borderRadius: '10px', overflow: 'hidden' }}>
+                                        <div style={{ 
+                                            height: '100%', background: 'var(--primary-color)', 
+                                            width: `${(uploadProgress.current / uploadProgress.total) * 100}%`,
+                                            transition: 'width 0.3s ease'
+                                        }} />
+                                    </div>
+                                    <p style={{ fontSize: '9px', fontWeight: 900, marginTop: '8px', color: 'var(--primary-color)' }}>
+                                        {uploadProgress.current} DE {uploadProgress.total} ARQUIVOS
+                                    </p>
+                                </div>
+                            )}
+                            <button className="action-btn primary-btn" style={{ width: '100%', marginTop: '8px' }} disabled={isUploading}>
+                                <Plus size={18} /> SELECIONAR ARQUIVOS
+                            </button>
+                        </label>
+
+                        <div className="control-card" style={{ background: 'linear-gradient(135deg, rgba(172,248,0,0.05) 0%, rgba(2,6,23,0) 100%)', borderColor: 'rgba(172,248,0,0.1)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                                <Zap size={20} className="text-primary-color" />
+                                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '14px' }}>TECNOLOGIA FLOW</h3>
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                <div style={{ display: 'flex', gap: '16px' }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <Zap size={18} style={{ opacity: 0.3 }} />
+                                    </div>
+                                    <div>
+                                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 900 }}>CDN OTIMIZADA</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'rgba(255,255,255,0.2)', lineHeight: 1.4 }}>Carregamento ultra-rápido global.</p>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '16px' }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <Link size={18} style={{ opacity: 0.3 }} />
+                                    </div>
+                                    <div>
+                                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 900 }}>LINKS CURTOS</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'rgba(255,255,255,0.2)', lineHeight: 1.4 }}>URL amigável para disparos.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                     </div>
                 </div>
 
-                {/* Info Sidebar */}
-                <div className="flex flex-col gap-6">
-                    <div className="media-card flex flex-col gap-6" style={{ background: 'rgba(172, 248, 0, 0.03)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                        <div className="flex items-center gap-3">
-                            <Zap size={24} color="var(--primary-color)" />
-                            <h3 style={{ margin: 0, fontWeight: 900 }}>Tecnologia Flow</h3>
-                        </div>
-
-                        <div className="flex flex-col gap-5">
-                            <div className="flex gap-4">
-                                <div style={{ minWidth: 40, height: 40, borderRadius: '10px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
-                                    <Cloud size={18} />
+                {/* ── LIGHTBOX PREVIEW ── */}
+                {previewFile && (
+                    <div 
+                        style={{ 
+                            position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.95)', 
+                            backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '40px', animation: 'fadeIn 0.3s ease'
+                        }}
+                        onClick={() => setPreviewFile(null)}
+                    >
+                        <button 
+                            style={{ position: 'absolute', top: 32, right: 32, background: 'none', border: 'none', color: 'white', cursor: 'pointer', zIndex: 10 }}
+                            onClick={() => setPreviewFile(null)}
+                        >
+                            <X size={32} />
+                        </button>
+                        
+                        <div 
+                            style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%', animation: 'scaleIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28)' }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {previewFile.type === 'video' ? (
+                                <video src={previewFile.shortUrl} controls autoPlay style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: '0 30px 60px rgba(0,0,0,0.8)' }} />
+                            ) : (
+                                <img src={previewFile.shortUrl} alt="" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: '0 30px 60px rgba(0,0,0,0.8)' }} />
+                            )}
+                            
+                            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h2 style={{ margin: 0, fontWeight: 900, fontSize: '20px' }}>{previewFile.name.toUpperCase()}</h2>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: 800 }}>ID: {previewFile.id}</p>
                                 </div>
-                                <div className="flex flex-col gap-1">
-                                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>CDN Otimizada</h4>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>Seus vídeos e imagens carregam instantaneamente no celular do lead.</p>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4">
-                                <div style={{ minWidth: 40, height: 40, borderRadius: '10px', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
-                                    <Link size={18} />
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>Rastreio de Cliques</h4>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>Saiba exatamente quem clicou em sua mídia através dos links curtos.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={{ marginTop: '10px', padding: '16px', borderRadius: '14px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--surface-border)' }}>
-                            <div className="flex justify-between items-center mb-2">
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Espaço Utilizado</span>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>12%</span>
-                            </div>
-                            <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 10, overflow: 'hidden' }}>
-                                <div style={{ width: '12%', height: '100%', background: 'var(--primary-color)', boxShadow: '0 0 10px var(--primary-color)' }}></div>
+                                <button 
+                                    onClick={() => copyToClipboard(previewFile.shortUrl, previewFile.id)}
+                                    className="action-btn primary-btn" 
+                                    style={{ height: 48, padding: '0 24px' }}
+                                >
+                                    {copiedId === previewFile.id ? <Check size={18} /> : <Copy size={18} />}
+                                    COPIAR URL
+                                </button>
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* ── FOOTER LOGO ── */}
+                <div style={{ marginTop: '60px', textAlign: 'center', opacity: 0.1 }}>
+                    <h2 style={{ fontSize: '12px', fontWeight: 900, letterSpacing: '4px' }}>PLUG & SALES • MEDIA</h2>
                 </div>
             </div>
         </div>
@@ -291,10 +417,3 @@ const MediaHosting = () => {
 };
 
 export default MediaHosting;
-
-// Local components used above
-const Cloud = ({ size }: { size: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17.5 19c2.5 0 4.5-2 4.5-4.5 0-2-1.5-3.5-3.5-4 0-4-3-7-7-7-3 0-6 2.5-6.5 5.5-2.5.5-4.5 2.5-4.5 5 0 2.5 2 4.5 4.5 4.5h12.5z"></path>
-    </svg>
-);
