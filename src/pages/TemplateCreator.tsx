@@ -446,31 +446,34 @@ const TemplateCreator = () => {
                     .preview-sticky { position: static; margin-top: 32px; }
                 }
                 @media (max-width: 768px) {
-                    .config-bar { flex-direction: column; padding: 20px; gap: 20px; align-items: stretch; }
-                    .header-grid { grid-template-columns: 1fr !important; gap: 12px; }
-                    .tab-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+                    .config-bar { flex-direction: column; padding: 16px; gap: 16px; align-items: stretch; }
+                    .header-grid { grid-template-columns: 1fr !important; gap: 10px; }
+                    .tab-btns { display: flex; flex-direction: column; gap: 8px; }
                     .tab-btns .btn { 
-                        padding: 10px 8px; 
+                        padding: 10px; 
                         height: auto !important; 
-                        min-height: 54px; 
-                        font-size: 0.65rem !important; 
-                        flex-direction: column; 
-                        gap: 4px;
+                        font-size: 0.7rem !important; 
+                        flex-direction: row; 
+                        justify-content: center;
+                        gap: 10px;
+                        width: 100%;
                     }
-                    .tab-btns .btn svg { width: 16px; height: 16px; }
-                    .sender-display { width: 100%; min-width: auto; padding: 12px; }
-                    .sender-input { font-size: 0.95rem; }
-                    .glass-card { padding: 20px !important; border-radius: 20px !important; }
-                    .button-editor { flex-direction: column; align-items: stretch; padding: 12px; }
-                    .bulk-table-container { padding: 4px; border-radius: 12px; overflow-x: auto; }
-                    .bulk-table { min-width: 700px; }
-                    .bulk-table th { font-size: 0.6rem; padding: 10px 6px; }
-                    .bulk-table td { padding: 6px; }
-                    .bulk-row input, .bulk-row select { font-size: 0.75rem !important; height: 36px !important; }
+                    .tab-btns .btn svg { width: 14px; height: 14px; }
+                    .sender-display { width: 100%; min-width: auto; padding: 10px; flex-wrap: wrap; }
+                    .sender-input { font-size: 0.85rem; width: 100%; }
+                    .glass-card { padding: 16px !important; border-radius: 16px !important; }
+                    .button-editor { flex-direction: column; align-items: stretch; padding: 10px; gap: 8px; }
+                    .bulk-table-container { padding: 2px; border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+                    .bulk-table { min-width: 650px; }
+                    .bulk-table th { font-size: 0.55rem; padding: 8px 4px; }
+                    .bulk-table td { padding: 4px; }
+                    .bulk-row input, .bulk-row select { font-size: 0.7rem !important; height: 32px !important; padding: 4px 8px !important; }
                 }
                 @media (max-width: 480px) {
-                    .tab-btns { grid-template-columns: 1fr; }
+                    .tab-btns { flex-direction: column; }
                     .var-grid { grid-template-columns: 1fr; }
+                    .config-bar h3 { font-size: 1rem !important; }
+                    .sender-display { gap: 8px; }
                 }
 
                 .loading-overlay {
@@ -531,8 +534,8 @@ const TemplateCreator = () => {
             `}</style>
 
             <div className="flex flex-col mb-4">
-                <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.5rem, 5vw, 2.4rem)', letterSpacing: '-1.5px', lineHeight: 1.1 }}>Templates WhatsApp</h1>
-                <p className="subtitle" style={{ fontSize: 'clamp(0.85rem, 3vw, 1rem)' }}>Criação oficial de modelos para aprovação da Meta via Infobip Cloud</p>
+                <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.4rem, 6vw, 2.4rem)', letterSpacing: '-1.5px', lineHeight: 1 }}>Templates WhatsApp</h1>
+                <p className="subtitle" style={{ fontSize: 'clamp(0.75rem, 3.5vw, 1rem)', opacity: 0.6 }}>Criação oficial via Infobip Cloud</p>
             </div>
 
             {/* API Settings Bar Redesigned */}
