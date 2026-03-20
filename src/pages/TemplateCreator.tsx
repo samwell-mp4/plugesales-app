@@ -130,9 +130,11 @@ const TemplateCreator = () => {
         };
     };
 
-    const callInfobipAPI = async (payload: any) => {
+    const callInfobipAPI = async (payload: any, overrideSender?: string) => {
         try {
-            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${senderNumber}/templates`, {
+            const effectiveSender = (overrideSender && overrideSender.trim()) || senderNumber;
+            const encodedSender = encodeURIComponent(effectiveSender);
+            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${encodedSender}/templates`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `App ${apiKey}`,
@@ -239,7 +241,14 @@ const TemplateCreator = () => {
             setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Processando ${name}...` });
 
             const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, row.buttonUrls, row.hasButtons);
-            const res = await callInfobipAPI(payload);
+            
+            // Inject sender into payload for tracking/webhooks
+            const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumber;
+            const extendedPayload = { ...payload, sender: rowSender };
+            
+            console.log(`[BULK] Creating template "${name}" on sender "${rowSender}"...`, extendedPayload);
+            
+            const res = await callInfobipAPI(payload, rowSender);
             if (res.success) {
                 successCount++;
                 dbService.addLog({
@@ -248,7 +257,7 @@ const TemplateCreator = () => {
                     author: user?.name,
                     mode: 'BULK'
                 });
-                await sendToWebhook(payload);
+                await sendToWebhook(extendedPayload);
             }
             else {
                 errors.push(`${name}: ${res.error}`);
@@ -281,6 +290,7 @@ const TemplateCreator = () => {
             const currentNum = startIdx + i;
             newRows.push({
                 suffix: String(currentNum).padStart(3, '0'),
+                sender: senderNumber, // Default to current global sender
                 headerType: headerType,
                 mediaUrl: headerType !== 'none' ? headerExampleUrl : '',
                 hasButtons: buttons.length > 0,
@@ -288,6 +298,10 @@ const TemplateCreator = () => {
             });
         }
         setBulkRows([...bulkRows, ...newRows]);
+    };
+
+    const applyGlobalSender = (sender: string) => {
+        setBulkRows(prev => prev.map(r => ({ ...r, sender })));
     };
 
     const applyGlobalHeaderType = (type: 'none' | 'image' | 'video') => {
@@ -699,6 +713,23 @@ const TemplateCreator = () => {
                                                     <button onClick={() => applyGlobalButtons(false)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>SEM</button>
                                                 </div>
                                             </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Sender Geral</span>
+                                                <div className="flex bg-black/20 p-1 rounded-lg">
+                                                    <input 
+                                                        list="senders-list-global"
+                                                        onChange={(e) => applyGlobalSender(e.target.value)}
+                                                        className="px-2 py-1 text-[10px] font-bold rounded-md bg-transparent border-none outline-none uppercase"
+                                                        style={{ color: 'var(--text-muted)', cursor: 'pointer', width: '120px' }}
+                                                        placeholder="MUDAR TODOS"
+                                                    />
+                                                    <datalist id="senders-list-global">
+                                                        {senders.map((s: any) => (
+                                                            <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                                                        ))}
+                                                    </datalist>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -710,6 +741,7 @@ const TemplateCreator = () => {
                                                 <thead>
                                                     <tr>
                                                         <th>Sufixo</th>
+                                                        <th>Sender (BM)</th>
                                                         <th>Tipo Mídia</th>
                                                         {buttons.length > 0 && <th>Botões</th>}
                                                         {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
@@ -724,9 +756,28 @@ const TemplateCreator = () => {
                                                             <td>
                                                                 <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.suffix} onChange={e => {
                                                                     const n = [...bulkRows];
-                                                                    n[i].suffix = e.target.value.toLowerCase();
+                                                                    n[i].suffix = e.target.value.toLowerCase().replace(/\s/g, '_');
                                                                     setBulkRows(n);
                                                                 }} />
+                                                            </td>
+                                                            <td>
+                                                                <input 
+                                                                    list="senders-list-row"
+                                                                    className="input-field" 
+                                                                    style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }} 
+                                                                    value={row.sender || ''} 
+                                                                    placeholder={senderNumber}
+                                                                    onChange={e => {
+                                                                        const n = [...bulkRows];
+                                                                        n[i].sender = e.target.value;
+                                                                        setBulkRows(n);
+                                                                    }} 
+                                                                />
+                                                                <datalist id="senders-list-row">
+                                                                    {senders.map((s: any) => (
+                                                                        <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                                                                    ))}
+                                                                </datalist>
                                                             </td>
                                                             <td>
                                                                 <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.headerType} onChange={e => {
