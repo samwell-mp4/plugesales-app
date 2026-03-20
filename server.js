@@ -114,6 +114,22 @@ const initDB = async () => {
                 password TEXT NOT NULL,
                 role TEXT DEFAULT 'CLIENT',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS shortened_links (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                title TEXT,
+                original_url TEXT NOT NULL,
+                short_code TEXT UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS link_clicks (
+                id SERIAL PRIMARY KEY,
+                link_id INTEGER REFERENCES shortened_links(id) ON DELETE CASCADE,
+                ip_address TEXT,
+                user_agent TEXT,
+                referrer TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
@@ -147,6 +163,8 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS ads JSONB DEFAULT '[]'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS accepted_by TEXT`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES client_submissions(id)`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS is_bulk BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS user_id INTEGER`);
@@ -609,6 +627,125 @@ app.delete('/api/client-submissions/:id', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Link Shortener ---
+app.post('/api/shortener/create', async (req, res) => {
+    const { user_id, client_id, links, original_url, title } = req.body;
+    
+    // Support either a single link or an array of links
+    const linksToCreate = Array.isArray(links) ? links : [{ original_url, title }];
+    
+    if (linksToCreate.some(l => !l.original_url)) {
+        return res.status(400).json({ error: 'URL original é obrigatória para todos os links.' });
+    }
+
+    const clientDB = await pool.connect();
+    try {
+        await clientDB.query('BEGIN');
+        const results = [];
+        
+        for (const l of linksToCreate) {
+            const short_code = Math.random().toString(36).substring(2, 8);
+            const result = await clientDB.query(
+                `INSERT INTO shortened_links (user_id, client_id, title, original_url, short_code, is_bulk) 
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+                [user_id, client_id, l.title || 'Link sem título', l.original_url, short_code, Array.isArray(links)]
+            );
+            results.push(result.rows[0]);
+        }
+        
+        await clientDB.query('COMMIT');
+        res.json(Array.isArray(links) ? results : results[0]);
+    } catch (err) {
+        await clientDB.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        clientDB.release();
+    }
+});
+
+app.get('/api/shortener/links', async (req, res) => {
+    const { user_id, client_id, role } = req.query;
+    try {
+        let query = 'SELECT l.*, (SELECT COUNT(*) FROM link_clicks WHERE link_id = l.id) as clicks FROM shortened_links l';
+        const params = [];
+        
+        if (client_id) {
+            query += ' WHERE client_id = $1';
+            params.push(client_id);
+        } else if (role === 'CLIENT' && user_id) {
+            query += ' WHERE client_id IN (SELECT id FROM client_submissions WHERE user_id = $1)';
+            params.push(user_id);
+        } else if (user_id) {
+            query += ' WHERE user_id = $1';
+            params.push(user_id);
+        }
+        
+        query += ' ORDER BY created_at DESC';
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/shortener/stats/:id', async (req, res) => {
+    try {
+        const link = await pool.query('SELECT * FROM shortened_links WHERE id = $1', [req.params.id]);
+        if (link.rows.length === 0) return res.status(404).json({ error: 'Link não encontrado.' });
+
+        const clicks = await pool.query(
+            'SELECT timestamp::DATE as date, COUNT(*) as count FROM link_clicks WHERE link_id = $1 GROUP BY date ORDER BY date ASC',
+            [req.params.id]
+        );
+
+        const devices = await pool.query(
+            'SELECT user_agent, COUNT(*) as count FROM link_clicks WHERE link_id = $1 GROUP BY user_agent',
+            [req.params.id]
+        );
+
+        res.json({
+            link: link.rows[0],
+            timeline: clicks.rows,
+            devices: devices.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/shortener/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM shortened_links WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Redirection Global Endpoint
+app.get('/l/:shortCode', async (req, res) => {
+    const { shortCode } = req.params;
+    try {
+        const result = await pool.query('SELECT * FROM shortened_links WHERE short_code = $1', [shortCode]);
+        if (result.rows.length === 0) {
+            return res.status(404).send('<h1>404 - Link não encontrado</h1>');
+        }
+
+        const link = result.rows[0];
+
+        // Track Click (Fire and Forget)
+        pool.query(
+            'INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer) VALUES ($1, $2, $3, $4)',
+            [link.id, req.ip, req.headers['user-agent'], req.headers['referer'] || 'Direto']
+        ).catch(err => console.error("Error tracking click:", err));
+
+        // Redirect
+        res.redirect(link.original_url);
+    } catch (err) {
+        res.status(500).send('Erro interno');
     }
 });
 

@@ -9,7 +9,8 @@ import {
     Layers,
     Smartphone,
     ExternalLink,
-    Zap
+    Zap,
+    Link as LinkIcon
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -18,9 +19,11 @@ import { useNavigate } from 'react-router-dom';
 const ClientDashboard = () => {
     const { user, logout, setUser } = useAuth() as any;
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'submissions' | 'profile'>('submissions');
+    const [activeTab, setActiveTab] = useState<'submissions' | 'links' | 'profile'>('submissions');
     const [submissions, setSubmissions] = useState<any[]>([]);
+    const [links, setLinks] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLinksLoading, setIsLinksLoading] = useState(false);
 
     // Profile State
     const [profileData, setProfileData] = useState({
@@ -36,8 +39,22 @@ const ClientDashboard = () => {
     useEffect(() => {
         if (user?.id) {
             fetchSubmissions();
+            fetchLinks();
         }
     }, [user]);
+
+    const fetchLinks = async () => {
+        if (!user?.id) return;
+        setIsLinksLoading(true);
+        try {
+            const data = await dbService.getShortLinks(user.id, undefined, user.role);
+            setLinks(data);
+        } catch (error) {
+            console.error("Error fetching client links:", error);
+        } finally {
+            setIsLinksLoading(false);
+        }
+    };
 
     const fetchSubmissions = async () => {
         if (!user?.id) return;
@@ -248,6 +265,12 @@ const ClientDashboard = () => {
                         MINHAS SUBMISSÕES
                     </button>
                     <button
+                        className={`nav-tab ${activeTab === 'links' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('links')}
+                    >
+                        MEUS LINKS
+                    </button>
+                    <button
                         className={`nav-tab ${activeTab === 'profile' ? 'active' : ''}`}
                         onClick={() => setActiveTab('profile')}
                     >
@@ -259,6 +282,7 @@ const ClientDashboard = () => {
                 <div className="control-card" style={{ animationDelay: '0.4s', padding: activeTab === 'profile' ? '40px' : '24px' }}>
                     {activeTab === 'submissions' ? (
                         <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                            {/* ... submissions content ... */}
                             {isLoading ? (
                                 <div style={{ padding: '80px', textAlign: 'center' }}>
                                     <div style={{ width: 32, height: 32, margin: '0 auto 16px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -300,6 +324,45 @@ const ClientDashboard = () => {
                                         </div>
                                     );
                                 })
+                            )}
+                        </div>
+                    ) : activeTab === 'links' ? (
+                        <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                            {isLinksLoading ? (
+                                <div style={{ padding: '60px', textAlign: 'center' }}>
+                                    <div style={{ width: 24, height: 24, margin: '0 auto 12px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                    <p style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.2)' }}>BUSCANDO LINKS...</p>
+                                </div>
+                            ) : links.length === 0 ? (
+                                <div style={{ padding: '60px', textAlign: 'center' }}>
+                                    <LinkIcon size={40} style={{ margin: '0 auto 16px', opacity: 0.1 }} />
+                                    <p style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800 }}>Nenhum link vinculado à sua conta.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                                    {links.map((link) => (
+                                        <div key={link.id} className="control-card" style={{ padding: '20px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                                <div style={{ background: 'rgba(172,248,0,0.1)', padding: '8px', borderRadius: '10px' }}>
+                                                    <LinkIcon size={18} className="text-primary-color" />
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
+                                                    <div style={{ fontSize: '8px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
+                                                </div>
+                                            </div>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {link.title}
+                                            </h4>
+                                            <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: 'var(--primary-color)', wordBreak: 'break-all' }}>
+                                                {window.location.host}/l/{link.short_code}
+                                            </p>
+                                            <div style={{ marginTop: '16px', opacity: 0.3, fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {link.original_url}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     ) : (

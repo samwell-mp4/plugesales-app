@@ -13,6 +13,8 @@ import ClientSubmissionDetail from './pages/ClientSubmissionDetail';
 import ClientSubmissionAdd from './pages/ClientSubmissionAdd';
 import ClientExternalForm from './pages/ClientExternalForm';
 import ClientDashboard from './pages/ClientDashboard';
+import LinkShortener from './pages/LinkShortener';
+import LinkStats from './pages/LinkStats';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -74,6 +76,8 @@ function AppContent() {
           <Route path="/engine" element={<EngineExecution />} />
           <Route path="/media" element={<MediaHosting />} />
           <Route path="/dispatch" element={<TemplateDispatch />} />
+          <Route path="/link-shortener" element={<LinkShortener />} />
+          <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
         </Routes>
       </main>

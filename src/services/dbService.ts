@@ -418,4 +418,52 @@ export const dbService = {
             return [];
         }
     },
+
+    // --- Link Shortener ---
+    createShortLink: async (data: { user_id?: number; client_id?: number; original_url?: string; title?: string; links?: any[] }) => {
+        try {
+            const res = await fetch(`${API_BASE}/shortener/create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error creating short link:", err);
+            return { error: err.message };
+        }
+    },
+    getShortLinks: async (userId?: number, clientId?: number, role?: string) => {
+        try {
+            let url = `${API_BASE}/shortener/links`;
+            const params = new URLSearchParams();
+            if (clientId) params.append('client_id', clientId.toString());
+            else if (userId) params.append('user_id', userId.toString());
+            if (role) params.append('role', role);
+            
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            const res = await fetch(url);
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching short links:", err);
+            return [];
+        }
+    },
+    getLinkStats: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/shortener/stats/${id}`);
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching link stats:", err);
+            return null;
+        }
+    },
+    deleteShortLink: async (id: number) => {
+        try {
+            await fetch(`${API_BASE}/shortener/${id}`, { method: 'DELETE' });
+        } catch (err: any) {
+            console.error("Error deleting short link:", err);
+        }
+    },
 };
