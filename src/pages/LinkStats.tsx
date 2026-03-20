@@ -10,7 +10,7 @@ import {
     Navigation,
     Flag
 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { dbService } from '../services/dbService';
@@ -240,19 +240,17 @@ const LinkStats = () => {
                                     >
                                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                         {stats.geo?.filter((g: any) => g.lat && g.lon).map((g: any, i: number) => (
-                                            <CircleMarker 
+                                            <Marker 
                                                 key={i} 
-                                                center={[g.lat, g.lon]} 
-                                                radius={Math.min(15, 5 + (totalClicks > 0 ? (parseInt(g.count) / totalClicks) * 20 : 0))}
-                                                pathOptions={{ color: 'var(--primary-color)', fillColor: 'var(--primary-color)', fillOpacity: 0.5 }}
+                                                position={[g.lat, g.lon]} 
                                             >
                                                 <Popup>
-                                                    <div style={{ color: '#000', fontWeight: 900 }}>
-                                                        {g.city}, {g.country}<br />
-                                                        {g.count} Cliques
+                                                    <div style={{ color: '#000' }}>
+                                                        <strong>{g.city || 'Desconhecido'}, {g.country}</strong><br/>
+                                                        Cliques: {g.count}
                                                     </div>
                                                 </Popup>
-                                            </CircleMarker>
+                                            </Marker>
                                         ))}
                                     </MapContainer>
                                 ) : (

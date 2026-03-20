@@ -175,6 +175,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS user_id INTEGER`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS notes TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS country TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS city TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS region TEXT`);
@@ -612,9 +613,14 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
         for (const s of submissions) {
             const result = await client.query(
                 `INSERT INTO client_submissions 
-                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, spreadsheet_url, status) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-                [s.profile_photo, s.profile_name, s.ddd, s.template_type, s.media_url, s.ad_copy, s.button_link, s.spreadsheet_url, s.status || 'PENDENTE']
+                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+                [
+                    s.profile_photo, s.profile_name, s.ddd, 
+                    s.template_type, s.media_url, s.ad_copy, s.button_link, 
+                    s.ads ? JSON.stringify(s.ads) : '[]',
+                    s.spreadsheet_url, s.status || 'PENDENTE'
+                ]
             );
             results.push(result.rows[0]);
         }
@@ -639,7 +645,18 @@ app.put('/api/client-submissions/:id', async (req, res) => {
 
     try {
         const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
-        const values = [...fields.map(f => body[f]), id];
+        const values = [
+            ...fields.map(f => {
+                const val = body[f];
+                // CRITICAL: Explicitly stringify arrays/objects for JSONB columns
+                // node-postgres might try to send arrays as PG array syntax {...} which fails in JSONB
+                if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+                    return JSON.stringify(val);
+                }
+                return val;
+            }), 
+            id
+        ];
 
         await pool.query(`UPDATE client_submissions SET ${setClause} WHERE id = $${values.length}`, values);
         res.json({ success: true });
