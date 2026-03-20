@@ -49,7 +49,7 @@ const LinkShortener = () => {
     const fetchLinks = async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getShortLinks(user?.role !== 'ADMIN' ? user?.id : undefined);
+            const data = await dbService.getShortLinks(user?.role, user?.role !== 'ADMIN' ? user?.id : undefined);
             setLinks(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching links:", error);

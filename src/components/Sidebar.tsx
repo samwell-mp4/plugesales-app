@@ -20,7 +20,13 @@ const Sidebar = () => {
 
     const menuItems = user?.role === 'CLIENT' ? [
         { name: 'Meu Painel', path: '/client-dashboard', icon: <Home size={20} /> },
+        { name: 'Meus Links', path: '/link-shortener', icon: <Link size={20} /> },
+    ] : user?.role === 'EMPLOYEE' ? [
+        { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
+        { name: 'Minhas Tarefas', path: '/client-submissions', icon: <FileUp size={20} /> },
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
+        { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
+        { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
     ] : [
         { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },

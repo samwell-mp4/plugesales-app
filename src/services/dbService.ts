@@ -433,21 +433,28 @@ export const dbService = {
             return { error: err.message };
         }
     },
-    getShortLinks: async (userId?: number, clientId?: number, role?: string) => {
+    getShortLinks: async (role?: string, user_id?: number) => {
         try {
-            let url = `${API_BASE}/shortener/links`;
             const params = new URLSearchParams();
-            if (clientId) params.append('client_id', clientId.toString());
-            else if (userId) params.append('user_id', userId.toString());
             if (role) params.append('role', role);
+            if (user_id) params.append('user_id', user_id.toString());
             
-            if (params.toString()) url += `?${params.toString()}`;
-            
-            const res = await fetch(url);
+            const res = await fetch(`${API_BASE}/shortener/links?${params.toString()}`);
+            if (!res.ok) throw new Error("Erro ao buscar links");
             return await res.json();
         } catch (err: any) {
-            console.error("Error fetching short links:", err);
+            console.error("Error fetching links:", err);
             return [];
+        }
+    },
+    getEmployees: async (): Promise<string[]> => {
+        try {
+            const res = await fetch(`${API_BASE}/employees`);
+            if (!res.ok) throw new Error("Erro ao buscar funcionários");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching employees:", err);
+            return ['Italo', 'Augusto', 'Otavio', 'Lucas', 'Geraldo', 'Ricardo']; // Fallback
         }
     },
     getLinkStats: async (id: number) => {

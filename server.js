@@ -152,6 +152,7 @@ const initDB = async () => {
                 ads JSONB DEFAULT '[]',
                 status TEXT DEFAULT 'PENDENTE',
                 accepted_by TEXT,
+                assigned_to TEXT,
                 sender_number TEXT,
                 timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
@@ -163,6 +164,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS ads JSONB DEFAULT '[]'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS accepted_by TEXT`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS assigned_to TEXT`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES client_submissions(id)`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS is_bulk BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
@@ -235,6 +237,22 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // --- API ENDPOINTS ---
+
+// Get all employees (Internal list + DB)
+app.get('/api/employees', async (req, res) => {
+    try {
+        // We can use a static list or query the DB for users with role = 'EMPLOYEE'
+        const result = await pool.query("SELECT name FROM users WHERE role = 'EMPLOYEE' OR role = 'ADMIN'");
+        // Merge with static list if needed, or just rely on DB
+        // For now, let's return combined set of names
+        const staticNames = ['Italo', 'Augusto', 'Otavio', 'Lucas', 'Geraldo', 'Ricardo'];
+        const dbNames = result.rows.map(r => r.name);
+        const allNames = Array.from(new Set([...staticNames, ...dbNames]));
+        res.json(allNames);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Settings
 app.get('/api/settings', async (req, res) => {
@@ -551,18 +569,18 @@ app.get('/api/client-submissions/:id', async (req, res) => {
 });
 
 app.post('/api/client-submissions', async (req, res) => {
-    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status, user_id, submitted_by } = req.body;
+    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to } = req.body;
     try {
         const result = await pool.query(
             `INSERT INTO client_submissions 
-            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status, user_id, submitted_by) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
             [
                 profile_photo, profile_name, ddd,
                 template_type || 'none', media_url || '', ad_copy || '', button_link || '',
                 ads ? JSON.stringify(ads) : '[]',
                 spreadsheet_url, status || 'PENDENTE',
-                user_id, submitted_by
+                user_id, submitted_by, assigned_to
             ]
         );
         res.json(result.rows[0]);

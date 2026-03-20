@@ -42,6 +42,7 @@ interface Submission {
     ddd: string;
     status: string;
     accepted_by?: string;
+    assigned_to?: string;
     sender_number?: string;
     ads?: Ad[];
     ad_copy?: string;
@@ -71,6 +72,8 @@ const ClientSubmissionDetail = () => {
     const [activeAdIdx, setActiveAdIdx] = useState(0);
     const [notes, setNotes] = useState('');
     const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [employees, setEmployees] = useState<string[]>([]);
+    const [updatingAssign, setUpdatingAssign] = useState(false);
     const [copyFeedback, setCopyFeedback] = useState('');
 
     const load = useCallback(async () => {
@@ -87,6 +90,11 @@ const ClientSubmissionDetail = () => {
                 setSub(data);
                 setSenderNumber(data.sender_number || '');
                 setNotes(data.notes || '');
+                
+                if (user?.role === 'ADMIN') {
+                    const empData = await dbService.getEmployees();
+                    setEmployees(empData);
+                }
             } else {
                 setSub(null);
             }
@@ -122,6 +130,19 @@ const ClientSubmissionDetail = () => {
             console.error(err);
         } finally {
             setUpdatingStatus(false);
+        }
+    };
+
+    const handleAssignChange = async (employeeName: string) => {
+        if (!id) return;
+        setUpdatingAssign(true);
+        try {
+            await dbService.updateClientSubmission(Number(id), { assigned_to: employeeName || null });
+            await load();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setUpdatingAssign(false);
         }
     };
 
@@ -335,7 +356,21 @@ const ClientSubmissionDetail = () => {
                                     <User size={16} style={{ opacity: 0.3 }} />
                                     <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>Responsável:</span>
                                 </div>
-                                <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)' }}>{sub.accepted_by || 'Aguardando'}</span>
+                                {user?.role === 'ADMIN' ? (
+                                    <select
+                                        value={sub.assigned_to || ''}
+                                        onChange={e => handleAssignChange(e.target.value)}
+                                        disabled={updatingAssign}
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '12px', fontWeight: 900, outline: 'none', cursor: 'pointer', textAlign: 'right' }}
+                                    >
+                                        <option value="" style={{ background: '#0f172a', color: 'rgba(255,255,255,0.4)' }}>Não Atribuído</option>
+                                        {employees.map(emp => (
+                                            <option key={emp} value={emp} style={{ background: '#0f172a', color: 'white' }}>{emp}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)' }}>{sub.assigned_to || sub.accepted_by || 'Aguardando'}</span>
+                                )}
                             </div>
 
                             {sub.spreadsheet_url && (

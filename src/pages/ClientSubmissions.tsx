@@ -45,6 +45,7 @@ interface ClientSubmission {
     spreadsheet_url: string;
     status: string;
     accepted_by?: string | null;
+    assigned_to?: string | null;
     sender_number?: string;
     submitted_by?: string;
     ads?: Ad[];
@@ -60,13 +61,19 @@ const ClientSubmissions = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0 });
-    const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>('available');
+    const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>(user?.role === 'ADMIN' ? 'available' : 'mine');
+    const [employees, setEmployees] = useState<string[]>([]);
 
     const loadSubmissions = async () => {
         setIsLoading(true);
         try {
             const data = await dbService.getClientSubmissions();
             setSubmissions(Array.isArray(data) ? data : []);
+            
+            if (user?.role === 'ADMIN') {
+                const empData = await dbService.getEmployees();
+                setEmployees(empData);
+            }
         } catch (err) {
             console.error("Error loading submissions:", err);
         } finally {
@@ -76,8 +83,8 @@ const ClientSubmissions = () => {
 
     useEffect(() => { 
         loadSubmissions(); 
-        // Auto-refresh every 15 seconds
-        const interval = setInterval(loadSubmissions, 15000);
+        // Auto-refresh every 20 seconds
+        const interval = setInterval(loadSubmissions, 20000);
         return () => clearInterval(interval);
     }, []);
 
@@ -92,7 +99,7 @@ const ClientSubmissions = () => {
     };
 
     // Fix: treat null, undefined, and empty string as "not accepted"
-    const isAccepted = (s: ClientSubmission) => !!(s.accepted_by && s.accepted_by.trim() !== '');
+    const isAccepted = (s: ClientSubmission) => !!(s.accepted_by && s.accepted_by.trim() !== '') || !!(s.assigned_to && s.assigned_to.trim() !== '');
 
     const allSubmissions = Array.isArray(submissions) ? submissions : [];
     
@@ -100,8 +107,10 @@ const ClientSubmissions = () => {
         (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (s.ddd || '').includes(searchTerm);
 
-    const availableSubmissions = allSubmissions.filter(s => !isAccepted(s) && searchFilter(s));
-    const mySubmissions = allSubmissions.filter(s => isAccepted(s) && s.accepted_by === user?.name && searchFilter(s));
+    // Now 'available' means not assigned yet
+    const availableSubmissions = allSubmissions.filter(s => !s.assigned_to && searchFilter(s));
+    // 'mine' means assigned specifically to the user
+    const mySubmissions = allSubmissions.filter(s => s.assigned_to === user?.name && searchFilter(s));
     const allFiltered = allSubmissions.filter(searchFilter);
 
     const filteredSubmissions = activeTab === 'available' ? availableSubmissions
@@ -113,15 +122,12 @@ const ClientSubmissions = () => {
         else setSelectedIds(filteredSubmissions.map(s => s.id));
     };
 
-    const handleAccept = async (e: React.MouseEvent, id: number) => {
-        e.stopPropagation();
-        if (!user) return;
+    const handleAssign = async (id: number, employeeName: string) => {
         try {
-            await dbService.updateClientSubmission(id, { accepted_by: user.name });
-            setActiveTab('mine');
+            await dbService.updateClientSubmission(id, { assigned_to: employeeName || null });
             loadSubmissions();
         } catch (err) {
-            console.error("Error accepting task:", err);
+            console.error("Error assigning task:", err);
         }
     };
 
@@ -189,7 +195,7 @@ const ClientSubmissions = () => {
     };
 
     const tabs = [
-        { id: 'available' as const, label: 'DISPONÍVEIS', icon: <Inbox size={13} />, count: availableSubmissions.length },
+        ...(user?.role === 'ADMIN' ? [{ id: 'available' as const, label: 'PENDENTES', icon: <Inbox size={13} />, count: availableSubmissions.length }] : []),
         { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: mySubmissions.length },
         ...(user?.role === 'ADMIN' ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: allFiltered.length }] : []),
     ];
@@ -415,18 +421,18 @@ const ClientSubmissions = () => {
                         <Inbox size={70} strokeWidth={1} />
                         <div style={{ textAlign: 'center' }}>
                             <p style={{ fontWeight: 900, fontSize: '1.1rem', margin: 0 }}>
-                                {activeTab === 'available' ? 'NENHUMA SOLICITAÇÃO DISPONÍVEL' :
-                                 activeTab === 'mine' ? 'NENHUMA TAREFA ACEITA' : 'SEM REGISTROS'}
+                                {activeTab === 'available' ? 'SEM TAREFAS PENDENTES' :
+                                 activeTab === 'mine' ? 'NENHUMA TAREFA ATRIBUÍDA' : 'SEM REGISTROS'}
                             </p>
                             <p style={{ fontSize: '12px', marginTop: '6px', opacity: 0.6 }}>
-                                {activeTab === 'available' ? 'Novas solicitações de clientes aparecerão aqui.' : 'Aceite tarefas na aba "Disponíveis".'}
+                                {activeTab === 'available' ? 'Todas as tarefas já foram atribuídas.' : 
+                                 activeTab === 'mine' ? 'Aguarde o Admin atribuir tarefas para você.' : 'Sem registros encontrados.'}
                             </p>
                         </div>
                     </div>
                 ) : (
                     <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
                         {filteredSubmissions.map(s => {
-                            const accepted = isAccepted(s);
                             const adCount = s.ads?.length || 0;
                             return (
                                 <div
@@ -453,15 +459,15 @@ const ClientSubmissions = () => {
                                     </div>
 
                                     {/* Status pill */}
-                                    <div style={{ position: 'absolute', top: '16px', right: accepted ? '50px' : '40px' }}>
+                                    <div style={{ position: 'absolute', top: '16px', right: '40px' }}>
                                         <span style={{
                                             fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '999px',
                                             letterSpacing: '0.5px', textTransform: 'uppercase',
-                                            background: accepted ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : 'rgba(172,248,0,0.08)',
-                                            color: accepted ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : 'var(--primary-color)',
-                                            border: `1px solid ${accepted ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : 'rgba(172,248,0,0.15)'}`
+                                            background: s.assigned_to ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : 'rgba(172,248,0,0.08)',
+                                            color: s.assigned_to ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : 'var(--primary-color)',
+                                            border: `1px solid ${s.assigned_to ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : 'rgba(172,248,0,0.15)'}`
                                         }}>
-                                            {accepted ? 'EM ANDAMENTO' : s.status}
+                                            {s.assigned_to ? `EM MÃOS: ${s.assigned_to.toUpperCase()}` : s.status}
                                         </span>
                                     </div>
 
@@ -520,24 +526,27 @@ const ClientSubmissions = () => {
                                         </div>
                                     )}
 
-                                    {/* Accepted by */}
-                                    {accepted && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', padding: '8px 12px', background: 'rgba(245,158,11,0.06)', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.12)' }}>
-                                            <User size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />
-                                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b' }}>{s.accepted_by}</span>
+                                    {/* Assignment Selector (Admin Only) */}
+                                    {user?.role === 'ADMIN' && (
+                                        <div style={{ marginBottom: '14px', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                                            <p style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '6px', letterSpacing: '1px' }}>ATRIBUIR PARA:</p>
+                                            <select
+                                                value={s.assigned_to || ''}
+                                                onChange={e => handleAssign(s.id, e.target.value)}
+                                                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '11px', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+                                            >
+                                                <option value="" style={{ background: '#0f172a' }}>-- Selecionar Funcionário --</option>
+                                                {employees.map(emp => (
+                                                    <option key={emp} value={emp} style={{ background: '#0f172a' }}>{emp}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     )}
 
                                     {/* Action button */}
-                                    {!accepted ? (
-                                        <button className="accept-btn" onClick={e => handleAccept(e, s.id)} style={{ gap: '8px' }}>
-                                            <CheckCircle size={15} /> ACEITAR TAREFA
-                                        </button>
-                                    ) : (
-                                        <button className="open-btn" onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>
-                                            ABRIR PAINEL <ChevronRight size={15} />
-                                        </button>
-                                    )}
+                                    <button className="open-btn" onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>
+                                        ABRIR PAINEL <ChevronRight size={15} />
+                                    </button>
                                 </div>
                             );
                         })}

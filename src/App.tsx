@@ -28,7 +28,7 @@ function AppContent() {
   const { user } = useAuth();
   const location = useLocation();
 
-  const isPublicRoute = location.pathname === '/client-form';
+  const isPublicRoute = location.pathname === '/client-form' || location.pathname === '/client' || location.pathname.startsWith('/l/');
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -36,13 +36,14 @@ function AppContent() {
 
   // Role-based protection
   const isClient = user?.role === 'CLIENT';
+  const isAdmin = user?.role === 'ADMIN';
 
-  // Prevent clients from accessing the manager's submission list
-  if (isClient && location.pathname === '/client-submissions') {
-    return <Navigate to="/client-dashboard" replace />;
+  // Redirect clients to their dashboard if they try to access root or general dashboard
+  if (isClient && (location.pathname === '/' || location.pathname === '/dashboard')) {
+      return <Navigate to="/client-dashboard" replace />;
   }
 
-  // Prevent clients from accessing other admin-only pages
+  // Strict block list for clients
   const adminOnlyRoutes = [
     '/accounts', 
     '/templates', 
@@ -51,10 +52,19 @@ function AppContent() {
     '/campaigns', 
     '/engine', 
     '/dispatch',
-    '/client-submissions/add'
+    '/client-submissions',
+    '/client-submissions/add',
+    '/media',
+    '/dashboard'
   ];
-  if (isClient && adminOnlyRoutes.includes(location.pathname)) {
+
+  if (isClient && adminOnlyRoutes.some(route => location.pathname.startsWith(route))) {
     return <Navigate to="/client-dashboard" replace />;
+  }
+
+  // Admin exclusive
+  if (!isAdmin && location.pathname.startsWith('/control')) {
+      return <Navigate to="/dashboard" replace />;
   }
 
   return (
@@ -62,7 +72,7 @@ function AppContent() {
       {!isPublicRoute && <Sidebar />}
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to={isClient ? "/client-dashboard" : "/dashboard"} replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/templates" element={<TemplateCreator />} />
@@ -70,6 +80,7 @@ function AppContent() {
           <Route path="/client-submissions/:id" element={<ClientSubmissionDetail />} />
           <Route path="/client-submissions/add" element={<ClientSubmissionAdd />} />
           <Route path="/client-form" element={<ClientExternalForm />} />
+          <Route path="/client" element={<ClientExternalForm />} />
           <Route path="/client-dashboard" element={<ClientDashboard />} />
           <Route path="/upload" element={<UploadContacts />} />
           <Route path="/campaigns" element={<CampaignPlanner />} />
