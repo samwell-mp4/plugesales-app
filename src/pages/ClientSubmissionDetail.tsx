@@ -15,10 +15,11 @@ import {
     Image as ImageIcon,
     FileSpreadsheet,
     Copy,
-    Download,
     Layers,
     Plus,
-    Trash2
+    Trash2,
+    Upload,
+    X
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -199,6 +200,39 @@ const ClientSubmissionDetail = () => {
             console.error("Error deleting ad:", err);
             load();
         }
+    };
+
+    const handleFileUpload = async (index: number, file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (data.success) {
+                handleUpdateAd(index, 'media_url', data.url);
+            }
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Erro ao fazer upload do arquivo.");
+        }
+    };
+
+    const handleAddVariable = (index: number, variable: string) => {
+        if (!variable.trim() || !sub || !sub.ads) return;
+        const currentVars = sub.ads[index].variables || [];
+        if (currentVars.includes(variable.trim())) return;
+        handleUpdateAd(index, 'variables', [...currentVars, variable.trim()]);
+    };
+
+    const handleRemoveVariable = (index: number, varIndex: number) => {
+        if (!sub || !sub.ads) return;
+        const currentVars = sub.ads[index].variables || [];
+        const newVars = currentVars.filter((_, i) => i !== varIndex);
+        handleUpdateAd(index, 'variables', newVars);
     };
 
     const copyToClipboard = (text: string, label: string) => {
@@ -563,6 +597,33 @@ const ClientSubmissionDetail = () => {
                                     </div>
                                 </div>
 
+                                {user?.role !== 'CLIENT' && (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(currentAd.template_type || '')) && (
+                                    <div style={{ padding: '16px', background: 'rgba(255,170,0,0.05)', borderRadius: '16px', border: '1px solid rgba(255,170,0,0.1)' }}>
+                                        <label style={{ fontSize: '9px', fontWeight: 900, color: '#ffaa00', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Upload size={12} /> UPLOAD DE MÍDIA ({currentAd.template_type})
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                            <input 
+                                                type="file" 
+                                                id={`ad-file-${activeAdIdx}`}
+                                                style={{ display: 'none' }} 
+                                                onChange={e => e.target.files?.[0] && handleFileUpload(activeAdIdx, e.target.files[0])}
+                                            />
+                                            <button 
+                                                onClick={() => document.getElementById(`ad-file-${activeAdIdx}`)?.click()}
+                                                style={{ padding: '10px 16px', borderRadius: '10px', background: '#ffaa00', color: '#000', border: 'none', fontWeight: 800, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                <Upload size={14} /> SELECIONAR ARQUIVO
+                                            </button>
+                                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, fontSize: '11px', opacity: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {currentAd.media_url || 'Nenhum arquivo enviado'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div style={{ padding: '16px', background: 'rgba(50,150,250,0.05)', borderRadius: '16px', border: '1px solid rgba(50,150,250,0.1)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <label style={{ fontSize: '9px', fontWeight: 900, color: '#3b82f6', opacity: 0.6 }}>LINK DO BOTÃO</label>
@@ -604,35 +665,74 @@ const ClientSubmissionDetail = () => {
                                     </div>
                                 </div>
 
-                                {currentAd.variables && currentAd.variables.length > 0 && (
-                                    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                        <label className="field-label">Variáveis Detectadas ({currentAd.variables.length})</label>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-                                            {currentAd.variables.map((v, i) => (
-                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>
-                                                        {v}
-                                                    </span>
+                                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', marginBottom: '8px', display: 'block' }}>URL DA PLANILHA (OPCIONAL)</label>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        {user?.role !== 'CLIENT' ? (
+                                            <input 
+                                                className="field-input"
+                                                style={{ padding: '10px', fontSize: '13px', flex: 1 }}
+                                                value={currentAd.spreadsheet_url || ''}
+                                                onChange={e => handleUpdateAd(activeAdIdx, 'spreadsheet_url', e.target.value)}
+                                                placeholder="Google Sheets URL..."
+                                            />
+                                        ) : (
+                                            <p style={{ margin: 0, fontSize: '13px', opacity: 0.6, flex: 1 }}>{currentAd.spreadsheet_url || 'Nenhuma planilha'}</p>
+                                        )}
+                                        {currentAd.spreadsheet_url && (
+                                            <a href={currentAd.spreadsheet_url} target="_blank" rel="noreferrer" style={{ color: '#22c55e', padding: '10px', background: 'rgba(34,197,94,0.1)', borderRadius: '10px' }} title="Abrir Planilha">
+                                                <ExternalLink size={16} />
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                        <label className="field-label" style={{ marginBottom: 0 }}>Variáveis ({currentAd.variables?.length || 0})</label>
+                                        {user?.role !== 'CLIENT' && (
+                                            <button 
+                                                onClick={() => {
+                                                    const name = window.prompt("Nome da nova variável (ex: NOME, VALOR):");
+                                                    if (name) handleAddVariable(activeAdIdx, name);
+                                                }}
+                                                style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--primary-color)', border: 'none', color: '#000', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}
+                                            >
+                                                + ADICIONAR
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {currentAd.variables?.map((v, i) => (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+                                                    {v}
+                                                </span>
+                                                <div style={{ display: 'flex', gap: '4px' }}>
                                                     <button 
                                                         onClick={() => copyToClipboard(v, `Variável ${v}`)}
-                                                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', display: 'flex', padding: 0 }}
                                                         title="Copiar"
                                                     >
                                                         <Copy size={12} />
                                                     </button>
+                                                    {user?.role !== 'CLIENT' && (
+                                                        <button 
+                                                            onClick={() => handleRemoveVariable(activeAdIdx, i)}
+                                                            style={{ background: 'none', border: 'none', color: '#ef4444', opacity: 0.6, cursor: 'pointer', display: 'flex', padding: 0 }}
+                                                            title="Remover"
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            ))}
-                                        </div>
+                                            </div>
+                                        ))}
+                                        {(!currentAd.variables || currentAd.variables.length === 0) && (
+                                            <p style={{ margin: 0, fontSize: '11px', opacity: 0.3, padding: '10px' }}>Nenhuma variável definida para este AD.</p>
+                                        )}
                                     </div>
-                                )}
-                                
-                                {currentAd.spreadsheet_url && (
-                                    <a href={currentAd.spreadsheet_url} target="_blank" rel="noreferrer" className="asset-link" style={{ background: 'rgba(34,197,94,0.05)', borderColor: 'rgba(34,197,94,0.1)' }}>
-                                        <FileSpreadsheet size={18} color="#22c55e" />
-                                        <span style={{ fontSize: '11px', fontWeight: 900, color: '#22c55e' }}>BAIXAR LISTA ESPECÍFICA</span>
-                                        <Download size={14} style={{ marginLeft: 'auto', opacity: 0.3 }} />
-                                    </a>
-                                )}
+                                </div>
                             </div>
                         </div>
                     ) : (
