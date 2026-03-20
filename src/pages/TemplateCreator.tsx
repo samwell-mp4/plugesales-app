@@ -446,15 +446,31 @@ const TemplateCreator = () => {
                     .preview-sticky { position: static; margin-top: 32px; }
                 }
                 @media (max-width: 768px) {
-                    .config-bar { flex-direction: column; padding: 24px; gap: 24px; }
-                    .header-grid { grid-template-columns: 1fr !important; }
-                    .tab-btns { flex-direction: column; width: 100%; }
-                    .tab-btns .btn { width: 100%; }
-                    .sender-display { width: 100%; min-width: auto; }
-                    .glass-card { padding: 24px !important; }
-                    .button-editor { flex-direction: column; align-items: stretch; }
-                    .bulk-table th { font-size: 0.65rem; padding: 12px 8px; }
-                    .bulk-table td { padding: 8px; }
+                    .config-bar { flex-direction: column; padding: 20px; gap: 20px; align-items: stretch; }
+                    .header-grid { grid-template-columns: 1fr !important; gap: 12px; }
+                    .tab-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+                    .tab-btns .btn { 
+                        padding: 10px 8px; 
+                        height: auto !important; 
+                        min-height: 54px; 
+                        font-size: 0.65rem !important; 
+                        flex-direction: column; 
+                        gap: 4px;
+                    }
+                    .tab-btns .btn svg { width: 16px; height: 16px; }
+                    .sender-display { width: 100%; min-width: auto; padding: 12px; }
+                    .sender-input { font-size: 0.95rem; }
+                    .glass-card { padding: 20px !important; border-radius: 20px !important; }
+                    .button-editor { flex-direction: column; align-items: stretch; padding: 12px; }
+                    .bulk-table-container { padding: 4px; border-radius: 12px; overflow-x: auto; }
+                    .bulk-table { min-width: 700px; }
+                    .bulk-table th { font-size: 0.6rem; padding: 10px 6px; }
+                    .bulk-table td { padding: 6px; }
+                    .bulk-row input, .bulk-row select { font-size: 0.75rem !important; height: 36px !important; }
+                }
+                @media (max-width: 480px) {
+                    .tab-btns { grid-template-columns: 1fr; }
+                    .var-grid { grid-template-columns: 1fr; }
                 }
 
                 .loading-overlay {
@@ -514,9 +530,9 @@ const TemplateCreator = () => {
                 }
             `}</style>
 
-            <div className="flex flex-col mb-6">
-                <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', letterSpacing: '-1px' }}>Templates WhatsApp</h1>
-                <p className="subtitle">Criação oficial de modelos para aprovação da Meta via Infobip Cloud</p>
+            <div className="flex flex-col mb-4">
+                <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.5rem, 5vw, 2.4rem)', letterSpacing: '-1.5px', lineHeight: 1.1 }}>Templates WhatsApp</h1>
+                <p className="subtitle" style={{ fontSize: 'clamp(0.85rem, 3vw, 1rem)' }}>Criação oficial de modelos para aprovação da Meta via Infobip Cloud</p>
             </div>
 
             {/* API Settings Bar Redesigned */}
@@ -703,12 +719,12 @@ const TemplateCreator = () => {
                                             <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Editar Todos ({bulkRows.length})</span>
                                             <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Aplica a mudança em todas as linhas da fila abaixo</span>
                                         </div>
-                                        <div className="flex gap-4">
+                                        <div className="flex flex-wrap gap-4 items-center">
                                             <div className="flex flex-col gap-1">
                                                 <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Mídia Geral</span>
                                                 <div className="flex bg-black/20 p-1 rounded-lg">
                                                     {(['none', 'image', 'video'] as const).map(t => (
-                                                        <button key={t} onClick={() => applyGlobalHeaderType(t)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>{t === 'none' ? 'SEM' : t}</button>
+                                                        <button key={t} onClick={() => applyGlobalHeaderType(t)} className="px-2 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>{t === 'none' ? 'SEM' : t}</button>
                                                     ))}
                                                 </div>
                                             </div>
@@ -726,7 +742,7 @@ const TemplateCreator = () => {
                                                         list="senders-list-global"
                                                         onChange={(e) => applyGlobalSender(e.target.value)}
                                                         className="px-2 py-1 text-[10px] font-bold rounded-md bg-transparent border-none outline-none uppercase"
-                                                        style={{ color: 'var(--text-muted)', cursor: 'pointer', width: '120px' }}
+                                                        style={{ color: 'var(--text-muted)', cursor: 'pointer', width: '100px' }}
                                                         placeholder="MUDAR TODOS"
                                                     />
                                                     <datalist id="senders-list-global">
