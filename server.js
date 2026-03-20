@@ -129,6 +129,11 @@ const initDB = async () => {
                 ip_address TEXT,
                 user_agent TEXT,
                 referrer TEXT,
+                country TEXT,
+                city TEXT,
+                region TEXT,
+                latitude DOUBLE PRECISION,
+                longitude DOUBLE PRECISION,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
@@ -170,6 +175,11 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS user_id INTEGER`);
+        await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS country TEXT`);
+        await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS city TEXT`);
+        await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS region TEXT`);
+        await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION`);
+        await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION`);
         console.log('✅ All columns verified/migrated.');
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
@@ -714,7 +724,7 @@ app.get('/api/shortener/stats/:id', async (req, res) => {
         const link = await pool.query('SELECT * FROM shortened_links WHERE id = $1', [req.params.id]);
         if (link.rows.length === 0) return res.status(404).json({ error: 'Link não encontrado.' });
 
-        const clicks = await pool.query(
+        const clicksCount = await pool.query(
             'SELECT timestamp::DATE as date, COUNT(*) as count FROM link_clicks WHERE link_id = $1 GROUP BY date ORDER BY date ASC',
             [req.params.id]
         );
@@ -724,10 +734,22 @@ app.get('/api/shortener/stats/:id', async (req, res) => {
             [req.params.id]
         );
 
+        const geoStats = await pool.query(
+            'SELECT country, city, region, latitude as lat, longitude as lon, COUNT(*) as count FROM link_clicks WHERE link_id = $1 GROUP BY country, city, region, latitude, longitude',
+            [req.params.id]
+        );
+
+        const referrers = await pool.query(
+            'SELECT referrer, COUNT(*) as count FROM link_clicks WHERE link_id = $1 GROUP BY referrer ORDER BY count DESC LIMIT 10',
+            [req.params.id]
+        );
+
         res.json({
             link: link.rows[0],
-            timeline: clicks.rows,
-            devices: devices.rows
+            timeline: clicksCount.rows,
+            devices: devices.rows,
+            geo: geoStats.rows,
+            referrers: referrers.rows
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -753,12 +775,52 @@ app.get('/l/:shortCode', async (req, res) => {
         }
 
         const link = result.rows[0];
+        const userIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
-        // Track Click (Fire and Forget)
-        pool.query(
-            'INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer) VALUES ($1, $2, $3, $4)',
-            [link.id, req.ip, req.headers['user-agent'], req.headers['referer'] || 'Direto']
-        ).catch(err => console.error("Error tracking click:", err));
+        // Track Click (Fire and Forget with Geolocation)
+        (async () => {
+            try {
+                let geoData = { country: 'Local', city: 'N/A', region: 'N/A', lat: 0, lon: 0 };
+                
+                // Only fetch if not internal/localhost
+                const cleanIp = userIp.includes(',') ? userIp.split(',')[0].trim() : userIp;
+                if (cleanIp !== '127.0.0.1' && cleanIp !== '::1' && !cleanIp.startsWith('::ffff:127.0.0.1')) {
+                    try {
+                        const geoResp = await fetch(`http://ip-api.com/json/${cleanIp}`);
+                        const geo = await geoResp.json();
+                        if (geo.status === 'success') {
+                            geoData = {
+                                country: geo.country,
+                                city: geo.city,
+                                region: geo.regionName,
+                                lat: geo.lat,
+                                lon: geo.lon
+                            };
+                        }
+                    } catch (e) {
+                        console.error("Geo API Error:", e.message);
+                    }
+                }
+
+                await pool.query(
+                    `INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer, country, city, region, latitude, longitude) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                    [
+                        link.id, 
+                        cleanIp, 
+                        req.headers['user-agent'], 
+                        req.headers['referer'] || 'Direto',
+                        geoData.country,
+                        geoData.city,
+                        geoData.region,
+                        geoData.lat || 0,
+                        geoData.lon || 0
+                    ]
+                );
+            } catch (err) {
+                console.error("Error tracking click:", err);
+            }
+        })();
 
         // Redirect
         res.redirect(link.original_url);

@@ -5,9 +5,23 @@ import {
     Laptop, 
     Calendar,
     Copy,
-    Smartphone
+    Smartphone,
+    Map as MapIcon,
+    Navigation,
+    Flag
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import { dbService } from '../services/dbService';
+
+// Fix Leaflet marker icons in production/Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
 
 const LinkStats = () => {
     const { id } = useParams();
@@ -201,31 +215,130 @@ const LinkStats = () => {
                             </button>
                         </div>
 
-                        <div className="glass-card">
-                            <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900 }}>Plataformas</h2>
-                            <div className="device-row">
-                                <div style={{ background: 'rgba(34,197,94,0.1)', padding: '8px', borderRadius: '10px' }}>
-                                    <Smartphone size={18} color="#22c55e" />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 900 }}>Mobile</div>
-                                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '6px' }}>
-                                        <div style={{ width: '68%', height: '100%', background: '#22c55e', borderRadius: '2px' }} />
-                                    </div>
-                                </div>
-                                <div style={{ fontSize: '12px', fontWeight: 900 }}>68%</div>
+                        <div className="glass-card" style={{ padding: 0, overflow: 'hidden', height: '400px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                <MapIcon size={18} className="text-primary-color" />
+                                <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 900 }}>Mapa de Visualizações</h2>
                             </div>
-                            <div className="device-row">
-                                <div style={{ background: 'rgba(59,130,246,0.1)', padding: '8px', borderRadius: '10px' }}>
-                                    <Laptop size={18} color="#3b82f6" />
+                            <div style={{ height: 'calc(100% - 60px)', width: '100%' }}>
+                                <MapContainer 
+                                    center={[0, 0]} 
+                                    zoom={1.5} 
+                                    style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)' }}
+                                    scrollWheelZoom={false}
+                                >
+                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                    {stats.geo?.filter((g: any) => g.lat && g.lon).map((g: any, i: number) => (
+                                        <CircleMarker 
+                                            key={i} 
+                                            center={[g.lat, g.lon]} 
+                                            radius={Math.min(15, 5 + (parseInt(g.count) / totalClicks) * 20)}
+                                            pathOptions={{ color: 'var(--primary-color)', fillColor: 'var(--primary-color)', fillOpacity: 0.5 }}
+                                        >
+                                            <Popup>
+                                                <div style={{ color: '#000', fontWeight: 900 }}>
+                                                    {g.city}, {g.country}<br />
+                                                    {g.count} Cliques
+                                                </div>
+                                            </Popup>
+                                        </CircleMarker>
+                                    ))}
+                                </MapContainer>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <div className="glass-card">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+                                    <Flag size={16} className="text-primary-color" />
+                                    <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase' }}>Top Países</h2>
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 900 }}>Desktop</div>
-                                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '6px' }}>
-                                        <div style={{ width: '32%', height: '100%', background: '#3b82f6', borderRadius: '2px' }} />
+                                {Object.entries(stats.geo?.reduce((acc: any, curr: any) => {
+                                    acc[curr.country] = (acc[curr.country] || 0) + parseInt(curr.count);
+                                    return acc;
+                                }, {}) || {} as any)
+                                .sort((a: any, b: any) => b[1] - a[1])
+                                .slice(0, 5)
+                                .map(([country, count]: any, i) => (
+                                    <div key={i} style={{ marginBottom: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 900, marginBottom: '4px' }}>
+                                            <span>{country}</span>
+                                            <span>{count}</span>
+                                        </div>
+                                        <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                                            <div style={{ width: `${(count / totalClicks) * 100}%`, height: '100%', background: 'var(--primary-color)', borderRadius: '2px' }} />
+                                        </div>
                                     </div>
+                                ))}
+                            </div>
+
+                            <div className="glass-card">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+                                    <Navigation size={16} className="text-primary-color" />
+                                    <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase' }}>Top Cidades</h2>
                                 </div>
-                                <div style={{ fontSize: '12px', fontWeight: 900 }}>32%</div>
+                                {stats.geo?.sort((a: any, b: any) => b.count - a.count).slice(0, 5).map((g: any, i: number) => (
+                                    <div key={i} style={{ marginBottom: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 900, marginBottom: '4px' }}>
+                                            <span>{g.city} ({g.region})</span>
+                                            <span>{g.count}</span>
+                                        </div>
+                                        <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                                            <div style={{ width: `${(g.count / totalClicks) * 100}%`, height: '100%', background: 'var(--primary-color)', borderRadius: '2px' }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <div className="glass-card">
+                                <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900 }}>Plataformas</h2>
+                                {(() => {
+                                    const mobile = stats.devices?.reduce((acc: number, curr: any) => 
+                                        /Mobile|Android|iPhone/i.test(curr.user_agent) ? acc + parseInt(curr.count) : acc, 0);
+                                    const mobilePct = Math.round((mobile / totalClicks) * 100) || 0;
+                                    return (
+                                        <>
+                                            <div className="device-row">
+                                                <div style={{ background: 'rgba(34,197,94,0.1)', padding: '8px', borderRadius: '10px' }}>
+                                                    <Smartphone size={18} color="#22c55e" />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: 900 }}>Mobile</div>
+                                                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '6px' }}>
+                                                        <div style={{ width: `${mobilePct}%`, height: '100%', background: '#22c55e', borderRadius: '2px' }} />
+                                                    </div>
+                                                </div>
+                                                <div style={{ fontSize: '12px', fontWeight: 900 }}>{mobilePct}%</div>
+                                            </div>
+                                            <div className="device-row">
+                                                <div style={{ background: 'rgba(59,130,246,0.1)', padding: '8px', borderRadius: '10px' }}>
+                                                    <Laptop size={18} color="#3b82f6" />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: 900 }}>Desktop</div>
+                                                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '6px' }}>
+                                                        <div style={{ width: `${100 - mobilePct}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }} />
+                                                    </div>
+                                                </div>
+                                                <div style={{ fontSize: '12px', fontWeight: 900 }}>{100 - mobilePct}%</div>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+
+                            <div className="glass-card">
+                                <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900 }}>Top Referrers</h2>
+                                {stats.referrers?.map((r: any, i: number) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
+                                            {r.referrer || 'Direto / Desconhecido'}
+                                        </span>
+                                        <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)' }}>{r.count}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
