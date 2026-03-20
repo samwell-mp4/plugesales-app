@@ -32,6 +32,7 @@ interface Ad {
     button_link?: string;
     variables?: string[];
     spreadsheet_url?: string;
+    sender_number?: string;
     id?: string;
 }
 
@@ -143,6 +144,22 @@ const ClientSubmissionDetail = () => {
             console.error(err);
         } finally {
             setUpdatingAssign(false);
+        }
+    };
+
+    const handleAdSenderChange = async (index: number, val: string) => {
+        if (!sub || !sub.ads) return;
+        const newAds = [...sub.ads];
+        newAds[index] = { ...newAds[index], sender_number: val };
+        
+        // Optimistic update
+        setSub({ ...sub, ads: newAds });
+
+        try {
+            await dbService.updateClientSubmission(Number(id), { ads: newAds });
+        } catch (err) {
+            console.error("Error updating ad sender:", err);
+            load(); // Rollback
         }
     };
 
@@ -472,14 +489,39 @@ const ClientSubmissionDetail = () => {
                                     </div>
                                 )}
 
+                                <div>
+                                    <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>NÚMERO SENDER (Deste Anúncio)</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input 
+                                            className="field-input" 
+                                            style={{ padding: '12px 14px', fontSize: '13px' }}
+                                            value={currentAd.sender_number || ''} 
+                                            onChange={e => handleAdSenderChange(activeAdIdx, e.target.value)} 
+                                            placeholder="Ex: 55..." 
+                                        />
+                                        <button onClick={() => copyToClipboard(currentAd.sender_number || '', 'Sender Ad')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
+                                            <Copy size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {currentAd.variables && currentAd.variables.length > 0 && (
                                     <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
                                         <label className="field-label">Variáveis Detectadas ({currentAd.variables.length})</label>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
                                             {currentAd.variables.map((v, i) => (
-                                                <span key={i} style={{ padding: '6px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                    {v}
-                                                </span>
+                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>
+                                                        {v}
+                                                    </span>
+                                                    <button 
+                                                        onClick={() => copyToClipboard(v, `Variável ${v}`)}
+                                                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                                        title="Copiar"
+                                                    >
+                                                        <Copy size={12} />
+                                                    </button>
+                                                </div>
                                             ))}
                                         </div>
                                     </div>
