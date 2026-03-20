@@ -378,36 +378,37 @@ const TemplateCreator = () => {
             <style>{`
                 .creator-layout { display: grid; grid-template-columns: 1fr 420px; gap: 48px; align-items: start; }
                 .config-bar { 
-                    background: rgba(172, 248, 0, 0.05); 
-                    border: 1px solid rgba(172, 248, 0, 0.15); 
-                    border-radius: 28px; 
-                    padding: 32px; 
+                    background: rgba(172, 248, 0, 0.03); 
+                    border: 1px solid rgba(172, 248, 0, 0.1); 
+                    border-radius: 24px; 
+                    padding: 24px 32px; 
                     display: flex; 
                     align-items: center;
                     justify-content: space-between;
-                    backdrop-filter: blur(12px);
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+                    backdrop-filter: blur(16px);
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
                 }
                 .glass-card {
-                    background: rgba(15, 23, 42, 0.4);
-                    backdrop-filter: blur(16px);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-                    transition: all 0.3s ease;
+                    background: rgba(255, 255, 255, 0.02);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.4);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .glass-card:hover {
-                    border-color: rgba(172, 248, 0, 0.2);
-                    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+                    border-color: rgba(172, 248, 0, 0.15);
+                    transform: translateY(-2px);
                 }
                 .var-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
                 .button-editor { 
-                    background: rgba(0,0,0,0.3); 
-                    padding: 20px; 
-                    border: 1px solid rgba(255,255,255,0.05); 
-                    border-radius: 16px; 
+                    background: rgba(255,255,255,0.02); 
+                    padding: 16px; 
+                    border: 1px solid rgba(255,255,255,0.06); 
+                    border-radius: 14px; 
                     display: flex; 
-                    gap: 16px; 
+                    gap: 12px; 
                     align-items: center; 
+                    flex-wrap: wrap;
                 }
                 .preview-sticky { position: sticky; top: 32px; }
                 .wp-bubble { 
@@ -415,18 +416,18 @@ const TemplateCreator = () => {
                     border-radius: 20px; 
                     padding: 12px; 
                     border: 1px solid #1f2c34; 
-                    max-width: 340px; 
+                    max-width: 100%; 
                     margin: 0 auto; 
-                    box-shadow: 0 20px 80px rgba(0,0,0,0.7); 
+                    box-shadow: 0 15px 60px rgba(0,0,0,0.8); 
                 }
                 .sender-display {
-                    background: rgba(172, 248, 0, 0.1);
-                    border: 1px solid var(--primary-color);
+                    background: rgba(172, 248, 0, 0.08);
+                    border: 1px solid rgba(172, 248, 0, 0.3);
                     border-radius: 16px;
-                    padding: 8px 16px;
+                    padding: 10px 18px;
                     display: flex;
                     align-items: center;
-                    gap: 12px;
+                    gap: 14px;
                     min-width: 280px;
                 }
                 .sender-input {
@@ -435,20 +436,25 @@ const TemplateCreator = () => {
                     font-size: 1.1rem;
                     font-weight: 900;
                     color: var(--primary-color);
-                    letter-spacing: 1px;
+                    letter-spacing: 0.5px;
                     width: 100%;
                     outline: none;
                 }
-                .sender-input::placeholder { color: rgba(172, 248, 0, 0.4); }
                 
-                @media (max-width: 1200px) {
-                    .creator-layout { grid-template-columns: 1fr; gap: 32px; }
-                    .preview-sticky { position: static; margin-top: 48px; }
+                @media (max-width: 1280px) {
+                    .creator-layout { grid-template-columns: 1fr; gap: 40px; }
+                    .preview-sticky { position: static; margin-top: 32px; }
                 }
                 @media (max-width: 768px) {
-                    .config-bar { flex-direction: column; gap: 20px; text-align: center; }
+                    .config-bar { flex-direction: column; padding: 24px; gap: 24px; }
                     .header-grid { grid-template-columns: 1fr !important; }
-                    .tab-btns { flex-direction: column; }
+                    .tab-btns { flex-direction: column; width: 100%; }
+                    .tab-btns .btn { width: 100%; }
+                    .sender-display { width: 100%; min-width: auto; }
+                    .glass-card { padding: 24px !important; }
+                    .button-editor { flex-direction: column; align-items: stretch; }
+                    .bulk-table th { font-size: 0.65rem; padding: 12px 8px; }
+                    .bulk-table td { padding: 8px; }
                 }
 
                 .loading-overlay {

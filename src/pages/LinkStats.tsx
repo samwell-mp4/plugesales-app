@@ -130,13 +130,23 @@ const LinkStats = () => {
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <div>
-                        <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', lineHeight: 1 }}>
-                            Relatório de <span className="text-primary-color">Performance</span>
-                        </h1>
-                        <p style={{ margin: '6px 0 0 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 700 }}>
-                            {stats.link.title} • {window.location.host}/l/{stats.link.short_code}
-                        </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <div>
+                            <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', lineHeight: 1 }}>
+                                Relatório de <span className="text-primary-color">Performance</span>
+                            </h1>
+                            <p style={{ margin: '6px 0 0 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 700 }}>
+                                {stats.link.title} • {window.location.host}/l/{stats.link.short_code}
+                            </p>
+                        </div>
+                        <button 
+                            onClick={fetchStats}
+                            disabled={isLoading}
+                            className="btn btn-secondary"
+                            style={{ padding: '8px 12px', fontSize: '10px', borderRadius: '10px', height: 'fit-content' }}
+                        >
+                            {isLoading ? '...' : 'ATUALIZAR'}
+                        </button>
                     </div>
                 </div>
 
@@ -220,30 +230,37 @@ const LinkStats = () => {
                                 <MapIcon size={18} className="text-primary-color" />
                                 <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 900 }}>Mapa de Visualizações</h2>
                             </div>
-                            <div style={{ height: 'calc(100% - 60px)', width: '100%' }}>
-                                <MapContainer 
-                                    center={[0, 0]} 
-                                    zoom={1.5} 
-                                    style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)' }}
-                                    scrollWheelZoom={false}
-                                >
-                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                                    {stats.geo?.filter((g: any) => g.lat && g.lon).map((g: any, i: number) => (
-                                        <CircleMarker 
-                                            key={i} 
-                                            center={[g.lat, g.lon]} 
-                                            radius={Math.min(15, 5 + (parseInt(g.count) / totalClicks) * 20)}
-                                            pathOptions={{ color: 'var(--primary-color)', fillColor: 'var(--primary-color)', fillOpacity: 0.5 }}
-                                        >
-                                            <Popup>
-                                                <div style={{ color: '#000', fontWeight: 900 }}>
-                                                    {g.city}, {g.country}<br />
-                                                    {g.count} Cliques
-                                                </div>
-                                            </Popup>
-                                        </CircleMarker>
-                                    ))}
-                                </MapContainer>
+                            <div style={{ height: 'calc(100% - 60px)', width: '100%', position: 'relative' }}>
+                                {stats.geo?.length > 0 ? (
+                                    <MapContainer 
+                                        center={[0, 0]} 
+                                        zoom={1.5} 
+                                        style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)', zIndex: 1 }}
+                                        scrollWheelZoom={false}
+                                    >
+                                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                        {stats.geo?.filter((g: any) => g.lat && g.lon).map((g: any, i: number) => (
+                                            <CircleMarker 
+                                                key={i} 
+                                                center={[g.lat, g.lon]} 
+                                                radius={Math.min(15, 5 + (totalClicks > 0 ? (parseInt(g.count) / totalClicks) * 20 : 0))}
+                                                pathOptions={{ color: 'var(--primary-color)', fillColor: 'var(--primary-color)', fillOpacity: 0.5 }}
+                                            >
+                                                <Popup>
+                                                    <div style={{ color: '#000', fontWeight: 900 }}>
+                                                        {g.city}, {g.country}<br />
+                                                        {g.count} Cliques
+                                                    </div>
+                                                </Popup>
+                                            </CircleMarker>
+                                        ))}
+                                    </MapContainer>
+                                ) : (
+                                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', gap: '12px' }}>
+                                        <MapIcon size={40} style={{ opacity: 0.1 }} />
+                                        <span style={{ fontSize: '12px', fontWeight: 800, opacity: 0.3, textTransform: 'uppercase' }}>Aguardando dados geográficos detalhados...</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
