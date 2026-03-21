@@ -47,6 +47,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         
         if (foundStatic) {
+            // Ensure static user exists in DB to have an ID and persistent settings
+            try {
+                // We use a special register/login flow for static team members
+                const dbRes = await dbService.register({
+                    name: foundStatic.name,
+                    email: `${foundStatic.name.toLowerCase()}@internal.system`,
+                    phone: '0000000000',
+                    password: foundStatic.password,
+                    role: foundStatic.role
+                });
+                
+                // If already exists, result will have error or user. DB register returns {user, token} usually or just user.
+                // Our current register returns the user object directly if success.
+                const finalUser = dbRes.error ? (await dbService.login({ email: `${foundStatic.name.toLowerCase()}@internal.system`, password: foundStatic.password })) : dbRes;
+                
+                if (finalUser && !finalUser.error) {
+                    setUser(finalUser);
+                    localStorage.setItem('auth_user', JSON.stringify(finalUser));
+                    return true;
+                }
+            } catch (err) {
+                console.error("Static sync error:", err);
+            }
+
             const userData: User = { name: foundStatic.name, role: foundStatic.role as Role };
             setUser(userData);
             localStorage.setItem('auth_user', JSON.stringify(userData));

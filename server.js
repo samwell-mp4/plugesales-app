@@ -113,7 +113,7 @@ const initDB = async () => {
                 phone TEXT,
                 password TEXT NOT NULL,
                 role TEXT DEFAULT 'CLIENT',
-                notification_number TEXT,
+                notification_number TEXT DEFAULT '5531988868362',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `CREATE TABLE IF NOT EXISTS shortened_links (
@@ -193,7 +193,7 @@ const initDB = async () => {
         `);
 
         // Backward-compat for users table
-        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_number TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_number TEXT DEFAULT '5531988868362'`);
         
         // Backward-compat for infobip_templates
         await client.query(`ALTER TABLE infobip_templates ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);

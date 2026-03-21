@@ -21,10 +21,10 @@ import { useAuth } from '../contexts/AuthContext';
 const Sidebar = () => {
     const { user, setUser, logout } = useAuth();
     const [isEditingNotify, setIsEditingNotify] = useState(false);
-    const [notifyNum, setNotifyNum] = useState(user?.notification_number || '');
+    const [notifyNum, setNotifyNum] = useState(user?.notification_number || '5531988868362');
 
     useEffect(() => {
-        setNotifyNum(user?.notification_number || '');
+        setNotifyNum(user?.notification_number || '5531988868362');
     }, [user]);
 
     const handleSaveNotify = async () => {
@@ -263,7 +263,7 @@ const Sidebar = () => {
                     {!isEditingNotify ? (
                         <div className="flex items-center gap-2">
                             <Smartphone size={14} color="var(--primary-color)" />
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'white' }}>{user?.notification_number || 'Não definido'}</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'white' }}>{user?.notification_number || '5531988868362'}</span>
                         </div>
                     ) : (
                         <input 
