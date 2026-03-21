@@ -145,17 +145,22 @@ const TemplateCreator = () => {
 
         const structure: any = {
             body: {
-                text: bodyText,
-                examples: examples
+                text: bodyText
             }
         };
 
+        if (examples.length > 0) {
+            structure.body.examples = examples;
+        }
+
         const effectiveHeaderType = overrideHeaderType || headerType;
 
+        if (effectiveHeaderType !== 'none') {
             structure.header = {
                 format: effectiveHeaderType.toUpperCase(),
                 example: mediaUrl || headerMediaUrl
             };
+        }
 
         if (footerText) {
             structure.footer = { text: footerText };
@@ -171,7 +176,16 @@ const TemplateCreator = () => {
                 };
                 if (btn.type === 'url') {
                     // Use override if available for this specific button index
-                    bPayload.url = (buttonUrlOverrides && buttonUrlOverrides[idx]) || btn.url;
+                    const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[idx]) || btn.url;
+                    if (finalUrl) {
+                        bPayload.url = finalUrl;
+                    } else {
+                        // Infobip requires a URL for URL type buttons. 
+                        // If empty, we fallback to a placeholder or skip? 
+                        // Skipping might cause 400 elsewhere, so we use a safe fallback if possible, 
+                        // but better to warn or use what's there.
+                        bPayload.url = 'https://site.com'; 
+                    }
                 }
                 return bPayload;
             });
@@ -203,9 +217,10 @@ const TemplateCreator = () => {
             if (response.ok) {
                 return { success: true, data: result };
             } else {
-                console.error('Infobip API Error:', result);
+                console.error('Infobip API Error Full Response:', result);
                 const apiError = result.requestError?.serviceException?.text ||
                     result.requestError?.serviceException?.message ||
+                    (result.requestError?.serviceException?.validationErrors ? JSON.stringify(result.requestError.serviceException.validationErrors) : null) ||
                     result.errorMessage ||
                     JSON.stringify(result);
                 return { success: false, error: apiError };
@@ -256,10 +271,16 @@ const TemplateCreator = () => {
     const handleCreateModel = async () => {
         if (!modelName) return alert("Defina um nome para o template.");
         if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
+        
+        const sanitizedName = modelName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        if (sanitizedName !== modelName) {
+            setModelName(sanitizedName);
+        }
+        
         setIsGenerating(true);
-        setGeneratingProgress({ current: 1, total: 1, msg: `Criando template "${modelName}"...` });
+        setGeneratingProgress({ current: 1, total: 1, msg: `Criando template "${sanitizedName}"...` });
 
-        const payload = buildInfobipPayload(modelName);
+        const payload = buildInfobipPayload(sanitizedName);
         const res = await callInfobipAPI(payload);
 
         setIsGenerating(false);
