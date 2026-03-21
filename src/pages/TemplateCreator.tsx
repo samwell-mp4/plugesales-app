@@ -94,7 +94,7 @@ const TemplateCreator = () => {
     const [language, setLanguage] = useState('pt_BR');
 
     const [headerType, setHeaderType] = useState<'none' | 'image' | 'video'>('none');
-    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://plug-sales-dispatch-app-dispatch-app.hx8235.easypanel.host/uploads/1774126510561-917105516.jpg');
+    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/qv5OXja.jpg');
 
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
@@ -158,7 +158,7 @@ const TemplateCreator = () => {
         if (effectiveHeaderType !== 'none') {
             const format = effectiveHeaderType.toUpperCase();
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://plug-sales-dispatch-app-dispatch-app.hx8235.easypanel.host/uploads/1774126510561-917105516.jpg";
-            
+
             if (mediaUrlValue.includes("placeholder_for_approval")) {
                 console.warn(`[TemplateCreator] Header format is ${format} but using placeholder.`);
             }
@@ -166,8 +166,8 @@ const TemplateCreator = () => {
             structure.header = {
                 format: format,
                 // Some Infobip API v2 versions expect 'example' to be an array of strings for media headers
-                example: (format === 'IMAGE' || format === 'VIDEO' || format === 'DOCUMENT') 
-                    ? [ mediaUrlValue ] 
+                example: (format === 'IMAGE' || format === 'VIDEO' || format === 'DOCUMENT')
+                    ? [mediaUrlValue]
                     : mediaUrlValue
             };
         }
@@ -194,7 +194,7 @@ const TemplateCreator = () => {
                         // If empty, we fallback to a placeholder or skip? 
                         // Skipping might cause 400 elsewhere, so we use a safe fallback if possible, 
                         // but better to warn or use what's there.
-                        bPayload.url = 'https://site.com'; 
+                        bPayload.url = 'https://site.com';
                     }
                 }
                 return bPayload;
@@ -287,12 +287,12 @@ const TemplateCreator = () => {
     const handleCreateModel = async () => {
         if (!modelName) return alert("Defina um nome para o template.");
         if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
-        
+
         const sanitizedName = modelName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
         if (sanitizedName !== modelName) {
             setModelName(sanitizedName);
         }
-        
+
         setIsGenerating(true);
         setGeneratingProgress({ current: 1, total: 1, msg: `Criando template "${sanitizedName}"...` });
 
@@ -324,7 +324,7 @@ const TemplateCreator = () => {
                 user_id: selectedClientId,
                 client_name: client?.name || '',
                 profile_name: modelName,
-                ddd: client?.phone?.substring(0, 2) || '11', 
+                ddd: client?.phone?.substring(0, 2) || '11',
                 template_type: headerType,
                 media_url: headerType !== 'none' ? headerMediaUrl : '',
                 ad_copy: bodyText,
@@ -430,7 +430,7 @@ const TemplateCreator = () => {
                 user_id: selectedClientId,
                 client_name: client?.name || '',
                 profile_name: `Lote: ${bulkPrefix}*`,
-                ddd: client?.phone?.substring(0, 2) || '11', 
+                ddd: client?.phone?.substring(0, 2) || '11',
                 template_type: 'none',
                 media_url: '',
                 ad_copy: bodyText,
@@ -792,7 +792,7 @@ const TemplateCreator = () => {
                                                     </select>
                                                     <div className="flex items-center gap-3 mt-1">
                                                         <span style={{ fontSize: '10px', fontWeight: 800, opacity: 0.4, textTransform: 'uppercase' }}>OU</span>
-                                                        <button 
+                                                        <button
                                                             onClick={() => setIsCreatingClient(true)}
                                                             className="text-[11px] font-black uppercase tracking-wider hover:underline"
                                                             style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', padding: 0 }}
@@ -804,12 +804,12 @@ const TemplateCreator = () => {
                                             ) : (
                                                 <form onSubmit={handleCreateClient} className="flex flex-col gap-4 animate-fade-in">
                                                     <div className="flex gap-4">
-                                                        <input required className="input-field" style={{ flex: 1.5, borderRadius: '10px', padding: '10px' }} placeholder="Nome do Cliente" value={newClientData.name} onChange={e => setNewClientData({...newClientData, name: e.target.value})} />
-                                                        <input required className="input-field" style={{ flex: 1, borderRadius: '10px', padding: '10px' }} placeholder="Telefone (com DDD)" value={newClientData.phone} onChange={e => setNewClientData({...newClientData, phone: e.target.value})} />
+                                                        <input required className="input-field" style={{ flex: 1.5, borderRadius: '10px', padding: '10px' }} placeholder="Nome do Cliente" value={newClientData.name} onChange={e => setNewClientData({ ...newClientData, name: e.target.value })} />
+                                                        <input required className="input-field" style={{ flex: 1, borderRadius: '10px', padding: '10px' }} placeholder="Telefone (com DDD)" value={newClientData.phone} onChange={e => setNewClientData({ ...newClientData, phone: e.target.value })} />
                                                     </div>
                                                     <div className="flex gap-4">
-                                                        <input required type="email" className="input-field" style={{ flex: 1.5, borderRadius: '10px', padding: '10px' }} placeholder="Email de Login" value={newClientData.email} onChange={e => setNewClientData({...newClientData, email: e.target.value})} />
-                                                        <input required type="password" className="input-field" style={{ flex: 1, borderRadius: '10px', padding: '10px' }} placeholder="Senha Inicial" value={newClientData.password} onChange={e => setNewClientData({...newClientData, password: e.target.value})} />
+                                                        <input required type="email" className="input-field" style={{ flex: 1.5, borderRadius: '10px', padding: '10px' }} placeholder="Email de Login" value={newClientData.email} onChange={e => setNewClientData({ ...newClientData, email: e.target.value })} />
+                                                        <input required type="password" className="input-field" style={{ flex: 1, borderRadius: '10px', padding: '10px' }} placeholder="Senha Inicial" value={newClientData.password} onChange={e => setNewClientData({ ...newClientData, password: e.target.value })} />
                                                     </div>
                                                     <div className="flex gap-3 mt-2">
                                                         <button type="submit" className="btn btn-primary" style={{ flex: 1, color: 'black', borderRadius: '10px', padding: '10px', fontSize: '12px' }}>SALVAR CLIENTE</button>
@@ -873,7 +873,7 @@ const TemplateCreator = () => {
                                             <div className="flex items-center justify-between mb-4">
                                                 <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Mídia do Cabeçalho ({headerType === 'image' ? 'Imagem' : 'Vídeo'})</h4>
                                             </div>
-                                            
+
                                             <div className="flex items-center gap-4">
                                                 {headerMediaUrl ? (
                                                     <div className="relative group w-32 h-32 rounded-xl overflow-hidden border-2 border-primary/30">
@@ -884,7 +884,7 @@ const TemplateCreator = () => {
                                                                 <Video size={32} className="text-primary" />
                                                             </div>
                                                         )}
-                                                        <div 
+                                                        <div
                                                             onClick={() => setHeaderMediaUrl('')}
                                                             className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity"
                                                         >
@@ -892,7 +892,7 @@ const TemplateCreator = () => {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div 
+                                                    <div
                                                         className="flex-1 border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-primary/50 transition-all cursor-pointer bg-white/[0.02]"
                                                         onClick={() => document.getElementById('header-upload')?.click()}
                                                     >
@@ -904,16 +904,16 @@ const TemplateCreator = () => {
                                                                 <p style={{ fontSize: '11px', fontWeight: 800, opacity: 0.4, textTransform: 'uppercase' }}>Clique para enviar {headerType === 'image' ? 'Imagem' : 'Vídeo'}</p>
                                                             </>
                                                         )}
-                                                        <input 
-                                                            id="header-upload" 
-                                                            type="file" 
-                                                            hidden 
-                                                            accept={headerType === 'image' ? 'image/*' : 'video/*'} 
-                                                            onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])} 
+                                                        <input
+                                                            id="header-upload"
+                                                            type="file"
+                                                            hidden
+                                                            accept={headerType === 'image' ? 'image/*' : 'video/*'}
+                                                            onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
                                                         />
                                                     </div>
                                                 )}
-                                                
+
                                                 {headerMediaUrl && (
                                                     <div className="flex-1">
                                                         <p style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5, marginBottom: '4px' }}>Arquivo carregado no servidor:</p>
