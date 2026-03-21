@@ -45,6 +45,7 @@ interface Ad {
     dispatch_date?: string;
     total_leads?: number;
     delivered_leads?: number;
+    clicks?: number;
     price_per_msg?: number;
     scheduled_at?: string;
     id?: string;
@@ -984,20 +985,49 @@ const ClientSubmissionDetail = () => {
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '40px' }}>
-                        <h3 style={{ fontSize: '12px', color: '#64748b', marginBottom: '15px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '1px' }}>Conteúdo da Mensagem Enviada</h3>
-                        <div style={{ 
-                            padding: '30px', 
-                            background: '#fff', 
-                            borderRadius: '20px', 
-                            border: '2px dashed #e2e8f0',
-                            fontSize: '14px', 
-                            lineHeight: '1.8', 
-                            whiteSpace: 'pre-wrap', 
-                            color: '#334155',
-                            fontStyle: 'italic'
-                        }}>
-                            {sub?.ads?.[activeAdIdx]?.ad_copy || 'Sem conteúdo definido.'}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
+                        <div style={{ padding: '25px', background: '#fff', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                            <h3 style={{ fontSize: '12px', color: '#64748b', marginBottom: '15px', textTransform: 'uppercase', fontWeight: 900 }}>Analítico de Conversão</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '14px', color: '#475569' }}>Solicitados vs Realizados:</span>
+                                <span style={{ fontSize: '14px', fontWeight: 700 }}>{sub?.ads?.[activeAdIdx]?.total_leads || 0} / {sub?.ads?.[activeAdIdx]?.delivered_leads || 0}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '14px', color: '#475569' }}>Taxa de Entrega:</span>
+                                <span style={{ fontSize: '14px', fontWeight: 700 }}>
+                                    {sub?.ads?.[activeAdIdx]?.total_leads ? ((sub?.ads?.[activeAdIdx]?.delivered_leads || 0) / sub.ads[activeAdIdx].total_leads * 100).toFixed(1) : 0}%
+                                </span>
+                            </div>
+                            <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', marginTop: '15px' }}>
+                                <div style={{ 
+                                    height: '100%', 
+                                    background: '#10b981', 
+                                    borderRadius: '4px', 
+                                    width: `${sub?.ads?.[activeAdIdx]?.total_leads ? Math.min(100, (sub?.ads?.[activeAdIdx]?.delivered_leads || 0) / sub.ads[activeAdIdx].total_leads * 100) : 0}%` 
+                                }}></div>
+                            </div>
+                        </div>
+
+                        <div style={{ padding: '25px', background: '#fff', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                            <h3 style={{ fontSize: '12px', color: '#64748b', marginBottom: '15px', textTransform: 'uppercase', fontWeight: 900 }}>Engajamento (CTR)</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '14px', color: '#475569' }}>Cliques Totais:</span>
+                                <span style={{ fontSize: '14px', fontWeight: 700 }}>{sub?.ads?.[activeAdIdx]?.clicks || 0}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                <span style={{ fontSize: '14px', color: '#475569' }}>Taxa de Cliques (CTR):</span>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: '#3b82f6' }}>
+                                    {sub?.ads?.[activeAdIdx]?.delivered_leads ? ((sub?.ads?.[activeAdIdx]?.clicks || 0) / sub.ads[activeAdIdx].delivered_leads * 100).toFixed(1) : 0}%
+                                </span>
+                            </div>
+                            <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', marginTop: '15px' }}>
+                                <div style={{ 
+                                    height: '100%', 
+                                    background: '#3b82f6', 
+                                    borderRadius: '4px', 
+                                    width: `${sub?.ads?.[activeAdIdx]?.delivered_leads ? Math.min(100, (sub?.ads?.[activeAdIdx]?.clicks || 0) / sub.ads[activeAdIdx].delivered_leads * 100) : 0}%` 
+                                }}></div>
+                            </div>
                         </div>
                     </div>
 
