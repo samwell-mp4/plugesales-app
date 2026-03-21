@@ -12,11 +12,15 @@ import {
     Layers, 
     Search,
     Activity,
-    ChevronRight,
     Clock,
     Users,
     Inbox,
-    FileSpreadsheet
+    FileSpreadsheet,
+    LayoutGrid,
+    List,
+    ChevronLeft,
+    ChevronRight,
+    Trello
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -71,6 +75,9 @@ const ClientSubmissions = () => {
     const [selectedClientFilter, setSelectedClientFilter] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [viewMode, setViewMode] = useState<'grid' | 'list' | 'kanban'>('grid');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(12);
 
     const loadSubmissions = async () => {
         setIsLoading(true);
@@ -234,6 +241,147 @@ const ClientSubmissions = () => {
         return sum + adsFaturado;
     }, 0);
 
+    const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    const renderGridView = () => (
+        <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+            {paginatedSubmissions.map(s => {
+                const adCount = s.ads?.length || 0;
+                const subTotalEntregues = s.ads?.reduce((sum, ad) => sum + (ad.delivered_leads || 0), 0) || 0;
+                const subTotalFaturado = s.ads?.reduce((sum, ad) => sum + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
+                return (
+                    <div key={s.id} className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)} style={{ padding: '20px' }}>
+                        <div className="card-actions">
+                            <button onClick={e => { e.stopPropagation(); handleDelete(s.id); }} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', display: 'flex' }}>
+                                <Trash2 size={13} />
+                            </button>
+                        </div>
+                        <div style={{ position: 'absolute', top: '18px', left: '18px' }}>
+                            <div style={{ width: 20, height: 20, borderRadius: '6px', border: selectedIds.includes(s.id) ? '1.5px solid var(--primary-color)' : '1.5px solid rgba(255,255,255,0.12)', background: selectedIds.includes(s.id) ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+                                {selectedIds.includes(s.id) && <CheckCircle size={13} style={{ color: '#000' }} />}
+                            </div>
+                        </div>
+                        <div style={{ position: 'absolute', top: '16px', right: '40px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '999px', letterSpacing: '0.5px', textTransform: 'uppercase', background: s.assigned_to ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.1)' : 'rgba(172,248,0,0.08)', color: s.assigned_to ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : s.status === 'CONCLUIDO' ? '#10b981' : 'var(--primary-color)', border: `1px solid ${s.assigned_to ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.3)' : 'rgba(172,248,0,0.15)'}` }}>
+                                {s.assigned_to ? `EM MÃOS: ${s.assigned_to.toUpperCase()}` : s.status === 'CONCLUIDO' ? 'DISPARO CONCLUÍDO' : s.status}
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '30px', marginBottom: '16px' }}>
+                            {s.profile_photo ? <img src={s.profile_photo} alt="" style={{ width: 48, height: 48, borderRadius: '14px', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.1)', flexShrink: 0 }} /> : <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><User size={22} style={{ opacity: 0.2 }} /></div>}
+                            <div style={{ overflow: 'hidden' }}><h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>{s.client_name && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '2px', fontWeight: 600 }}>Cliente: {s.client_name}</div>}<div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}><span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span><span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {formatDate(s.timestamp)}</span></div></div>
+                        </div>
+
+                        {/* Additional detail rows from original card */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {getTemplateIcon(s.template_type || s.ads?.[0]?.template_type || 'none')}
+                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+                                    {(s.template_type || s.ads?.[0]?.template_type || 'none').toUpperCase()}
+                                </span>
+                            </div>
+                            {adCount > 0 && (
+                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Layers size={13} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'rgba(255,255,255,0.5)' }}>{adCount}</span>
+                                </div>
+                            )}
+                            {s.spreadsheet_url && (
+                                <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center' }}>
+                                    <FileSpreadsheet size={13} style={{ color: '#22c55e' }} />
+                                </div>
+                            )}
+                        </div>
+
+                        {(s.ad_copy || s.ads?.[0]?.ad_copy) && (
+                            <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden', maxHeight: '52px' }}>
+                                <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, overflow: 'hidden' }}>
+                                    {(s.ad_copy || s.ads?.[0]?.ad_copy || '').substring(0, 120)}
+                                </p>
+                            </div>
+                        )}
+
+                        {s.status === 'CONCLUIDO' && subTotalEntregues > 0 && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                                <div style={{ background: 'rgba(34,197,94,0.08)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(34,197,94,0.15)' }}>
+                                    <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#22c55e', letterSpacing: '0.5px' }}>TOTAL ENTREGUE</p>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#22c55e' }}>{subTotalEntregues.toLocaleString('pt-BR')}</p>
+                                </div>
+                                <div style={{ background: 'rgba(172,248,0,0.1)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(172,248,0,0.2)' }}>
+                                    <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '0.5px' }}>CUSTO DO CLIENTE</p>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {subTotalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits:2})}</p>
+                                </div>
+                            </div>
+                        )}
+                        {user?.role === 'ADMIN' && (
+                            <div style={{ marginBottom: '14px' }} onClick={e => e.stopPropagation()}>
+                                <select value={s.assigned_to || ''} onChange={e => handleAssign(s.id, e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '11px', fontWeight: 700, outline: 'none' }}>
+                                    <option value="">Atribuir...</option>
+                                    {employees.map(emp => <option key={emp} value={emp}>{emp}</option>)}
+                                </select>
+                            </div>
+                        )}
+                        <button className="open-btn" onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>ABRIR PAINEL <ChevronRight size={15} /></button>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    const renderListView = () => (
+        <div className="list-container">
+            {paginatedSubmissions.map(s => (
+                <div key={s.id} className={`list-row ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)}>
+                    <div style={{ width: 24, height: 24, borderRadius: '6px', border: '1.5px solid rgba(255,255,255,0.1)', background: selectedIds.includes(s.id) ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {selectedIds.includes(s.id) && <CheckCircle size={14} style={{ color: '#000' }} />}
+                    </div>
+                    <div>
+                        <p style={{ margin: 0, fontWeight: 900, fontSize: '13px' }}>{s.profile_name}</p>
+                        <p style={{ margin: 0, fontSize: '10px', opacity: 0.4 }}>{s.client_name}</p>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--primary-color)' }}>{s.ddd}</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5 }}>{formatDate(s.timestamp)}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 900, padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', textAlign: 'center' }}>{s.status}</span>
+                    <button className="open-btn" style={{ padding: '6px 12px' }} onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>VER</button>
+                </div>
+            ))}
+        </div>
+    );
+
+    const renderKanbanView = () => {
+        const columns = [
+            { id: 'PENDENTE', title: 'PENDENTES', filter: (s: ClientSubmission) => !s.assigned_to && s.status !== 'GERADO' && s.status !== 'CONCLUIDO' },
+            { id: 'ANDAMENTO', title: 'EM MÃOS', filter: (s: ClientSubmission) => !!s.assigned_to && s.status !== 'GERADO' && s.status !== 'CONCLUIDO' },
+            { id: 'GERADO', title: 'GERADOS', filter: (s: ClientSubmission) => s.status === 'GERADO' },
+            { id: 'CONCLUIDO', title: 'CONCLUÍDO', filter: (s: ClientSubmission) => s.status === 'CONCLUIDO' }
+        ];
+        return (
+            <div className="kanban-board">
+                {columns.map(col => (
+                    <div key={col.id} className="kanban-column">
+                        <div className="kanban-header">
+                            <span className="kanban-title">{col.title}</span>
+                            <span style={{ fontSize: '10px', opacity: 0.3, fontWeight: 900 }}>{filteredSubmissions.filter(col.filter).length}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
+                            {filteredSubmissions.filter(col.filter).map(s => (
+                                <div key={s.id} className="kanban-card" onClick={() => navigate(`/client-submissions/${s.id}`)}>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+                                        {s.profile_photo ? <img src={s.profile_photo} alt="" style={{ width: 32, height: 32, borderRadius: '8px' }} /> : <User size={16} opacity={0.2} />}
+                                        <div style={{ overflow: 'hidden' }}>
+                                            <p style={{ margin: 0, fontSize: '12px', fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</p>
+                                            <p style={{ margin: 0, fontSize: '10px', color: 'var(--primary-color)', fontWeight: 800 }}>DDD {s.ddd}</p>
+                                        </div>
+                                    </div>
+                                    {s.assigned_to && <p style={{ margin: 0, fontSize: '9px', color: '#f59e0b', fontWeight: 800 }}>👤 {s.assigned_to}</p>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div style={{ background: '#020617', minHeight: '100vh', padding: '32px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
             <style>{`
@@ -290,6 +438,63 @@ const ClientSubmissions = () => {
                 .open-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.15); }
                 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 24px; }
                 .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 16px; }
+
+                /* List View Styles */
+                .list-container { display: flex; flexDirection: column; gap: 8px; width: 100%; }
+                .list-row {
+                    display: grid;
+                    grid-template-columns: 60px 2fr 1fr 1fr 1.5fr 150px;
+                    align-items: center;
+                    padding: 12px 20px;
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid rgba(255,255,255,0.06);
+                    border-radius: 12px;
+                    gap: 16px;
+                    transition: all 0.2s;
+                    cursor: pointer;
+                }
+                .list-row:hover { background: rgba(255,255,255,0.04); border-color: var(--primary-color); }
+                .list-row.selected { background: rgba(172,248,0,0.04); border-color: rgba(172,248,0,0.3); }
+
+                /* Kanban Styles */
+                .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; min-height: 600px; -webkit-overflow-scrolling: touch; }
+                .kanban-column {
+                    flex: 1; min-width: 320px; max-width: 400px;
+                    background: rgba(255,255,255,0.01);
+                    border: 1px solid rgba(255,255,255,0.04);
+                    border-radius: 20px;
+                    padding: 16px;
+                    display: flex; flex-direction: column; gap: 12px;
+                }
+                .kanban-header {
+                    display: flex; align-items: center; justify-content: space-between;
+                    margin-bottom: 8px; padding: 0 4px;
+                }
+                .kanban-title { font-size: 11px; font-weight: 900; color: rgba(255,255,255,0.3); letter-spacing: 1px; }
+                .kanban-card {
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid rgba(255,255,255,0.06);
+                    border-radius: 16px;
+                    padding: 16px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .kanban-card:hover { border-color: var(--primary-color); background: rgba(255,255,255,0.04); }
+
+                /* Pagination */
+                .pagination-bar {
+                    display: flex; align-items: center; justify-content: center; gap: 8px;
+                    margin-top: 40px; padding: 20px;
+                }
+                .page-btn {
+                    padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.03);
+                    border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
+                    cursor: pointer; font-weight: 800; font-size: 12px; transition: all 0.2s;
+                    display: flex; align-items: center; gap: 4px;
+                }
+                .page-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: white; }
+                .page-btn.active { background: var(--primary-color); color: #000; border-color: var(--primary-color); }
+                .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
             `}</style>
 
             <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
@@ -473,6 +678,24 @@ const ClientSubmissions = () => {
                     </div>
                 </div>
 
+                {/* ── VIEW MODE TOGGLE ── */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                        { id: 'grid', icon: <LayoutGrid size={16} />, label: 'GRADE' },
+                        { id: 'list', icon: <List size={16} />, label: 'LISTA' },
+                        { id: 'kanban', icon: <Trello size={16} />, label: 'KANBAN' }
+                    ].map(mode => (
+                        <button
+                            key={mode.id}
+                            onClick={() => { setViewMode(mode.id as any); setCurrentPage(1); }}
+                            className={`page-btn ${viewMode === mode.id ? 'active' : ''}`}
+                            style={{ padding: '8px 16px', textTransform: 'uppercase', letterSpacing: '1px' }}
+                        >
+                            {mode.icon} {mode.label}
+                        </button>
+                    ))}
+                </div>
+
                 {/* ── GRID ── */}
                 {isLoading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '16px' }}>
@@ -494,147 +717,50 @@ const ClientSubmissions = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-                        {filteredSubmissions.map(s => {
-                            const adCount = s.ads?.length || 0;
-                            const subTotalEntregues = s.ads?.reduce((sum, ad) => sum + (ad.delivered_leads || 0), 0) || 0;
-                            const subTotalFaturado = s.ads?.reduce((sum, ad) => sum + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
-                            return (
-                                <div
-                                    key={s.id}
-                                    className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`}
-                                    onClick={() => toggleSelect(s.id)}
-                                    style={{ padding: '20px' }}
+                    <>
+                        {viewMode === 'grid' && renderGridView()}
+                        {viewMode === 'list' && renderListView()}
+                        {viewMode === 'kanban' && renderKanbanView()}
+
+                        {/* ── PAGINATION ── */}
+                        {viewMode !== 'kanban' && filteredSubmissions.length > itemsPerPage && (
+                            <div className="pagination-bar">
+                                <button 
+                                    className="page-btn" 
+                                    disabled={currentPage === 1} 
+                                    onClick={() => setCurrentPage(prev => prev - 1)}
                                 >
-                                    {/* Action buttons on hover */}
-                                    <div className="card-actions">
-                                        <button
-                                            onClick={e => { e.stopPropagation(); handleDelete(s.id); }}
-                                            style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', display: 'flex' }}
-                                        >
-                                            <Trash2 size={13} />
-                                        </button>
-                                    </div>
-
-                                    {/* Checkbox */}
-                                    <div style={{ position: 'absolute', top: '18px', left: '18px' }}>
-                                        <div style={{ width: 20, height: 20, borderRadius: '6px', border: selectedIds.includes(s.id) ? '1.5px solid var(--primary-color)' : '1.5px solid rgba(255,255,255,0.12)', background: selectedIds.includes(s.id) ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
-                                            {selectedIds.includes(s.id) && <CheckCircle size={13} style={{ color: '#000' }} />}
-                                        </div>
-                                    </div>
-
-                                    {/* Status pill */}
-                                    <div style={{ position: 'absolute', top: '16px', right: '40px' }}>
-                                        <span style={{
-                                            fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '999px',
-                                            letterSpacing: '0.5px', textTransform: 'uppercase',
-                                            background: s.assigned_to ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.1)' : 'rgba(172,248,0,0.08)',
-                                            color: s.assigned_to ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : s.status === 'CONCLUIDO' ? '#10b981' : 'var(--primary-color)',
-                                            border: `1px solid ${s.assigned_to ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.3)' : 'rgba(172,248,0,0.15)'}`
-                                        }}>
-                                            {s.assigned_to ? `EM MÃOS: ${s.assigned_to.toUpperCase()}` : s.status === 'CONCLUIDO' ? 'DISPARO CONCLUÍDO' : s.status}
-                                        </span>
-                                    </div>
-
-                                    {/* Profile */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '30px', marginBottom: '16px' }}>
-                                        {s.profile_photo ? (
-                                            <img src={s.profile_photo} alt="Perfil" style={{ width: 48, height: 48, borderRadius: '14px', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.1)', flexShrink: 0 }} />
-                                        ) : (
-                                            <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <User size={22} style={{ opacity: 0.2 }} />
-                                            </div>
-                                        )}
-                                        <div style={{ overflow: 'hidden' }}>
-                                            <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>
-                                            {s.client_name && (
-                                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '2px', fontWeight: 600 }}>
-                                                    Cliente: {s.client_name}
-                                                </div>
-                                            )}
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
-                                                <span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span>
-                                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                                    <Clock size={10} /> {formatDate(s.timestamp)}
-                                                </span>
-                                                {s.submitted_by && (
-                                                    <span style={{ fontSize: '10px', color: '#6366f1', fontWeight: 800, background: 'rgba(99,102,241,0.1)', padding: '1px 6px', borderRadius: '4px' }}>
-                                                        BY: {s.submitted_by}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Info row */}
-                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {getTemplateIcon(s.template_type || s.ads?.[0]?.template_type || 'none')}
-                                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
-                                                {(s.template_type || s.ads?.[0]?.template_type || 'none').toUpperCase()}
-                                            </span>
-                                        </div>
-                                        {adCount > 0 && (
-                                            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Layers size={13} style={{ color: 'rgba(255,255,255,0.3)' }} />
-                                                <span style={{ fontSize: '11px', fontWeight: 900, color: 'rgba(255,255,255,0.5)' }}>{adCount}</span>
-                                            </div>
-                                        )}
-                                        {s.spreadsheet_url && (
-                                            <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center' }}>
-                                                <FileSpreadsheet size={13} style={{ color: '#22c55e' }} />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Message preview */}
-                                    {(s.ad_copy || s.ads?.[0]?.ad_copy) && (
-                                        <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden', maxHeight: '52px' }}>
-                                            <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, overflow: 'hidden' }}>
-                                                {(s.ad_copy || s.ads?.[0]?.ad_copy || '').substring(0, 120)}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Faturamento Summary */}
-                                    {s.status === 'CONCLUIDO' && subTotalEntregues > 0 && (
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
-                                            <div style={{ background: 'rgba(34,197,94,0.08)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(34,197,94,0.15)' }}>
-                                                <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#22c55e', letterSpacing: '0.5px' }}>TOTAL ENTREGUE</p>
-                                                <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#22c55e' }}>{subTotalEntregues.toLocaleString('pt-BR')}</p>
-                                            </div>
-                                            <div style={{ background: 'rgba(172,248,0,0.1)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(172,248,0,0.2)' }}>
-                                                <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '0.5px' }}>CUSTO DO CLIENTE</p>
-                                                <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {subTotalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits:2})}</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Assignment Selector (Admin Only) */}
-                                    {user?.role === 'ADMIN' && (
-                                        <div style={{ marginBottom: '14px', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                                            <p style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '6px', letterSpacing: '1px' }}>ATRIBUIR PARA:</p>
-                                            <select
-                                                value={s.assigned_to || ''}
-                                                onChange={e => handleAssign(s.id, e.target.value)}
-                                                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '11px', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+                                    <ChevronLeft size={16} /> ANTERIOR
+                                </button>
+                                
+                                {Array.from({ length: Math.ceil(filteredSubmissions.length / itemsPerPage) }).map((_, i) => {
+                                    const pageNum = i + 1;
+                                    // Show first, last, and pages around current
+                                    if (pageNum === 1 || pageNum === Math.ceil(filteredSubmissions.length / itemsPerPage) || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
+                                        return (
+                                            <button 
+                                                key={i} 
+                                                className={`page-btn ${currentPage === pageNum ? 'active' : ''}`}
+                                                onClick={() => setCurrentPage(pageNum)}
                                             >
-                                                <option value="" style={{ background: '#0f172a' }}>-- Selecionar Funcionário --</option>
-                                                {employees.map(emp => (
-                                                    <option key={emp} value={emp} style={{ background: '#0f172a' }}>{emp}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    }
+                                    if (pageNum === currentPage - 2 || pageNum === currentPage + 2) return <span key={i} style={{ color: 'rgba(255,255,255,0.2)' }}>...</span>;
+                                    return null;
+                                })}
 
-                                    {/* Action button */}
-                                    <button className="open-btn" onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>
-                                        ABRIR PAINEL <ChevronRight size={15} />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                <button 
+                                    className="page-btn" 
+                                    disabled={currentPage === Math.ceil(filteredSubmissions.length / itemsPerPage)} 
+                                    onClick={() => setCurrentPage(prev => prev + 1)}
+                                >
+                                    PRÓXIMO <ChevronRight size={16} />
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 

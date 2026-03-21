@@ -362,12 +362,11 @@ const ClientSubmissionDetail = () => {
                 @media print {
                     body { background: white !important; color: black !important; margin: 0; padding: 0; }
                     .container-root { padding: 0 !important; background: white !important; }
-                    .header-actions, .controls-wrapper, button, .ad-tabs-container, input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
+                    .header-actions, .controls-wrapper, button, .ad-tabs-container, input[type="date"]::-webkit-calendar-picker-indicator, nav, footer, .mobile-nav, [role="navigation"], .no-print { display: none !important; }
                     .ad-analyzer-grid { display: block !important; }
                     * { color: black !important; border-color: #eee !important; box-shadow: none !important; }
                     .field-input { background: white !important; color: black !important; border: none; padding: 0; }
                     .info-chip { border: 1px solid #ccc !important; }
-                    .no-print { display: none !important; }
                     .print-only { display: block !important; }
                 }
                 @media screen {
@@ -578,7 +577,7 @@ const ClientSubmissionDetail = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                             <Clock size={20} color="rgba(255,255,255,0.4)" />
-                                            <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>DATA DO LOTE</span>
+                                            <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>DISPARO</span>
                                             <span style={{ fontSize: '18px', fontWeight: 900, color: currentAd.dispatch_date ? '#fff' : 'rgba(255,255,255,0.3)' }}>{currentAd.dispatch_date ? new Date(currentAd.dispatch_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Aguardando'}</span>
                                         </div>
                                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -600,7 +599,7 @@ const ClientSubmissionDetail = () => {
                                         </div>
                                         
                                         {user?.role === 'ADMIN' && (
-                                            <div style={{ background: 'rgba(239,68,68,0.08)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
+                                            <div className="no-print" style={{ background: 'rgba(239,68,68,0.08)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
                                                 <TrendingDown size={20} color="#ef4444" />
                                                 <span style={{ fontSize: '10px', fontWeight: 900, color: '#ef4444', letterSpacing: '1px' }}>CUSTO AGÊNCIA (0,04/msg)</span>
                                                 <span style={{ fontSize: '24px', fontWeight: 900, color: '#ef4444', lineHeight: 1 }}>
