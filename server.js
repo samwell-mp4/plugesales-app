@@ -1240,6 +1240,11 @@ const startTemplateMonitoring = () => {
         const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado';
         
         try {
+            // KILL SPAM: Clear queues on monitor startup if it was stuck
+            await redisClient.del('dispatch_queue');
+            await redisClient.del('webhook_queue');
+            console.log('🧹 [MONITOR] Redis queues cleared to prevent spam.');
+
             await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));
             console.log('✅ [MONITOR] Startup webhook queued successfully.');
         } catch (e) {
@@ -1294,13 +1299,10 @@ const startTemplateMonitoring = () => {
                     let shouldNotify = false;
                     let notificationMsg = '';
 
-                    if (!oldStatus) {
-                        shouldNotify = true;
-                        notificationMsg = `🆕 *Novo Template Detectado!*\n\n📌 *Nome*: ${templateName}\n📊 *Status Atual*: ${newStatus}\n📂 *Categoria*: ${t.category}\n🌐 *Idioma*: Portuguese (BR)\n\nO sistema agora está acompanhando a aprovação deste modelo pela Meta.`;
-                    } else if (newStatus === 'APPROVED' && oldStatus !== 'APPROVED') {
+                    if (oldStatus && newStatus === 'APPROVED' && oldStatus !== 'APPROVED') {
                         shouldNotify = true;
                         notificationMsg = `✅ *Template Aprovado pela Meta!* 🚀\n\n📌 *Nome*: ${templateName}\n📂 *Categoria*: ${t.category}\n📅 *Data*: ${new Date().toLocaleString('pt-BR')}\n\nO seu template já está disponível para uso imediato no *Plug & Sales*!`;
-                    } else if (newStatus !== oldStatus) {
+                    } else if (oldStatus && newStatus !== oldStatus) {
                         shouldNotify = true;
                         notificationMsg = `🔄 *Alteração de Status de Template*\n\n📌 *Nome*: ${templateName}\n📉 *Status Anterior*: ${oldStatus}\n📈 *Novo Status*: ${newStatus}\n\nFique atento para futuras atualizações.`;
                     }
@@ -1329,7 +1331,7 @@ const startTemplateMonitoring = () => {
                         console.log(`📡 [MONITOR_NOTIFY] ${templateName} -> ${notifyTo}`);
                     }
 
-                    // Update DB with latest status
+                    // Update DB with latest status (INSIDE the loop)
                     await client.query(
                         "INSERT INTO infobip_templates (id, status, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (id) DO UPDATE SET status = $2, updated_at = NOW()",
                         [templateName, newStatus]
