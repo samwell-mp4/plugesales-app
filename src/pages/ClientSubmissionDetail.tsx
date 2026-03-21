@@ -19,7 +19,11 @@ import {
     Plus,
     Trash2,
     Upload,
-    X
+    X,
+    Activity,
+    Users,
+    TrendingDown,
+    TrendingUp
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,6 +39,10 @@ interface Ad {
     variables?: string[];
     spreadsheet_url?: string;
     sender_number?: string;
+    dispatch_date?: string;
+    total_leads?: number;
+    delivered_leads?: number;
+    price_per_msg?: number;
     id?: string;
 }
 
@@ -515,7 +523,8 @@ const ClientSubmissionDetail = () => {
                     </div>
 
                     {currentAd ? (
-                        <div className="ad-analyzer-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            <div className="ad-analyzer-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -735,6 +744,79 @@ const ClientSubmissionDetail = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* MÉTRICAS E FATURAMENTO DO AD */}
+                        <div style={{ background: 'rgba(255,255,255,0.015)', padding: '24px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <label className="field-label" style={{ marginBottom: 0 }}><Activity size={14} /> Desempenho e Faturamento da Campanha</label>
+                            </div>
+                            
+                            {user?.role === 'ADMIN' && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '16px' }}>
+                                    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Data do Disparo</p>
+                                        <input type="date" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.dispatch_date || ''} onChange={e => handleUpdateAd(activeAdIdx, 'dispatch_date', e.target.value)} />
+                                    </div>
+                                    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Total de Leads Subidos</p>
+                                        <input type="number" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.total_leads || ''} onChange={e => handleUpdateAd(activeAdIdx, 'total_leads', Number(e.target.value))} />
+                                    </div>
+                                    <div style={{ padding: '16px', background: 'rgba(172,248,0,0.03)', borderRadius: '16px', border: '1px solid rgba(172,248,0,0.1)' }}>
+                                        <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Leads Entregues (Sucesso)</p>
+                                        <input type="number" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.delivered_leads || ''} onChange={e => handleUpdateAd(activeAdIdx, 'delivered_leads', Number(e.target.value))} />
+                                    </div>
+                                    <div style={{ padding: '16px', background: 'rgba(59,130,246,0.05)', borderRadius: '16px', border: '1px solid rgba(59,130,246,0.1)' }}>
+                                        <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase' }}>Cobrado por Msg (R$)</p>
+                                        <input type="number" step="0.01" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.price_per_msg || ''} onChange={e => handleUpdateAd(activeAdIdx, 'price_per_msg', Number(e.target.value))} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Relatório Final Visível para Admin + Client */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <Clock size={20} color="rgba(255,255,255,0.4)" />
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>DATA DO LOTE</span>
+                                    <span style={{ fontSize: '18px', fontWeight: 900, color: currentAd.dispatch_date ? '#fff' : 'rgba(255,255,255,0.3)' }}>{currentAd.dispatch_date ? new Date(currentAd.dispatch_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Aguardando'}</span>
+                                </div>
+                                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <Users size={20} color="rgba(255,255,255,0.4)" />
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>BASE QUANTIDADE</span>
+                                    <span style={{ fontSize: '18px', fontWeight: 900 }}>{currentAd.total_leads ? currentAd.total_leads.toLocaleString('pt-BR') : 0} LEADS</span>
+                                </div>
+                                <div style={{ background: 'rgba(34,197,94,0.08)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(34,197,94,0.2)' }}>
+                                    <CheckCircle size={20} color="#22c55e" />
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: '#22c55e', letterSpacing: '1px' }}>MENSAGENS ENTREGUES</span>
+                                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                                        <span style={{ fontSize: '24px', fontWeight: 900, color: '#22c55e', lineHeight: 1 }}>{currentAd.delivered_leads ? currentAd.delivered_leads.toLocaleString('pt-BR') : 0}</span>
+                                        {currentAd.total_leads && currentAd.delivered_leads && (
+                                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#22c55e', opacity: 0.8, marginBottom: '2px' }}>
+                                                ({((currentAd.delivered_leads / currentAd.total_leads) * 100).toFixed(1)}%)
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {user?.role === 'ADMIN' && (
+                                    <div style={{ background: 'rgba(239,68,68,0.08)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
+                                        <TrendingDown size={20} color="#ef4444" />
+                                        <span style={{ fontSize: '10px', fontWeight: 900, color: '#ef4444', letterSpacing: '1px' }}>CUSTO AGÊNCIA (0,04/msg)</span>
+                                        <span style={{ fontSize: '24px', fontWeight: 900, color: '#ef4444', lineHeight: 1 }}>
+                                            <span style={{ fontSize: '14px' }}>R$</span> {((currentAd.delivered_leads || 0) * 0.04).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                )}
+
+                                <div style={{ background: 'rgba(172,248,0,0.1)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(172,248,0,0.3)', boxShadow: '0 8px 30px rgba(172,248,0,0.1)' }}>
+                                    <TrendingUp size={20} color="var(--primary-color)" />
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px' }}>{user?.role === 'ADMIN' ? 'FATURAMENTO BRUTO' : 'INVESTIMENTO DA CAMPANHA'}</span>
+                                    <span style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '-1px', lineHeight: 1 }}>
+                                        <span style={{ fontSize: '16px' }}>R$</span> {((currentAd.delivered_leads || 0) * (currentAd.price_per_msg || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     ) : (
                         <div style={{ padding: '60px', textAlign: 'center', opacity: 0.2 }}>
                             <AlertCircle size={40} style={{ marginBottom: '12px' }} />
