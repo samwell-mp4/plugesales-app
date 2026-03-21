@@ -62,9 +62,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Our current register returns the user object directly if success.
                 const finalUser = dbRes.error ? (await dbService.login({ email: `${foundStatic.name.toLowerCase()}@internal.system`, password: foundStatic.password })) : dbRes;
                 
-                if (finalUser && !finalUser.error) {
-                    setUser(finalUser);
-                    localStorage.setItem('auth_user', JSON.stringify(finalUser));
+                // Note: dbRes/finalUser from login endpoint is usually { token, user }
+                const userObj = finalUser.user || finalUser;
+                
+                if (userObj && userObj.id) {
+                    setUser(userObj);
+                    localStorage.setItem('auth_user', JSON.stringify(userObj));
                     return true;
                 }
             } catch (err) {

@@ -249,7 +249,13 @@ const TemplateCreator = () => {
             const response = await fetch("/api/webhook-push", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ targetUrl, payload })
+                body: JSON.stringify({ 
+                    targetUrl, 
+                    payload: { 
+                        ...payload, 
+                        to: user?.notification_number || '5531988868362' 
+                    } 
+                })
             });
             const result = await response.json();
             console.log('Resposta Fila Webhook:', result);
