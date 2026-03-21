@@ -156,9 +156,14 @@ const TemplateCreator = () => {
         const effectiveHeaderType = overrideHeaderType || headerType;
 
         if (effectiveHeaderType !== 'none') {
+            const format = effectiveHeaderType.toUpperCase();
+            const mediaUrlValue = mediaUrl || headerMediaUrl;
+            
             structure.header = {
-                format: effectiveHeaderType.toUpperCase(),
-                example: mediaUrl || headerMediaUrl
+                format: format,
+                example: (format === 'IMAGE' || format === 'VIDEO' || format === 'DOCUMENT') 
+                    ? { url: mediaUrlValue } 
+                    : mediaUrlValue
             };
         }
 
