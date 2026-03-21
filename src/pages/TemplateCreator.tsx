@@ -231,16 +231,18 @@ const TemplateCreator = () => {
     };
 
     const sendToWebhook = async (payload: any) => {
-        console.log('Enviando para Webhook:', payload);
+        const targetUrl = "https://db-n8n.msely6.easypanel.host/webhook-test/quick-dispatch";
+        console.log('Enfileirando para Webhook (via Backend):', targetUrl);
         try {
-            const response = await fetch("https://db-n8n.msely6.easypanel.host/webhook-test/quick-dispatch", {
+            const response = await fetch("/api/webhook-push", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ targetUrl, payload })
             });
-            console.log('Resposta Webhook:', response.status);
+            const result = await response.json();
+            console.log('Resposta Fila Webhook:', result);
         } catch (err) {
-            console.error('Erro de Rede no Webhook:', err);
+            console.error('Erro ao enfileirar Webhook:', err);
         }
     };
 

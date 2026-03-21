@@ -205,20 +205,24 @@ const ClientSubmissionDetail = () => {
             const settings = await dbService.getSettings();
             const notifyTo = settings['whatsapp_notification_number'] || '5531975155601';
 
-            // Trigger Webhook
-            await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/0d60b5ac-b96d-40a8-b101-b7f7fcfc5469', {
+            // Trigger Webhook via Backend Queue for Reliability
+            const webhookUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/0d60b5ac-b96d-40a8-b101-b7f7fcfc5469';
+            const payload = {
+                to: notifyTo,
+                PDF: hostedUrl,
+                mensagem: 'Seu disparo foi concluido com sucesso, veja o relátorio completo em nosso PDF.',
+                id: sub.id,
+                cnpj: '63140137000161',
+                razao_social: 'Plug e Sales Soluções digitais LTDA'
+            };
+
+            await fetch('/api/webhook-push', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to: notifyTo,
-                    PDF: hostedUrl,
-                    mensagem: 'Seu disparo foi concluido com sucesso, veja o relátorio completo em nosso PDF.',
-                    id: sub.id,
-                    cnpj: '63140137000161',
-                    razao_social: 'Plug e Sales Soluções digitais LTDA'
-                })
+                body: JSON.stringify({ targetUrl: webhookUrl, payload })
             });
-            alert("Notificação enviada com sucesso com o PDF hospedado!");
+
+            alert("Notificação enfileirada com sucesso! O sistema processará o envio em instantes.");
         } catch (err) {
             console.error("Webhook error:", err);
             alert("Erro ao gerar PDF ou enviar notificação.");

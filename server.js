@@ -1131,6 +1131,73 @@ const dispatchWorker = async () => {
 
 dispatchWorker();
 
+// --- WEBHOOK QUEUE WORKER ---
+// Goal: Ensure webhooks "never fail" by using a Redis-backed queue with retries.
+const webhookWorker = async () => {
+    try {
+        if (!redisClient.isOpen) {
+            setTimeout(webhookWorker, 5000);
+            return;
+        }
+
+        const jobStr = await redisClient.rPop('webhook_queue');
+        if (jobStr) {
+            const job = JSON.parse(jobStr);
+            console.log(`📡 [WEBHOOK_WORKER] Processing for: ${job.targetUrl}`);
+
+            try {
+                const response = await fetch(job.targetUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(job.payload)
+                });
+
+                if (response.ok) {
+                    console.log(`✅ [WEBHOOK_WORKER] Sent successfully to: ${job.targetUrl}`);
+                } else {
+                    const errText = await response.text();
+                    console.error(`❌ [WEBHOOK_WORKER] Error response from ${job.targetUrl}:`, response.status, errText);
+                    // Re-queue on 5xx or network errors (optional retry logic)
+                    if (response.status >= 500 && (job.retries || 0) < 3) {
+                        job.retries = (job.retries || 0) + 1;
+                        await redisClient.lPush('webhook_queue', JSON.stringify(job));
+                    }
+                }
+            } catch (err) {
+                console.error(`❌ [WEBHOOK_WORKER] Network error for ${job.targetUrl}:`, err.message);
+                if ((job.retries || 0) < 3) {
+                    job.retries = (job.retries || 0) + 1;
+                    await redisClient.lPush('webhook_queue', JSON.stringify(job));
+                    console.log(`🔄 [WEBHOOK_WORKER] Re-queued job for ${job.targetUrl} (Retry ${job.retries})`);
+                }
+            }
+            setTimeout(webhookWorker, 500); // 500ms between webhooks
+        } else {
+            setTimeout(webhookWorker, 3000); // Wait 3s if idle
+        }
+    } catch (err) {
+        console.error("[WEBHOOK_WORKER] Critical Error:", err);
+        setTimeout(webhookWorker, 5000);
+    }
+};
+
+webhookWorker();
+
+// --- WEBHOOK PUSH ENDPOINT ---
+app.post('/api/webhook-push', async (req, res) => {
+    const { targetUrl, payload } = req.body;
+    if (!targetUrl || !payload) {
+        return res.status(400).json({ error: "Missing targetUrl or payload" });
+    }
+    try {
+        await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));
+        console.log(`📥 [WEBHOOK_QUEUED] ${targetUrl}`);
+        res.json({ success: true, message: "Webhook queued successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -1140,20 +1207,18 @@ app.get('*', (req, res) => {
 const startTemplateMonitoring = () => {
     console.log('🚀 [MONITOR] Inciando monitoramento de templates (45s interval)...');
 
-    // Test Webhook on Start
     const triggerStartupWebhook = async () => {
+        const payload = {
+            to: '5531975155601',
+            mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.`
+        };
+        const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado';
+        
         try {
-            await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to: '5531975155601',
-                    mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.`
-                })
-            });
-            console.log('✅ [MONITOR] Startup webhook sent successfully.');
+            await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));
+            console.log('✅ [MONITOR] Startup webhook queued successfully.');
         } catch (e) {
-            console.error('❌ [MONITOR] Failed to send startup webhook:', e.message);
+            console.error('❌ [MONITOR] Failed to queue startup webhook:', e.message);
         }
     };
     triggerStartupWebhook();
@@ -1214,19 +1279,18 @@ const startTemplateMonitoring = () => {
                     }
 
                     if (shouldNotify) {
-                        await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                to: notifyTo,
-                                id: templateId,
-                                name: t.name,
-                                category: t.category,
-                                status: newStatus,
-                                mensagem: notificationMsg
-                            })
-                        });
-                        console.log(`🔔 [MONITOR] Notificação enviada para: ${t.name} (Status: ${newStatus}) para ${notifyTo}`);
+                        const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado';
+                        const payload = {
+                            to: notifyTo,
+                            id: templateId,
+                            name: t.name,
+                            category: t.category,
+                            status: newStatus,
+                            mensagem: notificationMsg
+                        };
+
+                        await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));
+                        console.log(`🔔 [MONITOR] Notificação enfileirada: ${t.name} (Status: ${newStatus}) para ${notifyTo}`);
                     }
 
                     // 5. Update DB
