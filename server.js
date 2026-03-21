@@ -242,7 +242,14 @@ app.put('/api/auth/profile', async (req, res) => {
                  password = COALESCE($4, password),
                  notification_number = COALESCE($5, notification_number)
              WHERE id = $6 RETURNING id, name, email, phone, role, notification_number`,
-            [name, email, phone, password, req.body.notification_number, id]
+            [
+                name || null, 
+                email || null, 
+                phone || null, 
+                password || null, 
+                req.body.notification_number || null, 
+                id
+            ]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado.' });
         res.json(result.rows[0]);

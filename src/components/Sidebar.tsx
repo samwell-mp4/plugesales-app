@@ -28,16 +28,30 @@ const Sidebar = () => {
     }, [user]);
 
     const handleSaveNotify = async () => {
-        if (!user?.id) return;
+        if (!user?.id) {
+            alert("Erro: Usuário sem ID interno. Por favor, faça LogOut e LogIn novamente para sincronizar seu perfil.");
+            return;
+        }
+        
+        // Clean the number: keep only digits
+        const cleaned = notifyNum.replace(/\D/g, '');
+        if (!cleaned || cleaned.length < 10) {
+            alert("Por favor, insira um número válido com DDD (ex: 31988887777).");
+            return;
+        }
+
         try {
-            const updated = await dbService.updateProfile({ id: user.id, notification_number: notifyNum });
+            const updated = await dbService.updateProfile({ id: user.id, notification_number: cleaned });
             if (updated && !updated.error) {
                 setUser(updated);
                 setIsEditingNotify(false);
-                alert("Número de notificação atualizado!");
+                alert("✅ Número de notificação atualizado com sucesso!");
+            } else {
+                alert("❌ Erro ao salvar: " + (updated?.error || "Resposta inválida do servidor"));
             }
         } catch (err) {
             console.error(err);
+            alert("❌ Erro de conexão ao salvar perfil. Verifique sua internet ou tente novamente.");
         }
     };
 
