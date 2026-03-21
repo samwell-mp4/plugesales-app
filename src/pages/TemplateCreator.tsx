@@ -241,13 +241,13 @@ const TemplateCreator = () => {
             setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Processando ${name}...` });
 
             const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, row.buttonUrls, row.hasButtons);
-            
+
             // Inject sender into payload for tracking/webhooks
             const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumber;
             const extendedPayload = { ...payload, sender: rowSender };
-            
+
             console.log(`[BULK] Creating template "${name}" on sender "${rowSender}"...`, extendedPayload);
-            
+
             const res = await callInfobipAPI(payload, rowSender);
             if (res.success) {
                 successCount++;
@@ -376,6 +376,11 @@ const TemplateCreator = () => {
             )}
 
             <style>{`
+                * { box-sizing: border-box !important; }
+                .creator-page { overflow-x: hidden !important; width: 100% !important; max-width: 100vw !important; }
+                h1 { font-size: clamp(1.4rem, 6vw, 2.4rem) !important; }
+                h2 { font-size: clamp(1.1rem, 5vw, 1.6rem) !important; }
+                h3 { font-size: clamp(0.95rem, 4.5vw, 1.2rem) !important; }
                 .creator-layout { display: grid; grid-template-columns: 1fr 420px; gap: 48px; align-items: start; }
                 .config-bar { 
                     background: rgba(172, 248, 0, 0.03); 
@@ -399,6 +404,8 @@ const TemplateCreator = () => {
                     border-color: rgba(172, 248, 0, 0.15);
                     transform: translateY(-2px);
                 }
+                .tab-btns { display: flex; gap: 12px; margin-bottom: 32px; }
+                .tab-btns .btn { flex: 1; border-radius: 14px; height: 54px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 800; transition: all 0.2s; }
                 .var-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
                 .button-editor { 
                     background: rgba(255,255,255,0.02); 
@@ -446,28 +453,35 @@ const TemplateCreator = () => {
                     .preview-sticky { position: static; margin-top: 32px; }
                 }
                 @media (max-width: 768px) {
-                    .config-bar { flex-direction: column; padding: 16px; gap: 16px; align-items: stretch; }
-                    .header-grid { grid-template-columns: 1fr !important; gap: 10px; }
-                    .tab-btns { display: flex; flex-direction: column; gap: 8px; }
+                    .creator-layout { grid-template-columns: 1fr !important; gap: 16px !important; width: 100% !important; margin: 0 !important; }
+                    .config-bar { flex-direction: column !important; padding: 12px !important; gap: 12px !important; align-items: stretch !important; width: 100% !important; border-radius: 16px !important; }
+                    .header-grid { grid-template-columns: 1fr !important; gap: 10px !important; width: 100% !important; }
+                    .header-grid > * { min-width: 0 !important; }
+                    .tab-btns { display: flex !important; flex-direction: column !important; gap: 8px !important; width: 100% !important; margin-bottom: 20px !important; }
                     .tab-btns .btn { 
-                        padding: 10px; 
+                        padding: 8px !important; 
                         height: auto !important; 
-                        font-size: 0.7rem !important; 
-                        flex-direction: row; 
-                        justify-content: center;
-                        gap: 10px;
-                        width: 100%;
+                        min-height: 40px !important;
+                        font-size: 0.72rem !important; 
+                        flex-direction: row !important; 
+                        justify-content: center !important;
+                        gap: 8px !important;
+                        width: 100% !important;
                     }
-                    .tab-btns .btn svg { width: 14px; height: 14px; }
-                    .sender-display { width: 100%; min-width: auto; padding: 10px; flex-wrap: wrap; }
-                    .sender-input { font-size: 0.85rem; width: 100%; }
-                    .glass-card { padding: 16px !important; border-radius: 16px !important; }
-                    .button-editor { flex-direction: column; align-items: stretch; padding: 10px; gap: 8px; }
-                    .bulk-table-container { padding: 2px; border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-                    .bulk-table { min-width: 650px; }
-                    .bulk-table th { font-size: 0.55rem; padding: 8px 4px; }
-                    .bulk-table td { padding: 4px; }
-                    .bulk-row input, .bulk-row select { font-size: 0.7rem !important; height: 32px !important; padding: 4px 8px !important; }
+                    .tab-btns .btn svg { width: 14px !important; height: 14px !important; }
+                    .sender-display { width: 100% !important; min-width: 0 !important; padding: 8px !important; flex-wrap: wrap !important; gap: 8px !important; }
+                    .sender-input { font-size: 0.8rem !important; width: 100% !important; min-width: 0 !important; }
+                    .glass-card { padding: 12px !important; border-radius: 12px !important; width: 100% !important; max-width: 100% !important; overflow: hidden !important; border-width: 1px !important; }
+                    .button-editor { flex-direction: column !important; align-items: stretch !important; padding: 10px !important; gap: 8px !important; }
+                    .bulk-table-container { padding: 2px !important; border-radius: 6px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100% !important; border: 1px solid rgba(255,255,255,0.1) !important; }
+                    .bulk-table { min-width: 550px !important; }
+                    .bulk-table th { font-size: 0.5rem !important; padding: 6px 3px !important; }
+                    .bulk-table td { padding: 4px !important; }
+                    .bulk-row input, .bulk-row select { font-size: 0.65rem !important; height: 30px !important; padding: 4px 6px !important; }
+                    .wp-bubble { padding: 8px !important; border-radius: 14px !important; }
+                    .preview-sticky { margin-top: 16px !important; }
+                    .bulk-form-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+                    .glass-card { padding: 20px !important; }
                 }
                 @media (max-width: 480px) {
                     .tab-btns { flex-direction: column; }
@@ -533,372 +547,374 @@ const TemplateCreator = () => {
                 }
             `}</style>
 
-            <div className="flex flex-col mb-4">
-                <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.4rem, 6vw, 2.4rem)', letterSpacing: '-1.5px', lineHeight: 1 }}>Templates WhatsApp</h1>
-                <p className="subtitle" style={{ fontSize: 'clamp(0.75rem, 3.5vw, 1rem)', opacity: 0.6 }}>Criação oficial via Infobip Cloud</p>
-            </div>
-
-            {/* API Settings Bar Redesigned */}
-            <div className="config-bar mb-10 animate-fade-in shadow-xl mb-4">
-                <div className="flex flex-col">
-                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Configuração do Canal</h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.6 }}>A chave da API está ativa e oculta por segurança.</p>
+            <div className="p-4 md:p-8 creator-page min-h-screen">
+                <div className="flex flex-col mb-4">
+                    <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.4rem, 6vw, 2.4rem)', letterSpacing: '-1.5px', lineHeight: 1 }}>Templates WhatsApp</h1>
+                    <p className="subtitle" style={{ fontSize: 'clamp(0.75rem, 3.5vw, 1rem)', opacity: 0.6 }}>Criação oficial via Infobip Cloud</p>
                 </div>
 
-                <div className="sender-display shadow-lg group relative">
-                    <Smartphone size={24} color={isLoadingSenders ? "#9ca3af" : "var(--primary-color)"} className={isLoadingSenders ? "animate-pulse" : ""} />
-                    <div className="flex flex-col flex-1">
-                        <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.7, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Remetente Oficial</span>
-                        <input
-                            list="senders-list"
-                            className="sender-input"
-                            value={senderNumber}
-                            onChange={e => {
-                                setSenderNumber(e.target.value);
-                                dbService.saveSetting('infobip_sender', e.target.value);
-                            }}
-                            placeholder="Escolha ou Digite..."
-                        />
-                        <datalist id="senders-list">
-                            {senders.map((s: any) => (
-                                <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
-                            ))}
-                        </datalist>
+                {/* API Settings Bar Redesigned */}
+                <div className="config-bar mb-10 animate-fade-in shadow-xl mb-4">
+                    <div className="flex flex-col">
+                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Configuração do Canal</h3>
+                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.6 }}>A chave da API está ativa e oculta por segurança.</p>
+                    </div>
+
+                    <div className="sender-display shadow-lg group relative">
+                        <Smartphone size={24} color={isLoadingSenders ? "#9ca3af" : "var(--primary-color)"} className={isLoadingSenders ? "animate-pulse" : ""} />
+                        <div className="flex flex-col flex-1">
+                            <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.7, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Remetente Oficial</span>
+                            <input
+                                list="senders-list"
+                                className="sender-input"
+                                value={senderNumber}
+                                onChange={e => {
+                                    setSenderNumber(e.target.value);
+                                    dbService.saveSetting('infobip_sender', e.target.value);
+                                }}
+                                placeholder="Escolha ou Digite..."
+                            />
+                            <datalist id="senders-list">
+                                {senders.map((s: any) => (
+                                    <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                                ))}
+                            </datalist>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="creator-layout mt-4">
-                {/* Form Column */}
-                <div className="flex-col gap-8 ">
-                    <div className="flex gap-3 tab-btns">
-                        <button className={`btn ${activeTab === 'MODEL' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('MODEL')} style={{ flex: 1, borderRadius: '14px', height: '54px' }}>
-                            <Layers size={18} /> GERAR INDIVIDUALMENTE
-                        </button>
-                        <button className={`btn ${activeTab === 'BULK' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('BULK')} style={{ flex: 1, borderRadius: '14px', height: '54px' }}>
-                            <Settings2 size={18} /> GERAR EM MASSA
-                        </button>
-                    </div>
+                <div className="creator-layout mt-4">
+                    {/* Form Column */}
+                    <div className="flex-col gap-8 ">
+                        <div className="tab-btns">
+                            <button className={`btn ${activeTab === 'MODEL' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('MODEL')}>
+                                <Layers size={18} /> GERAR INDIVIDUALMENTE
+                            </button>
+                            <button className={`btn ${activeTab === 'BULK' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('BULK')}>
+                                <Settings2 size={18} /> GERAR EM MASSA
+                            </button>
+                        </div>
 
-                    {activeTab === 'MODEL' ? (
-                        <div className="flex flex-col gap-6 animate-fade-in">
-                            <div className="glass-card flex-col gap-8 shadow-2xl" style={{ padding: '40px', borderRadius: '32px' }}>
-                                <div className="flex items-center gap-4">
-                                    <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}>
-                                        <Settings2 size={28} color="var(--primary-color)" />
+                        {activeTab === 'MODEL' ? (
+                            <div className="flex flex-col gap-6 animate-fade-in">
+                                <div className="glass-card flex-col gap-8 shadow-2xl">
+                                    <div className="flex items-center gap-4">
+                                        <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}>
+                                            <Settings2 size={28} color="var(--primary-color)" />
+                                        </div>
+                                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.4rem' }}>Estrutura Básica</h3>
                                     </div>
-                                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.4rem' }}>Estrutura Básica</h3>
+
+                                    <div className="header-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '20px' }}>
+                                        <div className="input-group">
+                                            <label>Nome Técnico (sem espaços)</label>
+                                            <input className="input-field" style={{ borderRadius: '12px' }} value={modelName} onChange={e => setModelName(e.target.value.toLowerCase().replace(/\s/g, '_'))} />
+                                        </div>
+                                        <div className="input-group">
+                                            <label>Categoria</label>
+                                            <select className="input-field" style={{ borderRadius: '12px' }} value={category} onChange={e => setCategory(e.target.value)}>
+                                                <option value="MARKETING">Marketing</option>
+                                                <option value="UTILITY">Utilidade</option>
+                                                <option value="AUTHENTICATION">Autenticação</option>
+                                            </select>
+                                        </div>
+                                        <div className="input-group">
+                                            <label>Idioma</label>
+                                            <select className="input-field" style={{ borderRadius: '12px' }} value={language} onChange={e => setLanguage(e.target.value)}>
+                                                <option value="pt_BR">Português (BR)</option>
+                                                <option value="en_US">Inglês (US)</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="grid header-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '20px' }}>
-                                    <div className="input-group">
-                                        <label>Nome Técnico (sem espaços)</label>
-                                        <input className="input-field" style={{ borderRadius: '12px' }} value={modelName} onChange={e => setModelName(e.target.value.toLowerCase().replace(/\s/g, '_'))} />
+                                <div className="glass-card flex-col gap-6" style={{ padding: '32px', borderRadius: '24px' }}>
+                                    <div className="flex items-center justify-between">
+                                        <label style={{ fontWeight: 800, color: 'white', fontSize: '0.9rem' }}>Tipo de Cabeçalho</label>
+                                        <div className="flex gap-2">
+                                            {(['none', 'image', 'video'] as const).map(type => (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => setHeaderType(type)}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        borderRadius: '10px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 700,
+                                                        background: headerType === type ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255,255,255,0.03)',
+                                                        border: `1px solid ${headerType === type ? 'var(--primary-color)' : 'var(--surface-border)'}`,
+                                                        color: headerType === type ? 'var(--primary-color)' : 'var(--text-muted)',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {type === 'none' ? 'SEM' : type.toUpperCase()}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="input-group">
-                                        <label>Categoria</label>
-                                        <select className="input-field" style={{ borderRadius: '12px' }} value={category} onChange={e => setCategory(e.target.value)}>
-                                            <option value="MARKETING">Marketing</option>
-                                            <option value="UTILITY">Utilidade</option>
-                                            <option value="AUTHENTICATION">Autenticação</option>
-                                        </select>
-                                    </div>
-                                    <div className="input-group">
-                                        <label>Idioma</label>
-                                        <select className="input-field" style={{ borderRadius: '12px' }} value={language} onChange={e => setLanguage(e.target.value)}>
-                                            <option value="pt_BR">Português (BR)</option>
-                                            <option value="en_US">Inglês (US)</option>
-                                        </select>
+
+                                    {headerType !== 'none' && (
+                                        <div className="input-group animate-fade-in" style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    {headerType === 'image' ? <ImageIcon size={16} color="var(--primary-color)" /> : <Video size={16} color="var(--primary-color)" />}
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-color)' }}>MÍDIA PADRÃO ATIVA ({headerType.toUpperCase()})</span>
+                                                </div>
+                                                <div className="badge" style={{ fontSize: '0.6rem', opacity: 0.6 }}>Oculto</div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="input-group" style={{ padding: '16px', borderRadius: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex flex-col">
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>CONTEÚDO PADRÃO ATIVO</span>
+                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Corpo da mensagem e variáveis serão enviados automaticamente.</span>
+                                            </div>
+                                            <div className="badge badge-success" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', fontSize: '0.65rem' }}>Otimizado</div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="glass-card flex-col gap-6" style={{ padding: '32px', borderRadius: '24px' }}>
-                                <div className="flex items-center justify-between">
-                                    <label style={{ fontWeight: 800, color: 'white', fontSize: '0.9rem' }}>Tipo de Cabeçalho</label>
-                                    <div className="flex gap-2">
-                                        {(['none', 'image', 'video'] as const).map(type => (
-                                            <button
-                                                key={type}
-                                                onClick={() => setHeaderType(type)}
-                                                style={{
-                                                    padding: '8px 16px',
-                                                    borderRadius: '10px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: 700,
-                                                    background: headerType === type ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255,255,255,0.03)',
-                                                    border: `1px solid ${headerType === type ? 'var(--primary-color)' : 'var(--surface-border)'}`,
-                                                    color: headerType === type ? 'var(--primary-color)' : 'var(--text-muted)',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {type === 'none' ? 'SEM' : type.toUpperCase()}
-                                            </button>
+
+                                <div className="glass-card flex-col gap-6" style={{ padding: '32px', borderRadius: '24px' }}>
+                                    <div className="flex justify-between items-center">
+                                        <h3 style={{ margin: 0, fontWeight: 900 }}>Botões Interativos</h3>
+                                        <button className="btn btn-secondary" onClick={handleAddButton} style={{ padding: '6px 14px', borderRadius: '10px', fontSize: '0.75rem' }}><Plus size={16} /> ADICIONAR</button>
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        {buttons.map((btn: any, index: number) => (
+                                            <div key={index} className="button-editor">
+                                                <select className="input-field" style={{ width: '140px', padding: '8px', borderRadius: '8px' }} value={btn.type} onChange={e => handleUpdateButton(index, 'type', e.target.value as any)}>
+                                                    <option value="url">Link Externo</option>
+                                                    <option value="reply">Resposta</option>
+                                                </select>
+                                                <input className="input-field" style={{ padding: '8px', flex: 1, borderRadius: '8px' }} value={btn.text} onChange={e => handleUpdateButton(index, 'text', e.target.value)} placeholder="Texto" />
+                                                {btn.type === 'url' && (
+                                                    <input className="input-field" style={{ padding: '8px', flex: 1.5, borderRadius: '8px' }} value={btn.url || ''} onChange={e => handleUpdateButton(index, 'url', e.target.value)} placeholder="https://" />
+                                                )}
+                                                <button onClick={() => handleRemoveButton(index)} style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: '1.2rem', padding: '0 8px' }}>✕</button>
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
 
-                                {headerType !== 'none' && (
-                                    <div className="input-group animate-fade-in" style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                {headerType === 'image' ? <ImageIcon size={16} color="var(--primary-color)" /> : <Video size={16} color="var(--primary-color)" />}
-                                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-color)' }}>MÍDIA PADRÃO ATIVA ({headerType.toUpperCase()})</span>
-                                            </div>
-                                            <div className="badge" style={{ fontSize: '0.6rem', opacity: 0.6 }}>Oculto</div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="input-group" style={{ padding: '16px', borderRadius: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex flex-col">
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>CONTEÚDO PADRÃO ATIVO</span>
-                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Corpo da mensagem e variáveis serão enviados automaticamente.</span>
-                                        </div>
-                                        <div className="badge badge-success" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', fontSize: '0.65rem' }}>Otimizado</div>
-                                    </div>
-                                </div>
+                                <button className="btn btn-primary" onClick={handleCreateModel} disabled={isGenerating} style={{ padding: '18px', borderRadius: '20px', fontSize: '1.1rem', fontWeight: 900, color: 'black' }}>
+                                    {isGenerating ? <Activity className="animate-spin" /> : <><Send size={20} /> CRIAR TEMPLATE</>}
+                                </button>
                             </div>
-
-
-                            <div className="glass-card flex-col gap-6" style={{ padding: '32px', borderRadius: '24px' }}>
+                        ) : (
+                            <div className="glass-card flex-1 relative overflow-hidden animate-fade-in">
                                 <div className="flex justify-between items-center">
-                                    <h3 style={{ margin: 0, fontWeight: 900 }}>Botões Interativos</h3>
-                                    <button className="btn btn-secondary" onClick={handleAddButton} style={{ padding: '6px 14px', borderRadius: '10px', fontSize: '0.75rem' }}><Plus size={16} /> ADICIONAR</button>
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    {buttons.map((btn: any, index: number) => (
-                                        <div key={index} className="button-editor">
-                                            <select className="input-field" style={{ width: '140px', padding: '8px', borderRadius: '8px' }} value={btn.type} onChange={e => handleUpdateButton(index, 'type', e.target.value as any)}>
-                                                <option value="url">Link Externo</option>
-                                                <option value="reply">Resposta</option>
-                                            </select>
-                                            <input className="input-field" style={{ padding: '8px', flex: 1, borderRadius: '8px' }} value={btn.text} onChange={e => handleUpdateButton(index, 'text', e.target.value)} placeholder="Texto" />
-                                            {btn.type === 'url' && (
-                                                <input className="input-field" style={{ padding: '8px', flex: 1.5, borderRadius: '8px' }} value={btn.url || ''} onChange={e => handleUpdateButton(index, 'url', e.target.value)} placeholder="https://" />
-                                            )}
-                                            <button onClick={() => handleRemoveButton(index)} style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: '1.2rem', padding: '0 8px' }}>✕</button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                                    <div>
+                                        <h2 style={{ fontWeight: 900, marginBottom: '4px' }}>Gerador Bulk High-Speed</h2>
 
-                            <button className="btn btn-primary" onClick={handleCreateModel} disabled={isGenerating} style={{ padding: '18px', borderRadius: '20px', fontSize: '1.1rem', fontWeight: 900, color: 'black' }}>
-                                {isGenerating ? <Activity className="animate-spin" /> : <><Send size={20} /> CRIAR TEMPLATE</>}
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="glass-card flex-col gap-8 animate-fade-in" style={{ padding: '40px', borderRadius: '24px' }}>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h2 style={{ fontWeight: 900, marginBottom: '4px' }}>Gerador Bulk High-Speed</h2>
-
-                                </div>
-                                <button className="btn btn-secondary" onClick={() => setBulkRows([])} style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '0.75rem' }}>LIMPAR TUDO</button>
-                            </div>
-
-                            <div className="flex flex-col gap-6">
-                                <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr', gap: '20px' }}>
-                                    <div className="input-group">
-                                        <label>Prefixo Base</label>
-                                        <input className="input-field" style={{ borderRadius: '12px' }} value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value.toLowerCase())} placeholder="ex: v1_" />
                                     </div>
-                                    <div className="input-group">
-                                        <label>Adicionar à Fila</label>
-                                        <div className="flex gap-2">
-                                            <input type="number" className="input-field" style={{ borderRadius: '12px', width: '80px' }} defaultValue={5} id="bulk_qty" />
-                                            <button className="btn btn-primary" style={{ flex: 1, borderRadius: '12px', color: 'black' }} onClick={() => {
-                                                const qty = Number((document.getElementById('bulk_qty') as HTMLInputElement)?.value || 0);
-                                                autoGenerateRows(qty);
-                                            }}>+ ADICIONAR LINHAS</button>
+                                    <button className="btn btn-secondary" onClick={() => setBulkRows([])} style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '0.75rem' }}>LIMPAR TUDO</button>
+                                </div>
+
+                                <div className="flex flex-col gap-6">
+                                    <div className="bulk-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr', gap: '20px' }}>
+                                        <div className="input-group">
+                                            <label>Prefixo Base</label>
+                                            <input className="input-field" style={{ borderRadius: '12px' }} value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value.toLowerCase())} placeholder="ex: v1_" />
+                                        </div>
+                                        <div className="input-group">
+                                            <label>Adicionar à Fila</label>
+                                            <div className="flex gap-2">
+                                                <input type="number" className="input-field" style={{ borderRadius: '12px', width: '80px' }} defaultValue={5} id="bulk_qty" />
+                                                <button className="btn btn-primary" style={{ flex: 1, borderRadius: '12px', color: 'black' }} onClick={() => {
+                                                    const qty = Number((document.getElementById('bulk_qty') as HTMLInputElement)?.value || 0);
+                                                    autoGenerateRows(qty);
+                                                }}>+ ADICIONAR LINHAS</button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                {bulkRows.length > 0 && (
-                                    <div className="animate-fade-in p-5 rounded-2xl border border-primary-color/20 bg-primary-color/5 flex items-center justify-between gap-6">
-                                        <div className="flex flex-col">
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Editar Todos ({bulkRows.length})</span>
-                                            <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Aplica a mudança em todas as linhas da fila abaixo</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-4 items-center">
-                                            <div className="flex flex-col gap-1">
-                                                <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Mídia Geral</span>
-                                                <div className="flex bg-black/20 p-1 rounded-lg">
-                                                    {(['none', 'image', 'video'] as const).map(t => (
-                                                        <button key={t} onClick={() => applyGlobalHeaderType(t)} className="px-2 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>{t === 'none' ? 'SEM' : t}</button>
-                                                    ))}
-                                                </div>
+                                    {bulkRows.length > 0 && (
+                                        <div className="animate-fade-in p-5 rounded-2xl border border-primary-color/20 bg-primary-color/5 flex flex-wrap items-center justify-between gap-4">
+                                            <div className="flex flex-col">
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Editar Todos ({bulkRows.length})</span>
+                                                <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Aplica a mudança em todas as linhas da fila abaixo</span>
                                             </div>
-                                            <div className="flex flex-col gap-1">
-                                                <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Botões Geral</span>
-                                                <div className="flex bg-black/20 p-1 rounded-lg">
-                                                    <button onClick={() => applyGlobalButtons(true)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>COM</button>
-                                                    <button onClick={() => applyGlobalButtons(false)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>SEM</button>
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Sender Geral</span>
-                                                <div className="flex bg-black/20 p-1 rounded-lg">
-                                                    <input 
-                                                        list="senders-list-global"
-                                                        onChange={(e) => applyGlobalSender(e.target.value)}
-                                                        className="px-2 py-1 text-[10px] font-bold rounded-md bg-transparent border-none outline-none uppercase"
-                                                        style={{ color: 'var(--text-muted)', cursor: 'pointer', width: '100px' }}
-                                                        placeholder="MUDAR TODOS"
-                                                    />
-                                                    <datalist id="senders-list-global">
-                                                        {senders.map((s: any) => (
-                                                            <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                                            <div className="flex flex-wrap gap-4 items-center">
+                                                <div className="flex flex-col gap-1">
+                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Mídia Geral</span>
+                                                    <div className="flex bg-black/20 p-1 rounded-lg">
+                                                        {(['none', 'image', 'video'] as const).map(t => (
+                                                            <button key={t} onClick={() => applyGlobalHeaderType(t)} className="px-2 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>{t === 'none' ? 'SEM' : t}</button>
                                                         ))}
-                                                    </datalist>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Botões Geral</span>
+                                                    <div className="flex bg-black/20 p-1 rounded-lg">
+                                                        <button onClick={() => applyGlobalButtons(true)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>COM</button>
+                                                        <button onClick={() => applyGlobalButtons(false)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>SEM</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Sender Geral</span>
+                                                    <div className="flex bg-black/20 p-1 rounded-lg">
+                                                        <input
+                                                            list="senders-list-global"
+                                                            onChange={(e) => applyGlobalSender(e.target.value)}
+                                                            className="px-2 py-1 text-[10px] font-bold rounded-md bg-transparent border-none outline-none uppercase"
+                                                            style={{ color: 'var(--text-muted)', cursor: 'pointer', width: '100px' }}
+                                                            placeholder="MUDAR TODOS"
+                                                        />
+                                                        <datalist id="senders-list-global">
+                                                            {senders.map((s: any) => (
+                                                                <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                                                            ))}
+                                                        </datalist>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {bulkRows.length > 0 && (
-                                    <div className="flex flex-col gap-6">
-                                        <div className="bulk-table-container shadow-inner">
-                                            <table className="bulk-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                                <thead>
-                                                    <tr>
-                                                        <th>Sufixo</th>
-                                                        <th>Sender (BM)</th>
-                                                        <th>Tipo Mídia</th>
-                                                        {buttons.length > 0 && <th>Botões</th>}
-                                                        {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
-                                                            <th key={urlIdx}>Link {urlIdx + 1}</th>
-                                                        ))}
-                                                        <th style={{ width: '40px' }}></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {bulkRows.map((row, i) => (
-                                                        <tr key={i} className="bulk-row">
-                                                            <td>
-                                                                <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.suffix} onChange={e => {
-                                                                    const n = [...bulkRows];
-                                                                    n[i].suffix = e.target.value.toLowerCase().replace(/\s/g, '_');
-                                                                    setBulkRows(n);
-                                                                }} />
-                                                            </td>
-                                                            <td>
-                                                                <input 
-                                                                    list="senders-list-row"
-                                                                    className="input-field" 
-                                                                    style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }} 
-                                                                    value={row.sender || ''} 
-                                                                    placeholder={senderNumber}
-                                                                    onChange={e => {
-                                                                        const n = [...bulkRows];
-                                                                        n[i].sender = e.target.value;
-                                                                        setBulkRows(n);
-                                                                    }} 
-                                                                />
-                                                                <datalist id="senders-list-row">
-                                                                    {senders.map((s: any) => (
-                                                                        <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
-                                                                    ))}
-                                                                </datalist>
-                                                            </td>
-                                                            <td>
-                                                                <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.headerType} onChange={e => {
-                                                                    const n = [...bulkRows];
-                                                                    n[i].headerType = e.target.value;
-                                                                    if (e.target.value === 'none') n[i].mediaUrl = '';
-                                                                    else if (!n[i].mediaUrl) n[i].mediaUrl = headerExampleUrl;
-                                                                    setBulkRows(n);
-                                                                }}>
-                                                                    <option value="none">SEM</option>
-                                                                    <option value="image">IMAGE</option>
-                                                                    <option value="video">VIDEO</option>
-                                                                </select>
-                                                            </td>
-                                                            {buttons.length > 0 && (
-                                                                <td>
-                                                                    <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={e => {
-                                                                        const n = [...bulkRows];
-                                                                        n[i].hasButtons = e.target.value === 'yes';
-                                                                        setBulkRows(n);
-                                                                    }}>
-                                                                        <option value="yes">COM</option>
-                                                                        <option value="no">SEM</option>
-                                                                    </select>
-                                                                </td>
-                                                            )}
+                                    {bulkRows.length > 0 && (
+                                        <div className="flex flex-col gap-6">
+                                            <div className="bulk-table-container shadow-inner">
+                                                <table className="bulk-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Sufixo</th>
+                                                            <th>Sender (BM)</th>
+                                                            <th>Tipo Mídia</th>
+                                                            {buttons.length > 0 && <th>Botões</th>}
                                                             {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
-                                                                <td key={urlIdx}>
-                                                                    <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
+                                                                <th key={urlIdx}>Link {urlIdx + 1}</th>
+                                                            ))}
+                                                            <th style={{ width: '40px' }}></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {bulkRows.map((row, i) => (
+                                                            <tr key={i} className="bulk-row">
+                                                                <td>
+                                                                    <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.suffix} onChange={e => {
                                                                         const n = [...bulkRows];
-                                                                        n[i].buttonUrls[urlIdx] = e.target.value;
+                                                                        n[i].suffix = e.target.value.toLowerCase().replace(/\s/g, '_');
                                                                         setBulkRows(n);
                                                                     }} />
                                                                 </td>
-                                                            ))}
-                                                            <td style={{ textAlign: 'center' }}>
-                                                                <div className="flex gap-2 justify-center">
-                                                                    <button onClick={() => duplicateRow(i)} title="Duplicar esta linha" style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '1rem', opacity: 0.7 }}>
-                                                                        <Copy size={16} />
-                                                                    </button>
-                                                                    <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} title="Excluir" style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <button className="btn btn-primary shadow-lg" style={{ padding: '24px', fontSize: '1.2rem', fontWeight: 900, color: 'black', borderRadius: '24px', textTransform: 'uppercase', letterSpacing: '1px' }} onClick={handleGenerateBulk} disabled={isGenerating}>
-                                            {isGenerating ? `Publicando ${generatingProgress.current}/${generatingProgress.total}...` : 'CRIAR TEMPLATE EM MASSA'}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Preview Sticky */}
-                <div className="preview-sticky">
-                    <div className="glass-card" style={{ padding: '24px', borderRadius: '24px', border: '1px solid var(--primary-color)', background: 'rgba(172, 248, 0, 0.02)' }}>
-                        <div className="flex items-center gap-2 mb-6">
-                            <Smartphone size={20} color="var(--primary-color)" />
-                            <h3 style={{ margin: 0, fontWeight: 800 }}>Preview Real</h3>
-                        </div>
-
-                        <div className="wp-bubble">
-                            <div className="wp-content">
-                                {headerType !== 'none' && (
-                                    <div style={{ height: '140px', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        {headerType === 'image' ? <ImageIcon size={40} color="#9ca3af" /> : <Video size={40} color="#9ca3af" />}
-                                    </div>
-                                )}
-                                <div style={{ padding: '14px' }}>
-                                    <div style={{ color: '#e9edef', fontSize: '0.9rem', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
-                                    {footerText && <div style={{ marginTop: '10px', color: '#8696a0', fontSize: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' }}>{footerText}</div>}
-                                </div>
-                                {buttons.length > 0 && (
-                                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
-                                        {buttons.map((b: any, i: number) => (
-                                            <div key={i} style={{ borderBottom: i !== buttons.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none', padding: '12px', textAlign: 'center', color: '#53bdeb', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
-                                                {b.type === 'url' ? <Link size={14} /> : <MessageSquareReply size={14} />} {b.text}
+                                                                <td>
+                                                                    <input
+                                                                        list="senders-list-row"
+                                                                        className="input-field"
+                                                                        style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }}
+                                                                        value={row.sender || ''}
+                                                                        placeholder={senderNumber}
+                                                                        onChange={e => {
+                                                                            const n = [...bulkRows];
+                                                                            n[i].sender = e.target.value;
+                                                                            setBulkRows(n);
+                                                                        }}
+                                                                    />
+                                                                    <datalist id="senders-list-row">
+                                                                        {senders.map((s: any) => (
+                                                                            <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
+                                                                        ))}
+                                                                    </datalist>
+                                                                </td>
+                                                                <td>
+                                                                    <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.headerType} onChange={e => {
+                                                                        const n = [...bulkRows];
+                                                                        n[i].headerType = e.target.value;
+                                                                        if (e.target.value === 'none') n[i].mediaUrl = '';
+                                                                        else if (!n[i].mediaUrl) n[i].mediaUrl = headerExampleUrl;
+                                                                        setBulkRows(n);
+                                                                    }}>
+                                                                        <option value="none">SEM</option>
+                                                                        <option value="image">IMAGE</option>
+                                                                        <option value="video">VIDEO</option>
+                                                                    </select>
+                                                                </td>
+                                                                {buttons.length > 0 && (
+                                                                    <td>
+                                                                        <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={e => {
+                                                                            const n = [...bulkRows];
+                                                                            n[i].hasButtons = e.target.value === 'yes';
+                                                                            setBulkRows(n);
+                                                                        }}>
+                                                                            <option value="yes">COM</option>
+                                                                            <option value="no">SEM</option>
+                                                                        </select>
+                                                                    </td>
+                                                                )}
+                                                                {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
+                                                                    <td key={urlIdx}>
+                                                                        <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
+                                                                            const n = [...bulkRows];
+                                                                            n[i].buttonUrls[urlIdx] = e.target.value;
+                                                                            setBulkRows(n);
+                                                                        }} />
+                                                                    </td>
+                                                                ))}
+                                                                <td style={{ textAlign: 'center' }}>
+                                                                    <div className="flex gap-2 justify-center">
+                                                                        <button onClick={() => duplicateRow(i)} title="Duplicar esta linha" style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '1rem', opacity: 0.7 }}>
+                                                                            <Copy size={16} />
+                                                                        </button>
+                                                                        <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} title="Excluir" style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
-                        <div className="mt-8">
-                            <h4 style={{ color: 'var(--text-secondary)', marginBottom: '10px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
-                            <div style={{ background: '#020617', padding: '20px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
-                                <pre style={{ margin: 0, fontSize: '0.7rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
-                                    <code>{JSON.stringify(buildInfobipPayload(modelName), null, 2)}</code>
-                                </pre>
+                                            <button className="btn btn-primary shadow-lg mt-4 w-full" style={{ minHeight: '60px', fontSize: '1.1rem', fontWeight: 900, color: 'black', borderRadius: '20px', textTransform: 'uppercase' }} onClick={handleGenerateBulk} disabled={isGenerating}>
+                                                {isGenerating ? `Publicando ${generatingProgress.current}/${generatingProgress.total}...` : 'CRIAR TEMPLATE EM MASSA'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Preview Sticky */}
+                    <div className="preview-sticky">
+                        <div className="glass-card" style={{ border: '1px solid var(--primary-color)', background: 'rgba(172, 248, 0, 0.02)' }}>
+                            <div className="flex items-center gap-2 mb-6">
+                                <Smartphone size={20} color="var(--primary-color)" />
+                                <h3 style={{ margin: 0, fontWeight: 800 }}>Preview Real</h3>
+                            </div>
+
+                            <div className="wp-bubble">
+                                <div className="wp-content">
+                                    {headerType !== 'none' && (
+                                        <div style={{ height: '140px', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {headerType === 'image' ? <ImageIcon size={40} color="#9ca3af" /> : <Video size={40} color="#9ca3af" />}
+                                        </div>
+                                    )}
+                                    <div style={{ padding: '14px' }}>
+                                        <div style={{ color: '#e9edef', fontSize: '0.9rem', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
+                                        {footerText && <div style={{ marginTop: '10px', color: '#8696a0', fontSize: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' }}>{footerText}</div>}
+                                    </div>
+                                    {buttons.length > 0 && (
+                                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
+                                            {buttons.map((b: any, i: number) => (
+                                                <div key={i} style={{ borderBottom: i !== buttons.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none', padding: '12px', textAlign: 'center', color: '#53bdeb', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                                                    {b.type === 'url' ? <Link size={14} /> : <MessageSquareReply size={14} />} {b.text}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-8">
+                                <h4 style={{ color: 'var(--text-secondary)', marginBottom: '10px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
+                                <div style={{ background: '#020617', padding: '12px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
+                                    <pre style={{ margin: 0, fontSize: '0.65rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
+                                        <code>{JSON.stringify(buildInfobipPayload(modelName), null, 2)}</code>
+                                    </pre>
+                                </div>
                             </div>
                         </div>
                     </div>

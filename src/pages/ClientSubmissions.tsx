@@ -49,6 +49,8 @@ interface ClientSubmission {
     sender_number?: string;
     submitted_by?: string;
     ads?: Ad[];
+    user_id?: number | string;
+    client_name?: string;
     timestamp: string;
 }
 
@@ -63,6 +65,8 @@ const ClientSubmissions = () => {
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0 });
     const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>(user?.role === 'ADMIN' ? 'available' : 'mine');
     const [employees, setEmployees] = useState<string[]>([]);
+    const [clients, setClients] = useState<any[]>([]);
+    const [selectedClientFilter, setSelectedClientFilter] = useState('');
 
     const loadSubmissions = async () => {
         setIsLoading(true);
@@ -73,6 +77,8 @@ const ClientSubmissions = () => {
             if (user?.role === 'ADMIN') {
                 const empData = await dbService.getEmployees();
                 setEmployees(empData);
+                const clientsData = await dbService.getClients();
+                setClients(clientsData);
             }
         } catch (err) {
             console.error("Error loading submissions:", err);
@@ -103,9 +109,13 @@ const ClientSubmissions = () => {
 
     const allSubmissions = Array.isArray(submissions) ? submissions : [];
     
-    const searchFilter = (s: ClientSubmission) =>
-        (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (s.ddd || '').includes(searchTerm);
+    const searchFilter = (s: ClientSubmission) => {
+        const matchesClient = selectedClientFilter ? String(s.user_id) === String(selectedClientFilter) : true;
+        const matchesText = (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (s.ddd || '').includes(searchTerm);
+        return matchesClient && matchesText;
+    };
 
     // Now 'available' means not assigned yet
     const availableSubmissions = allSubmissions.filter(s => !s.assigned_to && searchFilter(s));
@@ -389,8 +399,22 @@ const ClientSubmissions = () => {
                         ))}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '360px' }}>
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '560px' }}>
+                        {user?.role === 'ADMIN' && (
+                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
+                                <select 
+                                    value={selectedClientFilter} 
+                                    onChange={e => setSelectedClientFilter(e.target.value)}
+                                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}
+                                >
+                                    <option value="" style={{ background: '#0f172a' }}>Todos os Clientes</option>
+                                    {clients.map(c => (
+                                        <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
                             <Search size={15} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
                             <input
                                 value={searchTerm}
@@ -482,6 +506,11 @@ const ClientSubmissions = () => {
                                         )}
                                         <div style={{ overflow: 'hidden' }}>
                                             <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>
+                                            {s.client_name && (
+                                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '2px', fontWeight: 600 }}>
+                                                    Cliente: {s.client_name}
+                                                </div>
+                                            )}
                                             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
                                                 <span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span>
                                                 <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}>

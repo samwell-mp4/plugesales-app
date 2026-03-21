@@ -549,9 +549,23 @@ app.post('/api/planner-drafts', async (req, res) => {
 });
 
 // Client Submissions
+app.get('/api/clients', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT id, name, email, phone FROM users WHERE role = 'CLIENT' ORDER BY name ASC");
+        res.json(result.rows || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/client-submissions', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM client_submissions ORDER BY timestamp DESC');
+        const result = await pool.query(`
+            SELECT c.*, u.name as client_name 
+            FROM client_submissions c 
+            LEFT JOIN users u ON c.user_id = u.id 
+            ORDER BY c.timestamp DESC
+        `);
         res.json(result.rows || []);
     } catch (err) {
         res.status(500).json({ error: err.message, stack: err.stack });

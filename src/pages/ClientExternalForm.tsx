@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
     User,
     Image as ImageIcon,
@@ -20,13 +20,42 @@ import { useAuth } from '../contexts/AuthContext';
 import ClientAuth from './ClientAuth';
 
 const ClientExternalForm = () => {
-    const { user } = useAuth();
+    const { user } = useAuth() as any;
     const navigate = useNavigate();
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(user?.role === 'ADMIN' ? 0 : 1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [clients, setClients] = useState<any[]>([]);
+    const [isCreatingClient, setIsCreatingClient] = useState(false);
+    const [newClientData, setNewClientData] = useState({ name: '', email: '', phone: '', password: '' });
+
+    React.useEffect(() => {
+        if (user?.role === 'ADMIN') {
+            dbService.getClients().then(setClients);
+        }
+    }, [user]);
+
+    const handleCreateClient = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const result = await dbService.register({ ...newClientData, role: 'CLIENT' });
+            if (result.error) {
+                alert(result.error);
+            } else {
+                setClients(prev => [...prev, result.user]);
+                setFormData(prev => ({ ...prev, user_id: result.user.id }));
+                setIsCreatingClient(false);
+                setNewClientData({ name: '', email: '', phone: '', password: '' });
+                alert("Cliente criado com sucesso!");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao criar cliente");
+        }
+    };
 
     const [formData, setFormData] = useState({
+        user_id: user?.role === 'ADMIN' ? ('' as string | number) : user?.id,
         profile_photo: '',
         profile_name: '',
         ddd: '',
@@ -138,7 +167,7 @@ const ClientExternalForm = () => {
                 ddd: formData.ddd,
                 status: formData.status,
                 submitted_by: user?.name || 'cliente', // Atribuição solicitada
-                user_id: user?.id,
+                user_id: formData.user_id || user?.id,
                 ads: formData.ads.map(ad => ({
                     ad_name: ad.ad_name,
                     template_type: ad.template_type,
@@ -177,6 +206,12 @@ const ClientExternalForm = () => {
     };
 
     const nextStep = () => {
+        if (step === 0) {
+            if (!formData.user_id && user?.role === 'ADMIN') {
+                alert("Por favor, selecione ou cadastre um cliente antes de continuar.");
+                return;
+            }
+        }
         if (step === 1) {
             if (!formData.profile_name || !formData.ddd) {
                 alert("Por favor, preencha o Nome do Atendimento e o DDD antes de continuar.");
@@ -196,7 +231,7 @@ const ClientExternalForm = () => {
         }
         setStep(prev => Math.min(prev + 1, 3));
     };
-    const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+    const prevStep = () => setStep(prev => Math.max(prev - 1, user?.role === 'ADMIN' ? 0 : 1));
 
     if (!user) {
         return <ClientAuth />;
@@ -509,15 +544,86 @@ const ClientExternalForm = () => {
 
                             {/* STEPS INDICATOR */}
                             <div className="flex items-center gap-4 mb-12">
-                                {[1, 2, 3].map(i => (
+                                {(user?.role === 'ADMIN' ? [0, 1, 2, 3] : [1, 2, 3]).map((i, index) => (
                                     <div key={i} className="flex items-center gap-3">
                                         <div className={`step-pill ${step === i ? 'active' : step > i ? 'completed' : ''}`}>
-                                            {step > i ? <CheckCircle size={20} /> : i}
+                                            {step > i ? <CheckCircle size={20} /> : index + 1}
                                         </div>
                                         {i < 3 && <div style={{ width: '40px', height: '2px', background: step > i ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)' }} />}
                                     </div>
                                 ))}
                             </div>
+
+                                {step === 0 && user?.role === 'ADMIN' && (
+                                    <div className="space-y-6 animate-fade-in">
+                                        <div>
+                                            <h2 className="form-section-title">SELECIONAR CLIENTE</h2>
+                                            <p className="form-section-subtitle">A qual cliente esta submissão pertence?</p>
+                                        </div>
+
+                                        <div className="space-y-6 bg-white/[0.02] border border-white/5 p-6 rounded-2xl">
+                                            {!isCreatingClient ? (
+                                                <>
+                                                    <div className="space-y-3">
+                                                        <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40">Cliente Existente</label>
+                                                        <select
+                                                            className="input-premium py-4 w-full"
+                                                            value={formData.user_id || ''}
+                                                            onChange={e => {
+                                                                const selectedId = e.target.value;
+                                                                setFormData(p => ({ ...p, user_id: selectedId }));
+                                                                // Auto-fill form data if a client is selected
+                                                                const client = clients.find(c => String(c.id) === String(selectedId));
+                                                                if (client && !formData.profile_name) {
+                                                                    setFormData(p => ({ ...p, profile_name: client.name, ddd: client.phone?.substring(0, 2) || '' }));
+                                                                }
+                                                            }}
+                                                        >
+                                                            <option value="">Selecione um cliente...</option>
+                                                            {clients.map(c => (
+                                                                <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 pt-4 border-t border-white/5">
+                                                        <span className="text-[10px] font-bold opacity-40 uppercase">Ou</span>
+                                                        <button 
+                                                            onClick={() => setIsCreatingClient(true)}
+                                                            className="text-primary-color text-[11px] font-black uppercase tracking-wider hover:underline"
+                                                        >
+                                                            + CADASTRAR NOVO CLIENTE
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <form onSubmit={handleCreateClient} className="space-y-4">
+                                                    <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-4">
+                                                        <h3 className="text-sm font-black text-primary-color">Novo Cliente</h3>
+                                                        <button type="button" onClick={() => setIsCreatingClient(false)} className="text-[10px] uppercase font-bold opacity-50 hover:opacity-100">Cancelar</button>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <input className="input-premium" placeholder="Nome Completo" value={newClientData.name} onChange={e => setNewClientData(p => ({ ...p, name: e.target.value }))} required />
+                                                        <input className="input-premium" type="email" placeholder="E-mail" value={newClientData.email} onChange={e => setNewClientData(p => ({ ...p, email: e.target.value }))} required />
+                                                        <input className="input-premium" placeholder="Telefone/WhatsApp" value={newClientData.phone} onChange={e => setNewClientData(p => ({ ...p, phone: e.target.value }))} required />
+                                                        <input className="input-premium" type="password" placeholder="Senha" value={newClientData.password} onChange={e => setNewClientData(p => ({ ...p, password: e.target.value }))} required />
+                                                    </div>
+                                                    <button type="submit" className="nav-btn nav-btn-primary justify-center mt-2">
+                                                        CADASTRAR E SELECIONAR
+                                                    </button>
+                                                </form>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 flex items-center justify-end pt-10 border-t border-white/5">
+                                            <button
+                                                onClick={nextStep}
+                                                className="nav-btn nav-btn-primary"
+                                            >
+                                                PRÓXIMA ETAPA <ChevronRight size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {step === 1 && (
                                     <div className="space-y-6 animate-fade-in">
