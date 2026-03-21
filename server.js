@@ -198,8 +198,13 @@ const initDB = async () => {
         // Backward-compat for infobip_templates
         await client.query(`ALTER TABLE infobip_templates ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
 
-
         console.log('✅ All columns and infobip_templates table verified/migrated.');
+
+        // Patch: Restore roles for static team members if they were incorrectly registered as CLIENT
+        await client.query("UPDATE users SET role = 'ADMIN' WHERE name = 'Admin'");
+        await client.query("UPDATE users SET role = 'EMPLOYEE' WHERE name IN ('Vini', 'Italo', 'Matheus')");
+        console.log('✅ Database initialized and verified.');
+
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
     } finally {
@@ -214,13 +219,15 @@ app.use(express.json({ limit: '50mb' }));
 
 // --- AUTH ENDPOINTS ---
 app.post('/api/auth/register', async (req, res) => {
-    const { name, email, phone, password } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ error: 'Campos obrigatórios: nome, email, senha.' });
+    const { name, email, phone, password, role } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
+    }
 
     try {
         const result = await pool.query(
             'INSERT INTO users (name, email, phone, password, role, notification_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, notification_number',
-            [name, email, phone, password, 'CLIENT', phone] // Defaulting notification_number to phone on register
+            [name, email, phone, password, role || 'CLIENT', phone] 
         );
         res.json(result.rows[0]);
     } catch (err) {
