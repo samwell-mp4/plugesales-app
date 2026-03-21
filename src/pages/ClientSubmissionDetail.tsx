@@ -68,11 +68,11 @@ interface Submission {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-    PENDENTE:    { label: 'Pendente',     color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)' },
-    EM_ANDAMENTO:{ label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
-    GERADO:      { label: 'Gerado',       color: '#22c55e', bg: 'rgba(34,197,94,0.08)',  border: 'rgba(34,197,94,0.2)' },
-    CANCELADO:   { label: 'Cancelado',    color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.2)' },
-    CONCLUIDO:   { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
+    PENDENTE: { label: 'Pendente', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
+    EM_ANDAMENTO: { label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
+    GERADO: { label: 'Gerado', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' },
+    CANCELADO: { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
+    CONCLUIDO: { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
 };
 
 const ClientSubmissionDetail = () => {
@@ -104,7 +104,7 @@ const ClientSubmissionDetail = () => {
                 setSub(data);
                 setSenderNumber(data.sender_number || '');
                 setNotes(data.notes || '');
-                
+
                 if (user?.role === 'ADMIN') {
                     const empData = await dbService.getEmployees();
                     setEmployees(empData);
@@ -164,7 +164,7 @@ const ClientSubmissionDetail = () => {
         if (!sub || !sub.ads) return;
         const newAds = [...sub.ads];
         newAds[index] = { ...newAds[index], [field]: val };
-        
+
         setSub({ ...sub, ads: newAds });
 
         try {
@@ -178,12 +178,12 @@ const ClientSubmissionDetail = () => {
     const handleAddAd = async () => {
         if (!sub) return;
         const newAds = [...(sub.ads || []), {
-            ad_name: `Novo Anúncio ${ (sub.ads?.length || 0) + 1 }`,
+            ad_name: `Novo Anúncio ${(sub.ads?.length || 0) + 1}`,
             template_type: 'TEXT',
             message_mode: 'manual' as const,
             variables: []
         }];
-        
+
         setSub({ ...sub, ads: newAds });
         setActiveAdIdx(newAds.length - 1);
 
@@ -404,7 +404,7 @@ const ClientSubmissionDetail = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         {sub.status === 'CONCLUIDO' && (
                             <button onClick={() => window.print()} className="action-btn ghost-btn" style={{ padding: '0 20px', height: 44, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -422,7 +422,7 @@ const ClientSubmissionDetail = () => {
 
                 {/* ── CONTROL GRID ── */}
                 <div className="controls-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
-                    
+
                     {/* CARD 1: STATUS & ACTIONS */}
                     <div className="control-card" style={{ animationDelay: '0.1s' }}>
                         <label className="field-label"><Zap size={14} /> Fluxo de Trabalho</label>
@@ -554,11 +554,11 @@ const ClientSubmissionDetail = () => {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                         <label className="field-label" style={{ marginBottom: 0 }}><Activity size={14} /> Desempenho e Faturamento da Campanha</label>
                                     </div>
-                                    
+
                                     {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '16px' }}>
                                             <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Data do Disparo</p>
+                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Data da Campanha</p>
                                                 <input type="date" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.dispatch_date || ''} onChange={e => handleUpdateAd(activeAdIdx, 'dispatch_date', e.target.value)} />
                                             </div>
                                             <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -600,7 +600,7 @@ const ClientSubmissionDetail = () => {
                                                 )}
                                             </div>
                                         </div>
-                                        
+
                                         {user?.role === 'ADMIN' && (
                                             <div className="no-print" style={{ background: 'rgba(239,68,68,0.08)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
                                                 <TrendingDown size={20} color="#ef4444" />
@@ -624,237 +624,237 @@ const ClientSubmissionDetail = () => {
 
                             {/* NAVEGADOR E ANALYZER */}
                             <div className="ad-analyzer-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                        <span className="no-print" style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px' }}>CONTEÚDO DA MENSAGEM</span>
-                                        <span className="print-only" style={{ fontSize: '14px', fontWeight: 900, color: '#000', letterSpacing: '1px', textTransform: 'uppercase' }}>DADOS DA EMPRESA</span>
-                                        <div className="no-print" style={{ display: 'flex', gap: '10px' }}>
-                                            <button onClick={() => copyToClipboard(currentAd.ad_copy || '', 'Mensagem')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
-                                                <Copy size={16} />
-                                            </button>
-                                            {user?.role !== 'CLIENT' && (
-                                                <button onClick={() => handleDeleteAd(activeAdIdx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                                                    <Trash2 size={16} />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                            <span className="no-print" style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px' }}>CONTEÚDO DA MENSAGEM</span>
+                                            <span className="print-only" style={{ fontSize: '14px', fontWeight: 900, color: '#000', letterSpacing: '1px', textTransform: 'uppercase' }}>DADOS DA EMPRESA</span>
+                                            <div className="no-print" style={{ display: 'flex', gap: '10px' }}>
+                                                <button onClick={() => copyToClipboard(currentAd.ad_copy || '', 'Mensagem')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+                                                    <Copy size={16} />
                                                 </button>
+                                                {user?.role !== 'CLIENT' && (
+                                                    <button onClick={() => handleDeleteAd(activeAdIdx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Exibição Normal (Tela) */}
+                                        <div className="no-print">
+                                            {user?.role !== 'CLIENT' ? (
+                                                <textarea
+                                                    className="field-input"
+                                                    style={{ minHeight: '200px', fontSize: '14px', lineHeight: '1.6', background: 'rgba(255,255,255,0.02)', width: '100%' }}
+                                                    value={currentAd.ad_copy || ''}
+                                                    onChange={e => handleUpdateAd(activeAdIdx, 'ad_copy', e.target.value)}
+                                                    placeholder="Digite o texto do anúncio aqui..."
+                                                />
+                                            ) : (
+                                                <div style={{
+                                                    padding: '16px',
+                                                    borderRadius: '12px',
+                                                    background: 'rgba(255,255,255,0.02)',
+                                                    fontSize: '14px',
+                                                    lineHeight: '1.8',
+                                                    color: 'rgba(255,255,255,0.8)',
+                                                    whiteSpace: 'pre-wrap',
+                                                    maxHeight: '300px',
+                                                    overflowY: 'auto',
+                                                    scrollbarWidth: 'thin'
+                                                }}>
+                                                    {currentAd.ad_copy || 'Nenhum texto definido.'}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Exibição na Impressão (PDF) */}
+                                        <div className="print-only" style={{ fontSize: '16px', lineHeight: '1.8', color: '#000', fontWeight: 800, padding: '16px', border: '2px dashed #ccc', borderRadius: '12px', marginTop: '10px' }}>
+                                            63140137000161 pix cnpj<br />
+                                            Plug e Sales Soluções digitais LTDA
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, opacity: 0.3, marginBottom: '6px' }}>TIPO DE TEMPLATE</p>
+                                            {user?.role !== 'CLIENT' ? (
+                                                <select
+                                                    className="field-input"
+                                                    style={{ padding: '8px', fontSize: '12px', height: 'auto' }}
+                                                    value={currentAd.template_type || 'TEXT'}
+                                                    onChange={e => handleUpdateAd(activeAdIdx, 'template_type', e.target.value)}
+                                                >
+                                                    <option value="TEXT">TEXTO</option>
+                                                    <option value="IMAGE">IMAGEM</option>
+                                                    <option value="VIDEO">VÍDEO</option>
+                                                    <option value="DOCUMENT">DOCUMENTO</option>
+                                                    <option value="LOCATION">LOCALIZAÇÃO</option>
+                                                </select>
+                                            ) : (
+                                                <p style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: 'var(--primary-color)' }}>{currentAd.template_type?.toUpperCase()}</p>
+                                            )}
+                                        </div>
+                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, opacity: 0.3, marginBottom: '6px' }}>MODO DE ENVIO</p>
+                                            {user?.role !== 'CLIENT' ? (
+                                                <select
+                                                    className="field-input"
+                                                    style={{ padding: '8px', fontSize: '12px', height: 'auto' }}
+                                                    value={currentAd.message_mode || 'manual'}
+                                                    onChange={e => handleUpdateAd(activeAdIdx, 'message_mode', e.target.value)}
+                                                >
+                                                    <option value="manual">MANUAL</option>
+                                                    <option value="upload">ARQUIVO / UPLOAD</option>
+                                                </select>
+                                            ) : (
+                                                <p style={{ margin: 0, fontSize: '14px', fontWeight: 900 }}>{currentAd.message_mode === 'upload' ? 'ARQUIVO' : 'MANUAL'}</p>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Exibição Normal (Tela) */}
-                                    <div className="no-print">
-                                        {user?.role !== 'CLIENT' ? (
-                                            <textarea 
-                                                className="field-input"
-                                                style={{ minHeight: '200px', fontSize: '14px', lineHeight: '1.6', background: 'rgba(255,255,255,0.02)', width: '100%' }}
-                                                value={currentAd.ad_copy || ''}
-                                                onChange={e => handleUpdateAd(activeAdIdx, 'ad_copy', e.target.value)}
-                                                placeholder="Digite o texto do anúncio aqui..."
-                                            />
-                                        ) : (
-                                            <div style={{ 
-                                                padding: '16px', 
-                                                borderRadius: '12px', 
-                                                background: 'rgba(255,255,255,0.02)', 
-                                                fontSize: '14px', 
-                                                lineHeight: '1.8', 
-                                                color: 'rgba(255,255,255,0.8)', 
-                                                whiteSpace: 'pre-wrap',
-                                                maxHeight: '300px',
-                                                overflowY: 'auto',
-                                                scrollbarWidth: 'thin'
-                                            }}>
-                                                {currentAd.ad_copy || 'Nenhum texto definido.'}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Exibição na Impressão (PDF) */}
-                                    <div className="print-only" style={{ fontSize: '16px', lineHeight: '1.8', color: '#000', fontWeight: 800, padding: '16px', border: '2px dashed #ccc', borderRadius: '12px', marginTop: '10px' }}>
-                                        63140137000161 pix cnpj<br/>
-                                        Plug e Sales Soluções digitais LTDA
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                        <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, opacity: 0.3, marginBottom: '6px' }}>TIPO DE TEMPLATE</p>
-                                        {user?.role !== 'CLIENT' ? (
-                                            <select 
-                                                className="field-input"
-                                                style={{ padding: '8px', fontSize: '12px', height: 'auto' }}
-                                                value={currentAd.template_type || 'TEXT'}
-                                                onChange={e => handleUpdateAd(activeAdIdx, 'template_type', e.target.value)}
-                                            >
-                                                <option value="TEXT">TEXTO</option>
-                                                <option value="IMAGE">IMAGEM</option>
-                                                <option value="VIDEO">VÍDEO</option>
-                                                <option value="DOCUMENT">DOCUMENTO</option>
-                                                <option value="LOCATION">LOCALIZAÇÃO</option>
-                                            </select>
-                                        ) : (
-                                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: 'var(--primary-color)' }}>{currentAd.template_type?.toUpperCase()}</p>
-                                        )}
-                                    </div>
-                                    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                        <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, opacity: 0.3, marginBottom: '6px' }}>MODO DE ENVIO</p>
-                                        {user?.role !== 'CLIENT' ? (
-                                            <select 
-                                                className="field-input"
-                                                style={{ padding: '8px', fontSize: '12px', height: 'auto' }}
-                                                value={currentAd.message_mode || 'manual'}
-                                                onChange={e => handleUpdateAd(activeAdIdx, 'message_mode', e.target.value)}
-                                            >
-                                                <option value="manual">MANUAL</option>
-                                                <option value="upload">ARQUIVO / UPLOAD</option>
-                                            </select>
-                                        ) : (
-                                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 900 }}>{currentAd.message_mode === 'upload' ? 'ARQUIVO' : 'MANUAL'}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {user?.role !== 'CLIENT' && (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(currentAd.template_type || '')) && (
-                                    <div style={{ padding: '16px', background: 'rgba(255,170,0,0.05)', borderRadius: '16px', border: '1px solid rgba(255,170,0,0.1)' }}>
-                                        <label style={{ fontSize: '9px', fontWeight: 900, color: '#ffaa00', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Upload size={12} /> UPLOAD DE MÍDIA ({currentAd.template_type})
-                                        </label>
-                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                            <input 
-                                                type="file" 
-                                                id={`ad-file-${activeAdIdx}`}
-                                                style={{ display: 'none' }} 
-                                                onChange={e => e.target.files?.[0] && handleFileUpload(activeAdIdx, e.target.files[0])}
-                                            />
-                                            <button 
-                                                onClick={() => document.getElementById(`ad-file-${activeAdIdx}`)?.click()}
-                                                style={{ padding: '10px 16px', borderRadius: '10px', background: '#ffaa00', color: '#000', border: 'none', fontWeight: 800, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                            >
-                                                <Upload size={14} /> SELECIONAR ARQUIVO
-                                            </button>
-                                            <div style={{ flex: 1, overflow: 'hidden' }}>
-                                                <p style={{ margin: 0, fontSize: '11px', opacity: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    {currentAd.media_url || 'Nenhum arquivo enviado'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div style={{ padding: '16px', background: 'rgba(50,150,250,0.05)', borderRadius: '16px', border: '1px solid rgba(50,150,250,0.1)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <label style={{ fontSize: '9px', fontWeight: 900, color: '#3b82f6', opacity: 0.6 }}>LINK DO BOTÃO</label>
-                                        {currentAd.button_link && (
-                                            <button onClick={() => copyToClipboard(currentAd.button_link || '', 'Link')} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }}>
-                                                <Copy size={14} />
-                                            </button>
-                                        )}
-                                    </div>
-                                    {user?.role !== 'CLIENT' ? (
-                                        <input 
-                                            className="field-input"
-                                            style={{ padding: '10px', fontSize: '13px', borderStyle: 'dashed' }}
-                                            value={currentAd.button_link || ''}
-                                            onChange={e => handleUpdateAd(activeAdIdx, 'button_link', e.target.value)}
-                                            placeholder="https://..."
-                                        />
-                                    ) : (
-                                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentAd.button_link || 'Nenhum link'}</p>
-                                    )}
-                                </div>
-
-                                <div style={{ padding: '16px', background: 'rgba(172,248,0,0.03)', borderRadius: '16px', border: '1px solid rgba(172,248,0,0.1)' }}>
-                                    <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
-                                        <Smartphone size={12} /> NÚMERO SENDER (Deste Anúncio)
-                                    </label>
-                                    <div style={{ position: 'relative' }}>
-                                        <input 
-                                            className="field-input" 
-                                            style={{ padding: '12px 14px', fontSize: '13px' }}
-                                            value={currentAd.sender_number || ''} 
-                                            onChange={e => handleUpdateAd(activeAdIdx, 'sender_number', e.target.value)} 
-                                            placeholder="Ex: 55..." 
-                                            readOnly={user?.role === 'CLIENT'}
-                                        />
-                                        <button onClick={() => copyToClipboard(currentAd.sender_number || '', 'Sender Ad')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
-                                            <Copy size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', marginBottom: '8px', display: 'block' }}>URL DA PLANILHA (OPCIONAL)</label>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        {user?.role !== 'CLIENT' ? (
-                                            <input 
-                                                className="field-input"
-                                                style={{ padding: '10px', fontSize: '13px', flex: 1 }}
-                                                value={currentAd.spreadsheet_url || ''}
-                                                onChange={e => handleUpdateAd(activeAdIdx, 'spreadsheet_url', e.target.value)}
-                                                placeholder="Google Sheets URL..."
-                                            />
-                                        ) : (
-                                            <p style={{ margin: 0, fontSize: '13px', opacity: 0.6, flex: 1 }}>{currentAd.spreadsheet_url || 'Nenhuma planilha'}</p>
-                                        )}
-                                        {currentAd.spreadsheet_url && (
-                                            <a href={currentAd.spreadsheet_url} target="_blank" rel="noreferrer" style={{ color: '#22c55e', padding: '10px', background: 'rgba(34,197,94,0.1)', borderRadius: '10px' }} title="Abrir Planilha">
-                                                <ExternalLink size={16} />
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                        <label className="field-label" style={{ marginBottom: 0 }}>Variáveis ({currentAd.variables?.length || 0})</label>
-                                        {user?.role !== 'CLIENT' && (
-                                            <button 
-                                                onClick={() => {
-                                                    const name = window.prompt("Nome da nova variável (ex: NOME, VALOR):");
-                                                    if (name) handleAddVariable(activeAdIdx, name);
-                                                }}
-                                                style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--primary-color)', border: 'none', color: '#000', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}
-                                            >
-                                                + ADICIONAR
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                        {currentAd.variables?.map((v, i) => (
-                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
-                                                    {v}
-                                                </span>
-                                                <div style={{ display: 'flex', gap: '4px' }}>
-                                                    <button 
-                                                        onClick={() => copyToClipboard(v, `Variável ${v}`)}
-                                                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', display: 'flex', padding: 0 }}
-                                                        title="Copiar"
-                                                    >
-                                                        <Copy size={12} />
-                                                    </button>
-                                                    {user?.role !== 'CLIENT' && (
-                                                        <button 
-                                                            onClick={() => handleRemoveVariable(activeAdIdx, i)}
-                                                            style={{ background: 'none', border: 'none', color: '#ef4444', opacity: 0.6, cursor: 'pointer', display: 'flex', padding: 0 }}
-                                                            title="Remover"
-                                                        >
-                                                            <X size={12} />
-                                                        </button>
-                                                    )}
+                                    {user?.role !== 'CLIENT' && (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(currentAd.template_type || '')) && (
+                                        <div style={{ padding: '16px', background: 'rgba(255,170,0,0.05)', borderRadius: '16px', border: '1px solid rgba(255,170,0,0.1)' }}>
+                                            <label style={{ fontSize: '9px', fontWeight: 900, color: '#ffaa00', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Upload size={12} /> UPLOAD DE MÍDIA ({currentAd.template_type})
+                                            </label>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                <input
+                                                    type="file"
+                                                    id={`ad-file-${activeAdIdx}`}
+                                                    style={{ display: 'none' }}
+                                                    onChange={e => e.target.files?.[0] && handleFileUpload(activeAdIdx, e.target.files[0])}
+                                                />
+                                                <button
+                                                    onClick={() => document.getElementById(`ad-file-${activeAdIdx}`)?.click()}
+                                                    style={{ padding: '10px 16px', borderRadius: '10px', background: '#ffaa00', color: '#000', border: 'none', fontWeight: 800, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                >
+                                                    <Upload size={14} /> SELECIONAR ARQUIVO
+                                                </button>
+                                                <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                    <p style={{ margin: 0, fontSize: '11px', opacity: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {currentAd.media_url || 'Nenhum arquivo enviado'}
+                                                    </p>
                                                 </div>
                                             </div>
-                                        ))}
-                                        {(!currentAd.variables || currentAd.variables.length === 0) && (
-                                            <p style={{ margin: 0, fontSize: '11px', opacity: 0.3, padding: '10px' }}>Nenhuma variável definida para este AD.</p>
+                                        </div>
+                                    )}
+
+                                    <div style={{ padding: '16px', background: 'rgba(50,150,250,0.05)', borderRadius: '16px', border: '1px solid rgba(50,150,250,0.1)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <label style={{ fontSize: '9px', fontWeight: 900, color: '#3b82f6', opacity: 0.6 }}>LINK DO BOTÃO</label>
+                                            {currentAd.button_link && (
+                                                <button onClick={() => copyToClipboard(currentAd.button_link || '', 'Link')} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }}>
+                                                    <Copy size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {user?.role !== 'CLIENT' ? (
+                                            <input
+                                                className="field-input"
+                                                style={{ padding: '10px', fontSize: '13px', borderStyle: 'dashed' }}
+                                                value={currentAd.button_link || ''}
+                                                onChange={e => handleUpdateAd(activeAdIdx, 'button_link', e.target.value)}
+                                                placeholder="https://..."
+                                            />
+                                        ) : (
+                                            <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentAd.button_link || 'Nenhum link'}</p>
                                         )}
+                                    </div>
+
+                                    <div style={{ padding: '16px', background: 'rgba(172,248,0,0.03)', borderRadius: '16px', border: '1px solid rgba(172,248,0,0.1)' }}>
+                                        <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
+                                            <Smartphone size={12} /> NÚMERO SENDER (Deste Anúncio)
+                                        </label>
+                                        <div style={{ position: 'relative' }}>
+                                            <input
+                                                className="field-input"
+                                                style={{ padding: '12px 14px', fontSize: '13px' }}
+                                                value={currentAd.sender_number || ''}
+                                                onChange={e => handleUpdateAd(activeAdIdx, 'sender_number', e.target.value)}
+                                                placeholder="Ex: 55..."
+                                                readOnly={user?.role === 'CLIENT'}
+                                            />
+                                            <button onClick={() => copyToClipboard(currentAd.sender_number || '', 'Sender Ad')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
+                                                <Copy size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', marginBottom: '8px', display: 'block' }}>URL DA PLANILHA (OPCIONAL)</label>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            {user?.role !== 'CLIENT' ? (
+                                                <input
+                                                    className="field-input"
+                                                    style={{ padding: '10px', fontSize: '13px', flex: 1 }}
+                                                    value={currentAd.spreadsheet_url || ''}
+                                                    onChange={e => handleUpdateAd(activeAdIdx, 'spreadsheet_url', e.target.value)}
+                                                    placeholder="Google Sheets URL..."
+                                                />
+                                            ) : (
+                                                <p style={{ margin: 0, fontSize: '13px', opacity: 0.6, flex: 1 }}>{currentAd.spreadsheet_url || 'Nenhuma planilha'}</p>
+                                            )}
+                                            {currentAd.spreadsheet_url && (
+                                                <a href={currentAd.spreadsheet_url} target="_blank" rel="noreferrer" style={{ color: '#22c55e', padding: '10px', background: 'rgba(34,197,94,0.1)', borderRadius: '10px' }} title="Abrir Planilha">
+                                                    <ExternalLink size={16} />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <label className="field-label" style={{ marginBottom: 0 }}>Variáveis ({currentAd.variables?.length || 0})</label>
+                                            {user?.role !== 'CLIENT' && (
+                                                <button
+                                                    onClick={() => {
+                                                        const name = window.prompt("Nome da nova variável (ex: NOME, VALOR):");
+                                                        if (name) handleAddVariable(activeAdIdx, name);
+                                                    }}
+                                                    style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--primary-color)', border: 'none', color: '#000', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}
+                                                >
+                                                    + ADICIONAR
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                            {currentAd.variables?.map((v, i) => (
+                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+                                                        {v}
+                                                    </span>
+                                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                                        <button
+                                                            onClick={() => copyToClipboard(v, `Variável ${v}`)}
+                                                            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                                            title="Copiar"
+                                                        >
+                                                            <Copy size={12} />
+                                                        </button>
+                                                        {user?.role !== 'CLIENT' && (
+                                                            <button
+                                                                onClick={() => handleRemoveVariable(activeAdIdx, i)}
+                                                                style={{ background: 'none', border: 'none', color: '#ef4444', opacity: 0.6, cursor: 'pointer', display: 'flex', padding: 0 }}
+                                                                title="Remover"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {(!currentAd.variables || currentAd.variables.length === 0) && (
+                                                <p style={{ margin: 0, fontSize: '11px', opacity: 0.3, padding: '10px' }}>Nenhuma variável definida para este AD.</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                     ) : (
                         <div style={{ padding: '60px', textAlign: 'center', opacity: 0.2 }}>
                             <AlertCircle size={40} style={{ marginBottom: '12px' }} />
