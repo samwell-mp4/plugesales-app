@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy } from 'lucide-react';
+import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -874,20 +874,14 @@ const TemplateCreator = () => {
 
                                             <div className="flex items-center gap-4">
                                                 {headerMediaUrl ? (
-                                                    <div className="relative group w-32 h-32 rounded-xl overflow-hidden border-2 border-primary/30">
-                                                        {headerType === 'image' ? (
-                                                            <img src={headerMediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                        ) : (
-                                                            <div className="w-full h-full bg-black flex items-center justify-center">
-                                                                <Video size={32} className="text-primary" />
-                                                            </div>
-                                                        )}
-                                                        <div
-                                                            onClick={() => setHeaderMediaUrl('')}
-                                                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity"
-                                                        >
-                                                            <Plus size={24} style={{ transform: 'rotate(45deg)' }} />
+                                                    <div className="flex-1 bg-white/5 p-3 rounded-lg border border-white/10 flex items-center justify-between gap-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <CheckCircle size={20} className="text-primary" />
+                                                            <span className="font-mono text-[10px] truncate">Mídia Selecionada</span>
                                                         </div>
+                                                        <button onClick={() => setHeaderMediaUrl('')} className="text-danger hover:text-danger-dark transition-colors">
+                                                            <X size={16} />
+                                                        </button>
                                                     </div>
                                                 ) : (
                                                     <div
@@ -909,15 +903,6 @@ const TemplateCreator = () => {
                                                             accept={headerType === 'image' ? 'image/*' : 'video/*'}
                                                             onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
                                                         />
-                                                    </div>
-                                                )}
-
-                                                {headerMediaUrl && (
-                                                    <div className="flex-1">
-                                                        <p style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5, marginBottom: '4px' }}>Arquivo carregado no servidor:</p>
-                                                        <div className="bg-white/5 p-3 rounded-lg border border-white/10 font-mono text-[10px] truncate">
-                                                            {headerMediaUrl}
-                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
