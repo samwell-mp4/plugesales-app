@@ -44,6 +44,7 @@ interface Ad {
     total_leads?: number;
     delivered_leads?: number;
     price_per_msg?: number;
+    scheduled_at?: string;
     id?: string;
 }
 
@@ -561,8 +562,8 @@ const ClientSubmissionDetail = () => {
                                                 <input type="date" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.dispatch_date || ''} onChange={e => handleUpdateAd(activeAdIdx, 'dispatch_date', e.target.value)} />
                                             </div>
                                             <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Total de Leads Subidos</p>
-                                                <input type="number" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.total_leads || ''} onChange={e => handleUpdateAd(activeAdIdx, 'total_leads', Number(e.target.value))} />
+                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Agendamento (Data/Hora)</p>
+                                                <input type="datetime-local" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.scheduled_at || ''} onChange={e => handleUpdateAd(activeAdIdx, 'scheduled_at', e.target.value)} />
                                             </div>
                                             <div style={{ padding: '16px', background: 'rgba(172,248,0,0.03)', borderRadius: '16px', border: '1px solid rgba(172,248,0,0.1)' }}>
                                                 <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Leads Entregues (Sucesso)</p>

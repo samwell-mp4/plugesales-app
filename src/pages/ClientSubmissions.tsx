@@ -39,6 +39,7 @@ interface Ad {
     variables?: string[];
     delivered_leads?: number;
     price_per_msg?: number;
+    scheduled_at?: string;
     id?: string;
 }
 
@@ -69,18 +70,18 @@ const ClientSubmissions = () => {
     const [submissions, setSubmissions] = useState<ClientSubmission[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0 });
-    const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>(user?.role === 'ADMIN' ? 'available' : 'mine');
+    const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>('all');
     const [employees, setEmployees] = useState<string[]>([]);
     const [clients, setClients] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [selectedClientFilter, setSelectedClientFilter] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list' | 'kanban'>('grid');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(12);
+    const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+    const [showUpcoming, setShowUpcoming] = useState(false);
 
     const loadSubmissions = async () => {
         setIsLoading(true);
@@ -123,33 +124,28 @@ const ClientSubmissions = () => {
 
     const allSubmissions = Array.isArray(submissions) ? submissions : [];
     
-    const searchFilter = (s: ClientSubmission) => {
-        const matchesClient = selectedClientFilter ? String(s.user_id) === String(selectedClientFilter) : true;
-        const matchesText = (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (s.ddd || '').includes(searchTerm);
+    const allFiltered = allSubmissions.filter(s => {
+        const matchesSearch = (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (s.ddd || '').includes(searchTerm);
         
-        let matchesDate = true;
-        if (startDate || endDate) {
-            const subDate = new Date(s.timestamp).setHours(0,0,0,0);
-            const startStr = startDate ? new Date(startDate + 'T00:00:00').setHours(0,0,0,0) : null;
-            const endStr = endDate ? new Date(endDate + 'T00:00:00').setHours(0,0,0,0) : null;
-            if (startStr && subDate < startStr) matchesDate = false;
-            if (endStr && subDate > endStr) matchesDate = false;
-        }
+        const matchesClient = !selectedClientFilter || String(s.user_id) === String(selectedClientFilter);
 
-        return matchesClient && matchesText && matchesDate;
-    };
+        const dateObj = new Date(s.timestamp);
+        const matchesStart = !dateRange.start || dateObj >= new Date(dateRange.start + 'T00:00:00');
+        const matchesEnd = !dateRange.end || dateObj <= new Date(dateRange.end + 'T23:59:59');
 
-    // Now 'available' means not assigned yet
-    const availableSubmissions = allSubmissions.filter(s => !s.assigned_to && searchFilter(s));
-    // 'mine' means assigned specifically to the user
-    const mySubmissions = allSubmissions.filter(s => s.assigned_to === user?.name && searchFilter(s));
-    const allFiltered = allSubmissions.filter(searchFilter);
+        const hasUpcomingAd = s.ads?.some(ad => ad.scheduled_at && new Date(ad.scheduled_at) > new Date()) || false;
+        const matchesUpcoming = !showUpcoming || hasUpcomingAd;
 
-    const filteredSubmissions = activeTab === 'available' ? availableSubmissions
-        : activeTab === 'mine' ? mySubmissions
+        return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming;
+    });
+
+    const filteredSubmissions = activeTab === 'available' ? allFiltered.filter(s => !s.assigned_to)
+        : activeTab === 'mine' ? allFiltered.filter(s => s.assigned_to === user?.name)
         : allFiltered;
+
+    const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     const selectAll = () => {
         if (selectedIds.length === filteredSubmissions.length) setSelectedIds([]);
@@ -229,8 +225,8 @@ const ClientSubmissions = () => {
     };
 
     const tabs = [
-        ...(user?.role === 'ADMIN' ? [{ id: 'available' as const, label: 'PENDENTES', icon: <Inbox size={13} />, count: availableSubmissions.length }] : []),
-        { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: mySubmissions.length },
+        ...(user?.role === 'ADMIN' ? [{ id: 'available' as const, label: 'PENDENTES', icon: <Inbox size={13} />, count: allFiltered.filter(s => !s.assigned_to).length }] : []),
+        { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: allFiltered.filter(s => s.assigned_to === user?.name).length },
         ...(user?.role === 'ADMIN' ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: allFiltered.length }] : []),
     ];
 
@@ -243,8 +239,6 @@ const ClientSubmissions = () => {
         const adsFaturado = sub.ads?.reduce((s, ad) => s + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
         return sum + adsFaturado;
     }, 0);
-
-    const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     const renderGridView = () => (
         <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
@@ -264,6 +258,13 @@ const ClientSubmissions = () => {
                                 {selectedIds.includes(s.id) && <CheckCircle size={13} style={{ color: '#000' }} />}
                             </div>
                         </div>
+                        {s.status === 'GERADO' && s.ads?.some(ad => ad.scheduled_at) && (
+                            <div style={{ position: 'absolute', top: '16px', right: '140px' }}>
+                                <div style={{ fontSize: '9px', fontWeight: 900, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '3px 10px', borderRadius: '999px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <Clock size={10} /> AGENDADO
+                                </div>
+                            </div>
+                        )}
                         <div style={{ position: 'absolute', top: '16px', right: '40px' }}>
                             <span style={{ fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '999px', letterSpacing: '0.5px', textTransform: 'uppercase', background: s.assigned_to ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.1)' : 'rgba(172,248,0,0.08)', color: s.assigned_to ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : s.status === 'CONCLUIDO' ? '#10b981' : 'var(--primary-color)', border: `1px solid ${s.assigned_to ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.3)' : 'rgba(172,248,0,0.15)'}` }}>
                                 {s.assigned_to ? `EM MÃOS: ${s.assigned_to.toUpperCase()}` : s.status === 'CONCLUIDO' ? 'DISPARO CONCLUÍDO' : s.status}
@@ -300,6 +301,21 @@ const ClientSubmissions = () => {
                                 <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, overflow: 'hidden' }}>
                                     {(s.ad_copy || s.ads?.[0]?.ad_copy || '').substring(0, 120)}
                                 </p>
+                            </div>
+                        )}
+
+                        {s.status === 'GERADO' && s.ads?.[0]?.scheduled_at && (
+                            <div style={{ background: 'rgba(59,130,246,0.08)', borderRadius: '10px', padding: '12px', marginBottom: '14px', border: '1px solid rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: 32, height: 32, borderRadius: '8px', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Calendar size={16} color="#3b82f6" />
+                                </div>
+                                <div>
+                                    <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>DISPARO AGENDADO</p>
+                                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', fontWeight: 800 }}>{new Date(s.ads[0].scheduled_at).toLocaleString('pt-BR')}</p>
+                                    {s.sender_number && (
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '9px', fontWeight: 700, opacity: 0.6 }}>BM: {s.sender_number}</p>
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -602,9 +618,9 @@ const ClientSubmissions = () => {
                             { label: 'Investimento Clientes', value: `R$ ${totalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'var(--primary-color)' },
                         ] : [
                             { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
-                            { label: 'Disponíveis', value: availableSubmissions.length, color: 'var(--primary-color)' },
-                            { label: 'Em andamento', value: allSubmissions.filter(isAccepted).length, color: '#f59e0b' },
-                            { label: 'Geradas', value: allSubmissions.filter(s => s.status === 'GERADO').length, color: '#22c55e' },
+                            { label: 'Disponíveis', value: allFiltered.filter(s => !s.assigned_to).length, color: 'var(--primary-color)' },
+                            { label: 'Em andamento', value: allFiltered.filter(isAccepted).length, color: '#f59e0b' },
+                            { label: 'Geradas', value: allFiltered.filter(s => s.status === 'GERADO').length, color: '#22c55e' },
                         ]).map(stat => (
                             <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '18px', padding: '18px 24px', backdropFilter: 'blur(10px)', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                                 <span style={{ fontSize: '28px', fontWeight: 900, color: stat.color, lineHeight: 1, display: 'block', marginBottom: '4px' }}>{stat.value}</span>
@@ -616,7 +632,7 @@ const ClientSubmissions = () => {
                     {/* Interactive mini-charts */}
                     {allSubmissions.length > 0 && (() => {
                         const total = allSubmissions.length;
-                        const avail = availableSubmissions.length;
+                        const avail = allFiltered.filter(s => !s.assigned_to).length;
                         const inProgress = allSubmissions.filter(isAccepted).length;
                         const done = allSubmissions.filter(s => s.status === 'GERADO').length;
                         const cancelled = allSubmissions.filter(s => s.status === 'CANCELADO').length;
@@ -705,31 +721,44 @@ const ClientSubmissions = () => {
                                 </div>
                                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>DE:</span>
-                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ background: 'transparent', border: 'none', color: startDate ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
+                                    <input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({ ...p, start: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: dateRange.start ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
                                 </div>
                                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>ATÉ:</span>
-                                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ background: 'transparent', border: 'none', color: endDate ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
+                                    <input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({ ...p, end: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: dateRange.end ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
                                 </div>
+                                <button
+                                    onClick={() => { setShowUpcoming(!showUpcoming); setCurrentPage(1); }}
+                                    style={{ 
+                                        background: showUpcoming ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)', 
+                                        border: `1px solid ${showUpcoming ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)'}`, 
+                                        color: showUpcoming ? '#3b82f6' : 'rgba(255,255,255,0.4)', 
+                                        padding: '0 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s', height: '38px' 
+                                    }}
+                                >
+                                    <Clock size={14} /> PRÓXIMOS
+                                </button>
                             </>
                         )}
-                        <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
                             <Search size={15} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
                             <input
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
-                                placeholder="Buscar cliente ou DDD..."
+                                placeholder="Buscar..."
                                 style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '13px', padding: '10px 0', width: '100%' }}
                             />
                         </div>
-                        {filteredSubmissions.length > 0 && (
-                            <button
-                                onClick={selectAll}
-                                style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontWeight: 900, letterSpacing: '1px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                            >
-                                {selectedIds.length === filteredSubmissions.length && filteredSubmissions.length > 0 ? 'DESSELECIONAR' : 'SEL. TUDO'}
-                            </button>
-                        )}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                            {filteredSubmissions.length > 0 && (
+                                <button
+                                    onClick={selectAll}
+                                    style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontWeight: 900, letterSpacing: '1px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                >
+                                    {selectedIds.length === filteredSubmissions.length && filteredSubmissions.length > 0 ? 'DESSELECIONAR' : 'SEL. TUDO'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
