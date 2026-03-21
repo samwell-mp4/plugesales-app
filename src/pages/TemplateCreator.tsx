@@ -94,7 +94,7 @@ const TemplateCreator = () => {
     const [language, setLanguage] = useState('pt_BR');
 
     const [headerType, setHeaderType] = useState<'none' | 'image' | 'video'>('none');
-    const [headerMediaUrl, setHeaderMediaUrl] = useState('');
+    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://plug-sales-dispatch-app-dispatch-app.hx8235.easypanel.host/uploads/1774126510561-917105516.jpg');
 
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
@@ -157,19 +157,17 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'none') {
             const format = effectiveHeaderType.toUpperCase();
-            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim();
+            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://plug-sales-dispatch-app-dispatch-app.hx8235.easypanel.host/uploads/1774126510561-917105516.jpg";
             
-            if (!mediaUrlValue) {
-                console.warn(`[TemplateCreator] Header format is ${format} but no media URL found.`);
-                // If it's a mandatory media header, this should ideally block creation
-                // We'll proceed but it will likely fail if required by Infobip
+            if (mediaUrlValue.includes("placeholder_for_approval")) {
+                console.warn(`[TemplateCreator] Header format is ${format} but using placeholder.`);
             }
 
             structure.header = {
                 format: format,
-                // Infobip API v2 often expects 'mediaUrl' key inside the example object
+                // Some Infobip API v2 versions expect 'example' to be an array of strings for media headers
                 example: (format === 'IMAGE' || format === 'VIDEO' || format === 'DOCUMENT') 
-                    ? { mediaUrl: mediaUrlValue || "https://placeholder_for_approval.com/image.png" } 
+                    ? [ mediaUrlValue ] 
                     : mediaUrlValue
             };
         }
@@ -298,7 +296,12 @@ const TemplateCreator = () => {
         setIsGenerating(true);
         setGeneratingProgress({ current: 1, total: 1, msg: `Criando template "${sanitizedName}"...` });
 
-        const payload = buildInfobipPayload(sanitizedName);
+        const payload: any = buildInfobipPayload(sanitizedName);
+        if (payload.error) {
+            setIsGenerating(false);
+            return alert(payload.error);
+        }
+
         const res = await callInfobipAPI(payload);
 
         setIsGenerating(false);
@@ -365,7 +368,11 @@ const TemplateCreator = () => {
             const name = `${bulkPrefix}${row.suffix}`;
             setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Processando ${name}...` });
 
-            const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, row.buttonUrls, row.hasButtons);
+            const payload: any = buildInfobipPayload(name, row.headerType, row.mediaUrl, row.buttonUrls, row.hasButtons);
+            if (payload.error) {
+                errors.push(`${name}: ${payload.error}`);
+                continue;
+            }
 
             // Inject sender into payload for tracking/webhooks
             const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumber;
