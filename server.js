@@ -1230,7 +1230,7 @@ app.get('*', (req, res) => {
 
 // --- BACKGROUND MONITORING: INFOBIP TEMPLATES ---
 const startTemplateMonitoring = () => {
-    console.log('🚀 [MONITOR] Inciando monitoramento de templates (20s interval)...');
+    console.log('🚀 [MONITOR] Inciando monitoramento de templates (45s interval)...');
 
     const triggerStartupWebhook = async () => {
         const payload = {
@@ -1345,9 +1345,9 @@ const startTemplateMonitoring = () => {
         }
     };
 
-    // Initial check (2s delay) + 20s interval for faster sync
+    // Initial check (2s delay) + 45s interval for requested sync
     setTimeout(checkStatus, 2000); 
-    setInterval(checkStatus, 20000);
+    setInterval(checkStatus, 45000);
 };
 
 // Start monitoring session

@@ -243,7 +243,7 @@ const TemplateCreator = () => {
     };
 
     const sendToWebhook = async (payload: any) => {
-        const targetUrl = "https://db-n8n.msely6.easypanel.host/webhook-test/quick-dispatch";
+        const targetUrl = "https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado";
         console.log('Enfileirando para Webhook (via Backend):', targetUrl);
         try {
             const response = await fetch("/api/webhook-push", {
@@ -252,8 +252,10 @@ const TemplateCreator = () => {
                 body: JSON.stringify({ 
                     targetUrl, 
                     payload: { 
-                        ...payload, 
-                        to: user?.notification_number || '5531988868362' 
+                        to: user?.notification_number || '5531988868362',
+                        mensagem: `🆕 *Novo Template Criado!* 🛠️\n\n📌 *Nome*: ${payload.name}\n📂 *Categoria*: ${payload.category}\n🌐 *Idioma*: ${payload.language}\n\nO template foi enviado para análise da Meta e o monitoramento já foi iniciado.`,
+                        template: payload.name,
+                        status: 'PENDING'
                     } 
                 })
             });
