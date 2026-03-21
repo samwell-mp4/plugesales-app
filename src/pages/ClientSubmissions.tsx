@@ -20,7 +20,10 @@ import {
     List,
     ChevronLeft,
     ChevronRight,
-    Trello
+    Trello,
+    Eye,
+    Send,
+    Calendar
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -331,17 +334,54 @@ const ClientSubmissions = () => {
         <div className="list-container">
             {paginatedSubmissions.map(s => (
                 <div key={s.id} className={`list-row ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)}>
-                    <div style={{ width: 24, height: 24, borderRadius: '6px', border: '1.5px solid rgba(255,255,255,0.1)', background: selectedIds.includes(s.id) ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {selectedIds.includes(s.id) && <CheckCircle size={14} style={{ color: '#000' }} />}
+                    {/* COL 1: NAME & SUBTITLE */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontWeight: 900, fontSize: '14px', color: '#fff', letterSpacing: '-0.2px' }}>{s.profile_name}</span>
+                        <span style={{ fontSize: '10px', color: 'rgba(172,248,0,0.6)', fontWeight: 800 }}>{s.id.toString().padStart(6, '0')}...</span>
                     </div>
+
+                    {/* COL 2: TYPE & LOCALE */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontWeight: 900, fontSize: '11px', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>
+                            {s.template_type || 'TEMPLATE'}
+                        </span>
+                        <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>pt_BR</span>
+                    </div>
+
+                    {/* COL 3: STATUS BADGE */}
                     <div>
-                        <p style={{ margin: 0, fontWeight: 900, fontSize: '13px' }}>{s.profile_name}</p>
-                        <p style={{ margin: 0, fontSize: '10px', opacity: 0.4 }}>{s.client_name}</p>
+                        <span className="list-badge" style={{
+                            borderColor: s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.3)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.3)' : 'rgba(172,248,0,0.3)',
+                            color: s.status === 'CONCLUIDO' ? '#10b981' : s.status === 'GERADO' ? '#22c55e' : 'var(--primary-color)',
+                            background: s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.05)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.05)' : 'rgba(172,248,0,0.05)'
+                        }}>
+                            {s.status === 'CONCLUIDO' ? 'CONCLUÍDO' : s.status}
+                        </span>
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--primary-color)' }}>{s.ddd}</span>
-                    <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5 }}>{formatDate(s.timestamp)}</span>
-                    <span style={{ fontSize: '9px', fontWeight: 900, padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', textAlign: 'center' }}>{s.status}</span>
-                    <button className="open-btn" style={{ padding: '6px 12px' }} onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>VER</button>
+
+                    {/* COL 4: DATE */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700 }}>
+                        <Calendar size={14} opacity={0.5} />
+                        {formatDate(s.timestamp)}
+                    </div>
+
+                    {/* COL 5: ACTIONS */}
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button 
+                            className="list-btn" 
+                            onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}
+                            title="Visualizar"
+                        >
+                            <Eye size={16} />
+                        </button>
+                        <button 
+                            className="list-btn primary" 
+                            onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}
+                            title="Abrir Painel"
+                        >
+                            <Send size={16} />
+                        </button>
+                    </div>
                 </div>
             ))}
         </div>
@@ -440,21 +480,36 @@ const ClientSubmissions = () => {
                 .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 16px; }
 
                 /* List View Styles */
-                .list-container { display: flex; flexDirection: column; gap: 8px; width: 100%; }
+                .list-container { display: flex; flex-direction: column; gap: 8px; width: 100%; }
                 .list-row {
                     display: grid;
-                    grid-template-columns: 60px 2fr 1fr 1fr 1.5fr 150px;
+                    grid-template-columns: 2fr 1fr 1fr 1.5fr 120px;
                     align-items: center;
-                    padding: 12px 20px;
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.06);
-                    border-radius: 12px;
-                    gap: 16px;
+                    padding: 16px 24px;
+                    background: rgba(255,255,255,0.015);
+                    border: 1px solid rgba(255,255,255,0.04);
+                    border-radius: 14px;
+                    gap: 20px;
                     transition: all 0.2s;
                     cursor: pointer;
                 }
-                .list-row:hover { background: rgba(255,255,255,0.04); border-color: var(--primary-color); }
-                .list-row.selected { background: rgba(172,248,0,0.04); border-color: rgba(172,248,0,0.3); }
+                .list-row:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1); }
+                .list-row.selected { background: rgba(172,248,0,0.03); border-color: rgba(172,248,0,0.2); }
+
+                .list-btn {
+                    width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+                    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); 
+                    color: rgba(255,255,255,0.4); cursor: pointer; transition: all 0.2s;
+                }
+                .list-btn:hover { background: rgba(255,255,255,0.08); color: white; border-color: rgba(255,255,255,0.15); }
+                .list-btn.primary { background: var(--primary-color); border-color: var(--primary-color); color: #000; box-shadow: 0 0 12px rgba(172,248,0,0.2); }
+                .list-btn.primary:hover { background: #bdfa00; transform: scale(1.05); }
+
+                .list-badge {
+                    font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 6px;
+                    border: 1px solid rgba(172,248,0,0.3); color: var(--primary-color);
+                    background: rgba(172,248,0,0.05); text-transform: uppercase; letter-spacing: 0.5px;
+                }
 
                 /* Kanban Styles */
                 .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; min-height: 600px; -webkit-overflow-scrolling: touch; }
