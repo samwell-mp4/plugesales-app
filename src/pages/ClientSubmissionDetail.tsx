@@ -82,6 +82,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
     'CONCLUÍDO': { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
 };
 
+// Unique keys for rendering the status buttons (prevents duplication)
+const STATUS_DISPLAY_KEYS = ['PENDENTE', 'EM_ANDAMENTO', 'GERADO', 'CANCELADO', 'CONCLUIDO'];
+
 const ClientSubmissionDetail = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -491,18 +494,26 @@ const ClientSubmissionDetail = () => {
                     <div className="control-card" style={{ animationDelay: '0.1s' }}>
                         <label className="field-label"><Zap size={14} /> Fluxo de Trabalho</label>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
-                            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                                <button
-                                    key={key}
-                                    className={`status-btn ${sub.status === key ? 'active' : ''}`}
-                                    style={{ '--bg': cfg.bg, '--color': cfg.color, '--border': cfg.border } as any}
-                                    onClick={() => handleStatusChange(key)}
-                                    disabled={updatingStatus || sub.status === key || user?.role === 'CLIENT'}
-                                >
-                                    <CheckSquare size={14} /> {cfg.label}
-                                    {sub.status === key && <CheckCircle size={14} style={{ marginLeft: 'auto' }} />}
-                                </button>
-                            ))}
+                            {STATUS_DISPLAY_KEYS.map((key) => {
+                                const cfg = STATUS_CONFIG[key];
+                                // We also need to check the variant mapping for active state
+                                const isActive = sub.status === key || 
+                                    (key === 'EM_ANDAMENTO' && sub.status === 'EM ANDAMENTO') || 
+                                    (key === 'CONCLUIDO' && sub.status === 'CONCLUÍDO');
+                                    
+                                return (
+                                    <button
+                                        key={key}
+                                        className={`status-btn ${isActive ? 'active' : ''}`}
+                                        style={{ '--bg': cfg.bg, '--color': cfg.color, '--border': cfg.border } as any}
+                                        onClick={() => handleStatusChange(key)}
+                                        disabled={updatingStatus || isActive || user?.role === 'CLIENT'}
+                                    >
+                                        <CheckSquare size={14} /> {cfg.label}
+                                        {isActive && <CheckCircle size={14} style={{ marginLeft: 'auto' }} />}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
