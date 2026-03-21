@@ -548,8 +548,8 @@ const ClientSubmissionDetail = () => {
 
                     {currentAd ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                            {/* MÉTRICAS E FATURAMENTO DO AD (Topo - Apenas Se Concluído) */}
-                            {sub.status === 'CONCLUIDO' && (
+                            {/* MÉTRICAS E FATURAMENTO DO AD (Substituído por Condição Única) */}
+                            {(sub.status === 'GERADO' || sub.status === 'CONCLUIDO') && (
                                 <div style={{ background: 'rgba(255,255,255,0.015)', padding: '24px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '20px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                         <label className="field-label" style={{ marginBottom: 0 }}><Activity size={14} /> Desempenho e Faturamento da Campanha</label>

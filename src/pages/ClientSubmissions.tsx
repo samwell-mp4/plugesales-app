@@ -305,15 +305,15 @@ const ClientSubmissions = () => {
                         )}
 
                         {s.status === 'GERADO' && s.ads?.[0]?.scheduled_at && (
-                            <div style={{ background: 'rgba(59,130,246,0.08)', borderRadius: '10px', padding: '12px', marginBottom: '14px', border: '1px solid rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ width: 32, height: 32, borderRadius: '8px', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <Calendar size={16} color="#3b82f6" />
+                            <div style={{ background: 'rgba(59,130,246,0.12)', borderRadius: '12px', padding: '14px', marginBottom: '14px', border: '1px solid rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 4px 12px rgba(59,130,246,0.1)' }}>
+                                <div style={{ width: 36, height: 36, borderRadius: '10px', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 10px rgba(59,130,246,0.4)' }}>
+                                    <Clock size={18} color="#fff" />
                                 </div>
                                 <div>
-                                    <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>DISPARO AGENDADO</p>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', fontWeight: 800 }}>{new Date(s.ads[0].scheduled_at).toLocaleString('pt-BR')}</p>
+                                    <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '1px' }}>PRÓXIMO DISPARO</p>
+                                    <p style={{ margin: '2px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#fff' }}>{new Date(s.ads[0].scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
                                     {s.sender_number && (
-                                        <p style={{ margin: '2px 0 0 0', fontSize: '9px', fontWeight: 700, opacity: 0.6 }}>BM: {s.sender_number}</p>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '9px', fontWeight: 800, color: 'rgba(59,130,246,0.7)' }}>BM SENDER: {s.sender_number}</p>
                                     )}
                                 </div>
                             </div>
