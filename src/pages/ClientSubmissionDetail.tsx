@@ -85,6 +85,7 @@ const ClientSubmissionDetail = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [activeAdIdx, setActiveAdIdx] = useState(0);
     const [notes, setNotes] = useState('');
+    const [isNotifying, setIsNotifying] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [employees, setEmployees] = useState<string[]>([]);
     const [updatingAssign, setUpdatingAssign] = useState(false);
@@ -157,6 +158,31 @@ const ClientSubmissionDetail = () => {
             console.error(err);
         } finally {
             setUpdatingAssign(false);
+        }
+    };
+
+    const handleNotifyWebhook = async () => {
+        if (!sub) return;
+        setIsNotifying(true);
+        try {
+            await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/0d60b5ac-b96d-40a8-b101-b7f7fcfc5469', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: '5531988868362',
+                    PDF: `Relatório de Envio #${sub.id}`,
+                    mensagem: 'Seu disparo foi concluido com sucesso, veja o relátorio completo em nosso PDF.',
+                    id: sub.id,
+                    cnpj: '63140137000161',
+                    razao_social: 'Plug e Sales Soluções digitais LTDA'
+                })
+            });
+            alert("Notificação enviada com sucesso!");
+        } catch (err) {
+            console.error("Webhook error:", err);
+            alert("Erro ao enviar notificação.");
+        } finally {
+            setIsNotifying(false);
         }
     };
 
@@ -518,6 +544,33 @@ const ClientSubmissionDetail = () => {
                                     </div>
                                     <ExternalLink size={14} style={{ opacity: 0.3 }} />
                                 </a>
+                            )}
+
+                            {user?.role !== 'CLIENT' && (
+                                <button
+                                    onClick={handleNotifyWebhook}
+                                    disabled={isNotifying}
+                                    style={{
+                                        marginTop: '8px',
+                                        width: '100%',
+                                        padding: '12px',
+                                        background: 'rgba(59,130,246,0.1)',
+                                        border: '1px solid rgba(59,130,246,0.2)',
+                                        borderRadius: '14px',
+                                        color: '#3b82f6',
+                                        fontSize: '11px',
+                                        fontWeight: 900,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {isNotifying ? <RefreshCw className="animate-spin" size={14} /> : <Zap size={14} />}
+                                    {isNotifying ? 'NOTIFICANDO...' : 'NOTIFICAR CLIENTE (WHATSAPP)'}
+                                </button>
                             )}
                         </div>
                     </div>
