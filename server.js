@@ -1131,43 +1131,80 @@ app.get('*', (req, res) => {
 
 // --- BACKGROUND MONITORING: INFOBIP TEMPLATES ---
 const startTemplateMonitoring = () => {
-    console.log('🚀 Starting background template monitoring (2min interval)...');
+    console.log('🚀 [MONITOR] Inciando monitoramento de templates (45s interval)...');
+    
+    // Test Webhook on Start
+    const triggerStartupWebhook = async () => {
+        try {
+            await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    to: '5531988868362', 
+                    mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.` 
+                })
+            });
+            console.log('✅ [MONITOR] Startup webhook sent successfully.');
+        } catch (e) {
+            console.error('❌ [MONITOR] Failed to send startup webhook:', e.message);
+        }
+    };
+    triggerStartupWebhook();
 
     const checkStatus = async () => {
         let client;
         try {
             client = await pool.connect();
-
+            
             // 1. Get Settings
             const setRes = await client.query("SELECT key, value FROM settings WHERE key IN ('infobip_key', 'infobip_sender')");
             const settings = {};
             setRes.rows.forEach(r => settings[r.key] = r.value);
-
+            
             const apiKey = settings['infobip_key'];
             const sender = settings['infobip_sender'];
+            
+            if (!apiKey || !sender) {
+                console.warn('⚠️ [MONITOR] API Key ou Sender não configurados no Banco de Dados.');
+                return;
+            }
 
-            if (!apiKey || !sender) return;
+            console.log(`🔍 [MONITOR] Verificando templates para o remetente: ${sender}...`);
 
             // 2. Fetch from Infobip
             const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${sender}/templates?_t=${Date.now()}`, {
                 headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
             });
             const data = await response.json();
-
+            
             if (data && data.templates) {
+                console.log(`📊 [MONITOR] ${data.templates.length} templates encontrados no Infobip.`);
                 for (const t of data.templates) {
                     const templateId = t.id;
                     const newStatus = (t.status || 'PENDING').toUpperCase();
-
+                    
                     // 3. Check DB for previous status
                     const dbRes = await client.query("SELECT status FROM infobip_templates WHERE id = $1", [templateId]);
                     const oldStatus = dbRes.rows[0]?.status;
 
-                    if (newStatus === 'APPROVED' && oldStatus && oldStatus !== 'APPROVED') {
-                        // 4. Trigger Webhook (Status Changed to Approved)
-                        const now = new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                        const msg = `Olá! O Meta acaba de aprovar o seu novo template. 🚀\n\n📌 *Nome*: ${t.name}\n📂 *Categoria*: ${t.category}\n🌐 *Idioma*: Portuguese (BR)\n📅 *Data*: ${now}\n\nO seu template já está disponível para uso imediato no *Plug & Sales*!`;
+                    // Lógica de Disparo:
+                    // - Se é um NOVO template detectado agora
+                    // - OU se o status MUDOU (especialmente para APPROVED)
+                    let shouldNotify = false;
+                    let notificationMsg = '';
 
+                    if (!oldStatus) {
+                        shouldNotify = true;
+                        notificationMsg = `🆕 *Novo Template Detectado!*\n\n📌 *Nome*: ${t.name}\n📊 *Status Atual*: ${newStatus}\n📂 *Categoria*: ${t.category}\n🌐 *Idioma*: Portuguese (BR)\n\nO sistema agora está acompanhando a aprovação deste modelo pela Meta.`;
+                    } else if (newStatus === 'APPROVED' && oldStatus !== 'APPROVED') {
+                        shouldNotify = true;
+                        notificationMsg = `✅ *Template Aprovado pela Meta!* 🚀\n\n📌 *Nome*: ${t.name}\n📂 *Categoria*: ${t.category}\n📅 *Data*: ${new Date().toLocaleString('pt-BR')}\n\nO seu template já está disponível para uso imediato no *Plug & Sales*!`;
+                    } else if (newStatus !== oldStatus) {
+                        shouldNotify = true;
+                        notificationMsg = `🔄 *Alteração de Status de Template*\n\n📌 *Nome*: ${t.name}\n📉 *Status Anterior*: ${oldStatus}\n📈 *Novo Status*: ${newStatus}\n\nFique atento para futuras atualizações.`;
+                    }
+
+                    if (shouldNotify) {
                         await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1176,10 +1213,11 @@ const startTemplateMonitoring = () => {
                                 id: templateId,
                                 name: t.name,
                                 category: t.category,
-                                mensagem: msg
+                                status: newStatus,
+                                mensagem: notificationMsg
                             })
                         });
-                        console.log(`[MONITOR] Webhook triggered for newly approved template: ${t.name}`);
+                        console.log(`🔔 [MONITOR] Notificação enviada para: ${t.name} (Status: ${newStatus})`);
                     }
 
                     // 5. Update DB
@@ -1188,16 +1226,18 @@ const startTemplateMonitoring = () => {
                         [templateId, newStatus]
                     );
                 }
+            } else {
+                console.warn('⚠️ [MONITOR] Resposta da API Infobip não contém templates:', data);
             }
         } catch (err) {
-            console.error('[MONITOR] Error checking template status:', err.message);
+            console.error('❌ [MONITOR] Erro fatal durante a checagem:', err.message);
         } finally {
             if (client) client.release();
         }
     };
 
-    // Initial check + 45s interval
-    setTimeout(checkStatus, 5000);
+    // Initial check (5s delay) + 45s interval
+    setTimeout(checkStatus, 5000); 
     setInterval(checkStatus, 45000);
 };
 
