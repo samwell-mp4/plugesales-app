@@ -30,6 +30,8 @@ interface Ad {
     ad_copy_file?: string;
     button_link?: string;
     variables?: string[];
+    delivered_leads?: number;
+    price_per_msg?: number;
     id?: string;
 }
 
@@ -67,6 +69,8 @@ const ClientSubmissions = () => {
     const [employees, setEmployees] = useState<string[]>([]);
     const [clients, setClients] = useState<any[]>([]);
     const [selectedClientFilter, setSelectedClientFilter] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     const loadSubmissions = async () => {
         setIsLoading(true);
@@ -114,7 +118,17 @@ const ClientSubmissions = () => {
         const matchesText = (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                             (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                             (s.ddd || '').includes(searchTerm);
-        return matchesClient && matchesText;
+        
+        let matchesDate = true;
+        if (startDate || endDate) {
+            const subDate = new Date(s.timestamp).setHours(0,0,0,0);
+            const startStr = startDate ? new Date(startDate + 'T00:00:00').setHours(0,0,0,0) : null;
+            const endStr = endDate ? new Date(endDate + 'T00:00:00').setHours(0,0,0,0) : null;
+            if (startStr && subDate < startStr) matchesDate = false;
+            if (endStr && subDate > endStr) matchesDate = false;
+        }
+
+        return matchesClient && matchesText && matchesDate;
     };
 
     // Now 'available' means not assigned yet
@@ -209,6 +223,16 @@ const ClientSubmissions = () => {
         { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: mySubmissions.length },
         ...(user?.role === 'ADMIN' ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: allFiltered.length }] : []),
     ];
+
+    const totalEntregues = allFiltered.reduce((sum, sub) => {
+        const adsEntregues = sub.ads?.reduce((s, ad) => s + (ad.delivered_leads || 0), 0) || 0;
+        return sum + adsEntregues;
+    }, 0);
+
+    const totalFaturado = allFiltered.reduce((sum, sub) => {
+        const adsFaturado = sub.ads?.reduce((s, ad) => s + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
+        return sum + adsFaturado;
+    }, 0);
 
     return (
         <div style={{ background: '#020617', minHeight: '100vh', padding: '32px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
@@ -311,12 +335,17 @@ const ClientSubmissions = () => {
 
                     {/* Stats bar */}
                     <div className="stats-grid">
-                        {[
+                        {(user?.role === 'ADMIN' ? [
+                            { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
+                            { label: 'Em andamento', value: allSubmissions.filter(isAccepted).length, color: '#f59e0b' },
+                            { label: 'Total Entregues', value: totalEntregues.toLocaleString('pt-BR'), color: '#22c55e' },
+                            { label: 'Total Faturado', value: `R$ ${totalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'var(--primary-color)' },
+                        ] : [
                             { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
                             { label: 'Disponíveis', value: availableSubmissions.length, color: 'var(--primary-color)' },
                             { label: 'Em andamento', value: allSubmissions.filter(isAccepted).length, color: '#f59e0b' },
                             { label: 'Geradas', value: allSubmissions.filter(s => s.status === 'GERADO').length, color: '#22c55e' },
-                        ].map(stat => (
+                        ]).map(stat => (
                             <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '18px', padding: '18px 24px', backdropFilter: 'blur(10px)', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                                 <span style={{ fontSize: '28px', fontWeight: 900, color: stat.color, lineHeight: 1, display: 'block', marginBottom: '4px' }}>{stat.value}</span>
                                 <span style={{ fontSize: '10px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{stat.label}</span>
@@ -399,20 +428,30 @@ const ClientSubmissions = () => {
                         ))}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '560px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                         {user?.role === 'ADMIN' && (
-                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
-                                <select 
-                                    value={selectedClientFilter} 
-                                    onChange={e => setSelectedClientFilter(e.target.value)}
-                                    style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}
-                                >
-                                    <option value="" style={{ background: '#0f172a' }}>Todos os Clientes</option>
-                                    {clients.map(c => (
-                                        <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{c.name}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            <>
+                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
+                                    <select 
+                                        value={selectedClientFilter} 
+                                        onChange={e => setSelectedClientFilter(e.target.value)}
+                                        style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}
+                                    >
+                                        <option value="" style={{ background: '#0f172a' }}>Todos os Clientes</option>
+                                        {clients.map(c => (
+                                            <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>DE:</span>
+                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ background: 'transparent', border: 'none', color: startDate ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
+                                </div>
+                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>ATÉ:</span>
+                                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ background: 'transparent', border: 'none', color: endDate ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
+                                </div>
+                            </>
                         )}
                         <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
                             <Search size={15} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
@@ -458,6 +497,8 @@ const ClientSubmissions = () => {
                     <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
                         {filteredSubmissions.map(s => {
                             const adCount = s.ads?.length || 0;
+                            const subTotalEntregues = s.ads?.reduce((sum, ad) => sum + (ad.delivered_leads || 0), 0) || 0;
+                            const subTotalFaturado = s.ads?.reduce((sum, ad) => sum + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
                             return (
                                 <div
                                     key={s.id}
@@ -487,11 +528,11 @@ const ClientSubmissions = () => {
                                         <span style={{
                                             fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '999px',
                                             letterSpacing: '0.5px', textTransform: 'uppercase',
-                                            background: s.assigned_to ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : 'rgba(172,248,0,0.08)',
-                                            color: s.assigned_to ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : 'var(--primary-color)',
-                                            border: `1px solid ${s.assigned_to ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : 'rgba(172,248,0,0.15)'}`
+                                            background: s.assigned_to ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.1)' : 'rgba(172,248,0,0.08)',
+                                            color: s.assigned_to ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : s.status === 'CONCLUIDO' ? '#10b981' : 'var(--primary-color)',
+                                            border: `1px solid ${s.assigned_to ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.3)' : 'rgba(172,248,0,0.15)'}`
                                         }}>
-                                            {s.assigned_to ? `EM MÃOS: ${s.assigned_to.toUpperCase()}` : s.status}
+                                            {s.assigned_to ? `EM MÃOS: ${s.assigned_to.toUpperCase()}` : s.status === 'CONCLUIDO' ? 'DISPARO CONCLUÍDO' : s.status}
                                         </span>
                                     </div>
 
@@ -552,6 +593,20 @@ const ClientSubmissions = () => {
                                             <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, overflow: 'hidden' }}>
                                                 {(s.ad_copy || s.ads?.[0]?.ad_copy || '').substring(0, 120)}
                                             </p>
+                                        </div>
+                                    )}
+
+                                    {/* Faturamento Summary */}
+                                    {s.status === 'CONCLUIDO' && subTotalEntregues > 0 && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                                            <div style={{ background: 'rgba(34,197,94,0.08)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(34,197,94,0.15)' }}>
+                                                <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#22c55e', letterSpacing: '0.5px' }}>TOTAL ENTREGUE</p>
+                                                <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#22c55e' }}>{subTotalEntregues.toLocaleString('pt-BR')}</p>
+                                            </div>
+                                            <div style={{ background: 'rgba(172,248,0,0.1)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(172,248,0,0.2)' }}>
+                                                <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '0.5px' }}>CUSTO DO CLIENTE</p>
+                                                <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {subTotalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits:2})}</p>
+                                            </div>
                                         </div>
                                     )}
 
