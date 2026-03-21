@@ -157,18 +157,25 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'none') {
             const format = effectiveHeaderType.toUpperCase();
-            const mediaUrlValue = mediaUrl || headerMediaUrl;
+            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim();
             
+            if (!mediaUrlValue) {
+                console.warn(`[TemplateCreator] Header format is ${format} but no media URL found.`);
+                // If it's a mandatory media header, this should ideally block creation
+                // We'll proceed but it will likely fail if required by Infobip
+            }
+
             structure.header = {
                 format: format,
+                // Infobip API v2 often expects 'mediaUrl' key inside the example object
                 example: (format === 'IMAGE' || format === 'VIDEO' || format === 'DOCUMENT') 
-                    ? { url: mediaUrlValue } 
+                    ? { mediaUrl: mediaUrlValue || "https://placeholder_for_approval.com/image.png" } 
                     : mediaUrlValue
             };
         }
 
-        if (footerText) {
-            structure.footer = { text: footerText };
+        if (footerText && footerText.trim()) {
+            structure.footer = { text: footerText.trim() };
         }
 
         const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
@@ -208,6 +215,9 @@ const TemplateCreator = () => {
         try {
             const effectiveSender = (overrideSender && overrideSender.trim()) || senderNumber;
             const encodedSender = encodeURIComponent(effectiveSender);
+            const payloadStr = JSON.stringify(payload, null, 2);
+            console.log('🚀 [INFOBIP_REQUEST] Payload:', payloadStr);
+
             const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${encodedSender}/templates`, {
                 method: 'POST',
                 headers: {
@@ -215,10 +225,11 @@ const TemplateCreator = () => {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: payloadStr
             });
 
             const result = await response.json();
+            console.log('📬 [INFOBIP_RESPONSE]:', result);
             if (response.ok) {
                 return { success: true, data: result };
             } else {
