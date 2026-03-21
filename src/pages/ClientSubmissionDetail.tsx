@@ -367,6 +367,11 @@ const ClientSubmissionDetail = () => {
                     * { color: black !important; border-color: #eee !important; box-shadow: none !important; }
                     .field-input { background: white !important; color: black !important; border: none; padding: 0; }
                     .info-chip { border: 1px solid #ccc !important; }
+                    .no-print { display: none !important; }
+                    .print-only { display: block !important; }
+                }
+                @media screen {
+                    .print-only { display: none !important; }
                 }
             `}</style>            <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
                 {/* ── HEADER ── */}
@@ -620,8 +625,9 @@ const ClientSubmissionDetail = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px' }}>CONTEÚDO DA MENSAGEM</span>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                        <span className="no-print" style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px' }}>CONTEÚDO DA MENSAGEM</span>
+                                        <span className="print-only" style={{ fontSize: '14px', fontWeight: 900, color: '#000', letterSpacing: '1px', textTransform: 'uppercase' }}>DADOS DA EMPRESA</span>
+                                        <div className="no-print" style={{ display: 'flex', gap: '10px' }}>
                                             <button onClick={() => copyToClipboard(currentAd.ad_copy || '', 'Mensagem')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
                                                 <Copy size={16} />
                                             </button>
@@ -632,30 +638,40 @@ const ClientSubmissionDetail = () => {
                                             )}
                                         </div>
                                     </div>
-                                    {user?.role !== 'CLIENT' ? (
-                                        <textarea 
-                                            className="field-input"
-                                            style={{ minHeight: '200px', fontSize: '14px', lineHeight: '1.6', background: 'rgba(255,255,255,0.02)' }}
-                                            value={currentAd.ad_copy || ''}
-                                            onChange={e => handleUpdateAd(activeAdIdx, 'ad_copy', e.target.value)}
-                                            placeholder="Digite o texto do anúncio aqui..."
-                                        />
-                                    ) : (
-                                        <div style={{ 
-                                            padding: '16px', 
-                                            borderRadius: '12px', 
-                                            background: 'rgba(255,255,255,0.02)', 
-                                            fontSize: '14px', 
-                                            lineHeight: '1.8', 
-                                            color: 'rgba(255,255,255,0.8)', 
-                                            whiteSpace: 'pre-wrap',
-                                            maxHeight: '300px',
-                                            overflowY: 'auto',
-                                            scrollbarWidth: 'thin'
-                                        }}>
-                                            {currentAd.ad_copy || 'Nenhum texto definido.'}
-                                        </div>
-                                    )}
+
+                                    {/* Exibição Normal (Tela) */}
+                                    <div className="no-print">
+                                        {user?.role !== 'CLIENT' ? (
+                                            <textarea 
+                                                className="field-input"
+                                                style={{ minHeight: '200px', fontSize: '14px', lineHeight: '1.6', background: 'rgba(255,255,255,0.02)', width: '100%' }}
+                                                value={currentAd.ad_copy || ''}
+                                                onChange={e => handleUpdateAd(activeAdIdx, 'ad_copy', e.target.value)}
+                                                placeholder="Digite o texto do anúncio aqui..."
+                                            />
+                                        ) : (
+                                            <div style={{ 
+                                                padding: '16px', 
+                                                borderRadius: '12px', 
+                                                background: 'rgba(255,255,255,0.02)', 
+                                                fontSize: '14px', 
+                                                lineHeight: '1.8', 
+                                                color: 'rgba(255,255,255,0.8)', 
+                                                whiteSpace: 'pre-wrap',
+                                                maxHeight: '300px',
+                                                overflowY: 'auto',
+                                                scrollbarWidth: 'thin'
+                                            }}>
+                                                {currentAd.ad_copy || 'Nenhum texto definido.'}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Exibição na Impressão (PDF) */}
+                                    <div className="print-only" style={{ fontSize: '16px', lineHeight: '1.8', color: '#000', fontWeight: 800, padding: '16px', border: '2px dashed #ccc', borderRadius: '12px', marginTop: '10px' }}>
+                                        63140137000161 pix cnpj<br/>
+                                        Plug e Sales Soluções digitais LTDA
+                                    </div>
                                 </div>
                             </div>
 

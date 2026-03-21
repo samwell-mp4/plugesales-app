@@ -21,6 +21,39 @@ const TemplateCreator = () => {
     const [senders, setSenders] = useState<any[]>([]);
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
 
+    // --- CLIENT SELECTION STATE ---
+    const [clients, setClients] = useState<any[]>([]);
+    const [selectedClientId, setSelectedClientId] = useState<string | number>('');
+    const [isCreatingClient, setIsCreatingClient] = useState(false);
+    const [newClientData, setNewClientData] = useState({ name: '', email: '', phone: '', password: '' });
+
+    useEffect(() => {
+        if (user?.role === 'ADMIN') {
+            dbService.getClients().then(setClients);
+        } else {
+            setSelectedClientId(user?.id || '');
+        }
+    }, [user]);
+
+    const handleCreateClient = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const result = await dbService.register({ ...newClientData, role: 'CLIENT' });
+            if (result.error) {
+                alert(result.error);
+            } else {
+                setClients(prev => [...prev, result.user]);
+                setSelectedClientId(result.user.id);
+                setIsCreatingClient(false);
+                setNewClientData({ name: '', email: '', phone: '', password: '' });
+                alert("Cliente criado com sucesso!");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao criar cliente");
+        }
+    };
+
     useEffect(() => {
         dbService.getSettings().then(settings => {
             if (settings['infobip_key']) setApiKey(settings['infobip_key']);
@@ -200,6 +233,7 @@ const TemplateCreator = () => {
 
     const handleCreateModel = async () => {
         if (!modelName) return alert("Defina um nome para o template.");
+        if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
         setIsGenerating(true);
         setGeneratingProgress({ current: 1, total: 1, msg: `Criando template "${modelName}"...` });
 
@@ -220,6 +254,34 @@ const TemplateCreator = () => {
             // Send to Webhook
             await sendToWebhook(payload);
 
+            // Create Client Submission
+            const client = clients.find(c => String(c.id) === String(selectedClientId));
+            await dbService.addClientSubmission({
+                user_id: selectedClientId,
+                client_name: client?.name || '',
+                profile_name: modelName,
+                ddd: client?.phone?.substring(0, 2) || '11', 
+                template_type: headerType,
+                media_url: headerType !== 'none' ? headerExampleUrl : '',
+                ad_copy: bodyText,
+                button_link: buttons.find(b => b.type === 'url')?.url || '',
+                spreadsheet_url: '',
+                status: 'GERADO',
+                submitted_by: user?.name,
+                timestamp: new Date().toISOString(),
+                ads: [{
+                    ad_name: modelName,
+                    template_type: headerType,
+                    message_mode: 'manual',
+                    media_url: headerType !== 'none' ? headerExampleUrl : '',
+                    ad_copy: bodyText,
+                    button_link: buttons.find(b => b.type === 'url')?.url || '',
+                    variables: variablesExample,
+                    delivered_leads: 0,
+                    price_per_msg: 0.04
+                }]
+            });
+
             alert(`✅ Template "${modelName}" criado com sucesso!`);
             navigate('/accounts');
         }
@@ -228,12 +290,14 @@ const TemplateCreator = () => {
 
     const handleGenerateBulk = async () => {
         if (bulkRows.length === 0) return alert("Adicione pelo menos uma linha no gerador.");
+        if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
         const confirmBulk = window.confirm(`Isso irá disparar ${bulkRows.length} chamadas de API. Continuar?`);
         if (!confirmBulk) return;
 
         setIsGenerating(true);
         let successCount = 0;
         let errors = [];
+        const generatedAds = [];
 
         for (let i = 0; i < bulkRows.length; i++) {
             const row = bulkRows[i];
@@ -258,6 +322,19 @@ const TemplateCreator = () => {
                     mode: 'BULK'
                 });
                 await sendToWebhook(extendedPayload);
+
+                // Collect for Client Submission
+                generatedAds.push({
+                    ad_name: name,
+                    template_type: row.headerType,
+                    message_mode: 'manual',
+                    media_url: row.headerType !== 'none' ? row.mediaUrl : '',
+                    ad_copy: bodyText,
+                    button_link: row.buttonUrls?.[0] || '',
+                    variables: variablesExample,
+                    delivered_leads: 0,
+                    price_per_msg: 0.04
+                });
             }
             else {
                 errors.push(`${name}: ${res.error}`);
@@ -274,12 +351,33 @@ const TemplateCreator = () => {
             }
 
             // Safety Delay: 2.5 seconds for Meta/Infobip stability
-            await new Promise(r => setTimeout(r, 2500));
+            if (i < bulkRows.length - 1) {
+                await new Promise(r => setTimeout(r, 2500));
+            }
+        }
+
+        if (generatedAds.length > 0) {
+            const client = clients.find(c => String(c.id) === String(selectedClientId));
+            await dbService.addClientSubmission({
+                user_id: selectedClientId,
+                client_name: client?.name || '',
+                profile_name: `Lote: ${bulkPrefix}*`,
+                ddd: client?.phone?.substring(0, 2) || '11', 
+                template_type: 'none',
+                media_url: '',
+                ad_copy: bodyText,
+                button_link: '',
+                spreadsheet_url: '',
+                status: 'GERADO',
+                submitted_by: user?.name,
+                timestamp: new Date().toISOString(),
+                ads: generatedAds
+            });
         }
 
         setIsGenerating(false);
         alert(`Finalizado!\nSucesso: ${successCount}\nErros: ${errors.length}`);
-        if (successCount > 0) navigate('/accounts');
+        if (successCount > 0) navigate('/client-submissions'); // Redirecionando para as submissões ao invés de /accounts para que o admin veja o card
     };
 
     const autoGenerateRows = (qty: number) => {
@@ -604,6 +702,55 @@ const TemplateCreator = () => {
                                         </div>
                                         <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.4rem' }}>Estrutura Básica</h3>
                                     </div>
+
+                                    {/* CLIENT SELECTION */}
+                                    {user?.role === 'ADMIN' && (
+                                        <div className="space-y-4" style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <div className="flex items-center justify-between pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>VINCULAR A UM CLIENTE</h4>
+                                            </div>
+                                            {!isCreatingClient ? (
+                                                <div className="flex flex-col gap-3">
+                                                    <select
+                                                        className="input-field"
+                                                        style={{ borderRadius: '12px', padding: '14px' }}
+                                                        value={selectedClientId || ''}
+                                                        onChange={e => setSelectedClientId(e.target.value)}
+                                                    >
+                                                        <option value="">-- SELECIONAR CLIENTE --</option>
+                                                        {clients.map(c => (
+                                                            <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="flex items-center gap-3 mt-1">
+                                                        <span style={{ fontSize: '10px', fontWeight: 800, opacity: 0.4, textTransform: 'uppercase' }}>OU</span>
+                                                        <button 
+                                                            onClick={() => setIsCreatingClient(true)}
+                                                            className="text-[11px] font-black uppercase tracking-wider hover:underline"
+                                                            style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', padding: 0 }}
+                                                        >
+                                                            + CADASTRAR NOVO CLIENTE
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <form onSubmit={handleCreateClient} className="flex flex-col gap-4 animate-fade-in">
+                                                    <div className="flex gap-4">
+                                                        <input required className="input-field" style={{ flex: 1.5, borderRadius: '10px', padding: '10px' }} placeholder="Nome do Cliente" value={newClientData.name} onChange={e => setNewClientData({...newClientData, name: e.target.value})} />
+                                                        <input required className="input-field" style={{ flex: 1, borderRadius: '10px', padding: '10px' }} placeholder="Telefone (com DDD)" value={newClientData.phone} onChange={e => setNewClientData({...newClientData, phone: e.target.value})} />
+                                                    </div>
+                                                    <div className="flex gap-4">
+                                                        <input required type="email" className="input-field" style={{ flex: 1.5, borderRadius: '10px', padding: '10px' }} placeholder="Email de Login" value={newClientData.email} onChange={e => setNewClientData({...newClientData, email: e.target.value})} />
+                                                        <input required type="password" className="input-field" style={{ flex: 1, borderRadius: '10px', padding: '10px' }} placeholder="Senha Inicial" value={newClientData.password} onChange={e => setNewClientData({...newClientData, password: e.target.value})} />
+                                                    </div>
+                                                    <div className="flex gap-3 mt-2">
+                                                        <button type="submit" className="btn btn-primary" style={{ flex: 1, color: 'black', borderRadius: '10px', padding: '10px', fontSize: '12px' }}>SALVAR CLIENTE</button>
+                                                        <button type="button" onClick={() => setIsCreatingClient(false)} className="btn btn-secondary" style={{ flex: 1, borderRadius: '10px', padding: '10px', fontSize: '12px' }}>CANCELAR</button>
+                                                    </div>
+                                                </form>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className="header-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '20px' }}>
                                         <div className="input-group">
