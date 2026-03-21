@@ -157,7 +157,7 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'none') {
             const format = effectiveHeaderType.toUpperCase();
-            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://plug-sales-dispatch-app-dispatch-app.hx8235.easypanel.host/uploads/1774126510561-917105516.jpg";
+            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qv5OXja.jpg";
 
             if (mediaUrlValue.includes("placeholder_for_approval")) {
                 console.warn(`[TemplateCreator] Header format is ${format} but using placeholder.`);
@@ -165,10 +165,8 @@ const TemplateCreator = () => {
 
             structure.header = {
                 format: format,
-                // Some Infobip API v2 versions expect 'example' to be an array of strings for media headers
-                example: (format === 'IMAGE' || format === 'VIDEO' || format === 'DOCUMENT')
-                    ? [mediaUrlValue]
-                    : mediaUrlValue
+                // The correct 'padrao' for this project is a direct string URL for the example, NOT an array or object
+                example: mediaUrlValue
             };
         }
 
