@@ -104,8 +104,11 @@ const ClientDashboard = () => {
     const statusCfg = (status: string) => {
         switch (status) {
             case 'PENDENTE': return { label: 'Pendente', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' };
+            case 'EM_ANDAMENTO':
             case 'EM ANDAMENTO': return { label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' };
-            case 'CONCLUÍDO': return { label: 'Concluído', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' };
+            case 'CONCLUIDO':
+            case 'CONCLUÍDO': return { label: 'Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' };
+            case 'GERADO': return { label: 'Gerado', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' };
             case 'CANCELADO': return { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' };
             default: return { label: status, color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' };
         }

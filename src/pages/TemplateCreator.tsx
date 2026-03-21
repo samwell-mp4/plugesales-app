@@ -20,6 +20,7 @@ const TemplateCreator = () => {
     const [senderNumber, setSenderNumber] = useState('5511997625247');
     const [senders, setSenders] = useState<any[]>([]);
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
 
     // --- CLIENT SELECTION STATE ---
     const [clients, setClients] = useState<any[]>([]);
@@ -93,7 +94,7 @@ const TemplateCreator = () => {
     const [language, setLanguage] = useState('pt_BR');
 
     const [headerType, setHeaderType] = useState<'none' | 'image' | 'video'>('none');
-    const [headerExampleUrl] = useState('https://i.postimg.cc/xC34d8pf/efdb084f-a76e-45e8-8849-92c7d8c5c2c9.jpg');
+    const [headerMediaUrl, setHeaderMediaUrl] = useState('');
 
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
@@ -110,6 +111,29 @@ const TemplateCreator = () => {
     const [bulkRows, setBulkRows] = useState<any[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
+
+    const handleFileUpload = async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            setIsUploading(true);
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            if (result.success) {
+                setHeaderMediaUrl(result.url);
+            } else {
+                alert("Upload falhou: " + (result.error || "Erro desconhecido"));
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao enviar arquivo.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     const buildInfobipPayload = (name: string, overrideHeaderType?: 'none' | 'image' | 'video', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean) => {
         const varMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
@@ -128,12 +152,10 @@ const TemplateCreator = () => {
 
         const effectiveHeaderType = overrideHeaderType || headerType;
 
-        if (effectiveHeaderType !== 'none') {
             structure.header = {
                 format: effectiveHeaderType.toUpperCase(),
-                example: mediaUrl || headerExampleUrl
+                example: mediaUrl || headerMediaUrl
             };
-        }
 
         if (footerText) {
             structure.footer = { text: footerText };
@@ -262,7 +284,7 @@ const TemplateCreator = () => {
                 profile_name: modelName,
                 ddd: client?.phone?.substring(0, 2) || '11', 
                 template_type: headerType,
-                media_url: headerType !== 'none' ? headerExampleUrl : '',
+                media_url: headerType !== 'none' ? headerMediaUrl : '',
                 ad_copy: bodyText,
                 button_link: buttons.find(b => b.type === 'url')?.url || '',
                 spreadsheet_url: '',
@@ -273,7 +295,7 @@ const TemplateCreator = () => {
                     ad_name: modelName,
                     template_type: headerType,
                     message_mode: 'manual',
-                    media_url: headerType !== 'none' ? headerExampleUrl : '',
+                    media_url: headerType !== 'none' ? headerMediaUrl : '',
                     ad_copy: bodyText,
                     button_link: buttons.find(b => b.type === 'url')?.url || '',
                     variables: variablesExample,
@@ -390,7 +412,7 @@ const TemplateCreator = () => {
                 suffix: String(currentNum).padStart(3, '0'),
                 sender: senderNumber, // Default to current global sender
                 headerType: headerType,
-                mediaUrl: headerType !== 'none' ? headerExampleUrl : '',
+                mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
                 hasButtons: buttons.length > 0,
                 buttonUrls: urlButtons.map(b => b.url || '')
             });
@@ -406,7 +428,7 @@ const TemplateCreator = () => {
         setBulkRows(bulkRows.map(row => ({
             ...row,
             headerType: type,
-            mediaUrl: type !== 'none' ? (row.mediaUrl || headerExampleUrl) : ''
+            mediaUrl: type !== 'none' ? (row.mediaUrl || headerMediaUrl) : ''
         })));
     };
 
@@ -801,13 +823,59 @@ const TemplateCreator = () => {
                                     </div>
 
                                     {headerType !== 'none' && (
-                                        <div className="input-group animate-fade-in" style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    {headerType === 'image' ? <ImageIcon size={16} color="var(--primary-color)" /> : <Video size={16} color="var(--primary-color)" />}
-                                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-color)' }}>MÍDIA PADRÃO ATIVA ({headerType.toUpperCase()})</span>
-                                                </div>
-                                                <div className="badge" style={{ fontSize: '0.6rem', opacity: 0.6 }}>Oculto</div>
+                                        <div className="flex-col gap-3 mt-4" style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Mídia do Cabeçalho ({headerType === 'image' ? 'Imagem' : 'Vídeo'})</h4>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-4">
+                                                {headerMediaUrl ? (
+                                                    <div className="relative group w-32 h-32 rounded-xl overflow-hidden border-2 border-primary/30">
+                                                        {headerType === 'image' ? (
+                                                            <img src={headerMediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-black flex items-center justify-center">
+                                                                <Video size={32} className="text-primary" />
+                                                            </div>
+                                                        )}
+                                                        <div 
+                                                            onClick={() => setHeaderMediaUrl('')}
+                                                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity"
+                                                        >
+                                                            <Plus size={24} style={{ transform: 'rotate(45deg)' }} />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div 
+                                                        className="flex-1 border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-primary/50 transition-all cursor-pointer bg-white/[0.02]"
+                                                        onClick={() => document.getElementById('header-upload')?.click()}
+                                                    >
+                                                        {isUploading ? (
+                                                            <Activity className="animate-spin text-primary mx-auto" size={32} />
+                                                        ) : (
+                                                            <>
+                                                                <ImageIcon size={32} className="opacity-20 mx-auto mb-2" />
+                                                                <p style={{ fontSize: '11px', fontWeight: 800, opacity: 0.4, textTransform: 'uppercase' }}>Clique para enviar {headerType === 'image' ? 'Imagem' : 'Vídeo'}</p>
+                                                            </>
+                                                        )}
+                                                        <input 
+                                                            id="header-upload" 
+                                                            type="file" 
+                                                            hidden 
+                                                            accept={headerType === 'image' ? 'image/*' : 'video/*'} 
+                                                            onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])} 
+                                                        />
+                                                    </div>
+                                                )}
+                                                
+                                                {headerMediaUrl && (
+                                                    <div className="flex-1">
+                                                        <p style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5, marginBottom: '4px' }}>Arquivo carregado no servidor:</p>
+                                                        <div className="bg-white/5 p-3 rounded-lg border border-white/10 font-mono text-[10px] truncate">
+                                                            {headerMediaUrl}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -971,7 +1039,7 @@ const TemplateCreator = () => {
                                                                         const n = [...bulkRows];
                                                                         n[i].headerType = e.target.value;
                                                                         if (e.target.value === 'none') n[i].mediaUrl = '';
-                                                                        else if (!n[i].mediaUrl) n[i].mediaUrl = headerExampleUrl;
+                                                                        else if (!n[i].mediaUrl) n[i].mediaUrl = headerMediaUrl;
                                                                         setBulkRows(n);
                                                                     }}>
                                                                         <option value="none">SEM</option>

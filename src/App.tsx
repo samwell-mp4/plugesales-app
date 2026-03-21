@@ -58,7 +58,15 @@ function AppContent() {
     '/dashboard'
   ];
 
-  if (isClient && adminOnlyRoutes.some(route => location.pathname.startsWith(route))) {
+  if (isClient && adminOnlyRoutes.some(route => {
+    // Special case: Clients CAN access /client-submissions/:id but NOT /client-submissions (list) or /client-submissions/add
+    if (route === '/client-submissions') {
+      const isList = location.pathname === '/client-submissions' || location.pathname === '/client-submissions/';
+      const isAdd = location.pathname.startsWith('/client-submissions/add');
+      return isList || isAdd;
+    }
+    return location.pathname.startsWith(route);
+  })) {
     return <Navigate to="/client-dashboard" replace />;
   }
 

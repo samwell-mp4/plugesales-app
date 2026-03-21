@@ -75,9 +75,11 @@ interface Submission {
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
     PENDENTE: { label: 'Pendente', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
     EM_ANDAMENTO: { label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
+    'EM ANDAMENTO': { label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
     GERADO: { label: 'Gerado', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' },
     CANCELADO: { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
     CONCLUIDO: { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
+    'CONCLUÍDO': { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
 };
 
 const ClientSubmissionDetail = () => {
@@ -102,9 +104,11 @@ const ClientSubmissionDetail = () => {
         setIsLoading(true);
         try {
             const data = await dbService.getClientSubmissionById(Number(id));
-            if (data) {
+            if (data && !data.error) {
                 // Security Check: Clients can only see their own submissions
-                if (user?.role === 'CLIENT' && data.user_id !== user.id) {
+                // We use != to handle potential string/number mismatches safely
+                if (user?.role === 'CLIENT' && String(data.user_id) !== String(user.id)) {
+                    console.warn(`Access denied for user ${user.id} to submission ${id} (owner: ${data.user_id})`);
                     navigate('/client-dashboard', { replace: true });
                     return;
                 }
@@ -194,12 +198,16 @@ const ClientSubmissionDetail = () => {
             const uploadData = await uploadRes.json();
             const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
 
+            // Fetch setting for notification number if exists
+            const settings = await dbService.getSettings();
+            const notifyTo = settings['whatsapp_notification_number'] || '5531975155601';
+
             // Trigger Webhook
             await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/0d60b5ac-b96d-40a8-b101-b7f7fcfc5469', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    to: '5531988868362',
+                    to: notifyTo,
                     PDF: hostedUrl,
                     mensagem: 'Seu disparo foi concluido com sucesso, veja o relátorio completo em nosso PDF.',
                     id: sub.id,

@@ -984,11 +984,18 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         size: req.file.size
     });
 
+    let fileType = 'document';
+    const mimetype = req.file.mimetype;
+    if (mimetype.includes('image')) fileType = 'image';
+    else if (mimetype.includes('video')) fileType = 'video';
+    else if (mimetype.includes('pdf')) fileType = 'document';
+    else if (mimetype.includes('spreadsheet') || mimetype.includes('excel') || mimetype.includes('csv')) fileType = 'spreadsheet';
+
     pool.query(
         'INSERT INTO media_library (name, type, url, short_url) VALUES ($1, $2, $3, $4)',
         [
             req.file.originalname,
-            req.file.mimetype.includes('video') ? 'video' : 'image',
+            fileType,
             fileUrl,
             fileUrl
         ]
@@ -1152,17 +1159,19 @@ const startTemplateMonitoring = () => {
     triggerStartupWebhook();
 
     const checkStatus = async () => {
+        console.log(`🔍 [MONITOR] Iniciando verificação de templates (${new Date().toLocaleTimeString()})...`);
         let client;
         try {
             client = await pool.connect();
 
             // 1. Get Settings
-            const setRes = await client.query("SELECT key, value FROM settings WHERE key IN ('infobip_key', 'infobip_sender')");
+            const setRes = await client.query("SELECT key, value FROM settings WHERE key IN ('infobip_key', 'infobip_sender', 'whatsapp_notification_number')");
             const settings = {};
             setRes.rows.forEach(r => settings[r.key] = r.value);
-
+            
             const apiKey = settings['infobip_key'];
             const sender = settings['infobip_sender'];
+            const notifyTo = settings['whatsapp_notification_number'] || '5531975155601';
 
             if (!apiKey || !sender) {
                 console.warn('⚠️ [MONITOR] API Key ou Sender não configurados no Banco de Dados.');
@@ -1209,7 +1218,7 @@ const startTemplateMonitoring = () => {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                to: '5531988868362',
+                                to: notifyTo,
                                 id: templateId,
                                 name: t.name,
                                 category: t.category,
@@ -1217,7 +1226,7 @@ const startTemplateMonitoring = () => {
                                 mensagem: notificationMsg
                             })
                         });
-                        console.log(`🔔 [MONITOR] Notificação enviada para: ${t.name} (Status: ${newStatus})`);
+                        console.log(`🔔 [MONITOR] Notificação enviada para: ${t.name} (Status: ${newStatus}) para ${notifyTo}`);
                     }
 
                     // 5. Update DB
@@ -1236,9 +1245,9 @@ const startTemplateMonitoring = () => {
         }
     };
 
-    // Initial check (5s delay) + 45s interval
-    setTimeout(checkStatus, 5000);
-    setInterval(checkStatus, 45000);
+    // Initial check (2s delay) + 20s interval for faster sync
+    setTimeout(checkStatus, 2000); 
+    setInterval(checkStatus, 20000);
 };
 
 // Start monitoring session
