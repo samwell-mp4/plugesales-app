@@ -595,11 +595,11 @@ const ClientSubmissions = () => {
 
                     {/* Stats bar */}
                     <div className="stats-grid">
-                        {(user?.role === 'ADMIN' ? [
+                        {(['ADMIN', 'EMPLOYEE'].includes(user?.role || '') ? [
                             { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
                             { label: 'Em andamento', value: allSubmissions.filter(isAccepted).length, color: '#f59e0b' },
                             { label: 'Total Entregues', value: totalEntregues.toLocaleString('pt-BR'), color: '#22c55e' },
-                            { label: 'Total Faturado', value: `R$ ${totalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'var(--primary-color)' },
+                            { label: 'Investimento Clientes', value: `R$ ${totalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'var(--primary-color)' },
                         ] : [
                             { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
                             { label: 'Disponíveis', value: availableSubmissions.length, color: 'var(--primary-color)' },

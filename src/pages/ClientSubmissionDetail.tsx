@@ -432,7 +432,7 @@ const ClientSubmissionDetail = () => {
                                     className={`status-btn ${sub.status === key ? 'active' : ''}`}
                                     style={{ '--bg': cfg.bg, '--color': cfg.color, '--border': cfg.border } as any}
                                     onClick={() => handleStatusChange(key)}
-                                    disabled={updatingStatus || sub.status === key}
+                                    disabled={updatingStatus || sub.status === key || user?.role === 'CLIENT'}
                                 >
                                     <CheckSquare size={14} /> {cfg.label}
                                     {sub.status === key && <CheckCircle size={14} style={{ marginLeft: 'auto' }} />}
@@ -448,7 +448,7 @@ const ClientSubmissionDetail = () => {
                             <div>
                                 <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>NÚMERO SENDER (BM)</label>
                                 <div style={{ position: 'relative' }}>
-                                    <input className="field-input" value={senderNumber} onChange={e => setSenderNumber(e.target.value)} placeholder="55..." />
+                                    <input className="field-input" value={senderNumber} onChange={e => setSenderNumber(e.target.value)} placeholder="55..." readOnly={user?.role === 'CLIENT'} />
                                     <button onClick={() => copyToClipboard(senderNumber, 'Sender')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
                                         <Copy size={16} />
                                     </button>
@@ -456,12 +456,14 @@ const ClientSubmissionDetail = () => {
                             </div>
                             <div>
                                 <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>NOTAS DO TIME</label>
-                                <textarea className="field-input" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ resize: 'none' }} placeholder="Anotações internas..." />
+                                <textarea className="field-input" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ resize: 'none' }} placeholder="Anotações internas..." readOnly={user?.role === 'CLIENT'} />
                             </div>
-                            <button className="action-btn primary-btn" onClick={handleSaveSender} disabled={isSaving} style={{ width: '100%' }}>
-                                {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle size={16} />}
-                                {isSaving ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
-                            </button>
+                            {user?.role !== 'CLIENT' && (
+                                <button className="action-btn primary-btn" onClick={handleSaveSender} disabled={isSaving} style={{ width: '100%' }}>
+                                    {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                                    {isSaving ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -552,7 +554,7 @@ const ClientSubmissionDetail = () => {
                                         <label className="field-label" style={{ marginBottom: 0 }}><Activity size={14} /> Desempenho e Faturamento da Campanha</label>
                                     </div>
                                     
-                                    {user?.role === 'ADMIN' && (
+                                    {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '16px' }}>
                                             <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                                 <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Data do Disparo</p>
