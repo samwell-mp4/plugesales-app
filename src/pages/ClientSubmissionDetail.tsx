@@ -180,6 +180,10 @@ const ClientSubmissionDetail = () => {
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             
+            // Add clickable link area to the PDF (manually)
+            const dashboardUrl = `${window.location.origin}/submissions/${sub.id}`;
+            pdf.link(60, 230, 90, 10, { url: dashboardUrl }); // Posicionado sobre a área do link
+
             const pdfBlob = pdf.output('blob');
             const file = new File([pdfBlob], `relatorio_disparo_${sub.id}.pdf`, { type: 'application/pdf' });
 
@@ -1028,6 +1032,26 @@ const ClientSubmissionDetail = () => {
                                     width: `${sub?.ads?.[activeAdIdx]?.delivered_leads ? Math.min(100, (sub?.ads?.[activeAdIdx]?.clicks || 0) / sub.ads[activeAdIdx].delivered_leads * 100) : 0}%` 
                                 }}></div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', padding: '25px', borderRadius: '20px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '30px' }}>
+                        <div style={{ background: '#fff', padding: '10px', borderRadius: '12px', border: '1px solid #eee' }}>
+                            <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/submissions/${sub?.id}`)}`} 
+                                alt="QR Code" 
+                                style={{ width: 100, height: 100, display: 'block' }}
+                            />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <h3 style={{ fontSize: '10px', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 900 }}>Visualização Exclusiva</h3>
+                            <p style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#000' }}>ACESSE O DASHBOARD EM TEMPO REAL</p>
+                            <p style={{ margin: '5px 0 0 0', fontSize: '10px', color: '#3b82f6', fontWeight: 700, textDecoration: 'underline' }}>
+                                {window.location.origin}/submissions/{sub?.id}
+                            </p>
+                            <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                                Escaneie o QR Code ao lado ou clique no link acima para acompanhar o engajamento e detalhes exclusivos deste disparo direto na plataforma.
+                            </p>
                         </div>
                     </div>
 
