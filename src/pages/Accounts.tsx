@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar, BookMarked, FileEdit, LayoutDashboard } from 'lucide-react';
 import { dbService } from '../services/dbService';
@@ -114,7 +114,6 @@ const Accounts = () => {
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'REJECTED'>('ALL');
     const [activeTab, setActiveTab] = useState<'TEMPLATES' | 'RASCUNHOS'>('TEMPLATES');
     const [drafts, setDrafts] = useState<any[]>([]);
-    const prevTemplatesRef = useRef<InfobipTemplate[]>([]);
 
     // Pagination
     const [templatesPage, setTemplatesPage] = useState(1);
@@ -141,18 +140,6 @@ const Accounts = () => {
                 );
                 setTemplates(sorted);
                 setLastUpdated(new Date());
-
-                // Webhook logic for NEWLY APPROVED templates
-                if (prevTemplatesRef.current.length > 0) {
-                    for (const newT of sorted) {
-                        const oldT = prevTemplatesRef.current.find(t => t.id === newT.id);
-                        if (newT.status === 'APPROVED' && (!oldT || oldT.status !== 'APPROVED')) {
-                            // Status changed to APPROVED!
-                            notifyTemplateApproved(newT);
-                        }
-                    }
-                }
-                prevTemplatesRef.current = sorted;
             } else if (!response.ok) {
                 const err = data;
                 console.error('Fetch Templates Error:', err);
@@ -163,28 +150,6 @@ const Accounts = () => {
             alert(`Erro de conexão: ${error.message}`);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const notifyTemplateApproved = async (t: InfobipTemplate) => {
-        try {
-            const formattedDate = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-            const message = `Olá! O Meta acaba de aprovar o seu novo template. 🚀\n\n📌 *Nome*: ${t.name}\n📂 *Categoria*: ${t.category}\n🌐 *Idioma*: Portuguese (BR)\n📅 *Data*: ${formattedDate}\n\nO seu template já está disponível para uso imediato no *Plug & Sales*! Você pode encontrá-lo no Monitor de WhatsApp para iniciar seus envios.`;
-            
-            await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to: '5531988868362',
-                    id: t.id,
-                    name: t.name,
-                    category: t.category,
-                    mensagem: message
-                })
-            });
-            console.log("Template APPROVED webhook sent for:", t.name);
-        } catch (err) {
-            console.error("Error sending template approval webhook:", err);
         }
     };
 

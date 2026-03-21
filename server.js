@@ -181,7 +181,16 @@ const initDB = async () => {
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS region TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION`);
-        console.log('✅ All columns verified/migrated.');
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS infobip_templates (
+                id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        console.log('✅ All columns and infobip_templates table verified/migrated.');
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
     } finally {
@@ -630,8 +639,8 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
                 (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, ads, spreadsheet_url, status) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
                 [
-                    s.profile_photo, s.profile_name, s.ddd, 
-                    s.template_type, s.media_url, s.ad_copy, s.button_link, 
+                    s.profile_photo, s.profile_name, s.ddd,
+                    s.template_type, s.media_url, s.ad_copy, s.button_link,
                     s.ads ? JSON.stringify(s.ads) : '[]',
                     s.spreadsheet_url, s.status || 'PENDENTE'
                 ]
@@ -668,7 +677,7 @@ app.put('/api/client-submissions/:id', async (req, res) => {
                     return JSON.stringify(val);
                 }
                 return val;
-            }), 
+            }),
             id
         ];
 
@@ -692,10 +701,10 @@ app.delete('/api/client-submissions/:id', async (req, res) => {
 // --- Link Shortener ---
 app.post('/api/shortener/create', async (req, res) => {
     const { user_id, client_id, links, original_url, title } = req.body;
-    
+
     // Support either a single link or an array of links
     const linksToCreate = Array.isArray(links) ? links : [{ original_url, title }];
-    
+
     if (linksToCreate.some(l => !l.original_url)) {
         return res.status(400).json({ error: 'URL original é obrigatória para todos os links.' });
     }
@@ -704,7 +713,7 @@ app.post('/api/shortener/create', async (req, res) => {
     try {
         await clientDB.query('BEGIN');
         const results = [];
-        
+
         for (const l of linksToCreate) {
             const short_code = Math.random().toString(36).substring(2, 8);
             const result = await clientDB.query(
@@ -714,7 +723,7 @@ app.post('/api/shortener/create', async (req, res) => {
             );
             results.push(result.rows[0]);
         }
-        
+
         await clientDB.query('COMMIT');
         res.json(Array.isArray(links) ? results : results[0]);
     } catch (err) {
@@ -730,7 +739,7 @@ app.get('/api/shortener/links', async (req, res) => {
     try {
         let query = 'SELECT l.*, (SELECT COUNT(*) FROM link_clicks WHERE link_id = l.id) as clicks FROM shortened_links l';
         const params = [];
-        
+
         if (client_id) {
             query += ' WHERE client_id = $1';
             params.push(client_id);
@@ -741,7 +750,7 @@ app.get('/api/shortener/links', async (req, res) => {
             query += ' WHERE user_id = $1';
             params.push(user_id);
         }
-        
+
         query += ' ORDER BY created_at DESC';
         const result = await pool.query(query, params);
         res.json(result.rows);
@@ -812,7 +821,7 @@ app.get('/l/:shortCode', async (req, res) => {
         (async () => {
             try {
                 let geoData = { country: 'Local', city: 'N/A', region: 'N/A', lat: 0, lon: 0 };
-                
+
                 // Only fetch if not internal/localhost
                 const cleanIp = userIp.includes(',') ? userIp.split(',')[0].trim() : userIp;
                 if (cleanIp !== '127.0.0.1' && cleanIp !== '::1' && !cleanIp.startsWith('::ffff:127.0.0.1')) {
@@ -837,9 +846,9 @@ app.get('/l/:shortCode', async (req, res) => {
                     `INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer, country, city, region, latitude, longitude) 
                      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
                     [
-                        link.id, 
-                        cleanIp, 
-                        req.headers['user-agent'], 
+                        link.id,
+                        cleanIp,
+                        req.headers['user-agent'],
                         req.headers['referer'] || 'Direto',
                         geoData.country,
                         geoData.city,
@@ -1119,6 +1128,81 @@ dispatchWorker();
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
+
+// --- BACKGROUND MONITORING: INFOBIP TEMPLATES ---
+const startTemplateMonitoring = () => {
+    console.log('🚀 Starting background template monitoring (2min interval)...');
+
+    const checkStatus = async () => {
+        let client;
+        try {
+            client = await pool.connect();
+
+            // 1. Get Settings
+            const setRes = await client.query("SELECT key, value FROM settings WHERE key IN ('infobip_key', 'infobip_sender')");
+            const settings = {};
+            setRes.rows.forEach(r => settings[r.key] = r.value);
+
+            const apiKey = settings['infobip_key'];
+            const sender = settings['infobip_sender'];
+
+            if (!apiKey || !sender) return;
+
+            // 2. Fetch from Infobip
+            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${sender}/templates?_t=${Date.now()}`, {
+                headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+
+            if (data && data.templates) {
+                for (const t of data.templates) {
+                    const templateId = t.id;
+                    const newStatus = (t.status || 'PENDING').toUpperCase();
+
+                    // 3. Check DB for previous status
+                    const dbRes = await client.query("SELECT status FROM infobip_templates WHERE id = $1", [templateId]);
+                    const oldStatus = dbRes.rows[0]?.status;
+
+                    if (newStatus === 'APPROVED' && oldStatus && oldStatus !== 'APPROVED') {
+                        // 4. Trigger Webhook (Status Changed to Approved)
+                        const now = new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        const msg = `Olá! O Meta acaba de aprovar o seu novo template. 🚀\n\n📌 *Nome*: ${t.name}\n📂 *Categoria*: ${t.category}\n🌐 *Idioma*: Portuguese (BR)\n📅 *Data*: ${now}\n\nO seu template já está disponível para uso imediato no *Plug & Sales*!`;
+
+                        await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: '5531988868362',
+                                id: templateId,
+                                name: t.name,
+                                category: t.category,
+                                mensagem: msg
+                            })
+                        });
+                        console.log(`[MONITOR] Webhook triggered for newly approved template: ${t.name}`);
+                    }
+
+                    // 5. Update DB
+                    await client.query(
+                        "INSERT INTO infobip_templates (id, status) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET status = $2, updated_at = CURRENT_TIMESTAMP",
+                        [templateId, newStatus]
+                    );
+                }
+            }
+        } catch (err) {
+            console.error('[MONITOR] Error checking template status:', err.message);
+        } finally {
+            if (client) client.release();
+        }
+    };
+
+    // Initial check + 45s interval
+    setTimeout(checkStatus, 5000);
+    setInterval(checkStatus, 45000);
+};
+
+// Start monitoring session
+startTemplateMonitoring();
 
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${port}`);
