@@ -951,37 +951,64 @@ const ClientSubmissionDetail = () => {
             {/* Hidden Report for PDF Generation */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                 <div ref={reportRef} style={{ width: '800px', padding: '60px', background: '#fff', color: '#000', fontFamily: 'Arial, sans-serif' }}>
-                    <div style={{ borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
-                        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 900 }}>RELATÓRIO DE DISPARO</h1>
-                        <p style={{ margin: '10px 0 0 0', fontSize: '14px', fontWeight: 700 }}>
-                            {sub?.profile_name} - Envio #{sub?.id}
-                        </p>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
+                    <div style={{ borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                         <div>
-                            <h3 style={{ fontSize: '12px', color: '#666', marginBottom: '10px', textTransform: 'uppercase' }}>Dados do Cliente</h3>
-                            <p style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{sub?.client_name || 'N/A'}</p>
-                            <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>DDD: {sub?.ddd}</p>
+                            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 900, color: '#000' }}>RELATÓRIO DE DISPARO</h1>
+                            <p style={{ margin: '8px 0 0 0', fontSize: '16px', fontWeight: 700, opacity: 0.6 }}>
+                                Envio Profissional #{sub?.id}
+                            </p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <h3 style={{ fontSize: '12px', color: '#666', marginBottom: '10px', textTransform: 'uppercase' }}>Status do Envio</h3>
-                            <p style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#10b981' }}>DISPARO CONCLUÍDO</p>
-                            <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>Data: {new Date().toLocaleDateString('pt-BR')}</p>
+                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: '#10b981' }}>STATUS: DISPARO CONCLUÍDO</p>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '12px', fontWeight: 600 }}>Data: {new Date().toLocaleDateString('pt-BR')}</p>
                         </div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '15px', marginBottom: '40px' }}>
-                        <h3 style={{ fontSize: '12px', color: '#666', marginBottom: '15px', textTransform: 'uppercase' }}>Conteúdo da Mensagem</h3>
-                        <div style={{ fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap', color: '#1e293b' }}>
-                            {sub?.ads?.[activeAdIdx]?.ad_copy || 'Sem conteúdo.'}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '40px' }}>
+                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                            <p style={{ margin: 0, fontSize: '10px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Perfil / Campanha</p>
+                            <p style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>{sub?.profile_name}</p>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '12px', fontWeight: 600 }}>DDD: {sub?.ddd}</p>
+                        </div>
+                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                            <p style={{ margin: 0, fontSize: '10px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Total de Disparos</p>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900 }}>{sub?.ads?.[activeAdIdx]?.delivered_leads || 0}</p>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '11px', fontWeight: 700, color: '#10b981' }}>MENSAGENS ENTREGUES</p>
+                        </div>
+                        <div style={{ padding: '20px', background: 'rgba(172,248,0,0.05)', borderRadius: '15px', border: '1px solid rgba(172,248,0,0.2)' }}>
+                            <p style={{ margin: 0, fontSize: '10px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Investimento do Cliente</p>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900 }}>
+                                R$ {((sub?.ads?.[activeAdIdx]?.delivered_leads || 0) * (sub?.ads?.[activeAdIdx]?.price_per_msg || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '11px', fontWeight: 700, color: '#000' }}>VALOR TOTAL FINAL</p>
                         </div>
                     </div>
 
-                    <div style={{ marginTop: 'auto', paddingTop: '40px', borderTop: '1px solid #eee', textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>63140137000161 pix cnpj</p>
-                        <p style={{ margin: '5px 0 0 0', fontSize: '16px', fontWeight: 800 }}>Plug e Sales Soluções digitais LTDA</p>
-                        <p style={{ marginTop: '20px', fontSize: '10px', color: '#999' }}>Gerado automaticamente pelo sistema Plug & Sales</p>
+                    <div style={{ marginBottom: '40px' }}>
+                        <h3 style={{ fontSize: '12px', color: '#64748b', marginBottom: '15px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '1px' }}>Conteúdo da Mensagem Enviada</h3>
+                        <div style={{ 
+                            padding: '30px', 
+                            background: '#fff', 
+                            borderRadius: '20px', 
+                            border: '2px dashed #e2e8f0',
+                            fontSize: '14px', 
+                            lineHeight: '1.8', 
+                            whiteSpace: 'pre-wrap', 
+                            color: '#334155',
+                            fontStyle: 'italic'
+                        }}>
+                            {sub?.ads?.[activeAdIdx]?.ad_copy || 'Sem conteúdo definido.'}
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '40px', borderTop: '2px solid #000', textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>63140137000161 pix cnpj</p>
+                        <p style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 900 }}>Plug e Sales Soluções digitais LTDA</p>
+                        <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            <span>Relatório Oficial de Entrega</span>
+                            <span>•</span>
+                            <span>Sistema Plug & Sales</span>
+                        </div>
                     </div>
                 </div>
             </div>
