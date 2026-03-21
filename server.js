@@ -1132,16 +1132,16 @@ app.get('*', (req, res) => {
 // --- BACKGROUND MONITORING: INFOBIP TEMPLATES ---
 const startTemplateMonitoring = () => {
     console.log('🚀 [MONITOR] Inciando monitoramento de templates (45s interval)...');
-    
+
     // Test Webhook on Start
     const triggerStartupWebhook = async () => {
         try {
             await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    to: '5531988868362', 
-                    mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.` 
+                body: JSON.stringify({
+                    to: '5531975155601',
+                    mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.`
                 })
             });
             console.log('✅ [MONITOR] Startup webhook sent successfully.');
@@ -1155,15 +1155,15 @@ const startTemplateMonitoring = () => {
         let client;
         try {
             client = await pool.connect();
-            
+
             // 1. Get Settings
             const setRes = await client.query("SELECT key, value FROM settings WHERE key IN ('infobip_key', 'infobip_sender')");
             const settings = {};
             setRes.rows.forEach(r => settings[r.key] = r.value);
-            
+
             const apiKey = settings['infobip_key'];
             const sender = settings['infobip_sender'];
-            
+
             if (!apiKey || !sender) {
                 console.warn('⚠️ [MONITOR] API Key ou Sender não configurados no Banco de Dados.');
                 return;
@@ -1176,13 +1176,13 @@ const startTemplateMonitoring = () => {
                 headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
             });
             const data = await response.json();
-            
+
             if (data && data.templates) {
                 console.log(`📊 [MONITOR] ${data.templates.length} templates encontrados no Infobip.`);
                 for (const t of data.templates) {
                     const templateId = t.id;
                     const newStatus = (t.status || 'PENDING').toUpperCase();
-                    
+
                     // 3. Check DB for previous status
                     const dbRes = await client.query("SELECT status FROM infobip_templates WHERE id = $1", [templateId]);
                     const oldStatus = dbRes.rows[0]?.status;
@@ -1237,7 +1237,7 @@ const startTemplateMonitoring = () => {
     };
 
     // Initial check (5s delay) + 45s interval
-    setTimeout(checkStatus, 5000); 
+    setTimeout(checkStatus, 5000);
     setInterval(checkStatus, 45000);
 };
 
