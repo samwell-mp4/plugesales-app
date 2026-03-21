@@ -305,6 +305,11 @@ const TemplateCreator = () => {
         setIsGenerating(false);
 
         if (res.success) {
+            // Associated user with this template for notification routing
+            if (user?.id) {
+                await dbService.trackTemplate(sanitizedName, user.id);
+            }
+
             // Track in DB
             dbService.addLog({
                 logType: 'TEMPLATE',
@@ -381,6 +386,9 @@ const TemplateCreator = () => {
             const res = await callInfobipAPI(payload, rowSender);
             if (res.success) {
                 successCount++;
+                if (user?.id) {
+                    await dbService.trackTemplate(name, user.id);
+                }
                 dbService.addLog({
                     logType: 'TEMPLATE',
                     name: name,

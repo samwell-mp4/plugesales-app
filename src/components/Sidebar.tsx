@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -10,13 +11,35 @@ import {
     ShieldCheck,
     UserCircle,
     FileUp,
-    Layers
+    Layers,
+    Smartphone
 } from 'lucide-react';
+import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 
 
 const Sidebar = () => {
-    const { user, logout } = useAuth();
+    const { user, setUser, logout } = useAuth();
+    const [isEditingNotify, setIsEditingNotify] = useState(false);
+    const [notifyNum, setNotifyNum] = useState(user?.notification_number || '');
+
+    useEffect(() => {
+        setNotifyNum(user?.notification_number || '');
+    }, [user]);
+
+    const handleSaveNotify = async () => {
+        if (!user?.id) return;
+        try {
+            const updated = await dbService.updateProfile({ id: user.id, notification_number: notifyNum });
+            if (updated && !updated.error) {
+                setUser(updated);
+                setIsEditingNotify(false);
+                alert("Número de notificação atualizado!");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const menuItems = user?.role === 'CLIENT' ? [
         { name: 'Meu Painel', path: '/client-dashboard', icon: <Home size={20} /> },
@@ -216,6 +239,41 @@ const Sidebar = () => {
                         <MessageSquare color="white" size={24} />
                     </div>
                     <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>Plug & Sales</h2>
+                </div>
+
+                {/* Individual Notification Number Section at the TOP */}
+                <div className="mx-2 mb-4 p-3 rounded-xl" style={{ 
+                    background: 'rgba(255, 255, 255, 0.03)', 
+                    border: '1px solid rgba(172, 248, 0, 0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                }}>
+                    <div className="flex items-center justify-between">
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Notificações</span>
+                        {!isEditingNotify ? (
+                            <button onClick={() => setIsEditingNotify(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 700 }}>EDITAR</button>
+                        ) : (
+                            <div className="flex gap-2">
+                                <button onClick={handleSaveNotify} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 800 }}>SALVAR</button>
+                                <button onClick={() => setIsEditingNotify(false)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 800 }}>X</button>
+                            </div>
+                        )}
+                    </div>
+                    {!isEditingNotify ? (
+                        <div className="flex items-center gap-2">
+                            <Smartphone size={14} color="var(--primary-color)" />
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'white' }}>{user?.notification_number || 'Não definido'}</span>
+                        </div>
+                    ) : (
+                        <input 
+                            value={notifyNum}
+                            onChange={(e) => setNotifyNum(e.target.value)}
+                            className="input-field"
+                            style={{ height: '28px', fontSize: '0.8rem', padding: '0 8px', borderRadius: '6px', background: 'rgba(0,0,0,0.2)', color: 'white', border: '1px solid rgba(172,248,0,0.3)' }}
+                            placeholder="Ex: 551199..."
+                        />
+                    )}
                 </div>
 
                 <nav className="flex flex-col gap-1 mt-6">

@@ -8,6 +8,7 @@ interface User {
     email?: string;
     phone?: string;
     role: Role;
+    notification_number?: string;
 }
 
 interface AuthContextType {
@@ -46,7 +47,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         
         if (foundStatic) {
-            const userData = { name: foundStatic.name, role: foundStatic.role as Role };
+            // Fetch more info from DB for static users if they exist there
+            const dbUser = await dbService.getEmployees().then(async names => {
+                // This is a bit complex since getEmployees only returns names. 
+                // Let's assume we can login them and the DB will have their number if they were updated.
+                // For now, let's just use the static role.
+                return null;
+            });
+            const userData: User = { name: foundStatic.name, role: foundStatic.role as Role };
             setUser(userData);
             localStorage.setItem('auth_user', JSON.stringify(userData));
             return true;

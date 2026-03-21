@@ -113,6 +113,7 @@ const initDB = async () => {
                 phone TEXT,
                 password TEXT NOT NULL,
                 role TEXT DEFAULT 'CLIENT',
+                notification_number TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `CREATE TABLE IF NOT EXISTS shortened_links (
@@ -186,9 +187,17 @@ const initDB = async () => {
             CREATE TABLE IF NOT EXISTS infobip_templates (
                 id TEXT PRIMARY KEY,
                 status TEXT NOT NULL,
+                user_id INTEGER REFERENCES users(id),
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // Backward-compat for users table
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_number TEXT`);
+        
+        // Backward-compat for infobip_templates
+        await client.query(`ALTER TABLE infobip_templates ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
+
 
         console.log('✅ All columns and infobip_templates table verified/migrated.');
     } catch (err) {
@@ -210,8 +219,8 @@ app.post('/api/auth/register', async (req, res) => {
 
     try {
         const result = await pool.query(
-            'INSERT INTO users (name, email, phone, password, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role',
-            [name, email, phone, password, 'CLIENT']
+            'INSERT INTO users (name, email, phone, password, role, notification_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, notification_number',
+            [name, email, phone, password, 'CLIENT', phone] // Defaulting notification_number to phone on register
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -230,9 +239,10 @@ app.put('/api/auth/profile', async (req, res) => {
              SET name = COALESCE($1, name), 
                  email = COALESCE($2, email), 
                  phone = COALESCE($3, phone), 
-                 password = COALESCE($4, password) 
-             WHERE id = $5 RETURNING id, name, email, phone, role`,
-            [name, email, phone, password, id]
+                 password = COALESCE($4, password),
+                 notification_number = COALESCE($5, notification_number)
+             WHERE id = $6 RETURNING id, name, email, phone, role, notification_number`,
+            [name, email, phone, password, req.body.notification_number, id]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado.' });
         res.json(result.rows[0]);
@@ -246,7 +256,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const result = await pool.query(
-            'SELECT id, name, email, role FROM users WHERE email = $1 AND password = $2',
+            'SELECT id, name, email, role, notification_number FROM users WHERE email = $1 AND password = $2',
             [email, password]
         );
         if (result.rows.length === 0) return res.status(401).json({ error: 'Email ou senha inválidos.' });
@@ -1026,6 +1036,21 @@ app.post('/api/dispatch/queue', async (req, res) => {
     }
 });
 
+// Template Tracking (associate template name with user_id)
+app.post('/api/templates/track', async (req, res) => {
+    const { name, user_id } = req.body;
+    if (!name || !user_id) return res.status(400).json({ error: 'Faltando nome ou user_id' });
+    try {
+        await pool.query(
+            'INSERT INTO infobip_templates (id, status, user_id) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET user_id = $3',
+            [name, 'PENDING', user_id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // API: Log Template Creation Error
 app.post('/api/logs/template-error', async (req, res) => {
     const { name, error, author } = req.body;
@@ -1205,12 +1230,12 @@ app.get('*', (req, res) => {
 
 // --- BACKGROUND MONITORING: INFOBIP TEMPLATES ---
 const startTemplateMonitoring = () => {
-    console.log('🚀 [MONITOR] Inciando monitoramento de templates (45s interval)...');
+    console.log('🚀 [MONITOR] Inciando monitoramento de templates (20s interval)...');
 
     const triggerStartupWebhook = async () => {
         const payload = {
             to: '5531988868362',
-            mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.`
+            mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 20 segundos.`
         };
         const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado';
         
@@ -1236,7 +1261,7 @@ const startTemplateMonitoring = () => {
             
             const apiKey = settings['infobip_key'];
             const sender = settings['infobip_sender'];
-            const notifyTo = settings['whatsapp_notification_number'] || '5531988868362';
+            const globalNotifyTo = settings['whatsapp_notification_number'] || '5531988868362';
 
             if (!apiKey || !sender) {
                 console.warn('⚠️ [MONITOR] API Key ou Sender não configurados no Banco de Dados.');
@@ -1254,12 +1279,14 @@ const startTemplateMonitoring = () => {
             if (data && data.templates) {
                 console.log(`📊 [MONITOR] ${data.templates.length} templates encontrados no Infobip.`);
                 for (const t of data.templates) {
-                    const templateId = t.id;
+                    const templateId = t.id; // Corrected: Infobip templates have an ID, but we usually track by name or ID. Let's use name if unique, but Infobip provides 'id'.
+                    const templateName = t.name;
                     const newStatus = (t.status || 'PENDING').toUpperCase();
 
                     // 3. Check DB for previous status
-                    const dbRes = await client.query("SELECT status FROM infobip_templates WHERE id = $1", [templateId]);
+                    const dbRes = await client.query("SELECT status, user_id FROM infobip_templates WHERE id = $1", [templateName]);
                     const oldStatus = dbRes.rows[0]?.status;
+                    const ownerId = dbRes.rows[0]?.user_id;
 
                     // Lógica de Disparo:
                     // - Se é um NOVO template detectado agora
@@ -1269,41 +1296,48 @@ const startTemplateMonitoring = () => {
 
                     if (!oldStatus) {
                         shouldNotify = true;
-                        notificationMsg = `🆕 *Novo Template Detectado!*\n\n📌 *Nome*: ${t.name}\n📊 *Status Atual*: ${newStatus}\n📂 *Categoria*: ${t.category}\n🌐 *Idioma*: Portuguese (BR)\n\nO sistema agora está acompanhando a aprovação deste modelo pela Meta.`;
+                        notificationMsg = `🆕 *Novo Template Detectado!*\n\n📌 *Nome*: ${templateName}\n📊 *Status Atual*: ${newStatus}\n📂 *Categoria*: ${t.category}\n🌐 *Idioma*: Portuguese (BR)\n\nO sistema agora está acompanhando a aprovação deste modelo pela Meta.`;
                     } else if (newStatus === 'APPROVED' && oldStatus !== 'APPROVED') {
                         shouldNotify = true;
-                        notificationMsg = `✅ *Template Aprovado pela Meta!* 🚀\n\n📌 *Nome*: ${t.name}\n📂 *Categoria*: ${t.category}\n📅 *Data*: ${new Date().toLocaleString('pt-BR')}\n\nO seu template já está disponível para uso imediato no *Plug & Sales*!`;
+                        notificationMsg = `✅ *Template Aprovado pela Meta!* 🚀\n\n📌 *Nome*: ${templateName}\n📂 *Categoria*: ${t.category}\n📅 *Data*: ${new Date().toLocaleString('pt-BR')}\n\nO seu template já está disponível para uso imediato no *Plug & Sales*!`;
                     } else if (newStatus !== oldStatus) {
                         shouldNotify = true;
-                        notificationMsg = `🔄 *Alteração de Status de Template*\n\n📌 *Nome*: ${t.name}\n📉 *Status Anterior*: ${oldStatus}\n📈 *Novo Status*: ${newStatus}\n\nFique atento para futuras atualizações.`;
+                        notificationMsg = `🔄 *Alteração de Status de Template*\n\n📌 *Nome*: ${templateName}\n📉 *Status Anterior*: ${oldStatus}\n📈 *Novo Status*: ${newStatus}\n\nFique atento para futuras atualizações.`;
                     }
 
                     if (shouldNotify) {
+                        let notifyTo = globalNotifyTo;
+
+                        // Lookup owner number if available
+                        if (ownerId) {
+                            const userRes = await client.query("SELECT notification_number FROM users WHERE id = $1", [ownerId]);
+                            if (userRes.rows.length > 0 && userRes.rows[0].notification_number) {
+                                notifyTo = userRes.rows[0].notification_number;
+                                console.log(`🎯 [MONITOR] Roteando notificação do template ${templateName} para o proprietário: ${notifyTo}`);
+                            }
+                        }
+
                         const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado';
                         const payload = {
                             to: notifyTo,
-                            id: templateId,
-                            name: t.name,
-                            category: t.category,
-                            status: newStatus,
-                            mensagem: notificationMsg
+                            mensagem: notificationMsg,
+                            template: templateName,
+                            status: newStatus
                         };
 
                         await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));
-                        console.log(`🔔 [MONITOR] Notificação enfileirada: ${t.name} (Status: ${newStatus}) para ${notifyTo}`);
+                        console.log(`📡 [MONITOR_NOTIFY] ${templateName} -> ${notifyTo}`);
                     }
 
-                    // 5. Update DB
+                    // Update DB with latest status
                     await client.query(
-                        "INSERT INTO infobip_templates (id, status) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET status = $2, updated_at = CURRENT_TIMESTAMP",
-                        [templateId, newStatus]
+                        "INSERT INTO infobip_templates (id, status, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (id) DO UPDATE SET status = $2, updated_at = NOW()",
+                        [templateName, newStatus]
                     );
                 }
-            } else {
-                console.warn('⚠️ [MONITOR] Resposta da API Infobip não contém templates:', data);
             }
         } catch (err) {
-            console.error('❌ [MONITOR] Erro fatal durante a checagem:', err.message);
+            console.error('❌ [MONITOR] Erro durante verificação:', err.message);
         } finally {
             if (client) client.release();
         }

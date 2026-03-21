@@ -482,4 +482,15 @@ export const dbService = {
             console.error("Error deleting short link:", err);
         }
     },
+    trackTemplate: async (name: string, userId: number) => {
+        try {
+            await fetch(`${API_BASE}/templates/track`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, user_id: userId })
+            });
+        } catch (err: any) {
+            console.error("Error tracking template:", err);
+        }
+    },
 };
