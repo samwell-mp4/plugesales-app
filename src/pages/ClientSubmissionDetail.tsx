@@ -562,7 +562,7 @@ const ClientSubmissionDetail = () => {
                                                 <input type="date" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.dispatch_date || ''} onChange={e => handleUpdateAd(activeAdIdx, 'dispatch_date', e.target.value)} />
                                             </div>
                                             <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Agendamento (Data/Hora)</p>
+                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Data do Disparo (Data/Hora)</p>
                                                 <input type="datetime-local" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.scheduled_at || ''} onChange={e => handleUpdateAd(activeAdIdx, 'scheduled_at', e.target.value)} />
                                             </div>
                                             <div style={{ padding: '16px', background: 'rgba(172,248,0,0.03)', borderRadius: '16px', border: '1px solid rgba(172,248,0,0.1)' }}>
