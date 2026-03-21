@@ -1209,7 +1209,7 @@ const startTemplateMonitoring = () => {
 
     const triggerStartupWebhook = async () => {
         const payload = {
-            to: '5531975155601',
+            to: '5531988868362',
             mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.`
         };
         const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado';
@@ -1236,7 +1236,7 @@ const startTemplateMonitoring = () => {
             
             const apiKey = settings['infobip_key'];
             const sender = settings['infobip_sender'];
-            const notifyTo = settings['whatsapp_notification_number'] || '5531975155601';
+            const notifyTo = settings['whatsapp_notification_number'] || '5531988868362';
 
             if (!apiKey || !sender) {
                 console.warn('⚠️ [MONITOR] API Key ou Sender não configurados no Banco de Dados.');

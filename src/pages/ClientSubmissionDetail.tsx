@@ -203,7 +203,7 @@ const ClientSubmissionDetail = () => {
 
             // Fetch setting for notification number if exists
             const settings = await dbService.getSettings();
-            const notifyTo = settings['whatsapp_notification_number'] || '5531975155601';
+            const notifyTo = settings['whatsapp_notification_number'] || '5531988868362';
 
             // Trigger Webhook via Backend Queue for Reliability
             const webhookUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/0d60b5ac-b96d-40a8-b101-b7f7fcfc5469';
