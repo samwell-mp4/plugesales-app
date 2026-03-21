@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ChevronLeft,
@@ -56,6 +58,8 @@ interface Submission {
     status: string;
     accepted_by?: string;
     assigned_to?: string;
+    client_name?: string;
+    user_id?: number | string;
     sender_number?: string;
     ads?: Ad[];
     ad_copy?: string;
@@ -79,6 +83,7 @@ const ClientSubmissionDetail = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const reportRef = useRef<HTMLDivElement>(null);
     const [sub, setSub] = useState<Submission | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [senderNumber, setSenderNumber] = useState('');
@@ -162,25 +167,45 @@ const ClientSubmissionDetail = () => {
     };
 
     const handleNotifyWebhook = async () => {
-        if (!sub) return;
+        if (!sub || !reportRef.current) return;
         setIsNotifying(true);
         try {
+            // Generate PDF from the hidden report ref
+            const canvas = await html2canvas(reportRef.current, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            
+            const pdfBlob = pdf.output('blob');
+            const file = new File([pdfBlob], `relatorio_disparo_${sub.id}.pdf`, { type: 'application/pdf' });
+
+            // Upload to server
+            const formData = new FormData();
+            formData.append('file', file);
+            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+            const uploadData = await uploadRes.json();
+            const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
+
+            // Trigger Webhook
             await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/0d60b5ac-b96d-40a8-b101-b7f7fcfc5469', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     to: '5531988868362',
-                    PDF: `Relatório de Envio #${sub.id}`,
+                    PDF: hostedUrl,
                     mensagem: 'Seu disparo foi concluido com sucesso, veja o relátorio completo em nosso PDF.',
                     id: sub.id,
                     cnpj: '63140137000161',
                     razao_social: 'Plug e Sales Soluções digitais LTDA'
                 })
             });
-            alert("Notificação enviada com sucesso!");
+            alert("Notificação enviada com sucesso com o PDF hospedado!");
         } catch (err) {
             console.error("Webhook error:", err);
-            alert("Erro ao enviar notificação.");
+            alert("Erro ao gerar PDF ou enviar notificação.");
         } finally {
             setIsNotifying(false);
         }
@@ -546,7 +571,7 @@ const ClientSubmissionDetail = () => {
                                 </a>
                             )}
 
-                            {user?.role !== 'CLIENT' && (
+                            {sub.status === 'CONCLUIDO' && user?.role !== 'CLIENT' && (
                                 <button
                                     onClick={handleNotifyWebhook}
                                     disabled={isNotifying}
@@ -921,6 +946,44 @@ const ClientSubmissionDetail = () => {
                         ✓ {copyFeedback.toUpperCase()} COPIADO COM SUCESSO!
                     </div>
                 )}
+            </div>
+
+            {/* Hidden Report for PDF Generation */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                <div ref={reportRef} style={{ width: '800px', padding: '60px', background: '#fff', color: '#000', fontFamily: 'Arial, sans-serif' }}>
+                    <div style={{ borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
+                        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 900 }}>RELATÓRIO DE DISPARO</h1>
+                        <p style={{ margin: '10px 0 0 0', fontSize: '14px', fontWeight: 700 }}>
+                            {sub?.profile_name} - Envio #{sub?.id}
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
+                        <div>
+                            <h3 style={{ fontSize: '12px', color: '#666', marginBottom: '10px', textTransform: 'uppercase' }}>Dados do Cliente</h3>
+                            <p style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{sub?.client_name || 'N/A'}</p>
+                            <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>DDD: {sub?.ddd}</p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <h3 style={{ fontSize: '12px', color: '#666', marginBottom: '10px', textTransform: 'uppercase' }}>Status do Envio</h3>
+                            <p style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#10b981' }}>DISPARO CONCLUÍDO</p>
+                            <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>Data: {new Date().toLocaleDateString('pt-BR')}</p>
+                        </div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', padding: '30px', borderRadius: '15px', marginBottom: '40px' }}>
+                        <h3 style={{ fontSize: '12px', color: '#666', marginBottom: '15px', textTransform: 'uppercase' }}>Conteúdo da Mensagem</h3>
+                        <div style={{ fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap', color: '#1e293b' }}>
+                            {sub?.ads?.[activeAdIdx]?.ad_copy || 'Sem conteúdo.'}
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '40px', borderTop: '1px solid #eee', textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>63140137000161 pix cnpj</p>
+                        <p style={{ margin: '5px 0 0 0', fontSize: '16px', fontWeight: 800 }}>Plug e Sales Soluções digitais LTDA</p>
+                        <p style={{ marginTop: '20px', fontSize: '10px', color: '#999' }}>Gerado automaticamente pelo sistema Plug & Sales</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
