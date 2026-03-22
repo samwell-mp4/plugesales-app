@@ -1277,17 +1277,35 @@ ${text.substring(0, 15000)}
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: prompt }],
             temperature: 0.1,
-            max_tokens: 3000,
+            max_tokens: 16384,
         });
 
         let jsonString = completion.choices[0].message.content.trim();
-        if (jsonString.startsWith('\`\`\`json')) {
-            jsonString = jsonString.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
-        } else if (jsonString.startsWith('\`\`\`')) {
-            jsonString = jsonString.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
+        if (jsonString.startsWith('```json')) {
+            jsonString = jsonString.replace(/^```json/, '').replace(/```$/, '').trim();
+        } else if (jsonString.startsWith('```')) {
+            jsonString = jsonString.replace(/^```/, '').replace(/```$/, '').trim();
         }
 
-        const data = JSON.parse(jsonString);
+        let data = [];
+        try {
+            data = JSON.parse(jsonString);
+        } catch (parseErr) {
+            console.warn('JSON Parsing incompleto. Tentando recuperar array...', parseErr.message);
+            // Fallback: se o JSON foi cortado pelo limite, tenta fechar o último objeto e o array
+            const lastBrace = jsonString.lastIndexOf('}');
+            if (lastBrace !== -1) {
+                const recoveredJson = jsonString.substring(0, lastBrace + 1) + ']';
+                try {
+                    data = JSON.parse(recoveredJson);
+                } catch (e2) {
+                    throw new Error('A planilha era muito longa e cortou a resposta da IA de forma irrecuperável: ' + parseErr.message);
+                }
+            } else {
+                throw new Error('A resposta da IA falhou ao gerar o formato correto: ' + parseErr.message);
+            }
+        }
+
         res.json({ success: true, contacts: data });
     } catch (err) {
         console.error('AI Formatting Error:', err);
