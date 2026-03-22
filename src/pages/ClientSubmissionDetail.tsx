@@ -26,7 +26,8 @@ import {
     Users,
     TrendingDown,
     TrendingUp,
-    Printer
+    Printer,
+    Link2
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -101,6 +102,7 @@ const ClientSubmissionDetail = () => {
     const [employees, setEmployees] = useState<string[]>([]);
     const [updatingAssign, setUpdatingAssign] = useState(false);
     const [copyFeedback, setCopyFeedback] = useState('');
+    const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
     const load = useCallback(async () => {
         if (!id) return;
@@ -228,6 +230,33 @@ const ClientSubmissionDetail = () => {
             alert("Erro ao gerar PDF ou enviar notificação.");
         } finally {
             setIsNotifying(false);
+        }
+    };
+
+    const handleGenerateShortlink = async () => {
+        if (!sub) return;
+        setIsGeneratingLink(true);
+        try {
+            const dashboardUrl = `${window.location.origin}/client-submissions/${sub.id}`;
+            const res = await fetch('/api/shortener/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    originalUrl: dashboardUrl,
+                    description: `Relatório de Disparo - ${sub.profile_name}`
+                })
+            });
+            const data = await res.json();
+            if (data.success && data.shortUrl) {
+                copyToClipboard(data.shortUrl, 'Link Encurtador');
+            } else {
+                alert("Erro ao gerar link: " + (data.error || ""));
+            }
+        } catch (err) {
+            console.error("Link shortener error:", err);
+            alert("Erro ao gerar link encurtador.");
+        } finally {
+            setIsGeneratingLink(false);
         }
     };
 
@@ -478,9 +507,15 @@ const ClientSubmissionDetail = () => {
 
                     <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         {sub.status === 'CONCLUIDO' && (
-                            <button onClick={() => window.print()} className="action-btn ghost-btn" style={{ padding: '0 20px', height: 44, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Printer size={16} /> <span className="hide-mobile">RELATÓRIO PDF</span>
-                            </button>
+                            <>
+                                <button onClick={handleGenerateShortlink} disabled={isGeneratingLink} className="action-btn ghost-btn" style={{ padding: '0 20px', height: 44, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {isGeneratingLink ? <RefreshCw size={16} className="animate-spin" /> : <Link2 size={16} />} 
+                                    <span className="hide-mobile">GERAR LINK CURTO</span>
+                                </button>
+                                <button onClick={() => window.print()} className="action-btn ghost-btn" style={{ padding: '0 20px', height: 44, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Printer size={16} /> <span className="hide-mobile">RELATÓRIO PDF</span>
+                                </button>
+                            </>
                         )}
                         <button onClick={load} className="action-btn ghost-btn" style={{ width: 44, height: 44, padding: 0 }}>
                             <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
@@ -930,9 +965,21 @@ const ClientSubmissionDetail = () => {
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                             {currentAd.variables?.map((v, i) => (
                                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
-                                                        {v}
-                                                    </span>
+                                                    {user?.role !== 'CLIENT' ? (
+                                                        <input 
+                                                            style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.9)', fontSize: '11px', fontWeight: 700, width: `${Math.max(v.length, 5) * 8}px`, minWidth: '40px', outline: 'none' }}
+                                                            value={v}
+                                                            onChange={(e) => {
+                                                                const newVars = [...(currentAd.variables || [])];
+                                                                newVars[i] = e.target.value;
+                                                                handleUpdateAd(activeAdIdx, 'variables', newVars);
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+                                                            {v}
+                                                        </span>
+                                                    )}
                                                     <div style={{ display: 'flex', gap: '4px' }}>
                                                         <button
                                                             onClick={() => copyToClipboard(v, `Variável ${v}`)}
