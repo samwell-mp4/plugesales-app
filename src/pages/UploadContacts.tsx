@@ -25,6 +25,7 @@ const UploadContacts = () => {
     const [mapExtraInfo] = useState(false);
     const [smartSplit] = useState(false);
     const [formatWithAI, setFormatWithAI] = useState(false);
+    const [openAIApiKey, setOpenAIApiKey] = useState(localStorage.getItem('openai_api_key') || '');
 
     const [results, setResults] = useState<{ tag: string, count: number }[]>([]);
     const [processedData, setProcessedData] = useState<any[]>([]);
@@ -217,7 +218,7 @@ const UploadContacts = () => {
                     const res = await fetch('/api/contacts/ai-format', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: rawText })
+                        body: JSON.stringify({ text: rawText, apiKey: openAIApiKey })
                     });
                     const resData = await res.json();
                     
@@ -588,9 +589,31 @@ const UploadContacts = () => {
                                     ✨ Usar Inteligência Artificial (OpenAI) para extrair lista
                                 </span>
                             </label>
+                            
+                            {formatWithAI && (
+                                <div className="input-group" style={{ paddingLeft: '30px', marginTop: '-10px' }}>
+                                    <input
+                                        type="password"
+                                        className="input-field"
+                                        style={{ padding: '8px 12px', fontSize: '0.75rem', borderRadius: '8px', width: '100%' }}
+                                        placeholder="Sua API Key da OpenAI (sk-...)"
+                                        value={openAIApiKey}
+                                        onChange={e => {
+                                            setOpenAIApiKey(e.target.value);
+                                            localStorage.setItem('openai_api_key', e.target.value);
+                                        }}
+                                    />
+                                    <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                                        Sua chave é salva apenas no seu navegador.
+                                    </p>
+                                </div>
+                            )}
+
+                            {!formatWithAI && (
                             <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, paddingLeft: '30px', marginTop: '-12px' }}>
                                 A IA detectará nomes e telefones com precisão superior. Ideal para planilhas desorganizadas. O uso da API poderá gerar custos.
                             </p>
+                            )}
                         </div>
                     </div>
 
