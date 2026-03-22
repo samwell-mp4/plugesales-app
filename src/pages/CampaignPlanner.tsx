@@ -47,7 +47,7 @@ const CampaignPlanner = () => {
             setAvailableTemplates(tData.templates || []);
 
         } catch (error) {
-            console.error('Erro ao carregar dados para o Planner:', error);
+            console.error('Erro ao carregar dados para a Dashboard:', error);
         } finally {
             setIsFetching(false);
         }
@@ -55,7 +55,7 @@ const CampaignPlanner = () => {
 
     useEffect(() => {
         loadData();
-        
+
         // Load Drafts from TemplateDispatch (stored in DB)
         dbService.getPlannerDrafts().then(drafts => {
             if (drafts && drafts.length > 0) {
@@ -220,8 +220,8 @@ const CampaignPlanner = () => {
                                             <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white' }}>Lote #{index + 1}</span>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <button 
-                                                onClick={() => runEngine(index)} 
+                                            <button
+                                                onClick={() => runEngine(index)}
                                                 className="flex items-center justify-center"
                                                 style={{ background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', color: 'var(--primary-color)', padding: '6px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
                                                 onMouseOver={e => e.currentTarget.style.background = 'var(--primary-color)'}
