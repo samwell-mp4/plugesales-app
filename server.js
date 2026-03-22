@@ -6,6 +6,7 @@ import fs from 'fs';
 import cors from 'cors';
 import pg from 'pg';
 import { createClient } from 'redis';
+import OpenAI from 'openai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1234,6 +1235,63 @@ app.post('/api/webhook-push', async (req, res) => {
         res.json({ success: true, message: "Webhook queued successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// --- AI CONTACTS FORMATTER ---
+app.post('/api/contacts/ai-format', async (req, res) => {
+    const { text, apiKey } = req.body;
+    
+    if (!text) {
+        return res.status(400).json({ error: 'Nenhum texto de planilha fornecido.' });
+    }
+
+    try {
+        const openai = new OpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY || '' });
+
+        const prompt = `
+Você é um assistente especialista em extração e limpeza de dados.
+Sua tarefa é ler o texto bruto de uma planilha (CSV, TXT ou copiado do Excel) e extrair os contatos.
+Devolva APENAS um JSON válido contendo um array de objetos.
+Formato exato de cada objeto a ser devolvido:
+{
+  "nome": "João da Silva",
+  "telefone": "5511999999999",
+  "cpf": "123.456.789-00",
+  "email": "joao@email.com"
+}
+
+Regras:
+1. Ignore cabeçalhos, linhas vazias ou resumos finais.
+2. O telefone deve ter exatamente 13 dígitos para números brasileiros (55 + DDD + 9 + 8 dígitos). Se faltar o 55, adicione. Se faltar o 9, tente adicionar.
+3. Não adicione nenhum texto ao redor do JSON, nem crases de markdown (ex: não inclua \`\`\`json ou semelhantes). Apresente puramente o [ ... ].
+4. Deixe "nome" vazio se não houver nome detectável.
+
+Texto bruto a ser processado:
+---
+${text.substring(0, 15000)}
+---
+`;
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1,
+            max_tokens: 3000,
+        });
+
+        let jsonString = completion.choices[0].message.content.trim();
+        if (jsonString.startsWith('\`\`\`json')) {
+            jsonString = jsonString.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
+        } else if (jsonString.startsWith('\`\`\`')) {
+            jsonString = jsonString.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
+        }
+
+        const data = JSON.parse(jsonString);
+        res.json({ success: true, contacts: data });
+    } catch (err) {
+        console.error('AI Formatting Error:', err);
+        res.status(500).json({ error: err.message || 'Erro ao processar dados com IA.' });
     }
 });
 

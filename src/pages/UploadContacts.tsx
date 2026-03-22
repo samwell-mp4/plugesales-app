@@ -24,6 +24,7 @@ const UploadContacts = () => {
     const [discardNoName] = useState(false);
     const [mapExtraInfo] = useState(false);
     const [smartSplit] = useState(false);
+    const [formatWithAI, setFormatWithAI] = useState(false);
 
     const [results, setResults] = useState<{ tag: string, count: number }[]>([]);
     const [processedData, setProcessedData] = useState<any[]>([]);
@@ -202,22 +203,68 @@ const UploadContacts = () => {
                 let extractedContacts: any[] = [];
                 const fileName = file.name.toLowerCase();
 
-                if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
+                if (formatWithAI) {
+                    let rawText = "";
+                    if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
+                        rawText = new TextDecoder("utf-8").decode(e.target?.result as ArrayBuffer);
+                    } else {
+                        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        rawText = XLSX.utils.sheet_to_csv(firstSheet);
+                    }
+
+                    const res = await fetch('/api/contacts/ai-format', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: rawText })
+                    });
+                    const resData = await res.json();
+                    
+                    if (!res.ok || !resData.success) {
+                        alert("Erro da IA: " + (resData.error || 'Falha ao formatar planilha'));
+                        setIsProcessing(false);
+                        return;
+                    }
+                    
+                    extractedContacts = resData.contacts.map((c: any) => ({
+                        ...c,
+                        telefone: normalizePhone(c.telefone || '')
+                    })).filter((c: any) => c && c.telefone && c.telefone.length === 13);
+                    
+                    setInvalidCount(0);
+                } else if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
                     const textData = new TextDecoder("utf-8").decode(e.target?.result as ArrayBuffer);
                     const lines = textData.split(/\r?\n/).filter(line => line.trim().length > 0);
 
                     console.log('Processing TXT/CSV, total lines:', lines.length);
 
-                    extractedContacts = lines.map((line) => {
+                    let phoneColIndex = 0;
+                    if (lines.length > 0 && !smartSplit) {
+                        const separator = lines[0].includes(';') ? ';' : ',';
+                        const firstDataLine = (lines.length > 1 && isNaN(Number(lines[0].split(separator)[0]))) ? lines[1] : lines[0];
+                        const parts = firstDataLine.split(separator);
+                        for (let col = 0; col < Math.min(parts.length, 6); col++) {
+                            const raw = String(parts[col] || '');
+                            if (normalizePhone(raw).length === 13) {
+                                phoneColIndex = col;
+                                break;
+                            }
+                        }
+                    }
+
+                    extractedContacts = lines.map((line, idx) => {
+                        const separator = line.includes(';') ? ';' : ',';
+                        if (idx === 0 && isNaN(Number(line.split(separator)[0])) && lines.length > 1) return null;
+
                         if (smartSplit) {
                             const parsed = smartParseRow(line);
                             return parsed;
                         } else {
-                            const separator = line.includes(';') ? ';' : ',';
                             const parts = line.split(separator);
                             return { 
-                                telefone: normalizePhone(parts[0] || ''), 
-                                nome: (parts[1] || '').trim() 
+                                telefone: normalizePhone(parts[phoneColIndex] || ''), 
+                                nome: (parts[phoneColIndex === 0 ? 1 : 0] || '').trim() 
                             };
                         }
                     }).filter(c => c && c.telefone && c.telefone.length === 13);
@@ -529,7 +576,21 @@ const UploadContacts = () => {
                             </div>
                         </div>
 
-                        <div className="flex-col gap-5 checkbox-group" style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: '32px', display: 'none' }}>
+                        <div className="flex-col gap-5 checkbox-group" style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: '32px' }}>
+                            <label className="flex items-center gap-3" style={{ cursor: 'pointer' }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={formatWithAI} 
+                                    onChange={e => setFormatWithAI(e.target.checked)} 
+                                    style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)', cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    ✨ Usar Inteligência Artificial (OpenAI) para extrair lista
+                                </span>
+                            </label>
+                            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, paddingLeft: '30px', marginTop: '-12px' }}>
+                                A IA detectará nomes e telefones com precisão superior. Ideal para planilhas desorganizadas. O uso da API poderá gerar custos.
+                            </p>
                         </div>
                     </div>
 

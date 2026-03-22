@@ -32,7 +32,7 @@ const Sidebar = () => {
             alert("Erro: Usuário sem ID interno. Por favor, faça LogOut e LogIn novamente para sincronizar seu perfil.");
             return;
         }
-        
+
         // Clean the number: keep only digits
         const cleaned = notifyNum.replace(/\D/g, '');
         if (!cleaned || cleaned.length < 10) {
@@ -256,14 +256,14 @@ const Sidebar = () => {
                 </div>
 
                 {/* Individual Notification Number Section at the TOP */}
-                <div className="mx-2 mb-4 p-3 rounded-xl" style={{ 
-                    background: 'rgba(255, 255, 255, 0.03)', 
+                <div className="mx-2 mb-4 p-3 rounded-xl" style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
                     border: '1px solid rgba(172, 248, 0, 0.1)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px'
                 }}>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between ,">
                         <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Notificações</span>
                         {!isEditingNotify ? (
                             <button onClick={() => setIsEditingNotify(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 700 }}>EDITAR</button>
@@ -280,7 +280,7 @@ const Sidebar = () => {
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'white' }}>{user?.notification_number || '5531988868362'}</span>
                         </div>
                     ) : (
-                        <input 
+                        <input
                             value={notifyNum}
                             onChange={(e) => setNotifyNum(e.target.value)}
                             className="input-field"
