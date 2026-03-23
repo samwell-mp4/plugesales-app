@@ -725,10 +725,8 @@ app.delete('/api/client-submissions/:id', async (req, res) => {
 
 // --- Link Shortener ---
 app.post('/api/shortener/create', async (req, res) => {
-    const { user_id, client_id, links, original_url, title } = req.body;
-
-    // Support either a single link or an array of links
-    const linksToCreate = Array.isArray(links) ? links : [{ original_url, title }];
+    const { user_id, client_id, links, original_url, title, short_code: custom_code } = req.body;
+    const linksToCreate = Array.isArray(links) ? links : [{ original_url, title, short_code: custom_code }];
 
     if (linksToCreate.some(l => !l.original_url)) {
         return res.status(400).json({ error: 'URL original é obrigatória para todos os links.' });
@@ -740,17 +738,27 @@ app.post('/api/shortener/create', async (req, res) => {
         const results = [];
 
         for (const l of linksToCreate) {
-            const short_code = Math.random().toString(36).substring(2, 8);
+            let short_code = l.short_code || Math.random().toString(36).substring(2, 8);
+            
+            if (l.short_code) {
+                const check = await clientDB.query('SELECT id FROM shortened_links WHERE short_code = $1', [l.short_code]);
+                if (check.rows.length > 0) {
+                    throw new Error(`O código "${l.short_code}" já está em uso.`);
+                }
+            }
+
             const result = await clientDB.query(
-                `INSERT INTO shortened_links (user_id, client_id, title, original_url, short_code, is_bulk) 
-                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-                [user_id, client_id, l.title || 'Link sem título', l.original_url, short_code, Array.isArray(links)]
+                `INSERT INTO shortened_links (user_id, client_id, title, original_url, short_code) 
+                 VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+                [user_id, client_id, l.title || 'Link sem título', l.original_url, short_code]
             );
-            results.push(result.rows[0]);
+
+            const fullShortUrl = `${req.protocol}://${req.get('host')}/l/${short_code}`;
+            results.push({ ...result.rows[0], shortUrl: fullShortUrl });
         }
 
         await clientDB.query('COMMIT');
-        res.json(Array.isArray(links) ? results : results[0]);
+        res.json(Array.isArray(links) ? results : { success: true, ...results[0] });
     } catch (err) {
         await clientDB.query('ROLLBACK');
         res.status(500).json({ error: err.message });

@@ -192,10 +192,33 @@ const ClientSubmissions = () => {
                 const sub = submissions.find(s => s.id === id);
                 if (!sub) continue;
                 setGeneratingProgress({ current: i + 1, total: selectedIds.length });
+
+                // Automatic Link Shortening
+                let linkToUse = sub.button_link;
+                if (linkToUse) {
+                    try {
+                        const shortRes = await fetch('/api/shortener/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                original_url: linkToUse,
+                                title: `Botão: ${sub.profile_name}`
+                            })
+                        });
+                        const shortData = await shortRes.json();
+                        if (shortData.success && shortData.shortUrl) {
+                            linkToUse = shortData.shortUrl;
+                        }
+                    } catch (err) {
+                        console.error("Error shortening link for bulk:", err);
+                    }
+                }
+
                 const techName = `${sub.profile_name.toLowerCase().replace(/\s+/g, '_')}_${sub.ddd}_${sub.template_type}`;
                 const payload: any = { name: techName, language: 'pt_BR', category: 'MARKETING', structure: { body: { text: sub.ad_copy } } };
                 if (sub.template_type !== 'none') payload.structure.header = { format: sub.template_type.toUpperCase(), example: sub.media_url };
-                if (sub.button_link) payload.structure.buttons = [{ type: 'URL', text: 'Acessar Agora', url: sub.button_link }];
+                if (linkToUse) payload.structure.buttons = [{ type: 'URL', text: 'Acessar Agora', url: linkToUse }];
+                
                 const res = await callInfobipAPI(payload);
                 if (res.success) { successCount++; await dbService.updateClientSubmissionStatus(id, 'GERADO'); }
                 else { errorCount++; await fetch('/api/logs/template-error', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: techName, error: res.error, author: 'Client Area' }) }).catch(() => {}); }

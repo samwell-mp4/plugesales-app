@@ -242,8 +242,8 @@ const ClientSubmissionDetail = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    originalUrl: dashboardUrl,
-                    description: `Relatório de Disparo - ${sub.profile_name}`
+                    original_url: dashboardUrl,
+                    title: `Relatório de Disparo - ${sub.profile_name}`
                 })
             });
             const data = await res.json();
