@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, CheckCircle, X } from 'lucide-react';
+import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, CheckCircle, X, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -17,7 +17,7 @@ const TemplateCreator = () => {
 
     // --- API / CONFIG STATE ---
     const [apiKey, setApiKey] = useState('5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [senderNumber, setSenderNumber] = useState('5511997625247');
+    const [selectedSenders, setSelectedSenders] = useState<string[]>([]);
     const [senders, setSenders] = useState<any[]>([]);
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -58,7 +58,7 @@ const TemplateCreator = () => {
     useEffect(() => {
         dbService.getSettings().then(settings => {
             if (settings['infobip_key']) setApiKey(settings['infobip_key']);
-            if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
+            if (settings['infobip_sender']) setSelectedSenders([settings['infobip_sender']]);
         });
     }, []);
 
@@ -80,6 +80,9 @@ const TemplateCreator = () => {
             const result = await response.json();
             if (response.ok && result.senders) {
                 setSenders(result.senders);
+                if (selectedSenders.length === 0 && result.senders.length > 0) {
+                    setSelectedSenders([result.senders[0].sender]);
+                }
             }
         } catch (err) {
             console.error('Error fetching senders:', err);
@@ -209,7 +212,7 @@ const TemplateCreator = () => {
 
     const callInfobipAPI = async (payload: any, overrideSender?: string) => {
         try {
-            const effectiveSender = (overrideSender && overrideSender.trim()) || senderNumber;
+            const effectiveSender = (overrideSender && overrideSender.trim()) || selectedSenders[0] || 'SENDER_ID';
             const encodedSender = encodeURIComponent(effectiveSender);
             const payloadStr = JSON.stringify(payload, null, 2);
             console.log('🚀 [INFOBIP_REQUEST] Payload:', payloadStr);
@@ -308,17 +311,28 @@ const TemplateCreator = () => {
             return alert(payload.error);
         }
 
-        const res = await callInfobipAPI(payload);
+        let totalSuccess = 0;
+        let lastError = '';
+
+        for (const sender of selectedSenders) {
+            setGeneratingProgress({ current: 1, total: 1, msg: `Publicando no remetente ${sender}...` });
+            const res = await callInfobipAPI(payload, sender);
+            if (res.success) {
+                totalSuccess++;
+                // Associated user with this template for notification routing
+                if (user?.id) {
+                    await dbService.trackTemplate(sanitizedName, user.id);
+                }
+            } else {
+                lastError = res.error || 'Erro desconhecido';
+                console.error(`Error on sender ${sender}:`, lastError);
+            }
+        }
 
         setIsGenerating(false);
 
-        if (res.success) {
-            // Associated user with this template for notification routing
-            if (user?.id) {
-                await dbService.trackTemplate(sanitizedName, user.id);
-            }
-
-            // Track in DB
+        if (totalSuccess > 0) {
+            // Track in DB (log once)
             dbService.addLog({
                 logType: 'TEMPLATE',
                 name: modelName,
@@ -360,7 +374,7 @@ const TemplateCreator = () => {
             alert(`✅ Template "${modelName}" criado com sucesso!`);
             navigate('/accounts');
         }
-        else alert(`❌ Erro: ${res.error}`);
+        else alert(`❌ Erro: ${lastError}`);
     };
 
     const handleGenerateBulk = async () => {
@@ -386,7 +400,7 @@ const TemplateCreator = () => {
             }
 
             // Inject sender into payload for tracking/webhooks
-            const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumber;
+            const rowSender = row.sender && row.sender.trim() ? row.sender : (selectedSenders[0] || 'SENDER_ID');
             const extendedPayload = { ...payload, sender: rowSender };
 
             console.log(`[BULK] Creating template "${name}" on sender "${rowSender}"...`, extendedPayload);
@@ -470,7 +484,7 @@ const TemplateCreator = () => {
             const currentNum = startIdx + i;
             newRows.push({
                 suffix: String(currentNum).padStart(3, '0'),
-                sender: senderNumber, // Default to current global sender
+                sender: selectedSenders[0] || '', // Default to first selected sender
                 headerType: headerType,
                 mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
                 hasButtons: buttons.length > 0,
@@ -733,36 +747,6 @@ const TemplateCreator = () => {
                     <p className="subtitle" style={{ fontSize: 'clamp(0.75rem, 3.5vw, 1rem)', opacity: 0.6 }}>Criação oficial via Infobip Cloud</p>
                 </div>
 
-                {/* API Settings Bar Redesigned */}
-                <div className="config-bar mb-10 animate-fade-in shadow-xl mb-4">
-                    <div className="flex flex-col">
-                        <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Configuração do Canal</h3>
-                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.6 }}>A chave da API está ativa e oculta por segurança.</p>
-                    </div>
-
-                    <div className="sender-display shadow-lg group relative">
-                        <Smartphone size={24} color={isLoadingSenders ? "#9ca3af" : "var(--primary-color)"} className={isLoadingSenders ? "animate-pulse" : ""} />
-                        <div className="flex flex-col flex-1">
-                            <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.7, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Remetente Oficial</span>
-                            <input
-                                list="senders-list"
-                                className="sender-input"
-                                value={senderNumber}
-                                onChange={e => {
-                                    setSenderNumber(e.target.value);
-                                    dbService.saveSetting('infobip_sender', e.target.value);
-                                }}
-                                placeholder="Escolha ou Digite..."
-                            />
-                            <datalist id="senders-list">
-                                {senders.map((s: any) => (
-                                    <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
-                                ))}
-                            </datalist>
-                        </div>
-                    </div>
-                </div>
-
                 <div className="creator-layout mt-4">
                     {/* Form Column */}
                     <div className="flex-col gap-8 ">
@@ -783,6 +767,61 @@ const TemplateCreator = () => {
                                             <Settings2 size={28} color="var(--primary-color)" />
                                         </div>
                                         <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.4rem' }}>Estrutura Básica</h3>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <label className="flex items-center justify-between">
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7 }}>Remetentes Oficiais (Disponibilizar em 1 ou mais)</span>
+                                            {isLoadingSenders && <Activity size={12} className="animate-spin" color="var(--primary-color)" />}
+                                        </label>
+                                        <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
+                                            gap: '8px',
+                                            background: 'rgba(0,0,0,0.15)',
+                                            padding: '12px',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(255,255,255,0.05)'
+                                        }}>
+                                            {senders.map((s: any) => (
+                                                <div 
+                                                    key={s.sender} 
+                                                    onClick={() => {
+                                                        if (selectedSenders.includes(s.sender)) {
+                                                            setSelectedSenders(selectedSenders.filter(num => num !== s.sender));
+                                                        } else {
+                                                            setSelectedSenders([...selectedSenders, s.sender]);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        padding: '6px 10px',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 800,
+                                                        cursor: 'pointer',
+                                                        background: selectedSenders.includes(s.sender) ? 'rgba(172, 248, 0, 0.15)' : 'rgba(255,255,255,0.02)',
+                                                        border: `1px solid ${selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)'}`,
+                                                        color: selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'white',
+                                                        transition: 'all 0.2s',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px'
+                                                    }}
+                                                >
+                                                    <div style={{
+                                                        width: '12px', height: '12px',
+                                                        borderRadius: '4px', border: '1px solid currentColor',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}>
+                                                        {selectedSenders.includes(s.sender) && <Check size={10} strokeWidth={4} />}
+                                                    </div>
+                                                    {s.senderName || s.sender}
+                                                </div>
+                                            ))}
+                                            {senders.length === 0 && !isLoadingSenders && (
+                                                <div style={{ fontSize: '0.7rem', opacity: 0.5, padding: '5px' }}>Nenhum canal ativo</div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* CLIENT SELECTION */}
@@ -1066,7 +1105,7 @@ const TemplateCreator = () => {
                                                                         className="input-field"
                                                                         style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }}
                                                                         value={row.sender || ''}
-                                                                        placeholder={senderNumber}
+                                                                         placeholder={selectedSenders[0] || ''}
                                                                         onChange={e => {
                                                                             const n = [...bulkRows];
                                                                             n[i].sender = e.target.value;
