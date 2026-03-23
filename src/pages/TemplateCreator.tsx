@@ -564,73 +564,46 @@ const TemplateCreator = () => {
         ]);
     };
 
-    const [isShorteningGlobal, setIsShorteningGlobal] = useState(false);
-    const [shorteningCell, setShorteningCell] = useState<{ row: number, url: number } | null>(null);
+    // --- UTILITY SHORTENER STATE ---
+    const [utilityLinkOriginal, setUtilityLinkOriginal] = useState('');
+    const [utilityLinkShort, setUtilityLinkShort] = useState('');
+    const [isShorteningUtility, setIsShorteningUtility] = useState(false);
 
-    const shortenAndReplicate = async (rowIndex: number, urlIndex: number) => {
-        const originalUrl = bulkRows[rowIndex].buttonUrls[urlIndex];
-        if (!originalUrl || (!originalUrl.startsWith('http') && !originalUrl.includes('.'))) return;
+    const handleUtilityShorten = async () => {
+        if (!utilityLinkOriginal || (!utilityLinkOriginal.startsWith('http') && !utilityLinkOriginal.includes('.'))) {
+            return alert("Insira um link válido para encurtar.");
+        }
+        if (!selectedClientId) return alert("Selecione um cliente primeiro.");
 
-        setShorteningCell({ row: rowIndex, url: urlIndex });
+        setIsShorteningUtility(true);
         try {
             const res = await dbService.createShortLink({
                 user_id: user?.id,
                 client_id: Number(selectedClientId),
-                original_url: originalUrl,
-                title: `Bulk: ${bulkPrefix}${bulkRows[rowIndex].suffix} - B${urlIndex + 1}`
+                original_url: utilityLinkOriginal,
+                title: `Utility: ${bulkPrefix}*`
             });
-
             if (res.shortUrl) {
-                setBulkRows(prev => prev.map((row, i) => {
-                    if (i < rowIndex) return row;
-                    const newUrls = [...row.buttonUrls];
-                    newUrls[urlIndex] = res.shortUrl;
-                    return { ...row, buttonUrls: newUrls };
-                }));
+                setUtilityLinkShort(res.shortUrl);
             }
         } catch (err) {
-            console.error("Error shortening link:", err);
-            alert("Erro ao encurtar link");
+            console.error(err);
+            alert("Erro ao encurtar link.");
         } finally {
-            setShorteningCell(null);
+            setIsShorteningUtility(false);
         }
     };
 
-    const applyGlobalShortener = async () => {
-        if (!selectedClientId) return alert("Selecione um cliente primeiro.");
-        const hasLinks = bulkRows.some(r => r.buttonUrls.some((u: string) => u && (u.startsWith('http') || u.includes('.'))));
-        if (!hasLinks) return alert("Nenhum link detectado para encurtar.");
+    const applyUtilityLinkToAll = (btnIdx: number) => {
+        if (!utilityLinkShort) return alert("Encurte um link primeiro.");
+        const confirmApply = window.confirm(`Deseja aplicar o link curto a todos os botões ${btnIdx + 1} da tabela?`);
+        if (!confirmApply) return;
 
-        setIsShorteningGlobal(true);
-        const newRows = [...bulkRows];
-        let totalProcessed = 0;
-
-        for (let i = 0; i < newRows.length; i++) {
-            const row = newRows[i];
-            const urls = [...row.buttonUrls];
-            for (let u: number = 0; u < urls.length; u++) {
-                const url = urls[u];
-                if (url && (url.startsWith('http') || url.includes('.')) && !url.includes('/s/')) {
-                    try {
-                        const res = await dbService.createShortLink({
-                            user_id: user?.id,
-                            client_id: Number(selectedClientId),
-                            original_url: url,
-                            title: `Bulk: ${bulkPrefix}${row.suffix} - B${u + 1}`
-                        });
-                        if (res.shortUrl) {
-                            urls[u] = res.shortUrl;
-                            totalProcessed++;
-                        }
-                    } catch (e) { console.error(e); }
-                }
-            }
-            newRows[i] = { ...row, buttonUrls: urls };
-        }
-
-        setBulkRows(newRows);
-        setIsShorteningGlobal(false);
-        alert(`${totalProcessed} link(s) encurtado(s) com sucesso!`);
+        setBulkRows(prev => prev.map(row => {
+            const newUrls = [...row.buttonUrls];
+            newUrls[btnIdx] = utilityLinkShort;
+            return { ...row, buttonUrls: newUrls };
+        }));
     };
 
     return (
@@ -1071,6 +1044,78 @@ const TemplateCreator = () => {
                                     <button className="btn btn-secondary" onClick={() => setBulkRows([])} style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '0.75rem' }}>LIMPAR TUDO</button>
                                 </div>
 
+                                {/* FERRAMENTA DE ENCURTAMENTO STANDALONE */}
+                                <div className="mt-6 mb-2 p-5 rounded-2xl border border-primary-color/10 bg-primary-color/[0.02] flex flex-col gap-5">
+                                    <div className="flex items-center gap-3">
+                                        <div style={{ background: 'var(--primary-color)', color: 'black', padding: '6px', borderRadius: '10px' }}><Link size={18} /></div>
+                                        <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ferramenta de Encurtamento</h4>
+                                    </div>
+
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <div className="flex-1 flex flex-col gap-2">
+                                            <label style={{ fontSize: '10px', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase' }}>Link Original</label>
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    className="input-field" 
+                                                    style={{ borderRadius: '12px', fontSize: '0.85rem' }} 
+                                                    placeholder="https://sua-url-longa.com/pagina?id=123"
+                                                    value={utilityLinkOriginal}
+                                                    onChange={e => setUtilityLinkOriginal(e.target.value)}
+                                                />
+                                                <button 
+                                                    className="btn btn-primary" 
+                                                    style={{ color: 'black', borderRadius: '12px', padding: '0 20px', whiteSpace: 'nowrap' }}
+                                                    onClick={handleUtilityShorten}
+                                                    disabled={isShorteningUtility}
+                                                >
+                                                    {isShorteningUtility ? <Activity size={16} className="animate-spin" /> : 'ENCURTAR'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 flex flex-col gap-2">
+                                            <label style={{ fontSize: '10px', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase' }}>Link Curto Gerado</label>
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    readOnly 
+                                                    className="input-field" 
+                                                    style={{ borderRadius: '12px', fontSize: '0.85rem', background: 'rgba(0,0,0,0.1)', cursor: 'default' }}
+                                                    value={utilityLinkShort}
+                                                    placeholder="Aguardando geração..."
+                                                />
+                                                {utilityLinkShort && (
+                                                    <button 
+                                                        className="btn btn-secondary" 
+                                                        style={{ borderRadius: '12px', padding: '0 15px' }}
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(utilityLinkShort);
+                                                            alert("Copiado!");
+                                                        }}
+                                                    >
+                                                        <Copy size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {utilityLinkShort && (
+                                        <div className="flex flex-wrap gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
+                                            <span style={{ fontSize: '10px', fontWeight: 800, opacity: 0.5, alignSelf: 'center', marginRight: '8px' }}>APLICAR À FILA:</span>
+                                            {buttons.filter(b => b.type === 'url').map((btn, idx) => (
+                                                <button 
+                                                    key={idx}
+                                                    onClick={() => applyUtilityLinkToAll(idx)}
+                                                    className="btn btn-secondary"
+                                                    style={{ fontSize: '0.7rem', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--primary-color)' }}
+                                                >
+                                                    BOTÃO {idx + 1} ({btn.text || 'Link'})
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="flex flex-col gap-6">
                                     <div className="bulk-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr', gap: '20px' }}>
                                         <div className="input-group">
@@ -1120,20 +1165,6 @@ const TemplateCreator = () => {
                                                             style={{ color: 'var(--text-muted)', cursor: 'pointer', width: '100px' }}
                                                             placeholder="MUDAR TODOS"
                                                         />
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Links Geral</span>
-                                                    <div className="flex bg-black/20 p-1 rounded-lg">
-                                                        <button 
-                                                            onClick={applyGlobalShortener} 
-                                                            disabled={isShorteningGlobal}
-                                                            className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase flex items-center gap-1" 
-                                                            style={{ color: 'var(--primary-color)' }}
-                                                        >
-                                                            {isShorteningGlobal ? <Activity size={10} className="animate-spin" /> : <Link size={10} />}
-                                                            ENCURTAR TODOS
-                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1218,21 +1249,11 @@ const TemplateCreator = () => {
                                                                             }} />
                                                                         </td>
                                                                         <td key={`link-td-${urlIdx}`}>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1, flex: 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
-                                                                                    const n = [...bulkRows];
-                                                                                    n[i].buttonUrls[urlIdx] = e.target.value;
-                                                                                    setBulkRows(n);
-                                                                                }} />
-                                                                                <button 
-                                                                                    onClick={() => shortenAndReplicate(i, urlIdx)}
-                                                                                    disabled={row.hasButtons === false || (shorteningCell?.row === i && shorteningCell?.url === urlIdx)}
-                                                                                    title="Encurtar e Replicar para baixo"
-                                                                                    style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: row.hasButtons === false ? 0.3 : 1 }}
-                                                                                >
-                                                                                    {shorteningCell?.row === i && shorteningCell?.url === urlIdx ? <Activity size={14} className="animate-spin" /> : <Link size={14} />}
-                                                                                </button>
-                                                                            </div>
+                                                                            <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
+                                                                                const n = [...bulkRows];
+                                                                                n[i].buttonUrls[urlIdx] = e.target.value;
+                                                                                setBulkRows(n);
+                                                                            }} />
                                                                         </td>
                                                                     </Fragment>
                                                                 ))}
