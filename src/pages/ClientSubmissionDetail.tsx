@@ -764,10 +764,14 @@ const ClientSubmissionDetail = () => {
                             )}
 
                             {/* NAVEGADOR E ANALYZER */}
-                            <div className="ad-analyzer-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                            <div className="ad-analyzer-grid" style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', 
+                                gap: '24px' 
+                            }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
+                                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)', padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', flexShrink: 0 }}>
                                             <span className="no-print" style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px' }}>CONTEÚDO DA MENSAGEM</span>
                                             <span className="print-only" style={{ fontSize: '14px', fontWeight: 900, color: '#000', letterSpacing: '1px', textTransform: 'uppercase' }}>DADOS DA EMPRESA</span>
                                             <div className="no-print" style={{ display: 'flex', gap: '10px' }}>
@@ -783,11 +787,11 @@ const ClientSubmissionDetail = () => {
                                         </div>
 
                                         {/* Exibição Normal (Tela) */}
-                                        <div className="no-print">
+                                        <div className="no-print" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                             {user?.role !== 'CLIENT' ? (
                                                 <textarea
                                                     className="field-input"
-                                                    style={{ minHeight: '200px', fontSize: '14px', lineHeight: '1.6', background: 'rgba(255,255,255,0.02)', width: '100%' }}
+                                                    style={{ flex: 1, minHeight: '300px', fontSize: '14px', lineHeight: '1.6', background: 'rgba(255,255,255,0.02)', width: '100%', resize: 'vertical' }}
                                                     value={currentAd.ad_copy || ''}
                                                     onChange={e => handleUpdateAd(activeAdIdx, 'ad_copy', e.target.value)}
                                                     placeholder="Digite o texto do anúncio aqui..."
@@ -801,9 +805,10 @@ const ClientSubmissionDetail = () => {
                                                     lineHeight: '1.8',
                                                     color: 'rgba(255,255,255,0.8)',
                                                     whiteSpace: 'pre-wrap',
-                                                    maxHeight: '300px',
+                                                    maxHeight: '400px',
                                                     overflowY: 'auto',
-                                                    scrollbarWidth: 'thin'
+                                                    scrollbarWidth: 'thin',
+                                                    flex: 1
                                                 }}>
                                                     {currentAd.ad_copy || 'Nenhum texto definido.'}
                                                 </div>
@@ -818,7 +823,7 @@ const ClientSubmissionDetail = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                         <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
                                             <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '6px' }}>TIPO DE TEMPLATE</p>
