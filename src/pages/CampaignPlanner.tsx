@@ -121,15 +121,15 @@ const CampaignPlanner = () => {
         <div className="animate-fade-in" style={{ paddingBottom: '100px' }}>
             <style>{`
                 .planner-layout { display: grid; grid-template-columns: 350px 1fr; gap: 32px; align-items: start; }
-                .summary-card { padding: 32px; border-radius: 24px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--surface-border); }
+                .summary-card { padding: 32px; border-radius: 24px; background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); }
                 .step-card { 
                     padding: 24px; 
                     border-radius: 20px; 
-                    background: rgba(15, 23, 42, 0.6); 
-                    border: 1px solid var(--surface-border);
+                    background: var(--card-bg-subtle); 
+                    border: 1px solid var(--surface-border-subtle);
                     transition: all 0.3s ease;
                 }
-                .step-card:hover { border-color: var(--primary-color); background: rgba(15, 23, 42, 0.8); }
+                .step-card:hover { border-color: var(--primary-color); background: var(--card-bg-subtle); opacity: 0.9; }
                 .step-number {
                     width: 32px; height: 32px; border-radius: 50%; background: var(--primary-color); color: black;
                     display: flex; alignItems: center; justifyContent: center; font-weight: 900; font-size: 0.9rem;
@@ -155,7 +155,7 @@ const CampaignPlanner = () => {
                     <p className="subtitle">Configure o sequenciamento inteligente de disparo em massa</p>
                 </div>
                 <div className="flex gap-3 header-actions">
-                    <button className="btn btn-secondary" style={{ borderRadius: '12px', padding: '12px 20px', background: 'rgba(239, 68, 68, 0.1)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.2)' }} onClick={() => { dbService.clearPlannerDrafts(); setSteps([{ id: 1, wabaId: fromNumber, listTag: '', templateInstance: '', delay: 5 }]); }}><Trash2 size={18} /> Limpar</button>
+                    <button className="btn btn-secondary" style={{ borderRadius: '12px', padding: '12px 20px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }} onClick={() => { dbService.clearPlannerDrafts(); setSteps([{ id: 1, wabaId: fromNumber, listTag: '', templateInstance: '', delay: 5 }]); }}><Trash2 size={18} /> Limpar</button>
                     <button className="btn btn-secondary" style={{ borderRadius: '12px', padding: '12px 20px' }} onClick={saveStrategy}><Save size={18} /> Salvar</button>
                     <button className="btn btn-primary" style={{ borderRadius: '12px', padding: '12px 20px', color: 'black', fontWeight: 800 }} onClick={() => runEngine()}><PlayCircle size={18} /> Iniciar Motor</button>
                 </div>
@@ -172,21 +172,21 @@ const CampaignPlanner = () => {
 
                         <div className="input-group">
                             <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary-color)' }}>NOME DA CAMPANHA</label>
-                            <input className="input-field" style={{ borderRadius: '12px', background: 'rgba(0,0,0,0.2)' }} value={campaignName} onChange={e => setCampaignName(e.target.value)} />
+                            <input className="input-field" style={{ borderRadius: '12px', background: 'var(--card-bg-subtle)', color: 'var(--text-primary)' }} value={campaignName} onChange={e => setCampaignName(e.target.value)} />
                         </div>
 
                         <div className="flex flex-col gap-4 mt-2">
-                            <div className="flex justify-between items-center p-4" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid var(--surface-border)' }}>
+                            <div className="flex justify-between items-center p-4" style={{ background: 'var(--card-bg-subtle)', borderRadius: '14px', border: '1px solid var(--surface-border-subtle)' }}>
                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Escopos (WABAs)</span>
-                                <b style={{ fontSize: '1.1rem' }}>{new Set(steps.map(s => s.wabaId).filter(Boolean)).size}</b>
+                                <b style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{new Set(steps.map(s => s.wabaId).filter(Boolean)).size}</b>
                             </div>
-                            <div className="flex justify-between items-center p-4" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid var(--surface-border)' }}>
+                            <div className="flex justify-between items-center p-4" style={{ background: 'var(--card-bg-subtle)', borderRadius: '14px', border: '1px solid var(--surface-border-subtle)' }}>
                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Fatias de Lote</span>
-                                <b style={{ fontSize: '1.1rem' }}>{steps.length}</b>
+                                <b style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{steps.length}</b>
                             </div>
                             <div className="flex flex-col p-4" style={{ background: 'rgba(172, 248, 0, 0.05)', borderRadius: '14px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
                                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Volume Total Estimado</span>
-                                <b style={{ fontSize: '1.8rem', color: 'white', marginTop: '4px' }}>{totalVolume.toLocaleString()} <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>Leads</span></b>
+                                <b style={{ fontSize: '1.8rem', color: 'var(--text-primary)', marginTop: '4px' }}>{totalVolume.toLocaleString()} <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>Leads</span></b>
                             </div>
                         </div>
                     </div>
@@ -214,10 +214,10 @@ const CampaignPlanner = () => {
                                 <div className="step-number" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{index + 1}</div>
 
                                 <div className="step-card flex-1">
-                                    <div className="flex justify-between items-center mb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
+                                    <div className="flex justify-between items-center mb-6" style={{ borderBottom: '1px solid var(--surface-border-subtle)', paddingBottom: '12px' }}>
                                         <div className="flex items-center gap-2">
                                             <Database size={16} color="var(--primary-color)" />
-                                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white' }}>Lote #{index + 1}</span>
+                                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)' }}>Lote #{index + 1}</span>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <button
@@ -270,7 +270,7 @@ const CampaignPlanner = () => {
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 p-3 flex items-center gap-3" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                    <div className="mt-4 p-3 flex items-center gap-3" style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                         <Smartphone size={14} color="var(--primary-color)" />
                                         <span>Este lote será processado pelo motor de escala vinculado ao canal {step.wabaId || 'principal'}.</span>
                                     </div>

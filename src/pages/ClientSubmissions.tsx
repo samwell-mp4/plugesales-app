@@ -272,12 +272,12 @@ const ClientSubmissions = () => {
                 return (
                     <div key={s.id} className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)} style={{ padding: '20px' }}>
                         <div className="card-actions">
-                            <button onClick={e => { e.stopPropagation(); handleDelete(s.id); }} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', display: 'flex' }}>
+                            <button onClick={e => { e.stopPropagation(); handleDelete(s.id); }} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', display: 'flex' }}>
                                 <Trash2 size={13} />
                             </button>
                         </div>
                         <div style={{ position: 'absolute', top: '18px', left: '18px' }}>
-                            <div style={{ width: 20, height: 20, borderRadius: '6px', border: selectedIds.includes(s.id) ? '1.5px solid var(--primary-color)' : '1.5px solid rgba(255,255,255,0.12)', background: selectedIds.includes(s.id) ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+                            <div style={{ width: 20, height: 20, borderRadius: '6px', border: selectedIds.includes(s.id) ? '1.5px solid var(--primary-color)' : '1.5px solid var(--surface-border-subtle)', background: selectedIds.includes(s.id) ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
                                 {selectedIds.includes(s.id) && <CheckCircle size={13} style={{ color: '#000' }} />}
                             </div>
                         </div>
@@ -294,22 +294,22 @@ const ClientSubmissions = () => {
                             </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '30px', marginBottom: '16px' }}>
-                            {s.profile_photo ? <img src={s.profile_photo} alt="" style={{ width: 48, height: 48, borderRadius: '14px', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.1)', flexShrink: 0 }} /> : <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><User size={22} style={{ opacity: 0.2 }} /></div>}
-                            <div style={{ overflow: 'hidden' }}><h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>{s.client_name && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '2px', fontWeight: 600 }}>Cliente: {s.client_name}</div>}<div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}><span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span><span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {formatDate(s.timestamp)}</span></div></div>
+                            {s.profile_photo ? <img src={s.profile_photo} alt="" style={{ width: 48, height: 48, borderRadius: '14px', objectFit: 'cover', border: '1.5px solid var(--surface-border-subtle)', flexShrink: 0 }} /> : <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'var(--card-bg-subtle)', border: '1.5px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><User size={22} style={{ opacity: 0.2 }} /></div>}
+                            <div style={{ overflow: 'hidden' }}><h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>{s.client_name && <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>Cliente: {s.client_name}</div>}<div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}><span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span><span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {formatDate(s.timestamp)}</span></div></div>
                         </div>
 
                         {/* Additional detail rows from original card */}
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ flex: 1, background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 {getTemplateIcon(s.template_type || s.ads?.[0]?.template_type || 'none')}
-                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                                     {(s.template_type || s.ads?.[0]?.template_type || 'none').toUpperCase()}
                                 </span>
                             </div>
                             {adCount > 0 && (
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Layers size={13} style={{ color: 'rgba(255,255,255,0.3)' }} />
-                                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'rgba(255,255,255,0.5)' }}>{adCount}</span>
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Layers size={13} style={{ color: 'var(--text-muted)' }} />
+                                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)' }}>{adCount}</span>
                                 </div>
                             )}
                             {s.spreadsheet_url && (
@@ -320,8 +320,8 @@ const ClientSubmissions = () => {
                         </div>
 
                         {(s.ad_copy || s.ads?.[0]?.ad_copy) && (
-                            <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden', maxHeight: '52px' }}>
-                                <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, overflow: 'hidden' }}>
+                            <div style={{ background: 'var(--card-bg-subtle)', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px', border: '1px solid var(--surface-border-subtle)', overflow: 'hidden', maxHeight: '52px' }}>
+                                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5, overflow: 'hidden' }}>
                                     {(s.ad_copy || s.ads?.[0]?.ad_copy || '').substring(0, 120)}
                                 </p>
                             </div>
@@ -356,7 +356,7 @@ const ClientSubmissions = () => {
                         )}
                         {user?.role === 'ADMIN' && (
                             <div style={{ marginBottom: '14px' }} onClick={e => e.stopPropagation()}>
-                                <select value={s.assigned_to || ''} onChange={e => handleAssign(s.id, e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '11px', fontWeight: 700, outline: 'none' }}>
+                                <select value={s.assigned_to || ''} onChange={e => handleAssign(s.id, e.target.value)} style={{ width: '100%', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '10px', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, outline: 'none' }}>
                                     <option value="">Atribuir...</option>
                                     {employees.map(emp => <option key={emp} value={emp}>{emp}</option>)}
                                 </select>
@@ -375,16 +375,16 @@ const ClientSubmissions = () => {
                 <div key={s.id} className={`list-row ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)}>
                     {/* COL 1: NAME & SUBTITLE */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ fontWeight: 900, fontSize: '14px', color: '#fff', letterSpacing: '-0.2px' }}>{s.profile_name}</span>
-                        <span style={{ fontSize: '10px', color: 'rgba(172,248,0,0.6)', fontWeight: 800 }}>{s.id.toString().padStart(6, '0')}...</span>
+                        <span style={{ fontWeight: 900, fontSize: '14px', color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>{s.profile_name}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--primary-color)', opacity: 0.6, fontWeight: 800 }}>{s.id.toString().padStart(6, '0')}...</span>
                     </div>
 
                     {/* COL 2: TYPE & LOCALE */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ fontWeight: 900, fontSize: '11px', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>
+                        <span style={{ fontWeight: 900, fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                             {s.template_type || 'TEMPLATE'}
                         </span>
-                        <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>pt_BR</span>
+                        <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700 }}>pt_BR</span>
                     </div>
 
                     {/* COL 3: STATUS BADGE */}
@@ -399,7 +399,7 @@ const ClientSubmissions = () => {
                     </div>
 
                     {/* COL 4: DATE */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 700 }}>
                         <Calendar size={14} opacity={0.5} />
                         {formatDate(s.timestamp)}
                     </div>
@@ -439,7 +439,7 @@ const ClientSubmissions = () => {
                     <div key={col.id} className="kanban-column">
                         <div className="kanban-header">
                             <span className="kanban-title">{col.title}</span>
-                            <span style={{ fontSize: '10px', opacity: 0.3, fontWeight: 900 }}>{filteredSubmissions.filter(col.filter).length}</span>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 900 }}>{filteredSubmissions.filter(col.filter).length}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
                             {filteredSubmissions.filter(col.filter).map(s => (
@@ -462,12 +462,12 @@ const ClientSubmissions = () => {
     };
 
     return (
-        <div style={{ background: '#020617', minHeight: '100vh', padding: '32px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+        <div style={{ minHeight: '100vh', padding: '32px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
             <style>{`
                 * { box-sizing: border-box; }
                 .cs-card {
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.06);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 20px;
                     transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
                     position: relative;
@@ -499,7 +499,7 @@ const ClientSubmissions = () => {
                 .tab-pill { border: 1px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
                 .tab-pill.active { border-color: rgba(172,248,0,0.3); box-shadow: 0 4px 15px rgba(172,248,0,0.2); }
                 .progress-overlay {
-                    position: fixed; inset: 0; background: rgba(2,6,23,0.96); z-index: 9999;
+                    position: fixed; inset: 0; background: var(--overlay-bg); z-index: 9999;
                     display: flex; flex-direction: column; align-items: center; justify-content: center;
                     backdrop-filter: blur(20px);
                 }
@@ -598,7 +598,7 @@ const ClientSubmissions = () => {
                         <div>
                             <p style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '3px', color: 'var(--primary-color)', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.8 }}>ÁREA DO CLIENTE</p>
                             <h1 style={{ fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', margin: 0, lineHeight: 1 }}>Dashboard de Clientes</h1>
-                            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 600, marginTop: '6px' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600, marginTop: '6px' }}>
                                 Gerencie solicitações de templates e acompanhe suas atividades
                             </p>
                         </div>
@@ -609,7 +609,7 @@ const ClientSubmissions = () => {
                                     navigator.clipboard.writeText(url);
                                     alert("Link copiado: " + url);
                                 }}
-                                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
+                                style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', color: 'var(--text-secondary)', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
                             >
                                 <LinkIcon size={15} /> COPIAR LINK
                             </button>
@@ -635,19 +635,19 @@ const ClientSubmissions = () => {
                     {/* Stats bar */}
                     <div className="stats-grid">
                         {(['ADMIN', 'EMPLOYEE'].includes(user?.role || '') ? [
-                            { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
+                            { label: 'Total', value: allSubmissions.length, color: 'var(--text-secondary)' },
                             { label: 'Em andamento', value: allSubmissions.filter(isAccepted).length, color: '#f59e0b' },
                             { label: 'Total Entregues', value: totalEntregues.toLocaleString('pt-BR'), color: '#22c55e' },
                             { label: 'Investimento Clientes', value: `R$ ${totalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'var(--primary-color)' },
                         ] : [
-                            { label: 'Total', value: allSubmissions.length, color: 'rgba(255,255,255,0.6)' },
+                            { label: 'Total', value: allSubmissions.length, color: 'var(--text-secondary)' },
                             { label: 'Disponíveis', value: allFiltered.filter(s => !s.assigned_to).length, color: 'var(--primary-color)' },
                             { label: 'Em andamento', value: allFiltered.filter(isAccepted).length, color: '#f59e0b' },
                             { label: 'Geradas', value: allFiltered.filter(s => s.status === 'GERADO').length, color: '#22c55e' },
                         ]).map(stat => (
                             <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '18px', padding: '18px 24px', backdropFilter: 'blur(10px)', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                                 <span style={{ fontSize: '28px', fontWeight: 900, color: stat.color, lineHeight: 1, display: 'block', marginBottom: '4px' }}>{stat.value}</span>
-                                <span style={{ fontSize: '10px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{stat.label}</span>
+                                <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{stat.label}</span>
                             </div>
                         ))}
                     </div>
@@ -666,13 +666,13 @@ const ClientSubmissions = () => {
                             const t = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'none';
                             byType[t] = (byType[t] || 0) + 1;
                         });
-                        const typeColors: Record<string, string> = { image: '#a855f7', video: '#3b82f6', none: 'rgba(255,255,255,0.25)', text: 'rgba(255,255,255,0.25)' };
+                        const typeColors: Record<string, string> = { image: '#a855f7', video: '#3b82f6', none: 'var(--text-muted)', text: 'var(--text-muted)' };
 
                         return (
                             <div className="chart-grid">
                                 {/* Status distribution */}
-                                <div style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '18px' }}>
-                                    <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '2px', textTransform: 'uppercase' }}>Distribuição de Status</p>
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '16px', padding: '18px' }}>
+                                    <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Distribuição de Status</p>
                                     {[
                                         { label: 'Disponíveis', value: avail, color: 'var(--primary-color)' },
                                         { label: 'Em andamento', value: inProgress, color: '#f59e0b' },
@@ -681,10 +681,10 @@ const ClientSubmissions = () => {
                                     ].map(row => (
                                         <div key={row.label} style={{ marginBottom: '10px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>{row.label}</span>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>{row.label}</span>
                                                 <span style={{ fontSize: '11px', fontWeight: 900, color: row.color }}>{row.value}</span>
                                             </div>
-                                            <div style={{ height: '5px', background: 'rgba(255,255,255,0.05)', borderRadius: '999px', overflow: 'hidden' }}>
+                                            <div style={{ height: '5px', background: 'var(--card-bg-subtle)', borderRadius: '999px', overflow: 'hidden' }}>
                                                 <div style={{ height: '100%', width: `${total > 0 ? (row.value / total) * 100 : 0}%`, background: row.color, borderRadius: '999px', transition: 'width 0.6s ease', boxShadow: `0 0 8px ${row.color}` }} />
                                             </div>
                                         </div>
@@ -692,15 +692,15 @@ const ClientSubmissions = () => {
                                 </div>
 
                                 {/* Template type */}
-                                <div style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '18px' }}>
-                                    <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '2px', textTransform: 'uppercase' }}>Tipos de Template</p>
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '16px', padding: '18px' }}>
+                                    <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Tipos de Template</p>
                                     {Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([type, count]) => (
                                         <div key={type} style={{ marginBottom: '10px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>{type}</span>
-                                                <span style={{ fontSize: '11px', fontWeight: 900, color: typeColors[type] || 'rgba(255,255,255,0.4)' }}>{count}</span>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{type}</span>
+                                                <span style={{ fontSize: '11px', fontWeight: 900, color: typeColors[type] || 'var(--text-muted)' }}>{count}</span>
                                             </div>
-                                            <div style={{ height: '5px', background: 'rgba(255,255,255,0.05)', borderRadius: '999px', overflow: 'hidden' }}>
+                                            <div style={{ height: '5px', background: 'var(--card-bg-subtle)', borderRadius: '999px', overflow: 'hidden' }}>
                                                 <div style={{ height: '100%', width: `${total > 0 ? (count / total) * 100 : 0}%`, background: typeColors[type] || 'rgba(255,255,255,0.3)', borderRadius: '999px', transition: 'width 0.6s ease' }} />
                                             </div>
                                         </div>
@@ -713,7 +713,7 @@ const ClientSubmissions = () => {
 
                 {/* ── TABS + SEARCH ── */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '4px' }}>
+                    <div style={{ display: 'flex', gap: '4px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '4px' }}>
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
@@ -730,11 +730,11 @@ const ClientSubmissions = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                         {user?.role === 'ADMIN' && (
                             <>
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
                                     <select 
                                         value={selectedClientFilter} 
                                         onChange={e => setSelectedClientFilter(e.target.value)}
-                                        style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}
+                                        style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '13px', padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}
                                     >
                                         <option value="" style={{ background: '#0f172a' }}>Todos os Clientes</option>
                                         {clients.map(c => (
@@ -742,13 +742,13 @@ const ClientSubmissions = () => {
                                         ))}
                                     </select>
                                 </div>
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>DE:</span>
-                                    <input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({ ...p, start: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: dateRange.start ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>DE:</span>
+                                    <input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({ ...p, start: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: dateRange.start ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
                                 </div>
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)' }}>ATÉ:</span>
-                                    <input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({ ...p, end: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: dateRange.end ? 'white' : 'rgba(255,255,255,0.4)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ:</span>
+                                    <input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({ ...p, end: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: dateRange.end ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
                                 </div>
                                 <button
                                     onClick={() => { setShowUpcoming(!showUpcoming); setCurrentPage(1); }}
@@ -763,13 +763,13 @@ const ClientSubmissions = () => {
                                 </button>
                             </>
                         )}
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0 14px' }}>
-                            <Search size={15} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                            <Search size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                             <input
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 placeholder="Buscar..."
-                                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '13px', padding: '10px 0', width: '100%' }}
+                                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '13px', padding: '10px 0', width: '100%' }}
                             />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
@@ -806,8 +806,8 @@ const ClientSubmissions = () => {
                 {/* ── GRID ── */}
                 {isLoading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '16px' }}>
-                        <div style={{ width: 48, height: 48, border: '3px solid rgba(172,248,0,0.2)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                        <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: '12px', letterSpacing: '2px' }}>CARREGANDO...</span>
+                        <div style={{ width: 48, height: 48, border: '3px solid var(--surface-border-subtle)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '12px', letterSpacing: '2px' }}>CARREGANDO...</span>
                     </div>
                 ) : filteredSubmissions.length === 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '16px', opacity: 0.3 }}>
@@ -874,12 +874,12 @@ const ClientSubmissions = () => {
             {/* Progress Overlay */}
             {generatingProgress.total > 0 && (
                 <div className="progress-overlay">
-                    <div style={{ width: 80, height: 80, border: '4px solid rgba(172,248,0,0.15)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '32px' }} />
+                    <div style={{ width: 80, height: 80, border: '4px solid var(--surface-border-subtle)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '32px' }} />
                     <h2 style={{ fontWeight: 900, fontSize: '2rem', margin: 0 }}>Gerando Templates...</h2>
-                    <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)', marginTop: '12px' }}>
+                    <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '12px' }}>
                         Processando {generatingProgress.current} de {generatingProgress.total}
                     </p>
-                    <div style={{ width: '380px', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', marginTop: '32px', overflow: 'hidden' }}>
+                    <div style={{ width: '380px', height: '6px', background: 'var(--card-bg-subtle)', borderRadius: '999px', marginTop: '32px', overflow: 'hidden' }}>
                         <div style={{ height: '100%', background: 'var(--primary-color)', borderRadius: '999px', width: `${(generatingProgress.current / generatingProgress.total) * 100}%`, boxShadow: '0 0 16px var(--primary-color)', transition: 'width 0.5s' }} />
                     </div>
                 </div>

@@ -353,16 +353,16 @@ const ClientSubmissionDetail = () => {
     };
 
     if (isLoading) return (
-        <div style={{ minHeight: '100vh', background: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
             <div style={{ width: 48, height: 48, border: '3px solid rgba(172,248,0,0.15)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', fontWeight: 700, letterSpacing: '2px' }}>CARREGANDO...</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 700, letterSpacing: '2px' }}>CARREGANDO...</span>
         </div>
     );
 
     if (!sub) return (
-        <div style={{ minHeight: '100vh', background: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-            <AlertCircle size={60} style={{ color: 'rgba(255,255,255,0.15)' }} />
-            <p style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>Submissão não encontrada</p>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+            <AlertCircle size={60} style={{ color: 'var(--text-muted)', opacity: 0.15 }} />
+            <p style={{ color: 'var(--text-muted)', fontWeight: 700 }}>Submissão não encontrada</p>
             <button onClick={() => navigate(user?.role === 'CLIENT' ? '/client-dashboard' : '/client-submissions')} style={{ background: 'var(--primary-color)', color: '#000', padding: '10px 24px', borderRadius: '12px', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>
                 VOLTAR
             </button>
@@ -374,30 +374,30 @@ const ClientSubmissionDetail = () => {
     const currentAd = ads[activeAdIdx];
 
     return (
-        <div className="container-root" style={{ minHeight: '100vh', background: '#020617', color: 'white', padding: '28px 24px' }}>
+        <div className="container-root" style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '28px 24px' }}>
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 
                 .control-card { 
-                    background: rgba(255,255,255,0.02); 
-                    border: 1px solid rgba(255,255,255,0.06); 
+                    background: var(--card-bg-subtle); 
+                    border: 1px solid var(--surface-border-subtle); 
                     border-radius: 24px; 
                     padding: 24px;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     animation: fadeInUp 0.4s ease-out backwards;
                 }
                 .control-card:hover { 
-                    background: rgba(255,255,255,0.03); 
-                    border-color: rgba(255,255,255,0.1);
+                    background: var(--bg-primary); 
+                    border-color: var(--primary-color);
                     transform: translateY(-2px);
-                    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
+                    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.1);
                 }
 
                 .action-btn { padding: 12px 20px; border-radius: 14px; border: none; cursor: pointer; font-weight: 900; font-size: 11px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; text-transform: uppercase; }
                 .primary-btn { background: var(--primary-gradient); color: #000; box-shadow: 0 8px 20px -6px var(--primary); }
-                .ghost-btn { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.08) !important; }
-                .ghost-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2) !important; }
+                .ghost-btn { background: var(--card-bg-subtle); color: var(--text-muted); border: 1px solid var(--surface-border-subtle) !important; }
+                .ghost-btn:hover { background: var(--bg-primary); color: var(--text-primary); border-color: var(--primary-color) !important; }
                 
                 .status-btn { 
                     width: 100%;
@@ -412,21 +412,21 @@ const ClientSubmissionDetail = () => {
                     display: flex; 
                     align-items: center; 
                     gap: 10px;
-                    background: rgba(255,255,255,0.03);
-                    color: rgba(255,255,255,0.4);
+                    background: var(--card-bg-subtle);
+                    color: var(--text-muted);
                     text-transform: uppercase;
                 }
-                .status-btn:hover:not(:disabled) { background: rgba(255,255,255,0.06); transform: translateX(4px); }
+                .status-btn:hover:not(:disabled) { background: var(--bg-primary); transform: translateX(4px); }
                 .status-btn.active { background: var(--bg); color: var(--color); border-color: var(--border); }
 
-                .ad-tab { padding: 10px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.3); cursor: pointer; font-weight: 900; font-size: 10px; letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase; }
-                .ad-tab:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); }
+                .ad-tab { padding: 10px 18px; border-radius: 12px; border: 1px solid var(--surface-border-subtle); background: var(--card-bg-subtle); color: var(--text-muted); cursor: pointer; font-weight: 900; font-size: 10px; letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase; }
+                .ad-tab:hover { background: var(--bg-primary); color: var(--text-primary); }
                 .ad-tab.active { background: rgba(172,248,0,0.1); border-color: var(--primary-color); color: var(--primary-color); box-shadow: 0 0 15px rgba(172,248,0,0.15); }
 
-                .field-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; color: white; font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
-                .field-input:focus { border-color: var(--primary-color); background: rgba(0,0,0,0.3); box-shadow: 0 0 20px rgba(172,248,0,0.1); }
+                .field-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 16px; padding: 16px; color: var(--text-primary); font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
+                .field-input:focus { border-color: var(--primary-color); background: var(--bg-primary); box-shadow: 0 0 20px rgba(172,248,0,0.1); }
                 
-                .field-label { font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+                .field-label { font-size: 10px; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
                 .info-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
                 
                 .asset-link {
@@ -434,15 +434,15 @@ const ClientSubmissionDetail = () => {
                     align-items: center;
                     gap: 16px;
                     padding: 16px;
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.06);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 18px;
                     text-decoration: none;
                     transition: all 0.3s;
                 }
                 .asset-link:hover {
-                    background: rgba(255,255,255,0.04);
-                    border-color: rgba(255,255,255,0.12);
+                    background: var(--bg-primary);
+                    border-color: var(--primary-color);
                     transform: scale(1.02);
                 }
 
@@ -482,23 +482,23 @@ const ClientSubmissionDetail = () => {
                         </button>
                         <div style={{ position: 'relative', flexShrink: 0 }}>
                             {sub.profile_photo ? (
-                                <img src={sub.profile_photo} alt="" style={{ width: 64, height: 64, borderRadius: '20px', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.1)' }} />
+                                <img src={sub.profile_photo} alt="" style={{ width: 64, height: 64, borderRadius: '20px', objectFit: 'cover', border: '2px solid var(--surface-border-subtle)' }} />
                             ) : (
-                                <div style={{ width: 64, height: 64, borderRadius: '20px', background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ width: 64, height: 64, borderRadius: '20px', background: 'var(--card-bg-subtle)', border: '2px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <User size={32} style={{ opacity: 0.2 }} />
                                 </div>
                             )}
-                            <div style={{ position: 'absolute', bottom: -4, right: -4, width: 24, height: 24, borderRadius: '8px', background: statusCfg.color, border: '4px solid #020617', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ position: 'absolute', bottom: -4, right: -4, width: 24, height: 24, borderRadius: '8px', background: statusCfg.color, border: '4px solid var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <CheckCircle size={12} color="#000" />
                             </div>
                         </div>
                         <div>
-                            <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', letterSpacing: '-1px' }}>{sub.profile_name}</h1>
+                            <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', letterSpacing: '-1px', color: 'var(--text-primary)' }}>{sub.profile_name}</h1>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                                 <span className="info-chip" style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.2)' }}>
                                     REGIONAL {sub.ddd}
                                 </span>
-                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <Clock size={14} /> {new Date(sub.timestamp).toLocaleString('pt-BR')}
                                 </span>
                             </div>
@@ -561,16 +561,16 @@ const ClientSubmissionDetail = () => {
                         <label className="field-label"><Smartphone size={14} /> Configuração de Entrega</label>
                         <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div>
-                                <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>NÚMERO SENDER (BM)</label>
+                                <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>NÚMERO SENDER (BM)</label>
                                 <div style={{ position: 'relative' }}>
                                     <input className="field-input" value={senderNumber} onChange={e => setSenderNumber(e.target.value)} placeholder="55..." readOnly={user?.role === 'CLIENT'} />
-                                    <button onClick={() => copyToClipboard(senderNumber, 'Sender')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
+                                    <button onClick={() => copyToClipboard(senderNumber, 'Sender')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: 0.4 }}>
                                         <Copy size={16} />
                                     </button>
                                 </div>
                             </div>
                             <div>
-                                <label style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', marginBottom: '8px', display: 'block' }}>NOTAS DO TIME</label>
+                                <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>NOTAS DO TIME</label>
                                 <textarea className="field-input" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ resize: 'none' }} placeholder="Anotações internas..." readOnly={user?.role === 'CLIENT'} />
                             </div>
                             {user?.role !== 'CLIENT' && (
@@ -586,10 +586,10 @@ const ClientSubmissionDetail = () => {
                     <div className="control-card" style={{ animationDelay: '0.3s' }}>
                         <label className="field-label"><Shield size={14} /> Ativos & Responsabilidade</label>
                         <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ padding: '12px 16px', background: 'var(--card-bg-subtle)', borderRadius: '14px', border: '1px solid var(--surface-border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <User size={16} style={{ opacity: 0.3 }} />
-                                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>Responsável:</span>
+                                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>Responsável:</span>
                                 </div>
                                 {user?.role === 'ADMIN' ? (
                                     <select
@@ -598,9 +598,9 @@ const ClientSubmissionDetail = () => {
                                         disabled={updatingAssign}
                                         style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '12px', fontWeight: 900, outline: 'none', cursor: 'pointer', textAlign: 'right' }}
                                     >
-                                        <option value="" style={{ background: '#0f172a', color: 'rgba(255,255,255,0.4)' }}>Não Atribuído</option>
+                                        <option value="" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)' }}>Não Atribuído</option>
                                         {employees.map(emp => (
-                                            <option key={emp} value={emp} style={{ background: '#0f172a', color: 'white' }}>{emp}</option>
+                                            <option key={emp} value={emp} style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>{emp}</option>
                                         ))}
                                     </select>
                                 ) : (
@@ -698,12 +698,12 @@ const ClientSubmissionDetail = () => {
 
                                     {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '16px' }}>
-                                            <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Data da Campanha</p>
+                                            <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Data da Campanha</p>
                                                 <input type="date" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.dispatch_date || ''} onChange={e => handleUpdateAd(activeAdIdx, 'dispatch_date', e.target.value)} />
                                             </div>
-                                            <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Data do Disparo (Data/Hora)</p>
+                                            <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Data do Disparo (Data/Hora)</p>
                                                 <input type="datetime-local" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.scheduled_at || ''} onChange={e => handleUpdateAd(activeAdIdx, 'scheduled_at', e.target.value)} />
                                             </div>
                                             <div style={{ padding: '16px', background: 'rgba(172,248,0,0.03)', borderRadius: '16px', border: '1px solid rgba(172,248,0,0.1)' }}>
@@ -719,16 +719,17 @@ const ClientSubmissionDetail = () => {
 
                                     {/* Relatório Final Visível para Admin + Client */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <Clock size={20} color="rgba(255,255,255,0.4)" />
-                                            <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>DISPARO</span>
-                                            <span style={{ fontSize: '18px', fontWeight: 900, color: currentAd.dispatch_date ? '#fff' : 'rgba(255,255,255,0.3)' }}>{currentAd.dispatch_date ? new Date(currentAd.dispatch_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Aguardando'}</span>
+                                        <div style={{ background: 'var(--card-bg-subtle)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--surface-border-subtle)' }}>
+                                            <Clock size={20} color="var(--text-muted)" />
+                                            <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>DISPARO</span>
+                                            <span style={{ fontSize: '18px', fontWeight: 900, color: currentAd.dispatch_date ? 'var(--text-primary)' : 'var(--text-muted)' }}>{currentAd.dispatch_date ? new Date(currentAd.dispatch_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Aguardando'}</span>
                                         </div>
-                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <Users size={20} color="rgba(255,255,255,0.4)" />
-                                            <span style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>BASE QUANTIDADE</span>
-                                            <span style={{ fontSize: '18px', fontWeight: 900 }}>{currentAd.total_leads ? currentAd.total_leads.toLocaleString('pt-BR') : 0} LEADS</span>
+                                        <div style={{ background: 'var(--card-bg-subtle)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--surface-border-subtle)' }}>
+                                            <Users size={20} color="var(--text-muted)" />
+                                            <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>BASE QUANTIDADE</span>
+                                            <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>{currentAd.total_leads ? currentAd.total_leads.toLocaleString('pt-BR') : 0} LEADS</span>
                                         </div>
+
                                         <div style={{ background: 'rgba(34,197,94,0.08)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(34,197,94,0.2)' }}>
                                             <CheckCircle size={20} color="#22c55e" />
                                             <span style={{ fontSize: '10px', fontWeight: 900, color: '#22c55e', letterSpacing: '1px' }}>MENSAGENS ENTREGUES</span>
@@ -743,7 +744,7 @@ const ClientSubmissionDetail = () => {
                                         </div>
 
                                         {user?.role === 'ADMIN' && (
-                                            <div className="no-print" style={{ background: 'rgba(239,68,68,0.08)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
+                                            <div className="no-print" style={{ background: 'var(--card-bg-subtle)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
                                                 <TrendingDown size={20} color="#ef4444" />
                                                 <span style={{ fontSize: '10px', fontWeight: 900, color: '#ef4444', letterSpacing: '1px' }}>CUSTO AGÊNCIA (0,04/msg)</span>
                                                 <span style={{ fontSize: '24px', fontWeight: 900, color: '#ef4444', lineHeight: 1 }}>
@@ -752,7 +753,7 @@ const ClientSubmissionDetail = () => {
                                             </div>
                                         )}
 
-                                        <div style={{ background: 'rgba(172,248,0,0.1)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(172,248,0,0.3)', boxShadow: '0 8px 30px rgba(172,248,0,0.1)' }}>
+                                        <div style={{ background: 'var(--card-bg-subtle)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--primary-color)', boxShadow: '0 8px 30px rgba(172,248,0,0.1)' }}>
                                             <TrendingUp size={20} color="var(--primary-color)" />
                                             <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px' }}>{user?.role === 'ADMIN' ? 'CUSTO DO CLIENTE' : 'INVESTIMENTO DA CAMPANHA'}</span>
                                             <span style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '-1px', lineHeight: 1 }}>
@@ -820,8 +821,8 @@ const ClientSubmissionDetail = () => {
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, opacity: 0.3, marginBottom: '6px' }}>TIPO DE TEMPLATE</p>
+                                        <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '6px' }}>TIPO DE TEMPLATE</p>
                                             {user?.role !== 'CLIENT' ? (
                                                 <select
                                                     className="field-input"
@@ -839,8 +840,8 @@ const ClientSubmissionDetail = () => {
                                                 <p style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: 'var(--primary-color)' }}>{currentAd.template_type?.toUpperCase()}</p>
                                             )}
                                         </div>
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, opacity: 0.3, marginBottom: '6px' }}>MODO DE ENVIO</p>
+                                        <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '6px' }}>MODO DE ENVIO</p>
                                             {user?.role !== 'CLIENT' ? (
                                                 <select
                                                     className="field-input"
@@ -884,9 +885,9 @@ const ClientSubmissionDetail = () => {
                                         </div>
                                     )}
 
-                                    <div style={{ padding: '16px', background: 'rgba(50,150,250,0.05)', borderRadius: '16px', border: '1px solid rgba(50,150,250,0.1)' }}>
+                                    <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid #3b82f6' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <label style={{ fontSize: '9px', fontWeight: 900, color: '#3b82f6', opacity: 0.6 }}>LINK DO BOTÃO</label>
+                                            <label style={{ fontSize: '9px', fontWeight: 900, color: '#3b82f6', opacity: 0.8 }}>LINK DO BOTÃO</label>
                                             {currentAd.button_link && (
                                                 <button onClick={() => copyToClipboard(currentAd.button_link || '', 'Link')} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }}>
                                                     <Copy size={14} />
@@ -906,7 +907,7 @@ const ClientSubmissionDetail = () => {
                                         )}
                                     </div>
 
-                                    <div style={{ padding: '16px', background: 'rgba(172,248,0,0.03)', borderRadius: '16px', border: '1px solid rgba(172,248,0,0.1)' }}>
+                                    <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid var(--primary-color)' }}>
                                         <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
                                             <Smartphone size={12} /> NÚMERO SENDER (Deste Anúncio)
                                         </label>
@@ -919,7 +920,7 @@ const ClientSubmissionDetail = () => {
                                                 placeholder="Ex: 55..."
                                                 readOnly={user?.role === 'CLIENT'}
                                             />
-                                            <button onClick={() => copyToClipboard(currentAd.sender_number || '', 'Sender Ad')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
+                                            <button onClick={() => copyToClipboard(currentAd.sender_number || '', 'Sender Ad')} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: 0.4 }}>
                                                 <Copy size={16} />
                                             </button>
                                         </div>
@@ -947,7 +948,7 @@ const ClientSubmissionDetail = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                             <label className="field-label" style={{ marginBottom: 0 }}>Variáveis ({currentAd.variables?.length || 0})</label>
                                             {user?.role !== 'CLIENT' && (
@@ -964,10 +965,10 @@ const ClientSubmissionDetail = () => {
                                         </div>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                             {currentAd.variables?.map((v, i) => (
-                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--surface-border-subtle)' }}>
                                                     {user?.role !== 'CLIENT' ? (
                                                         <input 
-                                                            style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.9)', fontSize: '11px', fontWeight: 700, width: `${Math.max(v.length, 5) * 8}px`, minWidth: '40px', outline: 'none' }}
+                                                            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, width: `${Math.max(v.length, 5) * 8}px`, minWidth: '40px', outline: 'none' }}
                                                             value={v}
                                                             onChange={(e) => {
                                                                 const newVars = [...(currentAd.variables || [])];
@@ -976,14 +977,14 @@ const ClientSubmissionDetail = () => {
                                                             }}
                                                         />
                                                     ) : (
-                                                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+                                                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
                                                             {v}
                                                         </span>
                                                     )}
                                                     <div style={{ display: 'flex', gap: '4px' }}>
                                                         <button
                                                             onClick={() => copyToClipboard(v, `Variável ${v}`)}
-                                                            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 0, opacity: 0.4 }}
                                                             title="Copiar"
                                                         >
                                                             <Copy size={12} />
@@ -1001,7 +1002,7 @@ const ClientSubmissionDetail = () => {
                                                 </div>
                                             ))}
                                             {(!currentAd.variables || currentAd.variables.length === 0) && (
-                                                <p style={{ margin: 0, fontSize: '11px', opacity: 0.3, padding: '10px' }}>Nenhuma variável definida para este AD.</p>
+                                                <p style={{ margin: 0, fontSize: '11px', opacity: 0.3, padding: '10px', color: 'var(--text-muted)' }}>Nenhuma variável definida para este AD.</p>
                                             )}
                                         </div>
                                     </div>

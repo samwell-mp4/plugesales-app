@@ -12,14 +12,16 @@ import {
     UserCircle,
     FileUp,
     Layers,
-    Smartphone
+    Smartphone,
+    Sun,
+    Moon
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 
 
 const Sidebar = () => {
-    const { user, setUser, logout } = useAuth();
+    const { user, setUser, logout, theme, toggleTheme } = useAuth();
     const [isEditingNotify, setIsEditingNotify] = useState(false);
     const [notifyNum, setNotifyNum] = useState(user?.notification_number || '5531988868362');
 
@@ -101,10 +103,10 @@ const Sidebar = () => {
                     transition: all 0.3s ease;
                 }
                 .glass-sidebar { 
-                    background: rgba(15, 23, 42, 0.6); 
+                    background: var(--surface-color); 
                     backdrop-filter: blur(20px); 
                     border: 1px solid var(--surface-border);
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+                    box-shadow: var(--shadow-md);
                 }
                 .nav-link:hover { background: rgba(172, 248, 0, 0.05) !important; color: white !important; }
                 .nav-link.active { 
@@ -219,7 +221,7 @@ const Sidebar = () => {
                     border: 3px solid #0f172a;
                     box-shadow: 0 0 10px var(--primary-color);
                 }
-                .user-name { font-size: 0.9rem; font-weight: 900; color: white; letter-spacing: -0.2px; }
+                .user-name { font-size: 0.9rem; font-weight: 900; color: var(--text-primary); letter-spacing: -0.2px; }
                 .user-role { 
                     font-size: 0.6rem; 
                     font-weight: 800; 
@@ -253,7 +255,27 @@ const Sidebar = () => {
                     <div style={{ background: 'var(--primary-gradient)', padding: '7px', borderRadius: '15px', display: 'flex', boxShadow: '0 0 20px rgba(172, 248, 0, 0.3)' }}>
                         <MessageSquare color="white" size={24} />
                     </div>
-                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>Plug & Sales</h2>
+                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>Plug & Sales</h2>
+                    <button 
+                        onClick={toggleTheme}
+                        className="theme-toggle-btn"
+                        style={{
+                            marginLeft: 'auto',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid var(--surface-border)',
+                            color: 'var(--primary-color)',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
                 </div>
 
                 {/* Individual Notification Number Section at the TOP */}
@@ -264,7 +286,7 @@ const Sidebar = () => {
                     flexDirection: 'column',
                     gap: '4px'
                 }}>
-                    <div className="flex items-center justify-between ,">
+                    <div className="flex items-center justify-between">
                         <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Notificações</span>
                         {!isEditingNotify ? (
                             <button onClick={() => setIsEditingNotify(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 700 }}>EDITAR</button>

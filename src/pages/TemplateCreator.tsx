@@ -605,12 +605,13 @@ const TemplateCreator = () => {
                     box-shadow: 0 10px 40px rgba(0,0,0,0.3);
                 }
                 .glass-card {
-                    background: rgba(255, 255, 255, 0.02);
+                    background: var(--card-bg-subtle);
                     backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 0.06);
-                    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.4);
+                    border: 1px solid var(--surface-border-subtle);
+                    box-shadow: var(--shadow-md);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
+
                 .glass-card:hover {
                     border-color: rgba(172, 248, 0, 0.15);
                     transform: translateY(-2px);
@@ -619,24 +620,25 @@ const TemplateCreator = () => {
                 .tab-btns .btn { flex: 1; border-radius: 14px; height: 54px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 800; transition: all 0.2s; }
                 .var-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
                 .button-editor { 
-                    background: rgba(255,255,255,0.02); 
+                    background: var(--card-bg-subtle); 
                     padding: 16px; 
-                    border: 1px solid rgba(255,255,255,0.06); 
+                    border: 1px solid var(--surface-border-subtle); 
                     border-radius: 14px; 
                     display: flex; 
                     gap: 12px; 
                     align-items: center; 
                     flex-wrap: wrap;
                 }
+
                 .preview-sticky { position: sticky; top: 32px; }
                 .wp-bubble { 
-                    background: #0b141a; 
+                    background: var(--wp-bubble-bg); 
                     border-radius: 20px; 
                     padding: 12px; 
-                    border: 1px solid #1f2c34; 
+                    border: 1px solid var(--wp-bubble-border); 
                     max-width: 100%; 
                     margin: 0 auto; 
-                    box-shadow: 0 15px 60px rgba(0,0,0,0.8); 
+                    box-shadow: var(--shadow-md); 
                 }
                 .sender-display {
                     background: rgba(172, 248, 0, 0.08);
@@ -684,7 +686,8 @@ const TemplateCreator = () => {
                     .sender-input { font-size: 0.8rem !important; width: 100% !important; min-width: 0 !important; }
                     .glass-card { padding: 12px !important; border-radius: 12px !important; width: 100% !important; max-width: 100% !important; overflow: hidden !important; border-width: 1px !important; }
                     .button-editor { flex-direction: column !important; align-items: stretch !important; padding: 10px !important; gap: 8px !important; }
-                    .bulk-table-container { padding: 2px !important; border-radius: 6px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100% !important; border: 1px solid rgba(255,255,255,0.1) !important; }
+                    .bulk-table-container { padding: 2px !important; border-radius: 6px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100% !important; border: 1px solid var(--surface-border-subtle) !important; }
+
                     .bulk-table { min-width: 550px !important; }
                     .bulk-table th { font-size: 0.5rem !important; padding: 6px 3px !important; }
                     .bulk-table td { padding: 4px !important; }
@@ -704,7 +707,7 @@ const TemplateCreator = () => {
                 .loading-overlay {
                     position: fixed;
                     inset: 0;
-                    background: rgba(2, 6, 23, 0.85);
+                    background: var(--overlay-bg);
                     backdrop-filter: blur(12px);
                     z-index: 10000;
                     display: flex;
@@ -712,7 +715,7 @@ const TemplateCreator = () => {
                     align-items: center;
                     justify-content: center;
                     gap: 32px;
-                    color: white;
+                    color: var(--text-primary);
                 }
                 .pulse-loader {
                     width: 100px;
@@ -735,14 +738,14 @@ const TemplateCreator = () => {
                 .bulk-table-container {
                     max-height: 450px; 
                     overflow-y: auto; 
-                    border: 1px solid rgba(255,255,255,0.08); 
+                    border: 1px solid var(--surface-border); 
                     border-radius: 20px; 
                     padding: 8px; 
-                    background: rgba(0,0,0,0.3);
+                    background: var(--card-bg-subtle);
                 }
                 .bulk-table th {
                     padding: 16px;
-                    background: rgba(0,0,0,0.2);
+                    background: var(--card-bg-subtle);
                     color: var(--primary-color);
                     font-size: 0.75rem;
                     font-weight: 800;
@@ -1181,7 +1184,7 @@ const TemplateCreator = () => {
                                     )}
                                     <div style={{ padding: '14px' }}>
                                         <span style={{ color: '#8696a0', fontSize: '0.7rem' }}>disparando como {senderNumbers.split(/[\n,]/)[0] || '...'}</span>
-                                        <div style={{ color: '#e9edef', fontSize: '0.9rem', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
+                                        <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
                                         {footerText && <div style={{ marginTop: '10px', color: '#8696a0', fontSize: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' }}>{footerText}</div>}
                                     </div>
                                     {buttons.length > 0 && (
@@ -1198,7 +1201,7 @@ const TemplateCreator = () => {
 
                             <div className="mt-8">
                                 <h4 style={{ color: 'var(--text-secondary)', marginBottom: '10px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
-                                <div style={{ background: '#020617', padding: '12px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
+                                <div style={{ background: 'var(--code-bg)', padding: '12px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
                                     <pre style={{ margin: 0, fontSize: '0.65rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
                                         <code>{JSON.stringify(buildInfobipPayload(modelName), null, 2)}</code>
                                     </pre>

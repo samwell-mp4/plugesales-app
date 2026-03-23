@@ -51,27 +51,27 @@ const LinkStats = () => {
         alert("Link copiado!");
     };
 
-    if (isLoading) return <div style={{ minHeight: '100vh', background: '#020617', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Carregando estatísticas...</div>;
-    if (!stats) return <div style={{ minHeight: '100vh', background: '#020617', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Link não encontrado.</div>;
+    if (isLoading) return <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Carregando estatísticas...</div>;
+    if (!stats) return <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Link não encontrado.</div>;
 
     const totalClicks = stats.timeline.reduce((acc: number, curr: any) => acc + parseInt(curr.count), 0);
     const maxDayClicks = Math.max(...stats.timeline.map((t: any) => parseInt(t.count)), 1);
 
     return (
-        <div className="container-root" style={{ minHeight: '100vh', background: '#020617', color: 'white', padding: '28px 24px' }}>
+        <div className="container-root" style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '28px 24px' }}>
             <style>{`
                 @keyframes barGrow { from { height: 0; } to { height: var(--final-height); } }
                 
                 .glass-card { 
-                    background: rgba(255,255,255,0.02); 
-                    border: 1px solid rgba(255,255,255,0.06); 
+                    background: var(--card-bg-subtle); 
+                    border: 1px solid var(--surface-border-subtle); 
                     border-radius: 24px; 
                     padding: 24px;
                     backdrop-filter: blur(12px);
                 }
 
-                .stat-value { font-size: 32px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
-                .stat-label { font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1px; }
+                .stat-value { font-size: 32px; font-weight: 900; line-height: 1; margin-bottom: 4px; color: var(--text-primary); }
+                .stat-label { font-size: 10px; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
 
                 .chart-bar {
                     flex: 1;
@@ -108,8 +108,8 @@ const LinkStats = () => {
                     align-items: center;
                     gap: 12px;
                     padding: 12px;
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.06);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 14px;
                     margin-bottom: 8px;
                 }
@@ -121,21 +121,21 @@ const LinkStats = () => {
                     <button 
                         onClick={() => navigate('/link-shortener')}
                         style={{ 
-                            background: 'rgba(255,255,255,0.05)', 
-                            border: '1px solid rgba(255,255,255,0.1)', 
+                            background: 'var(--card-bg-subtle)', 
+                            border: '1px solid var(--surface-border-subtle)', 
                             width: '48px', height: '48px', borderRadius: '14px',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', color: 'white'
+                            cursor: 'pointer', color: 'var(--text-primary)'
                         }}
                     >
                         <ArrowLeft size={20} />
                     </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                         <div>
-                            <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', lineHeight: 1 }}>
+                            <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', lineHeight: 1, color: 'var(--text-primary)' }}>
                                 Relatório de <span className="text-primary-color">Performance</span>
                             </h1>
-                            <p style={{ margin: '6px 0 0 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px', fontWeight: 700 }}>
+                            <p style={{ margin: '6px 0 0 0', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 700 }}>
                                 {stats.link.title} • {window.location.host}/l/{stats.link.short_code}
                             </p>
                         </div>
@@ -166,8 +166,8 @@ const LinkStats = () => {
                     <div className="glass-card">
                         <div className="stat-label">Status</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 10px #22c55e' }} />
-                            <span style={{ fontSize: '14px', fontWeight: 900 }}>ATIVO</span>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 10px rgba(34, 197, 94, 0.5)' }} />
+                            <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--text-primary)' }}>ATIVO</span>
                         </div>
                     </div>
                 </div>
@@ -175,11 +175,11 @@ const LinkStats = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
                     <div className="glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900 }}>Fluxo de Cliques (Últimos Dias)</h2>
-                            <Calendar size={18} style={{ opacity: 0.3 }} />
+                            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)' }}>Fluxo de Cliques (Últimos Dias)</h2>
+                            <Calendar size={18} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />
                         </div>
 
-                        <div style={{ height: '300px', display: 'flex', alignItems: 'flex-end', gap: '12px', paddingBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ height: '300px', display: 'flex', alignItems: 'flex-end', gap: '12px', paddingBottom: '20px', borderBottom: '1px solid var(--surface-border-subtle)' }}>
                             {stats.timeline.length > 0 ? stats.timeline.map((t: any, i: number) => {
                                 const height = (parseInt(t.count) / maxDayClicks) * 100;
                                 return (
@@ -197,7 +197,7 @@ const LinkStats = () => {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', padding: '0 10px' }}>
                             {stats.timeline.map((t: any, i: number) => (
-                                <span key={i} style={{ fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
+                                <span key={i} style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                                     {new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                                 </span>
                             ))}
@@ -206,9 +206,9 @@ const LinkStats = () => {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <div className="glass-card">
-                            <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900 }}>Destino Final</h2>
-                            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>URL ORIGINAL</div>
+                            <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-primary)' }}>Destino Final</h2>
+                            <div style={{ background: 'var(--card-bg-subtle)', padding: '16px', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                                <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px' }}>URL ORIGINAL</div>
                                 <div style={{ fontSize: '12px', color: 'var(--primary-color)', wordBreak: 'break-all', fontWeight: 700 }}>
                                     {stats.link.original_url}
                                 </div>
@@ -216,8 +216,8 @@ const LinkStats = () => {
                             <button 
                                 onClick={() => copyToClipboard(stats.link.short_code)}
                                 style={{ 
-                                    width: '100%', marginTop: '16px', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', 
-                                    border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontWeight: 900, cursor: 'pointer',
+                                    width: '100%', marginTop: '16px', padding: '12px', borderRadius: '12px', background: 'var(--card-bg-subtle)', 
+                                    border: '1px solid var(--surface-border-subtle)', color: 'var(--text-primary)', fontWeight: 900, cursor: 'pointer',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
                                 }}
                             >
@@ -225,17 +225,22 @@ const LinkStats = () => {
                             </button>
                         </div>
 
-                        <div className="glass-card" style={{ padding: 0, overflow: 'hidden', height: '400px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="glass-card" style={{ padding: 0, overflow: 'hidden', height: '400px', border: '1px solid var(--surface-border-subtle)' }}>
+                            <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid var(--surface-border-subtle)' }}>
                                 <MapIcon size={18} className="text-primary-color" />
-                                <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 900 }}>Mapa de Visualizações</h2>
+                                <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--text-primary)' }}>Mapa de Visualizações</h2>
                             </div>
                             <div style={{ height: 'calc(100% - 60px)', width: '100%', position: 'relative' }}>
                                 {stats.geo?.length > 0 ? (
                                     <MapContainer 
                                         center={[0, 0]} 
                                         zoom={1.5} 
-                                        style={{ height: '100%', width: '100%', filter: 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)', zIndex: 1 }}
+                                        style={{ 
+                                            height: '100%', 
+                                            width: '100%', 
+                                            filter: document.body.classList.contains('light-theme') ? 'none' : 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)', 
+                                            zIndex: 1 
+                                        }}
                                         scrollWheelZoom={false}
                                     >
                                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -254,9 +259,9 @@ const LinkStats = () => {
                                         ))}
                                     </MapContainer>
                                 ) : (
-                                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', gap: '12px' }}>
-                                        <MapIcon size={40} style={{ opacity: 0.1 }} />
-                                        <span style={{ fontSize: '12px', fontWeight: 800, opacity: 0.3, textTransform: 'uppercase' }}>Aguardando dados geográficos detalhados...</span>
+                                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--card-bg-subtle)', gap: '12px' }}>
+                                        <MapIcon size={40} style={{ opacity: 0.1, color: 'var(--text-primary)' }} />
+                                        <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Aguardando dados geográficos detalhados...</span>
                                     </div>
                                 )}
                             </div>
@@ -266,7 +271,7 @@ const LinkStats = () => {
                             <div className="glass-card">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
                                     <Flag size={16} className="text-primary-color" />
-                                    <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase' }}>Top Países</h2>
+                                    <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)' }}>Top Países</h2>
                                 </div>
                                 {Object.entries(stats.geo?.reduce((acc: any, curr: any) => {
                                     acc[curr.country] = (acc[curr.country] || 0) + parseInt(curr.count);
@@ -276,11 +281,11 @@ const LinkStats = () => {
                                 .slice(0, 5)
                                 .map(([country, count]: any, i) => (
                                     <div key={i} style={{ marginBottom: '12px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 900, marginBottom: '4px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 900, marginBottom: '4px', color: 'var(--text-primary)' }}>
                                             <span>{country}</span>
                                             <span>{count}</span>
                                         </div>
-                                        <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                                        <div style={{ width: '100%', height: '4px', background: 'var(--surface-border-subtle)', borderRadius: '2px' }}>
                                             <div style={{ width: `${(count / totalClicks) * 100}%`, height: '100%', background: 'var(--primary-color)', borderRadius: '2px' }} />
                                         </div>
                                     </div>
@@ -290,15 +295,15 @@ const LinkStats = () => {
                             <div className="glass-card">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
                                     <Navigation size={16} className="text-primary-color" />
-                                    <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase' }}>Top Cidades</h2>
+                                    <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)' }}>Top Cidades</h2>
                                 </div>
                                 {stats.geo?.sort((a: any, b: any) => b.count - a.count).slice(0, 5).map((g: any, i: number) => (
                                     <div key={i} style={{ marginBottom: '12px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 900, marginBottom: '4px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 900, marginBottom: '4px', color: 'var(--text-primary)' }}>
                                             <span>{g.city} ({g.region})</span>
                                             <span>{g.count}</span>
                                         </div>
-                                        <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                                        <div style={{ width: '100%', height: '4px', background: 'var(--surface-border-subtle)', borderRadius: '2px' }}>
                                             <div style={{ width: `${(g.count / totalClicks) * 100}%`, height: '100%', background: 'var(--primary-color)', borderRadius: '2px' }} />
                                         </div>
                                     </div>
@@ -308,7 +313,7 @@ const LinkStats = () => {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                             <div className="glass-card">
-                                <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900 }}>Plataformas</h2>
+                                <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-primary)' }}>Plataformas</h2>
                                 {(() => {
                                     const mobile = stats.devices?.reduce((acc: number, curr: any) => 
                                         /Mobile|Android|iPhone/i.test(curr.user_agent) ? acc + parseInt(curr.count) : acc, 0);
@@ -320,24 +325,24 @@ const LinkStats = () => {
                                                     <Smartphone size={18} color="#22c55e" />
                                                 </div>
                                                 <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: '12px', fontWeight: 900 }}>Mobile</div>
-                                                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '6px' }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-primary)' }}>Mobile</div>
+                                                    <div style={{ width: '100%', height: '4px', background: 'var(--surface-border-subtle)', borderRadius: '2px', marginTop: '6px' }}>
                                                         <div style={{ width: `${mobilePct}%`, height: '100%', background: '#22c55e', borderRadius: '2px' }} />
                                                     </div>
                                                 </div>
-                                                <div style={{ fontSize: '12px', fontWeight: 900 }}>{mobilePct}%</div>
+                                                <div style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-primary)' }}>{mobilePct}%</div>
                                             </div>
                                             <div className="device-row">
                                                 <div style={{ background: 'rgba(59,130,246,0.1)', padding: '8px', borderRadius: '10px' }}>
                                                     <Laptop size={18} color="#3b82f6" />
                                                 </div>
                                                 <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: '12px', fontWeight: 900 }}>Desktop</div>
-                                                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '6px' }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-primary)' }}>Desktop</div>
+                                                    <div style={{ width: '100%', height: '4px', background: 'var(--surface-border-subtle)', borderRadius: '2px', marginTop: '6px' }}>
                                                         <div style={{ width: `${100 - mobilePct}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }} />
                                                     </div>
                                                 </div>
-                                                <div style={{ fontSize: '12px', fontWeight: 900 }}>{100 - mobilePct}%</div>
+                                                <div style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-primary)' }}>{100 - mobilePct}%</div>
                                             </div>
                                         </>
                                     );
@@ -345,10 +350,10 @@ const LinkStats = () => {
                             </div>
 
                             <div className="glass-card">
-                                <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900 }}>Top Referrers</h2>
+                                <h2 style={{ margin: '0 0 20px 0', fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-primary)' }}>Top Referrers</h2>
                                 {stats.referrers?.map((r: any, i: number) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '8px 12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
                                             {r.referrer || 'Direto / Desconhecido'}
                                         </span>
                                         <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)' }}>{r.count}</span>

@@ -237,23 +237,23 @@ const EngineExecution = () => {
             <style>{`
                 .execution-grid { display: grid; grid-template-columns: 1fr 380px; gap: 32px; }
                 .terminal-card { 
-                    background: #020617; 
-                    border: 1px solid #1e293b; 
+                    background: var(--code-bg); 
+                    border: 1px solid var(--surface-border-subtle); 
                     border-radius: 20px; 
                     font-family: 'JetBrains Mono', 'Fira Code', monospace; 
                     overflow: hidden;
-                    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.7);
+                    box-shadow: var(--shadow-xl);
                 }
-                .terminal-header { background: #0f172a; padding: 12px 20px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
-                .terminal-body { height: 500px; padding: 20px; overflow-y: auto; color: #94a3b8; font-size: 0.85rem; line-height: 1.6; }
-                .log-line { margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom: 4px; display: flex; gap: 12px; }
-                .log-time { color: #475569; min-width: 70px; }
+                .terminal-header { background: var(--card-bg-subtle); padding: 12px 20px; border-bottom: 1px solid var(--surface-border-subtle); display: flex; justify-content: space-between; align-items: center; }
+                .terminal-body { height: 500px; padding: 20px; overflow-y: auto; color: var(--text-primary); font-size: 0.85rem; line-height: 1.6; }
+                .log-line { margin-bottom: 8px; border-bottom: 1px solid var(--surface-border-subtle); padding-bottom: 4px; display: flex; gap: 12px; }
+                .log-time { color: var(--text-muted); min-width: 70px; }
                 .log-type { padding: 2px 6px; borderRadius: 4px; fontSize: 0.7rem; fontWeight: 700; height: fit-content; }
                 .type-system { background: rgba(172, 248, 0, 0.1); color: #acf800; border: 1px solid rgba(172, 248, 0, 0.2); }
                 .type-batch { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.2); }
                 .type-warning { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
                 
-                .progress-bar-container { height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; overflow: hidden; margin: 20px 0; border: 1px solid rgba(255,255,255,0.05); }
+                .progress-bar-container { height: 12px; background: var(--surface-border-subtle); border-radius: 6px; overflow: hidden; margin: 20px 0; border: 1px solid var(--surface-border-subtle); }
                 .progress-bar-fill { 
                     height: 100%; 
                     background: linear-gradient(90deg, #acf800, #4ade80); 
@@ -287,7 +287,7 @@ const EngineExecution = () => {
             <div className="execution-grid mt-10">
                 <div className="flex-col gap-6">
                     {/* Progress Overview */}
-                    <div className="glass-card flex-col p-8" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.9) 100%)' }}>
+                    <div className="glass-card flex-col p-8" style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)' }}>
                         <div className="flex items-center justify-between">
                             <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.2rem' }}>Status Geral do Motor</h3>
                             <span style={{ color: isRunning ? 'var(--primary-color)' : 'var(--text-muted)', fontWeight: 800, fontSize: '0.9rem' }}>
@@ -316,14 +316,14 @@ const EngineExecution = () => {
                                         type="text" 
                                         placeholder="Filtrar por número..." 
                                         className="input-field" 
-                                        style={{ fontSize: '0.7rem', padding: '6px 12px', borderRadius: '8px', background: 'rgba(0,0,0,0.3)' }}
+                                        style={{ fontSize: '0.7rem', padding: '6px 12px', borderRadius: '8px', background: 'var(--card-bg-subtle)', color: 'var(--text-primary)' }}
                                         value={filterText}
                                         onChange={e => setFilterText(e.target.value)}
                                     />
                                 </div>
                                 <select 
                                     className="input-field" 
-                                    style={{ fontSize: '0.7rem', padding: '6px 12px', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', width: 'auto' }}
+                                    style={{ fontSize: '0.7rem', padding: '6px 12px', borderRadius: '8px', background: 'var(--card-bg-subtle)', color: 'var(--text-primary)', width: 'auto' }}
                                     value={filterType}
                                     onChange={e => setFilterType(e.target.value)}
                                 >
@@ -359,7 +359,7 @@ const EngineExecution = () => {
                                             <span style={{ flex: 1 }}>{log.message}</span>
                                         </div>
                                         {log.payload && (
-                                            <pre style={{ fontSize: '0.65rem', background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '4px', margin: '4px 0 8px 85px', overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <pre style={{ fontSize: '0.65rem', background: 'var(--card-bg-subtle)', padding: '8px', borderRadius: '4px', margin: '4px 0 8px 85px', overflowX: 'auto', border: '1px solid var(--surface-border-subtle)' }}>
                                                 {JSON.stringify(log.payload, null, 2)}
                                             </pre>
                                         )}
@@ -401,7 +401,7 @@ const EngineExecution = () => {
                             </div>
                         </div>
 
-                        <div className="mt-8 p-6 w-full" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid var(--surface-border)' }}>
+                        <div className="mt-8 p-6 w-full" style={{ background: 'var(--card-bg-subtle)', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
                             <div className="flex items-center gap-2 mb-2">
                                 <RefreshCcw size={14} color="var(--text-muted)" />
                                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Auto-Scaling WABAs</span>

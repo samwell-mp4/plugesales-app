@@ -32,8 +32,44 @@
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.6);
   --shadow-glow: 0 0 25px rgba(172, 248, 0, 0.15);
 
+  --wp-bubble-bg: #0b141a;
+  --wp-bubble-border: #1f2c34;
+  --overlay-bg: rgba(2, 6, 23, 0.85);
+  --code-bg: #020617;
+  --card-bg-subtle: rgba(255, 255, 255, 0.03);
+  --title-gradient: linear-gradient(to right, #ffffff, #888888);
+  --surface-border-subtle: rgba(255, 255, 255, 0.03);
+  --command-center-bg: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.light-theme {
+  --bg-color: #f1f5f9;
+  --bg-gradient: radial-gradient(circle at top right, #ffffff 0%, #f1f5f9 60%);
+  --surface-color: rgba(255, 255, 255, 0.8);
+  --surface-border: rgba(0, 0, 0, 0.08);
+  --surface-hover: rgba(0, 0, 0, 0.04);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --input-bg: rgba(255, 255, 255, 0.9);
+  
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 25px rgba(172, 248, 0, 0.1);
+
+  --wp-bubble-bg: #ffffff;
+  --wp-bubble-border: #e9edef;
+  --overlay-bg: rgba(255, 255, 255, 0.9);
+  --code-bg: #f1f5f9;
+  --card-bg-subtle: rgba(0, 0, 0, 0.03);
+  --title-gradient: linear-gradient(to right, #0f172a, #64748b);
+  --surface-border-subtle: rgba(0, 0, 0, 0.03);
+  --command-center-bg: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
 }
 
 * {
@@ -57,11 +93,11 @@ body {
 /* Glassmorphism Classes */
 /* Premium UI Utilities */
 .glass-panel {
-    background: rgba(15, 23, 42, 0.4);
+    background: var(--surface-color);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    border: 1px solid var(--surface-border);
+    box-shadow: var(--shadow-md);
 }
 
 .neon-border {
@@ -171,7 +207,7 @@ body {
 .input-field {
   width: 100%;
   padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--input-bg, rgba(15, 23, 42, 0.6));
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);

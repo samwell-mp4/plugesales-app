@@ -38,7 +38,7 @@ const Login = () => {
                     justify-content: center;
                     position: relative;
                     overflow: hidden;
-                    background: #020617;
+                    background: var(--bg-primary);
                     padding: 24px;
                 }
 
@@ -48,7 +48,7 @@ const Login = () => {
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    background: linear-gradient(-45deg, #020617, #0f172a, #1e293b, #020617);
+                    background: var(--bg-primary);
                     background-size: 400% 400%;
                     animation: mesh-gradient 15s ease infinite;
                     z-index: 0;
@@ -58,7 +58,7 @@ const Login = () => {
                     position: absolute;
                     width: 500px;
                     height: 500px;
-                    background: radial-gradient(circle, rgba(172, 248, 0, 0.1) 0%, transparent 70%);
+                    background: radial-gradient(circle, rgba(172, 248, 0, 0.05) 0%, transparent 70%);
                     border-radius: 50%;
                     filter: blur(80px);
                     z-index: 1;
@@ -76,17 +76,18 @@ const Login = () => {
                 }
 
                 .premium-login-card {
-                    background: rgba(15, 23, 42, 0.6);
+                    background: var(--card-bg-subtle);
                     backdrop-filter: blur(40px) saturate(200%);
                     -webkit-backdrop-filter: blur(40px) saturate(200%);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 40px;
                     padding: 56px 40px;
                     box-shadow: 
-                        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-                        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+                        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+                        inset 0 1px 1px var(--surface-border-subtle);
                     animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
                 }
+
 
                 @keyframes slideUp {
                     from { opacity: 0; transform: translateY(40px); }
@@ -111,10 +112,9 @@ const Login = () => {
                     font-weight: 900;
                     letter-spacing: -1.5px;
                     margin-bottom: 8px;
-                    background: linear-gradient(to bottom, #fff 0%, #94a3b8 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
+                    color: var(--text-primary);
                 }
+
 
                 .input-wrapper {
                     position: relative;
@@ -123,15 +123,16 @@ const Login = () => {
 
                 .input-wrapper input {
                     width: 100%;
-                    background: rgba(0, 0, 0, 0.4);
-                    border: 1.5px solid rgba(255, 255, 255, 0.05);
+                    background: var(--bg-primary);
+                    border: 1.5px solid var(--surface-border-subtle);
                     border-radius: 18px;
                     padding: 18px 18px 18px 52px;
-                    color: white;
+                    color: var(--text-primary);
                     font-size: 1rem;
                     transition: all 0.3s;
                     backdrop-filter: blur(10px);
                 }
+
 
                 .input-wrapper label {
                     position: absolute;
@@ -139,16 +140,18 @@ const Login = () => {
                     top: 18px;
                     pointer-events: none;
                     transition: all 0.3s;
-                    color: rgba(255, 255, 255, 0.3);
+                    color: var(--text-muted);
                     font-size: 1rem;
                 }
 
+
                 .input-wrapper input:focus, 
                 .input-wrapper input:not(:placeholder-shown) {
-                    border-color: rgba(172, 248, 0, 0.5);
-                    background: rgba(0, 0, 0, 0.6);
+                    border-color: var(--primary-color);
+                    background: var(--bg-primary);
                     box-shadow: 0 0 20px rgba(172, 248, 0, 0.1);
                 }
+
 
                 .input-wrapper input:focus + label,
                 .input-wrapper input:not(:placeholder-shown) + label {

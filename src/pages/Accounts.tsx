@@ -213,13 +213,13 @@ const Accounts = () => {
                     overflow-x: auto; 
                     border-radius: 20px; 
                     border: 1px solid var(--surface-border);
-                    background: rgba(15, 23, 42, 0.4);
+                    background: var(--card-bg-subtle);
                     margin-top: 24px;
                 }
                 table { width: 100%; border-collapse: collapse; }
                 th { 
                     padding: 18px 24px; 
-                    background: rgba(0,0,0,0.2);
+                    background: var(--card-bg-subtle);
                     color: var(--text-secondary); 
                     font-size: 0.8rem; 
                     text-transform: uppercase; 
@@ -255,12 +255,12 @@ const Accounts = () => {
                     box-shadow: 0 0 15px rgba(172, 248, 0, 0.3);
                 }
                 .config-command-center {
-                    background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
-                    border: 1px solid rgba(172, 248, 0, 0.1);
+                    background: var(--command-center-bg);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 24px;
                     padding: 32px;
                     margin-bottom: 32px;
-                    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.5);
+                    box-shadow: var(--shadow-md);
                 }
             `}</style>
 
@@ -271,7 +271,7 @@ const Accounts = () => {
                         <p className="subtitle">Gerencie seus templates autorizados pela Meta via Infobip</p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="btn btn-secondary" onClick={() => fetchTemplates()} disabled={isLoading} style={{ borderRadius: '12px', background: 'rgba(255,255,255,0.03)' }}>
+                        <button className="btn btn-secondary" onClick={() => fetchTemplates()} disabled={isLoading} style={{ borderRadius: '12px', background: 'var(--card-bg-subtle)' }}>
                             <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
                         </button>
                         <button className="btn btn-primary" style={{ borderRadius: '12px', padding: '10px 24px', color: '#000', fontWeight: 800 }}>
@@ -334,7 +334,7 @@ const Accounts = () => {
                                 <AlertTriangle size={28} color="#ff4d4d" opacity={0.4} />
                             </div>
                         </div>
-                        <div className="glass-card" style={{ background: 'rgba(172, 248, 0, 0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px' }}>
+                        <div className="glass-card" style={{ background: 'var(--card-bg-subtle)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px' }}>
                             <div className="flex items-center gap-2">
                                 <div style={{ width: 8, height: 8, background: 'var(--primary-color)', borderRadius: '50%', boxShadow: '0 0 8px var(--primary-color)' }}></div>
                                 <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-color)' }}>LIVE SYNC</span>
@@ -382,7 +382,7 @@ const Accounts = () => {
                                 <div className="flex items-center gap-4 opacity-30">
                                     <div className="flex flex-col text-right">
                                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>API Status</span>
-                                        <span style={{ fontSize: '0.9rem', color: 'white', fontWeight: 700 }}>Conexão Segura</span>
+                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 700 }}>Conexão Segura</span>
                                     </div>
                                     <CheckCircle size={24} color="var(--primary-color)" />
                                 </div>
@@ -411,7 +411,7 @@ const Accounts = () => {
                     </div>
 
                     <div className="flex items-center justify-between gap-6 mt-8" style={{ flexWrap: 'wrap' }}>
-                        <div className="filter-tabs" style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div className="filter-tabs" style={{ display: 'flex', background: 'var(--card-bg-subtle)', borderRadius: '12px', padding: '4px', border: '1px solid var(--surface-border-subtle)' }}>
                             {[
                                 { id: 'ALL', label: 'Todos', count: templates.length },
                                 { id: 'APPROVED', label: 'Aprovados', count: approvedCount },
@@ -446,7 +446,7 @@ const Accounts = () => {
                             <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.5 }} />
                             <input
                                 className="input-field"
-                                style={{ paddingLeft: '48px', background: 'rgba(0,0,0,0.2)', fontSize: '0.9rem', borderRadius: '12px' }}
+                                style={{ paddingLeft: '48px', background: 'var(--card-bg-subtle)', fontSize: '0.9rem', borderRadius: '12px' }}
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 placeholder="Filtrar por nome ou identificador..."
@@ -481,7 +481,7 @@ const Accounts = () => {
                                         <tr key={index} className="hover-row">
                                             <td>
                                                 <div className="flex flex-col">
-                                                    <span style={{ fontWeight: 800, color: 'white' }}>{t.name}</span>
+                                                    <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{t.name}</span>
                                                     <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', opacity: 0.6, fontFamily: 'monospace', marginTop: '2px' }}>{t.id.slice(0, 15)}...</span>
                                                 </div>
                                             </td>
@@ -502,7 +502,7 @@ const Accounts = () => {
                                                 <div className="flex justify-end gap-2">
                                                     <button
                                                         className="btn btn-secondary"
-                                                        style={{ padding: '10px', minWidth: '40px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px' }}
+                                                        style={{ padding: '10px', minWidth: '40px', background: 'var(--card-bg-subtle)', borderRadius: '10px' }}
                                                         onClick={() => alert(`JSON Structure:\n\n${JSON.stringify(t.structure, null, 2)}`)}
                                                         title="View Structure"
                                                     >
@@ -547,7 +547,7 @@ const Accounts = () => {
                             <>
                                 <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
                                     {drafts.slice((draftsPage - 1) * itemsPerPage, draftsPage * itemsPerPage).map((draft, idx) => (
-                                        <div key={idx} className="glass-card flex-col p-6 hover-lift" style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid var(--surface-border)', borderRadius: '24px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)' }}>
+                                        <div key={idx} className="glass-card flex-col p-6 hover-lift" style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border)', borderRadius: '24px', boxShadow: 'var(--shadow-md)' }}>
                                             <div className="flex items-start justify-between mb-6">
                                                 <div style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', padding: '14px', borderRadius: '16px' }}>
                                                     <BookMarked size={28} />
@@ -559,7 +559,7 @@ const Accounts = () => {
                                             </div>
 
                                             <div className="flex-col gap-2 mb-8">
-                                                <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>{draft.label}</h4>
+                                                <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>{draft.label}</h4>
                                                 <div className="flex items-center gap-2">
                                                     <Layers size={14} color="var(--text-muted)" />
                                                     <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{draft.templateName}</span>

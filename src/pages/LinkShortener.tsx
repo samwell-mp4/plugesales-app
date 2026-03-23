@@ -122,21 +122,21 @@ const LinkShortener = () => {
     );
 
     return (
-        <div className="container-root" style={{ minHeight: '100vh', background: '#020617', color: 'white', padding: '28px 24px' }}>
+        <div className="container-root" style={{ minHeight: '100vh', padding: '28px 24px' }}>
             <style>{`
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 
                 .glass-card { 
-                    background: rgba(255,255,255,0.02); 
-                    border: 1px solid rgba(255,255,255,0.06); 
+                    background: var(--card-bg-subtle); 
+                    border: 1px solid var(--surface-border-subtle); 
                     border-radius: 24px; 
                     padding: 24px;
                     backdrop-filter: blur(12px);
                     animation: fadeInUp 0.4s ease-out backwards;
                 }
                 .glass-card:hover { 
-                    background: rgba(255,255,255,0.03); 
-                    border-color: rgba(255,255,255,0.1);
+                    background: var(--card-bg-subtle); 
+                    border-color: var(--surface-border);
                 }
 
                 .action-btn { 
@@ -160,11 +160,11 @@ const LinkShortener = () => {
 
                 .input-field { 
                     width: 100%; 
-                    background: rgba(255,255,255,0.02); 
-                    border: 1px solid rgba(255,255,255,0.08); 
+                    background: var(--card-bg-subtle); 
+                    border: 1px solid var(--surface-border-subtle); 
                     border-radius: 16px; 
                     padding: 16px; 
-                    color: white; 
+                    color: var(--text-primary); 
                     font-size: 14px; 
                     font-weight: 600; 
                     outline: none; 
@@ -173,7 +173,7 @@ const LinkShortener = () => {
                 }
                 .input-field:focus { 
                     border-color: var(--primary-color); 
-                    background: rgba(255,255,255,0.04); 
+                    background: var(--card-bg-subtle); 
                     box-shadow: 0 0 20px rgba(172,248,0,0.1); 
                 }
 
@@ -183,15 +183,15 @@ const LinkShortener = () => {
                     align-items: center;
                     gap: 20px;
                     padding: 20px;
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.06);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 20px;
                     transition: all 0.3s;
                     margin-bottom: 12px;
                 }
                 .link-item:hover {
-                    background: rgba(255,255,255,0.04);
-                    border-color: rgba(255,255,255,0.12);
+                    background: var(--card-bg-subtle);
+                    border-color: var(--surface-border);
                     transform: translateX(4px);
                 }
 
@@ -206,9 +206,9 @@ const LinkShortener = () => {
                     width: 40px;
                     height: 40px;
                     border-radius: 12px;
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid rgba(255,255,255,0.08);
-                    color: rgba(255,255,255,0.6);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
+                    color: var(--text-muted);
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -216,9 +216,9 @@ const LinkShortener = () => {
                     transition: all 0.2s;
                 }
                 .icon-button:hover {
-                    background: rgba(255,255,255,0.1);
-                    color: white;
-                    border-color: rgba(255,255,255,0.2);
+                    background: var(--card-bg-subtle);
+                    color: var(--text-primary);
+                    border-color: var(--surface-border);
                     transform: translateY(-2px);
                 }
                 .icon-button.delete:hover {
@@ -247,7 +247,7 @@ const LinkShortener = () => {
                         <h1 style={{ margin: 0, fontWeight: 900, fontSize: '3rem', letterSpacing: '-2px', lineHeight: 1 }}>
                             Encurtador de <span className="text-primary-color">Links</span>
                         </h1>
-                        <p style={{ margin: '12px 0 0 0', color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontWeight: 500 }}>
+                        <p style={{ margin: '12px 0 0 0', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 500 }}>
                             Crie, gerencie e acompanhe a performance dos seus links em tempo real.
                         </p>
                     </div>
@@ -255,13 +255,13 @@ const LinkShortener = () => {
                     <div style={{ display: 'flex', gap: '30px' }}>
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: '24px', fontWeight: 900 }}>{links.length}</div>
-                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Links Ativos</div>
+                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Links Ativos</div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary-color)' }}>
                                 {links.reduce((acc, curr) => acc + parseInt(curr.clicks || 0), 0)}
                             </div>
-                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Cliques Totais</div>
+                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cliques Totais</div>
                         </div>
                     </div>
                 </div>
@@ -277,30 +277,30 @@ const LinkShortener = () => {
                         <form onSubmit={handleCreateLink} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             {/* --- CLIENT SELECTOR --- */}
                             <div>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
                                     <Users size={12} /> Vincular a Cliente (Opcional)
                                 </label>
                                 <select 
                                     className="input-field"
-                                    style={{ appearance: 'none', cursor: 'pointer' }}
+                                    style={{ appearance: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
                                     value={selectedClientId}
                                     onChange={e => setSelectedClientId(e.target.value)}
                                 >
                                     <option value="">Nenhum cliente selecionado</option>
                                     {Array.isArray(clients) && clients.map(c => (
-                                        <option key={c.id} value={c.id.toString()} style={{ color: '#000' }}>
+                                        <option key={c.id} value={c.id.toString()} style={{ color: 'var(--text-primary)', background: 'var(--card-bg-subtle)' }}>
                                             {c.profile_name} {c.ddd && `(${c.ddd})`}
                                         </option>
                                     ))}
                                 </select>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
                                 <span style={{ fontSize: '12px', fontWeight: 900 }}>Gerar em massa?</span>
                                 <div 
                                     onClick={() => setIsBulk(!isBulk)}
                                     style={{ 
-                                        width: '44px', height: '24px', background: isBulk ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', 
+                                        width: '44px', height: '24px', background: isBulk ? 'var(--primary-color)' : 'var(--surface-border-subtle)', 
                                         borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'all 0.3s' 
                                     }}
                                 >
@@ -314,7 +314,7 @@ const LinkShortener = () => {
                             {!isBulk ? (
                                 <>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
                                             Título do Link (Opcional)
                                         </label>
                                         <input 
@@ -326,7 +326,7 @@ const LinkShortener = () => {
                                     </div>
 
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
                                             URL Original
                                         </label>
                                         <input 
@@ -340,7 +340,7 @@ const LinkShortener = () => {
                                 </>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>
+                                    <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                                         Lista de Links
                                     </label>
                                     {bulkLinks.map((link, idx) => (
@@ -385,8 +385,8 @@ const LinkShortener = () => {
                                         type="button"
                                         onClick={() => setBulkLinks([...bulkLinks, { title: '', url: '' }])}
                                         style={{ 
-                                            padding: '10px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', 
-                                            border: '1px dashed rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)',
+                                            padding: '10px', borderRadius: '12px', background: 'var(--card-bg-subtle)', 
+                                            border: '1px dashed var(--surface-border-subtle)', color: 'var(--text-muted)',
                                             fontSize: '11px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                                         }}
                                     >
@@ -412,12 +412,12 @@ const LinkShortener = () => {
                                 <input 
                                     placeholder="Buscar links..."
                                     style={{ 
-                                        background: 'rgba(255,255,255,0.03)', 
-                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        background: 'var(--card-bg-subtle)', 
+                                        border: '1px solid var(--surface-border-subtle)',
                                         borderRadius: '12px',
                                         padding: '10px 16px 10px 44px',
                                         fontSize: '13px',
-                                        color: 'white',
+                                        color: 'var(--text-primary)',
                                         outline: 'none',
                                         width: '240px'
                                     }}
@@ -428,14 +428,14 @@ const LinkShortener = () => {
                         </div>
 
                         {isLoading ? (
-                            <div style={{ padding: '60px', textAlign: 'center', color: 'rgba(255,255,255,0.2)' }}>
+                            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
                                 Carregando links...
                             </div>
                         ) : filteredLinks.length === 0 ? (
                             <div className="glass-card" style={{ padding: '80px 20px', textAlign: 'center' }}>
                                 <Globe size={48} style={{ opacity: 0.1, marginBottom: '20px' }} />
-                                <h3 style={{ margin: 0, color: 'rgba(255,255,255,0.4)', fontWeight: 900 }}>Nenhum link encontrado</h3>
-                                <p style={{ margin: '8px 0 0 0', color: 'rgba(255,255,255,0.2)', fontSize: '14px' }}>
+                                <h3 style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 900 }}>Nenhum link encontrado</h3>
+                                <p style={{ margin: '8px 0 0 0', color: 'var(--text-muted)', opacity: 0.5, fontSize: '14px' }}>
                                     Comece criando seu primeiro link encurtado ao lado.
                                 </p>
                             </div>
@@ -449,14 +449,14 @@ const LinkShortener = () => {
                                                 <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary-color)' }}>
                                                     {window.location.host}/l/{l.short_code}
                                                 </span>
-                                                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)' }}>•</span>
+                                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.5 }}>•</span>
                                                 <div style={{ 
                                                     maxWidth: '200px', 
                                                     overflow: 'hidden', 
                                                     textOverflow: 'ellipsis', 
                                                     whiteSpace: 'nowrap',
                                                     fontSize: '11px',
-                                                    color: 'rgba(255,255,255,0.3)'
+                                                    color: 'var(--text-muted)'
                                                 }}>
                                                     {l.original_url}
                                                 </div>
@@ -465,7 +465,7 @@ const LinkShortener = () => {
 
                                         <div style={{ textAlign: 'center', padding: '0 20px' }}>
                                             <div className="click-count">{l.clicks || 0}</div>
-                                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
                                         </div>
 
                                         <div style={{ display: 'flex', gap: '8px' }}>

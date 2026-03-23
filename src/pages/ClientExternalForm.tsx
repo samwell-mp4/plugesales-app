@@ -238,14 +238,14 @@ const ClientExternalForm = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#020617] text-white overflow-x-hidden">
+        <div className="min-h-screen container-root" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
             <style>{`
                 .glass-card {
                     margin-top: 20px;
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
                     backdrop-filter: blur(24px);
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
                 }
                 .whatsapp-grid { 
                     display: grid; 
@@ -348,19 +348,19 @@ const ClientExternalForm = () => {
                 
 
                 .input-premium {
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    color: white;
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
+                    color: var(--text-primary);
                     padding: 12px 16px;
                     border-radius: 12px;
                     width: 100%;
                     font-size: 0.95rem;
                     transition: all 0.2s ease;
                 }
-                .input-premium:focus { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.03); box-shadow: 0 0 15px rgba(172, 248, 0, 0.1); outline: none; }
+                .input-premium:focus { border-color: var(--primary-color); background: var(--bg-primary); box-shadow: 0 0 15px rgba(172, 248, 0, 0.05); outline: none; }
 
                 .upload-zone {
-                    border: 1.5px dashed rgba(255,255,255,0.15);
+                    border: 1.5px dashed var(--surface-border-subtle);
                     border-radius: 16px;
                     padding: 32px;
                     text-align: center;
@@ -371,17 +371,19 @@ const ClientExternalForm = () => {
 
                 .step-pill {
                     width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-                    background: rgba(255,255,255,0.04); font-weight: 800; border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem;
+                    background: var(--card-bg-subtle); font-weight: 800; border: 1px solid var(--surface-border-subtle); font-size: 0.85rem;
                 }
                 .step-pill.active { background: var(--primary-color); color: black; border-color: var(--primary-color); }
                 .step-pill.completed { background: var(--primary-color); color: black; }
+
+
 
                 .form-section-title { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; }
                 .form-section-subtitle { font-size: 0.85rem; font-weight: 600; opacity: 0.5; margin-bottom: 32px; }
 
                 .creative-card {
-                    background: rgba(255,255,255,0.02);
-                    border: 1.5px solid rgba(255,255,255,0.05);
+                    background: var(--card-bg-subtle);
+                    border: 1.5px solid var(--surface-border-subtle);
                     padding: 10px 16px;
                     border-radius: 14px;
                     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -394,8 +396,9 @@ const ClientExternalForm = () => {
                     position: relative;
                     flex: 1;
                     min-width: 0;
+                    color: var(--text-primary);
                 }
-                .creative-card:hover { border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); }
+                .creative-card:hover { border-color: var(--primary-color); background: var(--bg-primary); }
                 .creative-card.active { border-color: var(--primary-color); background: rgba(172,248,0,0.08); }
                 .creative-card.active .icon-box { color: var(--primary-color); }
 
@@ -404,8 +407,8 @@ const ClientExternalForm = () => {
                 }
 
                 .ad-selector-btn {
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.08);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
                     padding: 10px 20px;
                     border-radius: 14px;
                     display: flex;
@@ -415,8 +418,9 @@ const ClientExternalForm = () => {
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                     z-index: 50;
+                    color: var(--text-primary);
                 }
-                .ad-selector-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--primary-color); }
+                .ad-selector-btn:hover { background: var(--bg-primary); border-color: var(--primary-color); }
                 .ad-selector-btn.active { background: rgba(172,248,0,0.1); border-color: var(--primary-color); }
 
                 .ad-dropdown {
@@ -425,11 +429,11 @@ const ClientExternalForm = () => {
                     right: 0;
                     margin-top: 8px;
                     width: 300px;
-                    background: #111827; /* Darker, more solid background */
+                    background: var(--card-bg-subtle);
                     backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255,255,255,0.1);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 16px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                     padding: 8px;
                     z-index: 999; /* Ensure it's on top */
                     animation: slide-down 0.2s ease-out;

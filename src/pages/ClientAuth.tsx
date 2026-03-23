@@ -57,9 +57,9 @@ const ClientAuth = () => {
                     justify-content: center;
                     position: relative;
                     overflow: hidden;
-                    background: #020617;
+                    background: var(--bg-primary);
                     padding: 24px;
-                    color: white;
+                    color: var(--text-primary);
                 }
 
                 .mesh-bg {
@@ -68,7 +68,7 @@ const ClientAuth = () => {
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    background: linear-gradient(-45deg, #020617, #0f172a, #161d2f, #020617);
+                    background: var(--bg-primary);
                     background-size: 400% 400%;
                     animation: mesh-gradient 15s ease infinite;
                     z-index: 0;
@@ -96,17 +96,18 @@ const ClientAuth = () => {
                 }
 
                 .premium-auth-card {
-                    background: rgba(15, 23, 42, 0.6);
+                    background: var(--card-bg-subtle);
                     backdrop-filter: blur(40px) saturate(200%);
                     -webkit-backdrop-filter: blur(40px) saturate(200%);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 40px;
                     padding: 48px 40px;
                     box-shadow: 
-                        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-                        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+                        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+                        inset 0 1px 1px var(--surface-border-subtle);
                     animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
                 }
+
 
                 @keyframes slideUp {
                     from { opacity: 0; transform: translateY(40px); }
@@ -145,7 +146,7 @@ const ClientAuth = () => {
                 }
 
                 .auth-subtitle {
-                    color: rgba(255, 255, 255, 0.4);
+                    color: var(--text-muted);
                     font-size: 0.9rem;
                     font-weight: 600;
                     text-transform: uppercase;
@@ -170,7 +171,7 @@ const ClientAuth = () => {
                     text-transform: uppercase;
                     letter-spacing: 1px;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    color: rgba(255,255,255,0.4);
+                    color: var(--text-muted);
                     border: none;
                     background: transparent;
                     cursor: pointer;
@@ -189,19 +190,19 @@ const ClientAuth = () => {
 
                 .input-group input {
                     width: 100%;
-                    background: rgba(0, 0, 0, 0.3);
-                    border: 1.5px solid rgba(255, 255, 255, 0.05);
+                    background: var(--bg-primary);
+                    border: 1.5px solid var(--surface-border-subtle);
                     border-radius: 16px;
                     padding: 16px 16px 16px 48px;
-                    color: white;
+                    color: var(--text-primary);
                     font-size: 0.95rem;
                     transition: all 0.3s;
                 }
 
                 .input-group input:focus {
                     border-color: rgba(172, 248, 0, 0.4);
-                    background: rgba(0, 0, 0, 0.5);
-                    box-shadow: 0 0 15px rgba(172, 248, 0, 0.08);
+                    background: var(--bg-primary);
+                    box-shadow: 0 0 15px rgba(172, 248, 0, 0.05);
                     outline: none;
                 }
 
@@ -210,7 +211,7 @@ const ClientAuth = () => {
                     left: 16px;
                     top: 50%;
                     transform: translateY(-50%);
-                    color: rgba(255, 255, 255, 0.2);
+                    color: var(--text-muted);
                     transition: all 0.3s;
                 }
 
@@ -267,7 +268,7 @@ const ClientAuth = () => {
                     justify-content: center;
                     gap: 6px;
                     margin-top: 32px;
-                    color: rgba(255, 255, 255, 0.2);
+                    color: var(--text-muted);
                     font-size: 0.65rem;
                     font-weight: 800;
                     text-transform: uppercase;

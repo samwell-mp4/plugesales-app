@@ -604,19 +604,19 @@ const TemplateDispatch = () => {
         <div className="animate-fade-in" style={{ paddingBottom: '100px' }}>
             <style>{`
                 .dispatch-container { display: grid; grid-template-columns: 1fr 420px; gap: 32px; align-items: start; }
-                .preview-whatsapp { background: #0b141a; border-radius: 24px; padding: 24px; position: sticky; top: 20px; box-shadow: 0 20px 50px -15px rgba(0,0,0,0.5); border: 1px solid #222d34; }
-                .chat-bubble { background: #202c33; color: #e9edef; padding: 12px; border-radius: 0 12px 12px 12px; max-width: 90%; font-size: 0.9rem; position: relative; margin-top: 8px; }
-                .chat-header { font-size: 0.75rem; color: #8696a0; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
-                .json-preview { background: rgba(0,0,0,0.3); padding: 16px; border-radius: 12px; font-family: monospace; font-size: 0.7rem; color: #4ade80; border: 1px solid rgba(172, 248, 0, 0.1); margin-top: 16px; overflow-x: auto; }
+                .preview-whatsapp { background: var(--card-bg-subtle); border-radius: 24px; padding: 24px; position: sticky; top: 20px; box-shadow: var(--shadow-xl); border: 1px solid var(--surface-border-subtle); }
+                .chat-bubble { background: var(--wp-bubble-bg); color: #e9edef; padding: 12px; border-radius: 0 12px 12px 12px; max-width: 90%; font-size: 0.9rem; position: relative; margin-top: 8px; border: 1px solid var(--wp-bubble-border); }
+                .chat-header { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+                .json-preview { background: var(--code-bg); padding: 16px; border-radius: 12px; font-family: monospace; font-size: 0.7rem; color: #4ade80; border: 1px solid var(--surface-border-subtle); margin-top: 16px; overflow-x: auto; }
                 
                 .step-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--surface-border); transition: all 0.3s; }
                 .step-dot.active { background: var(--primary-color); box-shadow: 0 0 10px var(--primary-color); }
 
-                .draft-card { background: rgba(255,255,255,0.02); border: 1px solid var(--surface-border); border-radius: 14px; padding: 14px 16px; transition: all 0.2s; cursor: default; }
-                .draft-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(172,248,0,0.2); }
-                .draft-card.active-draft { border-color: var(--primary-color); background: rgba(172,248,0,0.04); }
-                .draft-action-btn { background: transparent; border: none; cursor: pointer; padding: 6px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
-                .draft-action-btn:hover { background: rgba(255,255,255,0.05); }
+                .draft-card { background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); border-radius: 14px; padding: 14px 16px; transition: all 0.2s; cursor: default; }
+                .draft-card:hover { background: var(--card-bg-subtle); border-color: var(--primary-color); opacity: 0.9; }
+                .draft-card.active-draft { border-color: var(--primary-color); background: var(--card-bg-subtle); box-shadow: 0 0 15px rgba(172,248,0,0.05); }
+                .draft-action-btn { background: transparent; border: none; cursor: pointer; padding: 6px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; gap: 4px; transition: all 0.2s; color: var(--text-muted); }
+                .draft-action-btn:hover { background: var(--surface-border-subtle); color: var(--text-primary); }
 
                 @media (max-width: 1000px) {
                     .dispatch-container { grid-template-columns: 1fr; }
@@ -661,11 +661,11 @@ const TemplateDispatch = () => {
                                     onChange={e => setSenderNumbers(e.target.value)}
                                     placeholder="Ex: 5511999999999, 5511888888888"
                                     style={{
-                                        background: 'rgba(0,0,0,0.2)',
-                                        border: '1px solid rgba(172, 248, 0, 0.1)',
+                                        background: 'var(--card-bg-subtle)',
+                                        border: '1px solid var(--surface-border-subtle)',
                                         borderRadius: '16px',
                                         padding: '16px',
-                                        color: 'white',
+                                        color: 'var(--text-primary)',
                                         fontSize: '0.85rem',
                                         minHeight: '80px',
                                         width: '100%',
@@ -736,10 +736,11 @@ const TemplateDispatch = () => {
                                         className="input-field"
                                         style={{ 
                                             borderRadius: '12px', 
-                                            background: isBulkMode ? 'rgba(0,0,0,0.1)' : 'transparent',
+                                            background: isBulkMode ? 'var(--card-bg-subtle)' : 'transparent',
                                             minHeight: '100px',
                                             padding: '12px',
-                                            resize: 'vertical'
+                                            resize: 'vertical',
+                                            color: 'var(--text-primary)'
                                         }}
                                         value={toNumber}
                                         onChange={e => setToNumber(e.target.value)}
@@ -776,7 +777,7 @@ const TemplateDispatch = () => {
                                     </div>
                                 </div>
                             ) : selectedTemplate && (
-                                <div className="p-8 text-center" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed var(--surface-border)' }}>
+                                <div className="p-8 text-center" style={{ background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px dashed var(--surface-border-subtle)' }}>
                                     <p style={{ margin: 0, color: 'var(--text-muted)' }}>Este template não possui variáveis variáveis no corpo da mensagem.</p>
                                 </div>
                             )}
@@ -798,10 +799,10 @@ const TemplateDispatch = () => {
 
                             {/* Dispatch Summary - Premium UI */}
                             <div className="mb-8" style={{
-                                background: 'linear-gradient(145deg, rgba(172, 248, 0, 0.05) 0%, rgba(0,0,0,0.2) 100%)',
+                                background: 'var(--card-bg-subtle)',
                                 borderRadius: '32px',
-                                border: '1px solid rgba(172, 248, 0, 0.15)',
-                                boxShadow: '0 20px 50px -15px rgba(0,0,0,0.7)',
+                                border: '1px solid var(--surface-border-subtle)',
+                                boxShadow: 'var(--shadow-xl)',
                                 padding: '25px'
                             }}>
                                 <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '30px' }}>
@@ -810,7 +811,7 @@ const TemplateDispatch = () => {
                                             <User size={14} />
                                             <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px' }}>RESPONSÁVEL</span>
                                         </div>
-                                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'white' }}>{user?.name || 'Sistema (Admin)'}</span>
+                                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>{user?.name || 'Sistema (Admin)'}</span>
                                     </div>
 
                                     <div className="flex flex-col gap-2">
@@ -818,7 +819,7 @@ const TemplateDispatch = () => {
                                             <Smartphone size={14} />
                                             <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px' }}>SENDER ATIVO</span>
                                         </div>
-                                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'white' }}>{fromNumber}</span>
+                                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>{fromNumber}</span>
                                     </div>
 
                                     <div className="flex flex-col gap-2">
@@ -835,7 +836,7 @@ const TemplateDispatch = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--surface-border-subtle)' }}>
                                     <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--primary-color)', opacity: 0.8 }}>
                                         <Type size={14} />
                                         <span style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '1px' }}>MAPEAMENTO DE VARIÁVEIS</span>
@@ -843,10 +844,10 @@ const TemplateDispatch = () => {
                                     <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
                                         {placeholders.length > 0 ? placeholders.map(p => (
                                             <div key={p.id} style={{
-                                                background: 'rgba(255,255,255,0.03)',
+                                                background: 'var(--card-bg-subtle)',
                                                 padding: '14px 22px',
                                                 borderRadius: '16px',
-                                                border: '1px solid rgba(255,255,255,0.05)',
+                                                border: '1px solid var(--surface-border-subtle)',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 gap: '14px'
@@ -856,7 +857,7 @@ const TemplateDispatch = () => {
                                                     borderRadius: '4px', border: '1px solid currentColor',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                                                 }} />
-                                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {p.value}
                                                 </span>
                                             </div>
@@ -876,7 +877,7 @@ const TemplateDispatch = () => {
                                         <div className="flex gap-2">
                                             <button
                                                 className="btn btn-secondary"
-                                                style={{ padding: '4px 10px', fontSize: '0.65rem', height: '28px', border: '1px solid rgba(172, 248, 0, 0.3)' }}
+                                                style={{ padding: '4px 10px', fontSize: '0.65rem', height: '28px', border: '1px solid var(--surface-border-subtle)' }}
                                                 onClick={() => setShowLibrary(!showLibrary)}
                                             >
                                                 <Library size={12} /> {showLibrary ? 'FECHAR BIBLIOTECA' : 'MINHA BIBLIOTECA'}
@@ -893,11 +894,11 @@ const TemplateDispatch = () => {
 
                                     {showLibrary && (
                                         <div className="library-picker animate-fade-in p-4 mb-4" style={{
-                                            background: 'rgba(0,0,0,0.2)',
+                                            background: 'var(--card-bg-subtle)',
                                             borderRadius: '12px',
                                             maxHeight: '200px',
                                             overflowY: 'auto',
-                                            border: '1px solid var(--surface-border)'
+                                            border: '1px solid var(--surface-border-subtle)'
                                         }}>
                                             <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
                                                 {hostedFiles.filter(f => headerType === 'VIDEO' ? f.type === 'video' : f.type === 'image').map(file => (
@@ -910,7 +911,7 @@ const TemplateDispatch = () => {
                                                             overflow: 'hidden',
                                                             border: mediaUrl === file.shortUrl ? '2px solid var(--primary-color)' : '1px solid transparent',
                                                             aspectRatio: '1',
-                                                            background: '#000',
+                                                            background: 'var(--card-bg-subtle)',
                                                             position: 'relative'
                                                         }}
                                                     >
@@ -952,7 +953,7 @@ const TemplateDispatch = () => {
                                         <div className="flex gap-2 items-center mt-2">
                                             <select
                                                 className="input-field"
-                                                style={{ borderRadius: '12px', background: 'rgba(0,0,0,0.1)', fontSize: '0.8rem', flex: 1, height: '42px' }}
+                                                style={{ borderRadius: '12px', background: 'var(--card-bg-subtle)', fontSize: '0.8rem', flex: 1, height: '42px' }}
                                                 value={buttonType || 'QUICK_REPLY'}
                                                 onChange={e => setButtonType(e.target.value as any)}
                                             >
@@ -971,7 +972,7 @@ const TemplateDispatch = () => {
                                         <span>PROGRESSO DO DISPARO EM MASSA</span>
                                         <span>{queueProgress.current} / {queueProgress.total}</span>
                                     </div>
-                                    <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <div style={{ width: '100%', height: '8px', background: 'var(--surface-border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
                                         <div style={{
                                             width: `${(queueProgress.current / queueProgress.total) * 100}%`,
                                             height: '100%',
@@ -1022,13 +1023,13 @@ const TemplateDispatch = () => {
 
                 {/* Preview Side */}
                 <div className="preview-whatsapp animate-fade-in">
-                    <div className="flex items-center gap-3 mb-6" style={{ borderBottom: '1px solid #222d34', paddingBottom: '16px' }}>
+                    <div className="flex items-center gap-3 mb-6" style={{ borderBottom: '1px solid var(--surface-border-subtle)', paddingBottom: '16px' }}>
                         <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#acf800', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black' }}>
                             <User size={24} />
                         </div>
                         <div className="flex-col">
-                            <span style={{ color: 'white', fontWeight: 700, fontSize: '0.95rem' }}>Plug & Sales Agent</span>
-                            <span style={{ color: '#8696a0', fontSize: '0.7rem' }}>disparando como {fromNumber}</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>Plug & Sales Agent</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>disparando como {fromNumber}</span>
                         </div>
                     </div>
 
@@ -1038,7 +1039,7 @@ const TemplateDispatch = () => {
 
                     <div className="chat-bubble flex-col">
                         {headerType !== 'NONE' && mediaUrl && (
-                            <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '8px', marginBottom: '8px', overflow: 'hidden' }}>
+                            <div style={{ width: '100%', aspectRatio: '16/9', background: 'var(--card-bg-subtle)', borderRadius: '8px', marginBottom: '8px', overflow: 'hidden' }}>
                                 <img src={mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Header Preview" />
                             </div>
                         )}
@@ -1062,7 +1063,7 @@ const TemplateDispatch = () => {
 
                     {includeButton && (
                         <div className="flex flex-col gap-2 mt-2 w-full">
-                            <div style={{ background: '#202c33', color: '#00a884', padding: '10px', borderRadius: '10px', textAlign: 'center', fontSize: '0.85rem', fontWeight: 700, border: '1px solid #222d34' }}>
+                            <div style={{ background: 'var(--wp-bubble-bg)', color: '#00a884', padding: '10px', borderRadius: '10px', textAlign: 'center', fontSize: '0.85rem', fontWeight: 700, border: '1px solid var(--wp-bubble-border)' }}>
                                 {(() => {
                                     const comps = selectedTemplate?.components || selectedTemplate?.structure?.components || [];
                                     const btnComp = comps.find((c: any) => c.type === 'BUTTONS')?.buttons?.[0]?.text;
@@ -1074,7 +1075,7 @@ const TemplateDispatch = () => {
                     )}
 
                     <div className="json-preview">
-                        <div className="flex items-center gap-2 mb-2" style={{ borderBottom: '1px solid rgba(172, 248, 0, 0.2)', paddingBottom: '4px' }}>
+                        <div className="flex items-center gap-2 mb-2" style={{ borderBottom: '1px solid var(--surface-border-subtle)', paddingBottom: '4px' }}>
                             <Link size={12} />
                             <span>API_PAYLOAD_DEBUG</span>
                         </div>
@@ -1085,10 +1086,10 @@ const TemplateDispatch = () => {
 
                     {/* Draft Panel */}
                     {drafts.length > 0 && (
-                        <div className="animate-fade-in" style={{ marginTop: '24px', borderTop: '1px solid #222d34', paddingTop: '20px' }}>
+                        <div className="animate-fade-in" style={{ marginTop: '24px', borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '20px' }}>
                             <div className="flex items-center gap-2 mb-4">
                                 <BookMarked size={16} color="var(--primary-color)" />
-                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'white' }}>Rascunhos Salvos</span>
+                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)' }}>Rascunhos Salvos</span>
                                 <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: 'var(--text-muted)', background: 'rgba(172,248,0,0.1)', padding: '2px 8px', borderRadius: '10px', fontWeight: 800 }}>{drafts.length} rascunho(s)</span>
                             </div>
                             <div className="flex flex-col gap-3">
@@ -1099,7 +1100,7 @@ const TemplateDispatch = () => {
                                         <div key={draft.id} className={`draft-card ${isActive ? 'active-draft' : ''}`}>
                                             <div className="flex items-start justify-between gap-2 mb-2">
                                                 <div className="flex flex-col" style={{ flex: 1, minWidth: 0 }}>
-                                                    <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label}</span>
+                                                    <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label}</span>
                                                     <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                                                         {new Date(draft.savedAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                         {isBulkMode && (
@@ -1113,7 +1114,7 @@ const TemplateDispatch = () => {
                                                     {draft.placeholders && draft.placeholders.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mt-2">
                                                             {draft.placeholders.map(p => (
-                                                                <span key={p.id} style={{ fontSize: '0.6rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', padding: '2px 5px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                                <span key={p.id} style={{ fontSize: '0.6rem', background: 'var(--surface-border-subtle)', color: 'var(--text-muted)', padding: '2px 5px', borderRadius: '4px', border: '1px solid var(--surface-border-subtle)' }}>
                                                                     {'{'}{p.id}{'}'}: {p.value.length > 15 ? p.value.slice(0, 12) + '...' : p.value}
                                                                 </span>
                                                             ))}

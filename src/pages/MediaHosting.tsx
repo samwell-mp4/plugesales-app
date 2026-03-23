@@ -99,35 +99,35 @@ const MediaHosting = () => {
     const filteredFiles = hostedFiles.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return (
-        <div className="container-root" style={{ minHeight: '100vh', background: '#020617', color: 'white', padding: '28px 24px' }}>
+        <div className="container-root" style={{ minHeight: '100vh', padding: '28px 24px' }}>
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
                 
                 .control-card { 
-                    background: rgba(255,255,255,0.02); 
-                    border: 1px solid rgba(255,255,255,0.06); 
+                    background: var(--card-bg-subtle); 
+                    border: 1px solid var(--surface-border-subtle); 
                     border-radius: 24px; 
                     padding: 24px;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     animation: fadeInUp 0.4s ease-out backwards;
                 }
                 .control-card:hover { 
-                    background: rgba(255,255,255,0.03); 
-                    border-color: rgba(255,255,255,0.1);
+                    background: var(--card-bg-subtle); 
+                    border-color: var(--surface-border);
                     transform: translateY(-2px);
                     box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
                 }
 
                 .action-btn { padding: 12px 20px; border-radius: 14px; border: none; cursor: pointer; font-weight: 900; font-size: 11px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; text-transform: uppercase; }
                 .primary-btn { background: var(--primary-gradient); color: #000; box-shadow: 0 8px 20px -6px var(--primary); }
-                .ghost-btn { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.08) !important; }
-                .ghost-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2) !important; }
+                .ghost-btn { background: var(--card-bg-subtle); color: var(--text-muted); border: 1px solid var(--surface-border-subtle) !important; }
+                .ghost-btn:hover { background: var(--card-bg-subtle); color: var(--text-primary); border-color: var(--surface-border) !important; }
 
                 .upload-zone { 
-                    border: 2px dashed rgba(172, 248, 0, 0.2); 
-                    background: rgba(172, 248, 0, 0.02); 
+                    border: 2px dashed var(--surface-border-subtle); 
+                    background: var(--card-bg-subtle); 
                     border-radius: 32px; 
                     padding: 40px; 
                     text-align: center;
@@ -154,11 +154,11 @@ const MediaHosting = () => {
                 .media-preview-box {
                     height: 180px;
                     border-radius: 16px;
-                    background: rgba(0,0,0,0.2);
+                    background: var(--card-bg-subtle);
                     margin-bottom: 16px;
                     position: relative;
                     overflow: hidden;
-                    border: 1px solid rgba(255,255,255,0.05);
+                    border: 1px solid var(--surface-border-subtle);
                 }
                 .media-preview-box img, .media-preview-box video {
                     width: 100%;
@@ -171,7 +171,7 @@ const MediaHosting = () => {
                 .overlay-actions {
                     position: absolute;
                     inset: 0;
-                    background: rgba(2,6,23,0.6);
+                    background: var(--overlay-bg);
                     backdrop-filter: blur(4px);
                     display: flex;
                     align-items: center;
@@ -182,8 +182,8 @@ const MediaHosting = () => {
                 }
                 .media-preview-box:hover .overlay-actions { opacity: 1; }
 
-                .field-input { width: 100%; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; color: white; font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
-                .field-input:focus { border-color: var(--primary-color); background: rgba(255,255,255,0.04); box-shadow: 0 0 20px rgba(172,248,0,0.1); }
+                .field-input { width: 100%; background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); border-radius: 16px; padding: 16px; color: var(--text-primary); font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
+                .field-input:focus { border-color: var(--primary-color); background: var(--card-bg-subtle); box-shadow: 0 0 20px rgba(172,248,0,0.1); }
                 
                 .info-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
             `}</style>
@@ -195,7 +195,7 @@ const MediaHosting = () => {
                         <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.8rem', letterSpacing: '-2px', lineHeight: 1 }}>
                             Media <span className="text-primary-color">Hosting</span>
                         </h1>
-                        <p style={{ margin: '8px 0 0 0', color: 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                        <p style={{ margin: '8px 0 0 0', color: 'var(--text-muted)', fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '2px' }}>
                             Gerenciamento de ativos para campanhas
                         </p>
                     </div>
@@ -207,7 +207,7 @@ const MediaHosting = () => {
                             </div>
                             <div>
                                 <p style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>{hostedFiles.length}</p>
-                                <p style={{ margin: 0, fontSize: '8px', fontWeight: 900, color: 'rgba(255,255,255,0.2)', letterSpacing: '1px' }}>ARQUIVOS TOTAIS</p>
+                                <p style={{ margin: 0, fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>ARQUIVOS TOTAIS</p>
                             </div>
                         </div>
                     </div>
@@ -237,9 +237,9 @@ const MediaHosting = () => {
                                 <div key={file.id} className="control-card media-item" style={{ animationDelay: `${idx * 0.05}s` }}>
                                     <div className="media-preview-box">
                                         {file.type === 'video' ? (
-                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(59,130,246,0.1)' }}>
+                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card-bg-subtle)' }}>
                                                 <video src={file.shortUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                <div style={{ position: 'absolute', top: 12, left: 12, padding: '4px 8px', background: 'rgba(0,0,0,0.5)', borderRadius: '6px', fontSize: '9px', fontWeight: 900 }}>MP4</div>
+                                                <div style={{ position: 'absolute', top: 12, left: 12, padding: '4px 8px', background: 'var(--overlay-bg)', borderRadius: '6px', fontSize: '9px', fontWeight: 900 }}>MP4</div>
                                             </div>
                                         ) : (
                                             <img src={file.shortUrl} alt="" />
@@ -267,13 +267,13 @@ const MediaHosting = () => {
                                         <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {file.name.toUpperCase()}
                                         </h3>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px', borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '12px' }}>
                                             <div style={{ display: 'flex', gap: '12px' }}>
-                                                <span style={{ fontSize: '9px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                     <Clock size={12} /> {file.uploadedAt}
                                                 </span>
                                             </div>
-                                            <button onClick={() => handleDelete(file.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.4)', cursor: 'pointer', padding: '4px' }} className="hover:text-red-500 transition-colors">
+                                            <button onClick={() => handleDelete(file.id)} style={{ background: 'none', border: 'none', color: '#ef4444', opacity: 0.6, cursor: 'pointer', padding: '4px' }} className="hover:opacity-100 transition-opacity">
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
@@ -307,11 +307,11 @@ const MediaHosting = () => {
                                 <h3 style={{ margin: 0, fontWeight: 900, fontSize: '16px' }}>
                                     {isUploading ? `UPDATING...` : 'NOVO UPLOAD'}
                                 </h3>
-                                <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'rgba(255,255,255,0.3)', fontWeight: 800 }}>DRAG & DROP DISPONÍVEL</p>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800 }}>DRAG & DROP DISPONÍVEL</p>
                             </div>
                             {isUploading && (
                                 <div style={{ width: '100%', marginTop: '16px' }}>
-                                    <div style={{ height: '4px', background: 'rgba(172,248,0,0.1)', borderRadius: '10px', overflow: 'hidden' }}>
+                                    <div style={{ height: '4px', background: 'var(--card-bg-subtle)', borderRadius: '10px', overflow: 'hidden' }}>
                                         <div style={{ 
                                             height: '100%', background: 'var(--primary-color)', 
                                             width: `${(uploadProgress.current / uploadProgress.total) * 100}%`,
@@ -328,7 +328,7 @@ const MediaHosting = () => {
                             </button>
                         </label>
 
-                        <div className="control-card" style={{ background: 'linear-gradient(135deg, rgba(172,248,0,0.05) 0%, rgba(2,6,23,0) 100%)', borderColor: 'rgba(172,248,0,0.1)' }}>
+                        <div className="control-card" style={{ background: 'var(--card-bg-subtle)', borderColor: 'var(--surface-border-subtle)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                                 <Zap size={20} className="text-primary-color" />
                                 <h3 style={{ margin: 0, fontWeight: 900, fontSize: '14px' }}>TECNOLOGIA FLOW</h3>
@@ -336,21 +336,21 @@ const MediaHosting = () => {
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div style={{ display: 'flex', gap: '16px' }}>
-                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                         <Zap size={18} style={{ opacity: 0.3 }} />
                                     </div>
                                     <div>
                                         <p style={{ margin: 0, fontSize: '12px', fontWeight: 900 }}>CDN OTIMIZADA</p>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'rgba(255,255,255,0.2)', lineHeight: 1.4 }}>Carregamento ultra-rápido global.</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.4 }}>Carregamento ultra-rápido global.</p>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '16px' }}>
-                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                         <Link size={18} style={{ opacity: 0.3 }} />
                                     </div>
                                     <div>
                                         <p style={{ margin: 0, fontSize: '12px', fontWeight: 900 }}>LINKS CURTOS</p>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'rgba(255,255,255,0.2)', lineHeight: 1.4 }}>URL amigável para disparos.</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.4 }}>URL amigável para disparos.</p>
                                     </div>
                                 </div>
                             </div>
@@ -363,7 +363,7 @@ const MediaHosting = () => {
                 {previewFile && (
                     <div 
                         style={{ 
-                            position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.95)', 
+                            position: 'fixed', inset: 0, zIndex: 9999, background: 'var(--overlay-bg)', 
                             backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             padding: '40px', animation: 'fadeIn 0.3s ease'
                         }}
@@ -389,7 +389,7 @@ const MediaHosting = () => {
                             <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <h2 style={{ margin: 0, fontWeight: 900, fontSize: '20px' }}>{previewFile.name.toUpperCase()}</h2>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: 800 }}>ID: {previewFile.id}</p>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 800 }}>ID: {previewFile.id}</p>
                                 </div>
                                 <button 
                                     onClick={() => copyToClipboard(previewFile.shortUrl, previewFile.id)}

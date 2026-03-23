@@ -462,22 +462,22 @@ const UploadContacts = () => {
                 .upload-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 32px; align-items: start; }
                 .history-container { 
                     border-radius: 20px; 
-                    background: rgba(15, 23, 42, 0.4); 
-                    border: 1px solid rgba(255,255,255,0.05);
+                    background: var(--card-bg-subtle); 
+                    border: 1px solid var(--surface-border-subtle);
                     overflow: hidden;
                     margin-top: 24px;
                     margin-bottom: 32px;
                 }
                 .history-table { width: 100%; border-collapse: collapse; }
-                .history-table th { padding: 20px; background: rgba(0,0,0,0.2); color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; text-align: left; }
-                .history-table td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+                .history-table th { padding: 20px; background: var(--card-bg-subtle); color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; text-align: left; }
+                .history-table td { padding: 20px; border-bottom: 1px solid var(--surface-border-subtle); font-size: 0.85rem; }
                 
                 .upload-zone {
-                    border: 1px dashed rgba(255,255,255,0.1);
+                    border: 1px dashed var(--surface-border-subtle);
                     border-radius: 18px;
                     padding: 20px;
                     text-align: center;
-                    background: rgba(0, 0, 0, 0.2);
+                    background: var(--card-bg-subtle);
                     cursor: pointer;
                     transition: all 0.3s ease;
                     max-width: 320px;
@@ -493,8 +493,9 @@ const UploadContacts = () => {
                 
                 .input-field {
                     border-radius: 16px !important;
-                    background: rgba(0, 0, 0, 0.3) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                    background: var(--card-bg-subtle) !important;
+                    border: 1px solid var(--surface-border-subtle) !important;
+                    color: var(--text-primary) !important;
                     transition: all 0.2s ease;
                 }
                 .input-field:focus {
@@ -577,7 +578,7 @@ const UploadContacts = () => {
                             </div>
                         </div>
 
-                        <div className="flex-col gap-5 checkbox-group" style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: '32px' }}>
+                        <div className="flex-col gap-5 checkbox-group" style={{ flex: 1, borderLeft: '1px solid var(--surface-border-subtle)', paddingLeft: '32px' }}>
                             <label className="flex items-center gap-3" style={{ cursor: 'pointer' }}>
                                 <input 
                                     type="checkbox" 
@@ -626,7 +627,7 @@ const UploadContacts = () => {
                         >
                             <input type="file" id="fileUpload" style={{ display: 'none' }} accept=".xlsx,.xls,.csv,.txt" onChange={handleFileSelect} />
                             <div className="flex items-center gap-3">
-                                <div style={{ background: file ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '12px' }}>
+                                <div style={{ background: file ? 'rgba(172, 248, 0, 0.1)' : 'var(--card-bg-subtle)', padding: '8px', borderRadius: '12px' }}>
                                     <FileSpreadsheet size={20} color={file ? 'var(--primary-color)' : 'var(--text-muted)'} />
                                 </div>
                                 <div style={{ textAlign: 'left' }}>
@@ -657,10 +658,10 @@ const UploadContacts = () => {
                             </div>
 
                                 <div className="flex flex-col gap-4">
-                                    <div className="p-5" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--surface-border)' }}>
+                                    <div className="p-5" style={{ background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Contatos Processados</span>
                                         <div className="flex items-baseline gap-4">
-                                            <span style={{ fontSize: '2rem', fontWeight: 900, color: 'white' }}>{totalContacts.toLocaleString()}</span>
+                                            <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)' }}>{totalContacts.toLocaleString()}</span>
                                             <div className="flex flex-col">
                                                 {duplicateCount > 0 && <span style={{ fontSize: '0.65rem', color: '#fca5a5' }}>-{duplicateCount} Duplicados</span>}
                                                 {invalidCount > 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>-{invalidCount} Inválidos</span>}
@@ -716,7 +717,7 @@ const UploadContacts = () => {
 
             {/* History Table */}
             <div className="history-container shadow-glass animate-fade-in mt-12">
-                <div className="flex items-center justify-between p-5 history-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center justify-between p-5 history-header" style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
                     <div className="flex items-center gap-3">
                         <Database size={24} color="var(--primary-color)" />
                         <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Histórico de Uploads</h3>

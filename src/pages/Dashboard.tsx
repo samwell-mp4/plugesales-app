@@ -25,11 +25,11 @@ const StatCard = ({ title, value, subtitle, icon, color }: { title: string, valu
             flex: '1 1 180px',
             minWidth: '200px',
             borderTop: `4px solid ${color}`,
-            background: `linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)`,
+            background: `linear-gradient(135deg, var(--card-bg-subtle) 0%, rgba(255, 255, 255, 0.01) 100%)`,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             padding: '24px',
             borderRadius: '24px',
-            boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
+            boxShadow: 'var(--shadow-md)'
         }}>
             <div className="flex items-center justify-between mb-4">
                 <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>{title}</h3>
@@ -45,7 +45,7 @@ const StatCard = ({ title, value, subtitle, icon, color }: { title: string, valu
             </div>
             <div className="flex items-end justify-between">
                 <div>
-                    <span style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1, color: 'white', letterSpacing: '-1.5px' }}>{value}</span>
+                    <span style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1, color: 'var(--text-primary)', letterSpacing: '-1.5px' }}>{value}</span>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '8px', marginBottom: 0, fontWeight: 500 }}>{subtitle}</p>
                 </div>
             </div>
@@ -133,7 +133,7 @@ const Dashboard = () => {
         <div className="animate-fade-in dashboard-root" style={{ paddingBottom: '60px' }}>
             <div className="flex items-center justify-between mb-10 header-section">
                 <div>
-                    <h1 style={{ fontWeight: 900, fontSize: '3rem', letterSpacing: '-2px', margin: 0, background: 'linear-gradient(to right, #ffffff, #888888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <h1 style={{ fontWeight: 900, fontSize: '3rem', letterSpacing: '-2px', margin: 0, background: 'var(--title-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         {user?.role === 'ADMIN' ? 'Dashboard de Operações' : 'Painel de Colaborador'}
                     </h1>
                     <p className="subtitle" style={{ fontSize: '1.1rem', opacity: 0.7 }}>
@@ -157,7 +157,7 @@ const Dashboard = () => {
                     value={stats.total.toString()}
                     subtitle="Modelos registrados na Infobip"
                     icon={<Layers size={22} />}
-                    color="#ffffff"
+                    color="var(--text-primary)"
                 />
                 <StatCard
                     title="RASCUNHOS"
@@ -192,7 +192,7 @@ const Dashboard = () => {
             <div className="grid-layout" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '32px' }}>
                 {/* Column 1: Shortcuts & Activity */}
                 <div className="flex-col gap-10">
-                    <div className="glass-card flex-col p-8" style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '32px', minHeight: '340px' }}>
+                    <div className="glass-card flex-col p-8" style={{ border: '1px solid var(--surface-border-subtle)', borderRadius: '32px', minHeight: '340px' }}>
                         <h2 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <Zap size={24} color="var(--primary-color)" /> Atalhos da Plataforma
                         </h2>
@@ -215,7 +215,7 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    <div className="glass-card flex-col p-8 mt-4 " style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '32px' }}>
+                    <div className="glass-card flex-col p-8 mt-4 " style={{ border: '1px solid var(--surface-border-subtle)', borderRadius: '32px' }}>
                         <h2 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <Clock size={24} color="var(--primary-color)" /> Atividade Recente
                         </h2>
@@ -258,7 +258,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Column 2: Approvals */}
-                <div className="glass-card flex-col p-8" style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '32px' }}>
+                <div className="glass-card flex-col p-8" style={{ border: '1px solid var(--surface-border-subtle)', borderRadius: '32px' }}>
                     <div className="flex items-center justify-between mb-8">
                         <h2 style={{ fontSize: '1.4rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <Monitor size={24} color="var(--primary-color)" /> Aprovações Meta Recentes
@@ -277,9 +277,9 @@ const Dashboard = () => {
                                 <div className="flex items-center gap-4">
                                     <div className="index-number">#{idx + 1}</div>
                                     <div className="flex-col" style={{ overflow: 'hidden' }}>
-                                        <span className="truncate" style={{ fontWeight: 800, fontSize: '1rem', color: 'white', display: 'block' }}>{t.name}</span>
+                                        <span className="truncate" style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)', display: 'block' }}>{t.name}</span>
                                         <div className="flex items-center gap-2" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                            <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>{t.category}</span>
+                                            <span style={{ background: 'var(--bg-primary)', border: '1px solid var(--surface-border-subtle)', padding: '2px 8px', borderRadius: '4px' }}>{t.category}</span>
                                             <span>•</span>
                                             <span>{t.language}</span>
                                         </div>
@@ -314,8 +314,8 @@ const Dashboard = () => {
                     align-items: center;
                     gap: 12px;
                     padding: 20px;
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.05);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 20px;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     text-decoration: none;
@@ -325,7 +325,7 @@ const Dashboard = () => {
                     background: rgba(172, 248, 0, 0.04);
                     border-color: rgba(172, 248, 0, 0.2);
                     transform: translateY(-4px);
-                    color: white;
+                    color: var(--text-primary);
                 }
                 .shortcut-item .icon-box {
                     padding: 12px;
@@ -342,14 +342,14 @@ const Dashboard = () => {
                     align-items: center;
                     justify-content: space-between;
                     padding: 16px;
-                    background: rgba(0,0,0,0.2);
-                    border: 1px solid rgba(255,255,255,0.03);
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 16px;
                     transition: all 0.2s;
                 }
                 .activity-row.clickable:hover {
-                    background: rgba(255,255,255,0.04);
-                    border-color: rgba(255,255,255,0.1);
+                    background: var(--surface-hover);
+                    border-color: var(--surface-border-subtle);
                     cursor: pointer;
                 }
                 .section-title { font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
@@ -359,7 +359,7 @@ const Dashboard = () => {
                     justify-content: space-between;
                     align-items: center;
                     padding: 16px;
-                    border-bottom: 1px solid rgba(255,255,255,0.02);
+                    border-bottom: 1px solid var(--surface-border-subtle);
                     transition: background 0.2s;
                 }
                 .approval-item:hover {
@@ -369,7 +369,8 @@ const Dashboard = () => {
                 .index-number {
                     width: 32px;
                     height: 32px;
-                    background: rgba(255,255,255,0.05);
+                    background: var(--bg-primary);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 8px;
                     display: flex;
                     align-items: center;

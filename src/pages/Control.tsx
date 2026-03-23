@@ -15,11 +15,12 @@ const StatCard = ({ title, value, subtitle, icon, color }: { title: string, valu
             flex: '1 1 200px',
             minWidth: '220px',
             borderTop: `4px solid ${color}`,
-            background: `linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)`,
+            background: `var(--card-bg-subtle)`,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             padding: '24px',
             borderRadius: '20px',
-            boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--surface-border-subtle)'
         }}>
             <div className="flex items-center justify-between mb-4">
                 <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>{title}</h3>
@@ -36,7 +37,7 @@ const StatCard = ({ title, value, subtitle, icon, color }: { title: string, valu
             </div>
             <div className="flex items-end justify-between">
                 <div>
-                    <span style={{ fontSize: '2.4rem', fontWeight: 900, lineHeight: 1, color: 'white', letterSpacing: '-1px' }}>{value}</span>
+                    <span style={{ fontSize: '2.4rem', fontWeight: 900, lineHeight: 1, color: 'var(--text-primary)', letterSpacing: '-1px' }}>{value}</span>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '8px', marginBottom: 0, fontWeight: 500 }}>{subtitle}</p>
                 </div>
             </div>
@@ -152,8 +153,8 @@ const AdminControl = () => {
                         borderRadius: '16px', 
                         fontWeight: 900, 
                         fontSize: '1rem',
-                        color: activeTab === 'MONITOR' ? 'black' : 'white',
-                        border: activeTab === 'MONITOR' ? 'none' : '1px solid rgba(255,255,255,0.05)'
+                        color: activeTab === 'MONITOR' ? 'black' : 'var(--text-primary)',
+                        border: activeTab === 'MONITOR' ? 'none' : '1px solid var(--surface-border-subtle)'
                     }}
                 >
                     <LayoutDashboard size={20} /> PAINEL DE MONITORAMENTO
@@ -165,8 +166,8 @@ const AdminControl = () => {
                         borderRadius: '16px', 
                         fontWeight: 900, 
                         fontSize: '1rem',
-                        color: activeTab === 'RASCUNHOS' ? 'black' : 'white',
-                        border: activeTab === 'RASCUNHOS' ? 'none' : '1px solid rgba(172,248,0,0.2)'
+                        color: activeTab === 'RASCUNHOS' ? 'black' : 'var(--text-primary)',
+                        border: activeTab === 'RASCUNHOS' ? 'none' : '1px solid var(--surface-border-subtle)'
                     }}
                 >
                     <BookMarked size={20} /> PRONTOS PARA DISPARO (RASCUNHOS)
@@ -230,8 +231,8 @@ const AdminControl = () => {
                                         key={employee} 
                                         className={`flex items-center justify-between p-4 hover-row cursor-pointer ${selectedEmployee === employee ? 'selected-employee' : ''}`} 
                                         style={{ 
-                                            border: '1px solid rgba(255,255,255,0.03)', 
-                                            background: selectedEmployee === employee ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.01)',
+                                            border: '1px solid var(--surface-border-subtle)', 
+                                            background: selectedEmployee === employee ? 'rgba(172,248,0,0.1)' : 'var(--card-bg-subtle)',
                                             borderRadius: '16px',
                                             transition: 'all 0.2s',
                                             marginBottom: '8px'
@@ -242,7 +243,7 @@ const AdminControl = () => {
                                             <div style={{
                                                 width: '42px', height: '42px', borderRadius: '12px',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                background: 'rgba(255,255,255,0.05)',
+                                                background: 'var(--card-bg-subtle)',
                                                 color: 'var(--text-muted)'
                                             }}>
                                                 <User size={20} />
@@ -262,7 +263,7 @@ const AdminControl = () => {
 
                 {/* Column 2: Audit Logs */}
                 <div className="flex-col gap-8" style={{ flex: '1 1 400px' }}>
-                    <div className="glass-card flex-col" style={{ minHeight: '650px', background: 'rgba(0,0,0,0.3)' }}>
+                    <div className="glass-card flex-col" style={{ minHeight: '650px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)' }}>
                         <div className="flex items-center justify-between mb-6">
                             <h2 style={{ fontSize: '1.2rem', borderLeft: '4px solid var(--warning-color)', paddingLeft: '16px', margin: 0 }}>Histórico de Auditoria</h2>
                             <Activity size={18} style={{ color: 'var(--warning-color)' }} />
@@ -277,10 +278,11 @@ const AdminControl = () => {
                                     style={{ 
                                         paddingLeft: 46, 
                                         borderRadius: '14px', 
-                                        background: 'rgba(255,255,255,0.02)', 
-                                        border: '1px solid var(--surface-border)',
+                                        background: 'var(--card-bg-subtle)', 
+                                        border: '1px solid var(--surface-border-subtle)',
                                         fontSize: '0.85rem',
-                                        height: '46px'
+                                        height: '46px',
+                                        color: 'var(--text-primary)'
                                     }}
                                     placeholder="Buscar por usuário ou template..."
                                     value={searchTerm}
@@ -300,8 +302,8 @@ const AdminControl = () => {
                                         borderRadius: '10px',
                                         fontSize: '0.7rem',
                                         fontWeight: 800,
-                                        border: activeFilter === f ? 'none' : '1px solid rgba(255,255,255,0.05)',
-                                        background: activeFilter === f ? 'var(--primary-color)' : 'rgba(0,0,0,0.2)',
+                                        border: activeFilter === f ? 'none' : '1px solid var(--surface-border-subtle)',
+                                        background: activeFilter === f ? 'var(--primary-color)' : 'var(--card-bg-subtle)',
                                         color: activeFilter === f ? 'black' : 'var(--text-muted)',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s',
@@ -316,8 +318,8 @@ const AdminControl = () => {
                         <div className="flex-col gap-3" style={{ paddingRight: '12px' }}>
                             {paginatedLogs.map((log, idx) => (
                                 <div key={idx} className="flex items-center justify-between p-4 hover-row shadow-sm" style={{ 
-                                    border: '1px solid rgba(255,255,255,0.03)', 
-                                    background: 'rgba(255,255,255,0.01)',
+                                    border: '1px solid var(--surface-border-subtle)', 
+                                    background: 'var(--card-bg-subtle)',
                                     borderRadius: '16px',
                                     transition: 'all 0.2s',
                                     marginBottom: '8px'
@@ -350,7 +352,7 @@ const AdminControl = () => {
                                         </div>
                                     </div>
                                     <div className="flex-col items-end">
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'white' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                                             {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -369,7 +371,7 @@ const AdminControl = () => {
 
                         {/* Pagination Controls */}
                         {totalPages > 1 && (
-                            <div className="flex items-center justify-between mt-6 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div className="flex items-center justify-between mt-6 pt-6" style={{ borderTop: '1px solid var(--surface-border-subtle)' }}>
                                 <button 
                                     className="btn btn-secondary" 
                                     style={{ padding: '8px 16px', fontSize: '0.75rem', borderRadius: '10px' }}
@@ -379,7 +381,7 @@ const AdminControl = () => {
                                     Anterior
                                 </button>
                                 <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)' }}>
-                                    Página <span style={{ color: 'white' }}>{currentPage}</span> de {totalPages}
+                                    Página <span style={{ color: 'var(--text-primary)' }}>{currentPage}</span> de {totalPages}
                                 </span>
                                 <button 
                                     className="btn btn-secondary" 
@@ -408,19 +410,19 @@ const AdminControl = () => {
                         {draftLogs.length > 0 ? (
                             <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
                                 {draftLogs.map((draft, idx) => (
-                                    <div key={idx} className="glass-card flex-col p-6 hover-lift" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--surface-border)', borderRadius: '20px' }}>
+                                    <div key={idx} className="glass-card flex-col p-6 hover-lift" style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '20px' }}>
                                         <div className="flex items-start justify-between mb-4">
                                             <div style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7', padding: '12px', borderRadius: '14px' }}>
                                                 <BookMarked size={24} />
                                             </div>
                                             <div className="flex-col items-end">
                                                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800 }}>CRIADO EM</span>
-                                                <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>{new Date(draft.timestamp).toLocaleDateString()} {new Date(draft.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>{new Date(draft.timestamp).toLocaleDateString()} {new Date(draft.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </div>
                                         
                                         <div className="flex-col gap-1 mb-6">
-                                            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>{draft.label}</h4>
+                                            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-primary)' }}>{draft.label}</h4>
                                             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Template: {draft.template}</span>
                                             {draft.tag && <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', fontWeight: 800 }}>LOTE: {draft.tag}</span>}
                                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Autor: {draft.author}</span>

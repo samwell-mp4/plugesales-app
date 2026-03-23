@@ -17,6 +17,8 @@ interface AuthContextType {
     register: (userData: any) => Promise<boolean>;
     logout: () => void;
     setUser: (user: User | null) => void;
+    theme: 'dark' | 'light';
+    toggleTheme: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,6 +41,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const saved = localStorage.getItem('auth_user');
         return saved ? JSON.parse(saved) : null;
     });
+
+    const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+        return (localStorage.getItem('app_theme') as 'dark' | 'light') || 'dark';
+    });
+
+    const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        localStorage.setItem('app_theme', next);
+    };
 
     const login = async (username: string, password: string): Promise<boolean> => {
         // Try static login first (Internal Team)
@@ -113,7 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, setUser: handleSetUser }}>
+        <AuthContext.Provider value={{ 
+            user, login, register, logout, setUser: handleSetUser,
+            theme, toggleTheme 
+        }}>
             {children}
         </AuthContext.Provider>
     );

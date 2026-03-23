@@ -25,7 +25,7 @@ import Control from './pages/Control';
 
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, theme } = useAuth();
   const location = useLocation();
 
   const isPublicRoute = location.pathname === '/client-form' || location.pathname === '/client' || location.pathname.startsWith('/l/');
@@ -76,7 +76,7 @@ function AppContent() {
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${theme === 'light' ? 'light-theme' : ''}`}>
       {!isPublicRoute && <Sidebar />}
       <main className="main-content">
         <Routes>
