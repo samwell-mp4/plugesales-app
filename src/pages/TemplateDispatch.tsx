@@ -116,7 +116,7 @@ const TemplateDispatch = () => {
 
     useEffect(() => {
         if (location.state?.key) setApiKey(location.state.key);
-        if (location.state?.sender) setFromNumber(location.state.sender);
+        if (location.state?.sender) setSelectedSenders([location.state.sender]);
 
         // Load settings from DB
         dbService.getSettings().then(settings => {
