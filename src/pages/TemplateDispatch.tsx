@@ -20,7 +20,8 @@ import {
     FileEdit,
     Trash2,
     BookMarked,
-    PlayCircle
+    PlayCircle,
+    Settings2
 } from 'lucide-react';
 
 interface PlaceholderField {
@@ -78,7 +79,12 @@ const TemplateDispatch = () => {
 
     // Dynamic Config Sync - loaded from DB on mount
     const [apiKey, setApiKey] = useState(() => location.state?.key || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [fromNumber, setFromNumber] = useState(() => location.state?.sender || '5511997625247');
+    const [selectedSenders, setSelectedSenders] = useState<string[]>([]);
+    const [availableSenders, setAvailableSenders] = useState<any[]>([]);
+    const [isLoadingSenders, setIsLoadingSenders] = useState(false);
+    
+    // Legacy support for single sender if needed by other components
+    const fromNumber = selectedSenders[0] || '';
 
     // Media Library Integration
     const [hostedFiles, setHostedFiles] = useState<any[]>([]);
@@ -115,8 +121,15 @@ const TemplateDispatch = () => {
         // Load settings from DB
         dbService.getSettings().then(settings => {
             if (!location.state?.key && settings['infobip_key']) setApiKey(settings['infobip_key']);
-            if (!location.state?.sender && settings['infobip_sender']) setFromNumber(settings['infobip_sender']);
+            if (!location.state?.sender && settings['infobip_sender']) {
+                setSelectedSenders([settings['infobip_sender']]);
+            } else if (location.state?.sender) {
+                setSelectedSenders([location.state.sender]);
+            }
         });
+
+        // Fetch official senders
+        fetchSenders();
 
         // Load hosted media from DB
         dbService.getMedia().then(media => {
@@ -152,7 +165,27 @@ const TemplateDispatch = () => {
         });
     }, [location.state]);
 
-    // Handle draft passed from Control page
+    const fetchSenders = async () => {
+        setIsLoadingSenders(true);
+        try {
+            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/1/senders`, {
+                headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+            if (data.senders) {
+                setAvailableSenders(data.senders);
+                // If no sender selected, pick the first one
+                if (selectedSenders.length === 0 && data.senders.length > 0) {
+                    setSelectedSenders([data.senders[0].sender]);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching senders:', err);
+        } finally {
+            setIsLoadingSenders(false);
+        }
+    };
+
     useEffect(() => {
         if (location.state?.draft && allTemplates.length > 0 && !autoDispatchTriggered.current) {
             const draft = location.state.draft;
@@ -305,8 +338,7 @@ const TemplateDispatch = () => {
         }
     };
 
-    const generatePayload = (targetTo: string | string[]) => {
-        const targets = Array.isArray(targetTo) ? targetTo : [targetTo];
+    const generatePayload = (targets: { to: string, from: string }[]) => {
 
         const payload: any = {
             messages: targets.map(target => {
@@ -338,8 +370,8 @@ const TemplateDispatch = () => {
                 }
 
                 const msg: any = {
-                    from: fromNumber,
-                    to: target.trim(),
+                    from: target.from || fromNumber,
+                    to: target.to.trim(),
                     content: {
                         templateName: templateName,
                         templateData: Object.keys(templateData).length > 0 ? templateData : undefined,
@@ -360,7 +392,19 @@ const TemplateDispatch = () => {
 
         const targets = isBulkMode
             ? bulkContacts.map(c => c.telefone)
-            : toNumber.split(',').map(n => n.trim()).filter(n => n.length > 5);
+            : toNumber.split(/[\n,]/).map(n => n.trim()).filter(n => n.length > 5);
+
+        if (targets.length === 0) {
+            setSendStats({ success: false, message: 'Nenhum destinatário válido encontrado.' });
+            setIsSending(false);
+            return;
+        }
+
+        if (selectedSenders.length === 0) {
+            setSendStats({ success: false, message: 'Nenhum remetente oficial selecionado na Estrutura Básica.' });
+            setIsSending(false);
+            return;
+        }
 
         const batchSize = 100;
         const total = targets.length;
@@ -370,8 +414,15 @@ const TemplateDispatch = () => {
         let lastError = '';
 
         for (let i = 0; i < total; i += batchSize) {
-            const batch = targets.slice(i, i + batchSize);
-            const payload = generatePayload(batch);
+            const batchNumbers = targets.slice(i, i + batchSize);
+            
+            // Map numbers to senders (Rotation)
+            const batchWithSenders = batchNumbers.map((num, idx) => {
+                const senderIndex = (i + idx) % selectedSenders.length;
+                return { to: num, from: selectedSenders[senderIndex] };
+            });
+
+            const payload = generatePayload(batchWithSenders);
 
             try {
                 // ENVIAR PARA FILA REDIS (BACKEND)
@@ -386,7 +437,7 @@ const TemplateDispatch = () => {
                 });
 
                 if (response.ok) {
-                    successCount += batch.length;
+                    successCount += batchNumbers.length;
                 } else {
                     const err = await response.json();
                     lastError = err.error || 'Erro ao enfileirar no backend.';
@@ -397,7 +448,7 @@ const TemplateDispatch = () => {
                 lastError = `Erro crítico de conexão: ${error.message}`;
             }
 
-            const currentProgress = Math.min(i + batch.length, total);
+            const currentProgress = Math.min(i + batchNumbers.length, total);
             setQueueProgress({ current: currentProgress, total });
 
             // No need for long delays here as the worker handles rate limiting
@@ -602,17 +653,6 @@ const TemplateDispatch = () => {
                     <p className="subtitle">Simulador e disparador de alta precisão para Templates Aprovados</p>
                 </div>
                 <div className="flex items-center gap-6">
-                    <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-2">
-                            <Smartphone size={16} color="var(--primary-color)" />
-                            <input
-                                style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 800, fontSize: '0.9rem', outline: 'none', textAlign: 'right', width: '130px' }}
-                                value={fromNumber}
-                                onChange={e => setFromNumber(e.target.value)}
-                            />
-                        </div>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.5px' }}>SENDER ATIVO</span>
-                    </div>
                     <div className="flex items-center gap-3">
                         {[1, 2, 3].map(s => (
                             <div key={s} className={`step-dot ${step >= s ? 'active' : ''}`}></div>
@@ -625,16 +665,69 @@ const TemplateDispatch = () => {
             <div className="dispatch-container">
                 {/* Configuration side */}
                 <div className="flex-col gap-6">
-                    {/* Step 1: Template Selection */}
+                    {/* Step 1: Basic Structure & Template Selection */}
                     {step === 1 && (
                         <div className="glass-card flex-col gap-6 p-8 animate-fade-in">
                             <div className="flex items-center gap-3">
-                                <Layers size={24} color="var(--primary-color)" />
-                                <h3 style={{ margin: 0, fontWeight: 800 }}>Seleção de Modelo</h3>
+                                <Settings2 size={24} color="var(--primary-color)" />
+                                <h3 style={{ margin: 0, fontWeight: 800 }}>Estrutura Básica</h3>
                             </div>
 
                             <div className="input-group">
-                                <label>Escolha um Template</label>
+                                <label className="flex items-center justify-between">
+                                    <span>Remetentes Oficiais (Selecione 1 ou mais)</span>
+                                    {isLoadingSenders && <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)' }}>Carregando canais...</span>}
+                                </label>
+                                <div style={{ 
+                                    display: 'grid', 
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
+                                    gap: '10px',
+                                    background: 'rgba(0,0,0,0.2)',
+                                    padding: '12px',
+                                    borderRadius: '12px',
+                                    border: '1px solid var(--surface-border)'
+                                }}>
+                                    {availableSenders.length > 0 ? availableSenders.map(s => (
+                                        <div 
+                                            key={s.sender} 
+                                            onClick={() => {
+                                                if (selectedSenders.includes(s.sender)) {
+                                                    setSelectedSenders(selectedSenders.filter(num => num !== s.sender));
+                                                } else {
+                                                    setSelectedSenders([...selectedSenders, s.sender]);
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '8px 12px',
+                                                borderRadius: '8px',
+                                                fontSize: '0.8rem',
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                background: selectedSenders.includes(s.sender) ? 'rgba(172, 248, 0, 0.15)' : 'rgba(255,255,255,0.03)',
+                                                border: `1px solid ${selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)'}`,
+                                                color: selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'white',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}
+                                        >
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedSenders.includes(s.sender)} 
+                                                readOnly 
+                                                style={{ accentColor: 'var(--primary-color)' }}
+                                            />
+                                            {s.senderName || s.sender}
+                                        </div>
+                                    )) : (
+                                        <div style={{ fontSize: '0.8rem', opacity: 0.5, padding: '8px' }}>Nenhum canal encontrado</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="input-group">
+                                <label>Escolha o Template</label>
                                 <select className="input-field" style={{ padding: '14px', borderRadius: '12px' }} value={templateName} onChange={handleTemplateChange}>
                                     <option value="">Selecione na sua biblioteca Infobip...</option>
                                     {allTemplates.map(t => (
@@ -689,13 +782,19 @@ const TemplateDispatch = () => {
 
                             <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div className="input-group">
-                                    <label>Telefone(s) Mobiles (Separe por vírgula)</label>
-                                    <input
+                                    <label>Telefones Destinatários (1 por linha ou separado por vírgula)</label>
+                                    <textarea
                                         className="input-field"
-                                        style={{ borderRadius: '12px', background: isBulkMode ? 'rgba(0,0,0,0.1)' : 'transparent' }}
+                                        style={{ 
+                                            borderRadius: '12px', 
+                                            background: isBulkMode ? 'rgba(0,0,0,0.1)' : 'transparent',
+                                            minHeight: '100px',
+                                            padding: '12px',
+                                            resize: 'vertical'
+                                        }}
                                         value={toNumber}
                                         onChange={e => setToNumber(e.target.value)}
-                                        placeholder="Ex: 5511..., 5511..."
+                                        placeholder="Ex:&#10;5511999999999&#10;5511888888888"
                                         readOnly={isBulkMode}
                                     />
                                     <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -1036,7 +1135,7 @@ const TemplateDispatch = () => {
                             <span>API_PAYLOAD_DEBUG</span>
                         </div>
                         <pre style={{ margin: 0 }}>
-                            {JSON.stringify(generatePayload(toNumber.split(',')[0]), null, 2)}
+                            {JSON.stringify(generatePayload([{ to: toNumber.split(',')[0] || '5511999999999', from: selectedSenders[0] || 'SENDER_ID' }]), null, 2)}
                         </pre>
                     </div>
 
