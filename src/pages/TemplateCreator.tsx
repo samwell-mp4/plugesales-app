@@ -16,6 +16,7 @@ type BulkRow = {
     headerType: 'none' | 'image' | 'video';
     mediaUrl: string;
     hasButtons: boolean;
+    buttonUrl?: string;
     buttonUrls: string[];
     buttonTexts: string[];
 };
@@ -429,8 +430,14 @@ const TemplateCreator = () => {
             setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Processando ${name}...` });
 
             // 1. Process and shorten links if necessary
-            let finalButtonUrls = [...(row.buttonUrls || [])];
-            const finalButtonTexts = [...(row.buttonTexts || [])];
+            // Fallback for buttonUrl (singular) if buttonUrls is missing or empty
+            let finalButtonUrls = row.buttonUrls && row.buttonUrls.length > 0 
+                ? [...row.buttonUrls] 
+                : (row.buttonUrl ? [row.buttonUrl] : []);
+            
+            const finalButtonTexts = row.buttonTexts && row.buttonTexts.length > 0 
+                ? [...row.buttonTexts] 
+                : [];
 
             if (row.hasButtons !== false && finalButtonUrls.length > 0) {
                 setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Encurtando links para ${name}...` });
@@ -494,8 +501,8 @@ const TemplateCreator = () => {
                     message_mode: 'manual',
                     media_url: row.headerType !== 'none' ? row.mediaUrl : '',
                     ad_copy: bodyText,
-                    button_link: finalButtonUrls?.[0] || '',
-                    variables: variablesExample,
+                    button_link: (finalButtonUrls && finalButtonUrls.length > 0) ? finalButtonUrls[0] : '',
+                    variables: variablesExample || [],
                     delivered_leads: 0,
                     price_per_msg: 0.04
                 });
@@ -559,6 +566,7 @@ const TemplateCreator = () => {
                 headerType: headerType,
                 mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
                 hasButtons: buttons.length > 0,
+                buttonUrl: urlButtons[0]?.url || '',
                 buttonUrls: urlButtons.map(b => b.url || ''),
                 buttonTexts: urlButtons.map(b => b.text || '')
             });
@@ -1484,8 +1492,9 @@ const TemplateCreator = () => {
                                                                             }} />
                                                                         </td>
                                                                         <td key={`link-td-${urlIdx}`}>
-                                                                            <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
+                                                                            <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls?.[urlIdx] || ''} onChange={e => {
                                                                                 const n = [...bulkRows];
+                                                                                if (!n[i].buttonUrls) n[i].buttonUrls = [];
                                                                                 n[i].buttonUrls[urlIdx] = e.target.value;
                                                                                 setBulkRows(n);
                                                                             }} />
