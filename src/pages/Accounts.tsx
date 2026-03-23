@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar, BookMarked, FileEdit, LayoutDashboard } from 'lucide-react';
+import { Plus, CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar, BookMarked, FileEdit, LayoutDashboard, ShieldCheck, ExternalLink } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -276,11 +276,19 @@ const Accounts = () => {
                         <p className="subtitle">Gerencie seus templates autorizados pela Meta via Infobip</p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="btn btn-secondary" onClick={() => fetchTemplates()} disabled={isLoading} style={{ borderRadius: '12px', background: 'var(--card-bg-subtle)' }}>
-                            <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        <button 
+                            className="btn" 
+                            onClick={() => window.open('https://portal.infobip.com/whatsapp/templates', '_blank')}
+                            style={{ borderRadius: '12px', padding: '10px 24px', background: '#f97316', color: 'white', fontWeight: 800, border: 'none' }}
+                        >
+                            <Layers size={18} /> IR PARA INFOBIP
                         </button>
-                        <button className="btn btn-primary" style={{ borderRadius: '12px', padding: '10px 24px', color: '#000', fontWeight: 800 }}>
-                            <Plus size={18} /> Nova WABA
+                        <button 
+                            className="btn btn-secondary" 
+                            onClick={() => navigate('/control')}
+                            style={{ borderRadius: '12px', padding: '10px 24px', fontWeight: 800 }}
+                        >
+                            <ShieldCheck size={18} /> VER AÇÕES
                         </button>
                     </div>
                 </div>
@@ -507,6 +515,14 @@ const Accounts = () => {
                                             <td style={{ textAlign: 'right' }}>
                                                 <div className="flex justify-end gap-2">
                                                     <button
+                                                        className="btn"
+                                                        style={{ padding: '10px', minWidth: '40px', background: '#f97316', color: 'white', borderRadius: '10px', border: 'none' }}
+                                                        onClick={() => window.open(`https://portal.infobip.com/whatsapp/templates/detail/${t.name}`, '_blank')}
+                                                        title="Ver no Infobip"
+                                                    >
+                                                        <ExternalLink size={16} />
+                                                    </button>
+                                                    <button
                                                         className="btn btn-secondary"
                                                         style={{ padding: '10px', minWidth: '40px', background: 'var(--card-bg-subtle)', borderRadius: '10px' }}
                                                         onClick={() => alert(`JSON Structure:\n\n${JSON.stringify(t.structure, null, 2)}`)}
@@ -587,9 +603,9 @@ const Accounts = () => {
                                                     <FileEdit size={16} /> EDITAR
                                                 </button>
                                                 <button
-                                                    className="btn btn-primary flex-1 flex items-center justify-center gap-2 py-3"
+                                                    className="btn flex-1 flex items-center justify-center gap-2 py-3"
                                                     onClick={() => navigate('/dispatch', { state: { draft: draft, autoSend: true, sender: senderNumber, key: apiKey } })}
-                                                    style={{ color: 'black', fontSize: '0.8rem', fontWeight: 900, borderRadius: '14px' }}
+                                                    style={{ background: '#f97316', color: 'white', border: 'none', fontSize: '0.8rem', fontWeight: 900, borderRadius: '14px' }}
                                                 >
                                                     <Send size={16} /> DISPARAR
                                                 </button>
