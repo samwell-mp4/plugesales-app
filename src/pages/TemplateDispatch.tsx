@@ -13,6 +13,7 @@ import {
     Layers,
     Activity,
     Check,
+    Plus,
     User,
     Library,
     Upload,
@@ -674,18 +675,28 @@ const TemplateDispatch = () => {
                             </div>
 
                             <div className="input-group">
-                                <label className="flex items-center justify-between">
-                                    <span>Remetentes Oficiais (Selecione 1 ou mais)</span>
-                                    {isLoadingSenders && <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)' }}>Carregando canais...</span>}
-                                </label>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex flex-col">
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>Remetentes Oficiais (Selecione 1 ou mais)</span>
+                                        <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>O sistema rotacionará entre os números selecionados</span>
+                                    </div>
+                                    <button 
+                                        onClick={(e) => { e.preventDefault(); fetchSenders(); }}
+                                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 800 }}
+                                    >
+                                        {isLoadingSenders ? <Activity size={12} className="animate-spin" /> : <Plus size={12} />} 
+                                        RECARREGAR CANAIS
+                                    </button>
+                                </div>
                                 <div style={{ 
                                     display: 'grid', 
                                     gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
                                     gap: '10px',
                                     background: 'rgba(0,0,0,0.2)',
-                                    padding: '12px',
-                                    borderRadius: '12px',
-                                    border: '1px solid var(--surface-border)'
+                                    padding: '16px',
+                                    borderRadius: '16px',
+                                    border: '1px solid rgba(172, 248, 0, 0.1)',
+                                    minHeight: '60px'
                                 }}>
                                     {availableSenders.length > 0 ? availableSenders.map(s => (
                                         <div 
@@ -699,7 +710,7 @@ const TemplateDispatch = () => {
                                             }}
                                             style={{
                                                 padding: '8px 12px',
-                                                borderRadius: '8px',
+                                                borderRadius: '10px',
                                                 fontSize: '0.8rem',
                                                 fontWeight: 800,
                                                 cursor: 'pointer',
@@ -712,16 +723,24 @@ const TemplateDispatch = () => {
                                                 gap: '8px'
                                             }}
                                         >
-                                            <input 
-                                                type="checkbox" 
-                                                checked={selectedSenders.includes(s.sender)} 
-                                                readOnly 
-                                                style={{ accentColor: 'var(--primary-color)' }}
-                                            />
+                                            <div style={{
+                                                width: '14px', height: '14px',
+                                                borderRadius: '4px', border: '1px solid currentColor',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                background: selectedSenders.includes(s.sender) ? 'currentColor' : 'transparent'
+                                            }}>
+                                                {selectedSenders.includes(s.sender) && <Check size={10} color="black" strokeWidth={4} />}
+                                            </div>
                                             {s.senderName || s.sender}
                                         </div>
-                                    )) : (
-                                        <div style={{ fontSize: '0.8rem', opacity: 0.5, padding: '8px' }}>Nenhum canal encontrado</div>
+                                    )) : !isLoadingSenders ? (
+                                        <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10px', opacity: 0.5, fontSize: '0.75rem' }}>
+                                            Nenhum canal encontrado. Verifique sua chave API oficial.
+                                        </div>
+                                    ) : (
+                                        <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10px', opacity: 0.5, fontSize: '0.75rem' }}>
+                                            Buscando canais na Infobip...
+                                        </div>
                                     )}
                                 </div>
                             </div>

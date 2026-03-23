@@ -477,20 +477,25 @@ const TemplateCreator = () => {
     };
 
     const autoGenerateRows = (qty: number) => {
+        if (selectedSenders.length === 0) return alert("Selecione pelo menos um remetente na Estrutura Básica.");
         const urlButtons = buttons.filter(b => b.type === 'url');
         const startIdx = bulkRows.length + 1;
-        const newRows = [];
-        for (let i = 0; i < qty; i++) {
-            const currentNum = startIdx + i;
-            newRows.push({
-                suffix: String(currentNum).padStart(3, '0'),
-                sender: selectedSenders[0] || '', // Default to first selected sender
-                headerType: headerType,
-                mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
-                hasButtons: buttons.length > 0,
-                buttonUrls: urlButtons.map(b => b.url || '')
-            });
-        }
+        const newRows: any[] = [];
+        
+        // Use all selected senders and make qty copies for EACH
+        selectedSenders.forEach((sender, sIdx) => {
+            for (let i = 0; i < qty; i++) {
+                const currentNum = startIdx + (sIdx * qty) + i;
+                newRows.push({
+                    suffix: String(currentNum).padStart(3, '0'),
+                    sender: sender,
+                    headerType: headerType,
+                    mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
+                    hasButtons: buttons.length > 0,
+                    buttonUrls: urlButtons.map(b => b.url || '')
+                });
+            }
+        });
         setBulkRows([...bulkRows, ...newRows]);
     };
 
@@ -758,7 +763,6 @@ const TemplateCreator = () => {
                                 <Settings2 size={18} /> GERAR EM MASSA
                             </button>
                         </div>
-
                         {activeTab === 'MODEL' ? (
                             <div className="flex flex-col gap-6 animate-fade-in">
                                 <div className="glass-card flex-col gap-8 shadow-2xl">
@@ -769,21 +773,31 @@ const TemplateCreator = () => {
                                         <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.4rem' }}>Estrutura Básica</h3>
                                     </div>
 
-                                    <div className="flex flex-col gap-2">
-                                        <label className="flex items-center justify-between">
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7 }}>Remetentes Oficiais (Disponibilizar em 1 ou mais)</span>
-                                            {isLoadingSenders && <Activity size={12} className="animate-spin" color="var(--primary-color)" />}
-                                        </label>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex flex-col">
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7 }}>Remetentes Oficiais (Disponibilizar em 1 ou mais)</span>
+                                                <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>O template será criado na Infobip para cada número selecionado</span>
+                                            </div>
+                                            <button 
+                                                onClick={(e) => { e.preventDefault(); fetchSenders(); }}
+                                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 800 }}
+                                            >
+                                                {isLoadingSenders ? <Activity size={12} className="animate-spin" /> : <Plus size={12} />} 
+                                                RECARREGAR CANAIS
+                                            </button>
+                                        </div>
                                         <div style={{ 
                                             display: 'grid', 
                                             gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
                                             gap: '8px',
-                                            background: 'rgba(0,0,0,0.15)',
-                                            padding: '12px',
-                                            borderRadius: '12px',
-                                            border: '1px solid rgba(255,255,255,0.05)'
+                                            background: 'rgba(0,0,0,0.2)',
+                                            padding: '16px',
+                                            borderRadius: '16px',
+                                            border: '1px solid rgba(172, 248, 0, 0.1)',
+                                            minHeight: '60px'
                                         }}>
-                                            {senders.map((s: any) => (
+                                            {senders.length > 0 ? senders.map((s: any) => (
                                                 <div 
                                                     key={s.sender} 
                                                     onClick={() => {
@@ -794,12 +808,12 @@ const TemplateCreator = () => {
                                                         }
                                                     }}
                                                     style={{
-                                                        padding: '6px 10px',
-                                                        borderRadius: '8px',
-                                                        fontSize: '0.72rem',
+                                                        padding: '8px 12px',
+                                                        borderRadius: '10px',
+                                                        fontSize: '0.75rem',
                                                         fontWeight: 800,
                                                         cursor: 'pointer',
-                                                        background: selectedSenders.includes(s.sender) ? 'rgba(172, 248, 0, 0.15)' : 'rgba(255,255,255,0.02)',
+                                                        background: selectedSenders.includes(s.sender) ? 'rgba(172, 248, 0, 0.15)' : 'rgba(255,255,255,0.03)',
                                                         border: `1px solid ${selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)'}`,
                                                         color: selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'white',
                                                         transition: 'all 0.2s',
@@ -809,17 +823,23 @@ const TemplateCreator = () => {
                                                     }}
                                                 >
                                                     <div style={{
-                                                        width: '12px', height: '12px',
+                                                        width: '14px', height: '14px',
                                                         borderRadius: '4px', border: '1px solid currentColor',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        background: selectedSenders.includes(s.sender) ? 'currentColor' : 'transparent'
                                                     }}>
-                                                        {selectedSenders.includes(s.sender) && <Check size={10} strokeWidth={4} />}
+                                                        {selectedSenders.includes(s.sender) && <Check size={10} color="black" strokeWidth={4} />}
                                                     </div>
                                                     {s.senderName || s.sender}
                                                 </div>
-                                            ))}
-                                            {senders.length === 0 && !isLoadingSenders && (
-                                                <div style={{ fontSize: '0.7rem', opacity: 0.5, padding: '5px' }}>Nenhum canal ativo</div>
+                                            )) : !isLoadingSenders ? (
+                                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10px', opacity: 0.5, fontSize: '0.75rem' }}>
+                                                    Nenhum canal encontrado. Verifique sua chave API oficial.
+                                                </div>
+                                            ) : (
+                                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10px', opacity: 0.5, fontSize: '0.75rem' }}>
+                                                    Buscando canais na Infobip...
+                                                </div>
                                             )}
                                         </div>
                                     </div>
