@@ -10,6 +10,16 @@ type ButtonDef = {
     url?: string;
 };
 
+type BulkRow = {
+    suffix: string;
+    sender: string;
+    headerType: 'none' | 'image' | 'video';
+    mediaUrl: string;
+    hasButtons: boolean;
+    buttonUrls: string[];
+    buttonTexts: string[];
+};
+
 const TemplateCreator = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -97,7 +107,7 @@ const TemplateCreator = () => {
     const [copyCount, setCopyCount] = useState(1);
 
     // --- BULK STATE ---
-    const [bulkRows, setBulkRows] = useState<any[]>([]);
+    const [bulkRows, setBulkRows] = useState<BulkRow[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
     const [campaignPrefix, setCampaignPrefix] = useState('PAGAMENTO_');
@@ -515,7 +525,7 @@ const TemplateCreator = () => {
     const autoGenerateRows = (qty: number) => {
         const urlButtons = buttons.filter(b => b.type === 'url');
         const startIdx = bulkRows.length + 1;
-        const newRows: any[] = [];
+        const newRows: BulkRow[] = [];
 
         const firstSender = senderNumbers.split(/[\n,]/)[0]?.trim() || '';
 
@@ -563,7 +573,7 @@ const TemplateCreator = () => {
             return isNaN(num) ? max : Math.max(max, num);
         }, 0);
 
-        const newRows = [];
+        const newRows: BulkRow[] = [];
         for (let i = 1; i <= copies; i++) {
             newRows.push({
                 ...sourceRow,
@@ -1397,7 +1407,7 @@ const TemplateCreator = () => {
                                                         {bulkRows.map((row, i) => (
                                                             <tr key={i} className="bulk-row">
                                                                 <td>
-                                                                    <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }} value={row.suffix} onChange={e => {
+                                                                    <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }} value={row.suffix} onChange={(e: any) => {
                                                                         const n = [...bulkRows];
                                                                         n[i].suffix = e.target.value.toLowerCase().replace(/\s/g, '_');
                                                                         setBulkRows(n);
@@ -1409,7 +1419,7 @@ const TemplateCreator = () => {
                                                                         style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 800 }}
                                                                         value={row.sender || ''}
                                                                         placeholder={senderNumbers.split(/[\n,]/)[0] || ''}
-                                                                        onChange={e => {
+                                                                        onChange={(e: any) => {
                                                                             const n = [...bulkRows];
                                                                             n[i].sender = e.target.value;
                                                                             setBulkRows(n);
@@ -1417,7 +1427,7 @@ const TemplateCreator = () => {
                                                                     />
                                                                 </td>
                                                                 <td>
-                                                                    <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700 }} value={row.headerType} onChange={e => {
+                                                                    <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700 }} value={row.headerType} onChange={(e: any) => {
                                                                         const n = [...bulkRows];
                                                                         n[i].headerType = e.target.value;
                                                                         if (e.target.value === 'none') n[i].mediaUrl = '';
@@ -1431,7 +1441,7 @@ const TemplateCreator = () => {
                                                                 </td>
                                                                 {buttons.length > 0 && (
                                                                     <td>
-                                                                        <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700 }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={e => {
+                                                                        <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700 }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={(e: any) => {
                                                                             const n = [...bulkRows];
                                                                             n[i].hasButtons = e.target.value === 'yes';
                                                                             setBulkRows(n);
@@ -1444,7 +1454,7 @@ const TemplateCreator = () => {
                                                                 {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
                                                                     <Fragment key={urlIdx}>
                                                                         <td key={`label-td-${urlIdx}`}>
-                                                                            <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1, fontWeight: 600 }} value={row.buttonTexts?.[urlIdx] || ''} onChange={e => {
+                                                                            <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1, fontWeight: 600 }} value={row.buttonTexts?.[urlIdx] || ''} onChange={(e: any) => {
                                                                                 const n = [...bulkRows];
                                                                                 if (!n[i].buttonTexts) n[i].buttonTexts = [];
                                                                                 n[i].buttonTexts[urlIdx] = e.target.value;
