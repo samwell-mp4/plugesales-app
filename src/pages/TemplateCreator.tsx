@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -98,6 +98,8 @@ const TemplateCreator = () => {
     const [buttons, setButtons] = useState<ButtonDef[]>([
         { type: 'url', text: 'Clique Aqui', url: 'https://site.com' }
     ]);
+
+    const [copyCount, setCopyCount] = useState(1);
 
     // --- BULK STATE ---
     const [bulkPrefix, setBulkPrefix] = useState('pagamento_');
@@ -287,87 +289,95 @@ const TemplateCreator = () => {
         if (!modelName) return alert("Defina um nome para o template.");
         if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
 
-        const sanitizedName = modelName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-        if (sanitizedName !== modelName) {
-            setModelName(sanitizedName);
-        }
-
-        setIsGenerating(true);
-        setGeneratingProgress({ current: 1, total: 1, msg: `Criando template "${sanitizedName}"...` });
-
-        const payload: any = buildInfobipPayload(sanitizedName);
-        if (payload.error) {
-            setIsGenerating(false);
-            return alert(payload.error);
-        }
-
+        const sanitizedBaseName = modelName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
         const targetNumbers = senderNumbers.split(/[\n,]/).map(n => n.trim()).filter(n => n.length > 5);
         if (targetNumbers.length === 0) return alert("Por favor, insira pelo menos um remetente oficial.");
 
+        setIsGenerating(true);
+        
         let totalSuccess = 0;
         let lastError = '';
+        const totalOps = targetNumbers.length * copyCount;
+        let currentOp = 0;
 
         for (const sender of targetNumbers) {
-            setGeneratingProgress({ current: 1, total: 1, msg: `Publicando no remetente ${sender}...` });
-            const res = await callInfobipAPI(payload, sender);
-            if (res.success) {
-                totalSuccess++;
-                // Associated user with this template for notification routing
-                if (user?.id) {
-                    await dbService.trackTemplate(sanitizedName, user.id);
+            for (let i = 1; i <= copyCount; i++) {
+                currentOp++;
+                const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
+                
+                setGeneratingProgress({ 
+                    current: currentOp, 
+                    total: totalOps, 
+                    msg: `Publicando "${currentName}" no remetente ${sender}...` 
+                });
+
+                const payload = buildInfobipPayload(currentName);
+                
+                const res = await callInfobipAPI(payload, sender);
+                if (res.success) {
+                    totalSuccess++;
+                    if (user?.id) {
+                        await dbService.trackTemplate(currentName, user.id);
+                    }
+                    
+                    // Track in DB (log once per creation)
+                    dbService.addLog({
+                        logType: 'TEMPLATE',
+                        name: currentName,
+                        author: user?.name,
+                        mode: 'SINGLE'
+                    });
+
+                    // Send to Webhook
+                    await sendToWebhook(payload);
+
+                    // Create Client Submission
+                    const client = clients.find(c => String(c.id) === String(selectedClientId));
+                    await dbService.addClientSubmission({
+                        user_id: selectedClientId,
+                        client_name: client?.name || '',
+                        profile_name: currentName,
+                        ddd: client?.phone?.substring(0, 2) || '11',
+                        template_type: headerType,
+                        media_url: headerType !== 'none' ? headerMediaUrl : '',
+                        ad_copy: bodyText,
+                        button_link: buttons.find(b => b.type === 'url')?.url || '',
+                        spreadsheet_url: '',
+                        status: 'GERADO',
+                        submitted_by: user?.name,
+                        timestamp: new Date().toISOString(),
+                        ads: [{
+                            ad_name: currentName,
+                            template_type: headerType,
+                            message_mode: 'manual',
+                            media_url: headerType !== 'none' ? headerMediaUrl : '',
+                            ad_copy: bodyText,
+                            button_link: buttons.find(b => b.type === 'url')?.url || '',
+                            variables: variablesExample,
+                            delivered_leads: 0,
+                            price_per_msg: 0.04
+                        }]
+                    });
+                } else {
+                    lastError = res.error || 'Erro desconhecido';
+                    console.error(`Error on sender ${sender} for ${currentName}:`, lastError);
                 }
-            } else {
-                lastError = res.error || 'Erro desconhecido';
-                console.error(`Error on sender ${sender}:`, lastError);
+
+                // Safety Delay
+                if (currentOp < totalOps) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
             }
         }
 
         setIsGenerating(false);
 
         if (totalSuccess > 0) {
-            // Track in DB (log once)
-            dbService.addLog({
-                logType: 'TEMPLATE',
-                name: modelName,
-                author: user?.name,
-                mode: 'SINGLE'
-            });
-
-            // Send to Webhook
-            await sendToWebhook(payload);
-
-            // Create Client Submission
-            const client = clients.find(c => String(c.id) === String(selectedClientId));
-            await dbService.addClientSubmission({
-                user_id: selectedClientId,
-                client_name: client?.name || '',
-                profile_name: modelName,
-                ddd: client?.phone?.substring(0, 2) || '11',
-                template_type: headerType,
-                media_url: headerType !== 'none' ? headerMediaUrl : '',
-                ad_copy: bodyText,
-                button_link: buttons.find(b => b.type === 'url')?.url || '',
-                spreadsheet_url: '',
-                status: 'GERADO',
-                submitted_by: user?.name,
-                timestamp: new Date().toISOString(),
-                ads: [{
-                    ad_name: modelName,
-                    template_type: headerType,
-                    message_mode: 'manual',
-                    media_url: headerType !== 'none' ? headerMediaUrl : '',
-                    ad_copy: bodyText,
-                    button_link: buttons.find(b => b.type === 'url')?.url || '',
-                    variables: variablesExample,
-                    delivered_leads: 0,
-                    price_per_msg: 0.04
-                }]
-            });
-
-            alert(`✅ Template "${modelName}" criado com sucesso!`);
+            alert(`✅ ${totalSuccess} template(s) criado(s) com sucesso!`);
             navigate('/accounts');
+        } else {
+            alert(`❌ Erro: ${lastError}`);
         }
-        else alert(`❌ Erro: ${lastError}`);
     };
 
     const handleGenerateBulk = async () => {
@@ -386,10 +396,43 @@ const TemplateCreator = () => {
             const name = `${bulkPrefix}${row.suffix}`;
             setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Processando ${name}...` });
 
-            const payload: any = buildInfobipPayload(name, row.headerType, row.mediaUrl, row.buttonUrls, row.hasButtons);
-            if (payload.error) {
-                errors.push(`${name}: ${payload.error}`);
-                continue;
+            // 1. Process and shorten links if necessary
+            let finalButtonUrls = [...(row.buttonUrls || [])];
+            const finalButtonTexts = [...(row.buttonTexts || [])];
+
+            if (row.hasButtons !== false && finalButtonUrls.length > 0) {
+                setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Encurtando links para ${name}...` });
+                for (let urlIdx = 0; urlIdx < finalButtonUrls.length; urlIdx++) {
+                    const originalUrl = finalButtonUrls[urlIdx];
+                    if (originalUrl && (originalUrl.startsWith('http') || originalUrl.includes('.'))) {
+                        try {
+                            const shortRes = await dbService.createShortLink({
+                                user_id: user?.id,
+                                client_id: Number(selectedClientId),
+                                original_url: originalUrl,
+                                title: `Bulk: ${name} - B${urlIdx + 1}`
+                            });
+                            if (shortRes.shortUrl) {
+                                finalButtonUrls[urlIdx] = shortRes.shortUrl;
+                            }
+                        } catch (err) {
+                            console.error(`Shortener error for ${name}:`, err);
+                        }
+                    }
+                }
+            }
+
+            // 2. Build payload with potentially shortened URLs
+            const payload: any = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons);
+            
+            // 3. Inject correct button texts from the bulk table
+            if (payload.structure?.buttons && finalButtonTexts.length > 0) {
+                payload.structure.buttons = payload.structure.buttons.map((btn: any, idx: number) => {
+                    if (finalButtonTexts[idx]) {
+                        return { ...btn, text: finalButtonTexts[idx] };
+                    }
+                    return btn;
+                });
             }
 
             // Inject sender into payload for tracking/webhooks
@@ -419,7 +462,7 @@ const TemplateCreator = () => {
                     message_mode: 'manual',
                     media_url: row.headerType !== 'none' ? row.mediaUrl : '',
                     ad_copy: bodyText,
-                    button_link: row.buttonUrls?.[0] || '',
+                    button_link: finalButtonUrls?.[0] || '',
                     variables: variablesExample,
                     delivered_leads: 0,
                     price_per_msg: 0.04
@@ -466,7 +509,7 @@ const TemplateCreator = () => {
 
         setIsGenerating(false);
         alert(`Finalizado!\nSucesso: ${successCount}\nErros: ${errors.length}`);
-        if (successCount > 0) navigate('/client-submissions'); // Redirecionando para as submissões ao invés de /accounts para que o admin veja o card
+        if (successCount > 0) navigate('/client-submissions');
     };
 
     const autoGenerateRows = (qty: number) => {
@@ -484,7 +527,8 @@ const TemplateCreator = () => {
                 headerType: headerType,
                 mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
                 hasButtons: buttons.length > 0,
-                buttonUrls: urlButtons.map(b => b.url || '')
+                buttonUrls: urlButtons.map(b => b.url || ''),
+                buttonTexts: urlButtons.map(b => b.text || '')
             });
         }
         setBulkRows([...bulkRows, ...newRows]);
@@ -832,6 +876,10 @@ const TemplateCreator = () => {
                                                 <option value="en_US">Inglês (US)</option>
                                             </select>
                                         </div>
+                                        <div className="input-group">
+                                            <label>Número de Cópias</label>
+                                            <input type="number" min="1" max="50" className="input-field" style={{ borderRadius: '12px' }} value={copyCount} onChange={e => setCopyCount(Math.max(1, parseInt(e.target.value) || 1))} />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1017,7 +1065,10 @@ const TemplateCreator = () => {
                                                             <th>Tipo Mídia</th>
                                                             {buttons.length > 0 && <th>Botões</th>}
                                                             {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
-                                                                <th key={urlIdx}>Link {urlIdx + 1}</th>
+                                                                <Fragment key={urlIdx}>
+                                                                    <th key={`label-${urlIdx}`}>Texto B{urlIdx + 1}</th>
+                                                                    <th key={`link-${urlIdx}`}>Link {urlIdx + 1}</th>
+                                                                </Fragment>
                                                             ))}
                                                             <th style={{ width: '40px' }}></th>
                                                         </tr>
@@ -1071,13 +1122,23 @@ const TemplateCreator = () => {
                                                                     </td>
                                                                 )}
                                                                 {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
-                                                                    <td key={urlIdx}>
-                                                                        <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
-                                                                            const n = [...bulkRows];
-                                                                            n[i].buttonUrls[urlIdx] = e.target.value;
-                                                                            setBulkRows(n);
-                                                                        }} />
-                                                                    </td>
+                                                                    <Fragment key={urlIdx}>
+                                                                        <td key={`label-td-${urlIdx}`}>
+                                                                            <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1, fontWeight: 600 }} value={row.buttonTexts?.[urlIdx] || ''} onChange={e => {
+                                                                                const n = [...bulkRows];
+                                                                                if (!n[i].buttonTexts) n[i].buttonTexts = [];
+                                                                                n[i].buttonTexts[urlIdx] = e.target.value;
+                                                                                setBulkRows(n);
+                                                                            }} />
+                                                                        </td>
+                                                                        <td key={`link-td-${urlIdx}`}>
+                                                                            <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
+                                                                                const n = [...bulkRows];
+                                                                                n[i].buttonUrls[urlIdx] = e.target.value;
+                                                                                setBulkRows(n);
+                                                                            }} />
+                                                                        </td>
+                                                                    </Fragment>
                                                                 ))}
                                                                 <td style={{ textAlign: 'center' }}>
                                                                     <div className="flex gap-2 justify-center">
