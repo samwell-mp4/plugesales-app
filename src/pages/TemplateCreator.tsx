@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, CheckCircle, X, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -13,12 +13,12 @@ type ButtonDef = {
 const TemplateCreator = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation(); // Added useLocation hook
     const [activeTab, setActiveTab] = useState<'MODEL' | 'BULK'>('MODEL');
 
     // --- API / CONFIG STATE ---
-    const [apiKey, setApiKey] = useState('5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [selectedSenders, setSelectedSenders] = useState<string[]>([]);
-    const [senders, setSenders] = useState<any[]>([]);
+    const [apiKey, setApiKey] = useState(''); // Initialized as empty string
+    const [senderNumbers, setSenderNumbers] = useState('');
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -56,40 +56,26 @@ const TemplateCreator = () => {
     };
 
     useEffect(() => {
+        // Prioritize values from location state if available
+        if (location.state?.key) {
+            setApiKey(location.state.key);
+        }
+        if (location.state?.sender) {
+            setSenderNumbers(location.state.sender);
+        }
+
+        // Fallback to DB settings if not provided via location state
         dbService.getSettings().then(settings => {
-            if (settings['infobip_key']) setApiKey(settings['infobip_key']);
-            if (settings['infobip_sender']) setSelectedSenders([settings['infobip_sender']]);
-        });
-    }, []);
-
-    useEffect(() => {
-        if (apiKey) {
-            fetchSenders();
-        }
-    }, [apiKey]);
-
-    const fetchSenders = async () => {
-        setIsLoadingSenders(true);
-        try {
-            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/1/senders`, {
-                headers: {
-                    'Authorization': `App ${apiKey}`,
-                    'Accept': 'application/json'
-                }
-            });
-            const result = await response.json();
-            if (response.ok && result.senders) {
-                setSenders(result.senders);
-                if (selectedSenders.length === 0 && result.senders.length > 0) {
-                    setSelectedSenders([result.senders[0].sender]);
-                }
+            if (!location.state?.key && settings['infobip_key']) {
+                setApiKey(settings['infobip_key']);
             }
-        } catch (err) {
-            console.error('Error fetching senders:', err);
-        } finally {
-            setIsLoadingSenders(false);
-        }
-    };
+            if (!location.state?.sender && settings['infobip_sender']) {
+                setSenderNumbers(settings['infobip_sender']);
+            }
+        });
+    }, [location.state]); // Depend on location.state to re-run if navigation state changes
+
+    // Reverted: removed fetchSenders logic as requested
 
     // --- MODEL STATE ---
     const [modelName, setModelName] = useState('pagamento_confirmado');
@@ -212,7 +198,7 @@ const TemplateCreator = () => {
 
     const callInfobipAPI = async (payload: any, overrideSender?: string) => {
         try {
-            const effectiveSender = (overrideSender && overrideSender.trim()) || selectedSenders[0] || 'SENDER_ID';
+            const effectiveSender = (overrideSender && overrideSender.trim()) || senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID';
             const encodedSender = encodeURIComponent(effectiveSender);
             const payloadStr = JSON.stringify(payload, null, 2);
             console.log('🚀 [INFOBIP_REQUEST] Payload:', payloadStr);
@@ -311,10 +297,13 @@ const TemplateCreator = () => {
             return alert(payload.error);
         }
 
+        const targetNumbers = senderNumbers.split(/[\n,]/).map(n => n.trim()).filter(n => n.length > 5);
+        if (targetNumbers.length === 0) return alert("Por favor, insira pelo menos um remetente oficial.");
+
         let totalSuccess = 0;
         let lastError = '';
 
-        for (const sender of selectedSenders) {
+        for (const sender of targetNumbers) {
             setGeneratingProgress({ current: 1, total: 1, msg: `Publicando no remetente ${sender}...` });
             const res = await callInfobipAPI(payload, sender);
             if (res.success) {
@@ -400,7 +389,7 @@ const TemplateCreator = () => {
             }
 
             // Inject sender into payload for tracking/webhooks
-            const rowSender = row.sender && row.sender.trim() ? row.sender : (selectedSenders[0] || 'SENDER_ID');
+            const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
             const extendedPayload = { ...payload, sender: rowSender };
 
             console.log(`[BULK] Creating template "${name}" on sender "${rowSender}"...`, extendedPayload);
@@ -477,25 +466,23 @@ const TemplateCreator = () => {
     };
 
     const autoGenerateRows = (qty: number) => {
-        if (selectedSenders.length === 0) return alert("Selecione pelo menos um remetente na Estrutura Básica.");
         const urlButtons = buttons.filter(b => b.type === 'url');
         const startIdx = bulkRows.length + 1;
         const newRows: any[] = [];
         
-        // Use all selected senders and make qty copies for EACH
-        selectedSenders.forEach((sender, sIdx) => {
-            for (let i = 0; i < qty; i++) {
-                const currentNum = startIdx + (sIdx * qty) + i;
-                newRows.push({
-                    suffix: String(currentNum).padStart(3, '0'),
-                    sender: sender,
-                    headerType: headerType,
-                    mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
-                    hasButtons: buttons.length > 0,
-                    buttonUrls: urlButtons.map(b => b.url || '')
-                });
-            }
-        });
+        const firstSender = senderNumbers.split(/[\n,]/)[0]?.trim() || '';
+
+        for (let i = 0; i < qty; i++) {
+            const currentNum = startIdx + i;
+            newRows.push({
+                suffix: String(currentNum).padStart(3, '0'),
+                sender: firstSender,
+                headerType: headerType,
+                mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
+                hasButtons: buttons.length > 0,
+                buttonUrls: urlButtons.map(b => b.url || '')
+            });
+        }
         setBulkRows([...bulkRows, ...newRows]);
     };
 
@@ -516,38 +503,15 @@ const TemplateCreator = () => {
     };
 
     const duplicateRow = (index: number) => {
-        const qtyStr = window.prompt("Quantas cópias deseja criar?", "1");
-        const qty = parseInt(qtyStr || "0");
-        if (isNaN(qty) || qty <= 0) return;
-
         const sourceRow = bulkRows[index];
-        const newRows: any[] = [];
-
-        // Helper to find and increment the numeric part of a string
-        const incrementSuffix = (base: string, count: number) => {
-            const match = base.match(/(\d+)$/);
-            if (match) {
-                const numStr = match[1];
-                const prefixStr = base.slice(0, -numStr.length);
-                const nextNum = parseInt(numStr) + count;
-                // Preserve leading zeros if any
-                return prefixStr + nextNum.toString().padStart(numStr.length, '0');
-            } else {
-                return `${base}_${count}`;
-            }
+        const newRow = {
+            ...sourceRow,
+            buttonUrls: [...sourceRow.buttonUrls] // deep copy array
         };
-
-        for (let i = 1; i <= qty; i++) {
-            newRows.push({
-                ...sourceRow,
-                suffix: incrementSuffix(sourceRow.suffix, i),
-                buttonUrls: [...sourceRow.buttonUrls] // deep copy array
-            });
-        }
 
         setBulkRows(prev => [
             ...prev.slice(0, index + 1),
-            ...newRows,
+            newRow,
             ...prev.slice(index + 1)
         ]);
     };
@@ -774,74 +738,25 @@ const TemplateCreator = () => {
                                     </div>
 
                                     <div className="flex flex-col gap-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex flex-col">
-                                                <span style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7 }}>Remetentes Oficiais (Disponibilizar em 1 ou mais)</span>
-                                                <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>O template será criado na Infobip para cada número selecionado</span>
-                                            </div>
-                                            <button 
-                                                onClick={(e) => { e.preventDefault(); fetchSenders(); }}
-                                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 800 }}
-                                            >
-                                                {isLoadingSenders ? <Activity size={12} className="animate-spin" /> : <Plus size={12} />} 
-                                                RECARREGAR CANAIS
-                                            </button>
+                                        <div className="flex flex-col">
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7 }}>Remetentes Oficiais (Manual)</span>
+                                            <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>Insira um ou mais números separados por vírgula ou linha</span>
                                         </div>
-                                        <div style={{ 
-                                            display: 'grid', 
-                                            gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
-                                            gap: '8px',
-                                            background: 'rgba(0,0,0,0.2)',
-                                            padding: '16px',
-                                            borderRadius: '16px',
-                                            border: '1px solid rgba(172, 248, 0, 0.1)',
-                                            minHeight: '60px'
-                                        }}>
-                                            {senders.length > 0 ? senders.map((s: any) => (
-                                                <div 
-                                                    key={s.sender} 
-                                                    onClick={() => {
-                                                        if (selectedSenders.includes(s.sender)) {
-                                                            setSelectedSenders(selectedSenders.filter(num => num !== s.sender));
-                                                        } else {
-                                                            setSelectedSenders([...selectedSenders, s.sender]);
-                                                        }
-                                                    }}
-                                                    style={{
-                                                        padding: '8px 12px',
-                                                        borderRadius: '10px',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: 800,
-                                                        cursor: 'pointer',
-                                                        background: selectedSenders.includes(s.sender) ? 'rgba(172, 248, 0, 0.15)' : 'rgba(255,255,255,0.03)',
-                                                        border: `1px solid ${selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)'}`,
-                                                        color: selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'white',
-                                                        transition: 'all 0.2s',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '8px'
-                                                    }}
-                                                >
-                                                    <div style={{
-                                                        width: '14px', height: '14px',
-                                                        borderRadius: '4px', border: '1px solid currentColor',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        background: selectedSenders.includes(s.sender) ? 'currentColor' : 'transparent'
-                                                    }}>
-                                                        {selectedSenders.includes(s.sender) && <Check size={10} color="black" strokeWidth={4} />}
-                                                    </div>
-                                                    {s.senderName || s.sender}
-                                                </div>
-                                            )) : !isLoadingSenders ? (
-                                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10px', opacity: 0.5, fontSize: '0.75rem' }}>
-                                                    Nenhum canal encontrado. Verifique sua chave API oficial.
-                                                </div>
-                                            ) : (
-                                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10px', opacity: 0.5, fontSize: '0.75rem' }}>
-                                                    Buscando canais na Infobip...
-                                                </div>
-                                            )}
-                                        </div>
+                                        <textarea
+                                            value={senderNumbers}
+                                            onChange={e => setSenderNumbers(e.target.value)}
+                                            placeholder="Ex: 5511999999999, 5511888888888"
+                                            style={{
+                                                background: 'rgba(0,0,0,0.2)',
+                                                border: '1px solid rgba(172, 248, 0, 0.1)',
+                                                borderRadius: '12px',
+                                                padding: '12px',
+                                                color: 'white',
+                                                fontSize: '0.85rem',
+                                                minHeight: '80px',
+                                                fontFamily: 'monospace'
+                                            }}
+                                        />
                                     </div>
 
                                     {/* CLIENT SELECTION */}
@@ -1076,17 +991,11 @@ const TemplateCreator = () => {
                                                     <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Sender Geral</span>
                                                     <div className="flex bg-black/20 p-1 rounded-lg">
                                                         <input
-                                                            list="senders-list-global"
                                                             onChange={(e) => applyGlobalSender(e.target.value)}
                                                             className="px-2 py-1 text-[10px] font-bold rounded-md bg-transparent border-none outline-none uppercase"
                                                             style={{ color: 'var(--text-muted)', cursor: 'pointer', width: '100px' }}
                                                             placeholder="MUDAR TODOS"
                                                         />
-                                                        <datalist id="senders-list-global">
-                                                            {senders.map((s: any) => (
-                                                                <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
-                                                            ))}
-                                                        </datalist>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1121,22 +1030,16 @@ const TemplateCreator = () => {
                                                                 </td>
                                                                 <td>
                                                                     <input
-                                                                        list="senders-list-row"
                                                                         className="input-field"
                                                                         style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }}
                                                                         value={row.sender || ''}
-                                                                         placeholder={selectedSenders[0] || ''}
+                                                                         placeholder={senderNumbers.split(/[\n,]/)[0] || ''}
                                                                         onChange={e => {
                                                                             const n = [...bulkRows];
                                                                             n[i].sender = e.target.value;
                                                                             setBulkRows(n);
                                                                         }}
                                                                     />
-                                                                    <datalist id="senders-list-row">
-                                                                        {senders.map((s: any) => (
-                                                                            <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
-                                                                        ))}
-                                                                    </datalist>
                                                                 </td>
                                                                 <td>
                                                                     <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.headerType} onChange={e => {
@@ -1212,6 +1115,7 @@ const TemplateCreator = () => {
                                         </div>
                                     )}
                                     <div style={{ padding: '14px' }}>
+                                        <span style={{ color: '#8696a0', fontSize: '0.7rem' }}>disparando como {senderNumbers.split(/[\n,]/)[0] || '...'}</span>
                                         <div style={{ color: '#e9edef', fontSize: '0.9rem', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
                                         {footerText && <div style={{ marginTop: '10px', color: '#8696a0', fontSize: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' }}>{footerText}</div>}
                                     </div>

@@ -11,9 +11,6 @@ import {
     CheckCircle,
     AlertTriangle,
     Layers,
-    Activity,
-    Check,
-    Plus,
     User,
     Library,
     Upload,
@@ -79,13 +76,11 @@ const TemplateDispatch = () => {
     const [sendStats, setSendStats] = useState<{ success: boolean; message: string } | null>(null);
 
     // Dynamic Config Sync - loaded from DB on mount
-    const [apiKey, setApiKey] = useState(() => location.state?.key || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [selectedSenders, setSelectedSenders] = useState<string[]>([]);
-    const [availableSenders, setAvailableSenders] = useState<any[]>([]);
-    const [isLoadingSenders, setIsLoadingSenders] = useState(false);
-    
-    // Legacy support for single sender if needed by other components
-    const fromNumber = selectedSenders[0] || '';
+    const [apiKey, setApiKey] = useState('');
+    const [senderNumbers, setSenderNumbers] = useState('');
+
+    // Support for single sender preview
+    const fromNumber = senderNumbers.split(/[\n,]/)[0]?.trim() || '';
 
     // Media Library Integration
     const [hostedFiles, setHostedFiles] = useState<any[]>([]);
@@ -117,20 +112,19 @@ const TemplateDispatch = () => {
 
     useEffect(() => {
         if (location.state?.key) setApiKey(location.state.key);
-        if (location.state?.sender) setSelectedSenders([location.state.sender]);
+        if (location.state?.sender) setSenderNumbers(location.state.sender);
 
         // Load settings from DB
         dbService.getSettings().then(settings => {
             if (!location.state?.key && settings['infobip_key']) setApiKey(settings['infobip_key']);
             if (!location.state?.sender && settings['infobip_sender']) {
-                setSelectedSenders([settings['infobip_sender']]);
+                setSenderNumbers(settings['infobip_sender']);
             } else if (location.state?.sender) {
-                setSelectedSenders([location.state.sender]);
+                setSenderNumbers(location.state.sender);
             }
         });
 
-        // Fetch official senders
-        fetchSenders();
+        // Fetch official senders removed
 
         // Load hosted media from DB
         dbService.getMedia().then(media => {
@@ -166,26 +160,7 @@ const TemplateDispatch = () => {
         });
     }, [location.state]);
 
-    const fetchSenders = async () => {
-        setIsLoadingSenders(true);
-        try {
-            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/1/senders`, {
-                headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
-            });
-            const data = await response.json();
-            if (data.senders) {
-                setAvailableSenders(data.senders);
-                // If no sender selected, pick the first one
-                if (selectedSenders.length === 0 && data.senders.length > 0) {
-                    setSelectedSenders([data.senders[0].sender]);
-                }
-            }
-        } catch (err) {
-            console.error('Error fetching senders:', err);
-        } finally {
-            setIsLoadingSenders(false);
-        }
-    };
+    // Manual sender numbers
 
     useEffect(() => {
         if (location.state?.draft && allTemplates.length > 0 && !autoDispatchTriggered.current) {
@@ -401,8 +376,9 @@ const TemplateDispatch = () => {
             return;
         }
 
-        if (selectedSenders.length === 0) {
-            setSendStats({ success: false, message: 'Nenhum remetente oficial selecionado na Estrutura Básica.' });
+        const targetNumbers = senderNumbers.split(/[\n,]/).map(n => n.trim()).filter(n => n.length > 5);
+        if (targetNumbers.length === 0) {
+            setSendStats({ success: false, message: 'Informe pelo menos um remetente oficial na Estrutura Básica.' });
             setIsSending(false);
             return;
         }
@@ -416,11 +392,11 @@ const TemplateDispatch = () => {
 
         for (let i = 0; i < total; i += batchSize) {
             const batchNumbers = targets.slice(i, i + batchSize);
-            
+
             // Map numbers to senders (Rotation)
             const batchWithSenders = batchNumbers.map((num, idx) => {
-                const senderIndex = (i + idx) % selectedSenders.length;
-                return { to: num, from: selectedSenders[senderIndex] };
+                const senderIndex = (i + idx) % targetNumbers.length;
+                return { to: num, from: targetNumbers[senderIndex] };
             });
 
             const payload = generatePayload(batchWithSenders);
@@ -675,74 +651,27 @@ const TemplateDispatch = () => {
                             </div>
 
                             <div className="input-group">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex flex-col">
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>Remetentes Oficiais (Selecione 1 ou mais)</span>
-                                        <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>O sistema rotacionará entre os números selecionados</span>
-                                    </div>
-                                    <button 
-                                        onClick={(e) => { e.preventDefault(); fetchSenders(); }}
-                                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 800 }}
-                                    >
-                                        {isLoadingSenders ? <Activity size={12} className="animate-spin" /> : <Plus size={12} />} 
-                                        RECARREGAR CANAIS
-                                    </button>
+                                <div className="flex flex-col mb-2">
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>Remetentes Oficiais (Manual)</span>
+                                    <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>Insira um ou mais números separados por vírgula ou linha</span>
                                 </div>
-                                <div style={{ 
-                                    display: 'grid', 
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
-                                    gap: '10px',
-                                    background: 'rgba(0,0,0,0.2)',
-                                    padding: '16px',
-                                    borderRadius: '16px',
-                                    border: '1px solid rgba(172, 248, 0, 0.1)',
-                                    minHeight: '60px'
-                                }}>
-                                    {availableSenders.length > 0 ? availableSenders.map(s => (
-                                        <div 
-                                            key={s.sender} 
-                                            onClick={() => {
-                                                if (selectedSenders.includes(s.sender)) {
-                                                    setSelectedSenders(selectedSenders.filter(num => num !== s.sender));
-                                                } else {
-                                                    setSelectedSenders([...selectedSenders, s.sender]);
-                                                }
-                                            }}
-                                            style={{
-                                                padding: '8px 12px',
-                                                borderRadius: '10px',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 800,
-                                                cursor: 'pointer',
-                                                background: selectedSenders.includes(s.sender) ? 'rgba(172, 248, 0, 0.15)' : 'rgba(255,255,255,0.03)',
-                                                border: `1px solid ${selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)'}`,
-                                                color: selectedSenders.includes(s.sender) ? 'var(--primary-color)' : 'white',
-                                                transition: 'all 0.2s',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px'
-                                            }}
-                                        >
-                                            <div style={{
-                                                width: '14px', height: '14px',
-                                                borderRadius: '4px', border: '1px solid currentColor',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                background: selectedSenders.includes(s.sender) ? 'currentColor' : 'transparent'
-                                            }}>
-                                                {selectedSenders.includes(s.sender) && <Check size={10} color="black" strokeWidth={4} />}
-                                            </div>
-                                            {s.senderName || s.sender}
-                                        </div>
-                                    )) : !isLoadingSenders ? (
-                                        <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10px', opacity: 0.5, fontSize: '0.75rem' }}>
-                                            Nenhum canal encontrado. Verifique sua chave API oficial.
-                                        </div>
-                                    ) : (
-                                        <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '10px', opacity: 0.5, fontSize: '0.75rem' }}>
-                                            Buscando canais na Infobip...
-                                        </div>
-                                    )}
-                                </div>
+                                <textarea
+                                    value={senderNumbers}
+                                    onChange={e => setSenderNumbers(e.target.value)}
+                                    placeholder="Ex: 5511999999999, 5511888888888"
+                                    style={{
+                                        background: 'rgba(0,0,0,0.2)',
+                                        border: '1px solid rgba(172, 248, 0, 0.1)',
+                                        borderRadius: '16px',
+                                        padding: '16px',
+                                        color: 'white',
+                                        fontSize: '0.85rem',
+                                        minHeight: '80px',
+                                        width: '100%',
+                                        fontFamily: 'monospace',
+                                        outline: 'none'
+                                    }}
+                                />
                             </div>
 
                             <div className="input-group">
@@ -762,7 +691,7 @@ const TemplateDispatch = () => {
                                     border: `1px solid ${selectedTemplate.status === 'APPROVED' ? 'rgba(172, 248, 0, 0.1)' : 'rgba(239, 68, 68, 0.2)'}`
                                 }}>
                                     <div className="flex items-center gap-2 mb-2">
-                                        {selectedTemplate.status === 'APPROVED' ? <Check size={14} color="var(--primary-color)" /> : <AlertTriangle size={14} color="#f87171" />}
+                                        {selectedTemplate.status === 'APPROVED' ? <CheckCircle size={14} color="var(--primary-color)" /> : <AlertTriangle size={14} color="#f87171" />}
                                         <span style={{
                                             fontSize: '0.75rem',
                                             fontWeight: 800,
@@ -922,15 +851,10 @@ const TemplateDispatch = () => {
                                                 gap: '14px'
                                             }}>
                                                 <div style={{
-                                                    background: 'rgba(172, 248, 0, 0.1)',
-                                                    color: 'var(--primary-color)',
-                                                    fontSize: '0.65rem',
-                                                    fontWeight: 900,
-                                                    padding: '2px 6px',
-                                                    borderRadius: '6px'
-                                                }}>
-                                                    {'{'}{p.id}{'}'}
-                                                </div>
+                                                    width: '14px', height: '14px',
+                                                    borderRadius: '4px', border: '1px solid currentColor',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                }} />
                                                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {p.value}
                                                 </span>
@@ -961,7 +885,7 @@ const TemplateDispatch = () => {
                                                 style={{ padding: '4px 10px', fontSize: '0.65rem', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                             >
                                                 <input type="file" style={{ display: 'none' }} onChange={handleHeaderUpload} accept={headerType === 'VIDEO' ? 'video/*' : 'image/*'} />
-                                                {isUploadingHeader ? <Activity size={12} className="animate-spin" /> : <Upload size={12} />} UPLOAD VPS
+                                                {isUploadingHeader ? 'ENVIANDO...' : <Upload size={12} />} UPLOAD VPS
                                             </label>
                                         </div>
                                     </div>
@@ -1088,7 +1012,7 @@ const TemplateDispatch = () => {
                                     onClick={sendMessage}
                                     disabled={isSending}
                                 >
-                                    {isSending ? <Activity className="animate-spin" /> : 'CONVOCAR DISPARO'}
+                                    {isSending ? 'CANCELAR ENVIO' : 'INICIAR DISPARO IMEDIATO'}
                                 </button>
                             </div>
                         </div>
@@ -1154,7 +1078,7 @@ const TemplateDispatch = () => {
                             <span>API_PAYLOAD_DEBUG</span>
                         </div>
                         <pre style={{ margin: 0 }}>
-                            {JSON.stringify(generatePayload([{ to: toNumber.split(',')[0] || '5511999999999', from: selectedSenders[0] || 'SENDER_ID' }]), null, 2)}
+                            {JSON.stringify(generatePayload([{ to: toNumber.split(',')[0] || '5511999999999', from: fromNumber || 'SENDER_ID' }]), null, 2)}
                         </pre>
                     </div>
 
@@ -1177,6 +1101,11 @@ const TemplateDispatch = () => {
                                                     <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label}</span>
                                                     <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                                                         {new Date(draft.savedAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        {isBulkMode && (
+                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-primary-color bg-primary-color/10 px-2 py-0.5 rounded-full">
+                                                                AUTO_BATCH
+                                                            </div>
+                                                        )}
                                                         {draft.tag && <> · <span style={{ color: 'var(--primary-color)' }}>{draft.tag}</span></>}
                                                         {draft.contactCount ? <> · <span style={{ fontWeight: 800 }}>({draft.contactCount} contatos)</span></> : ''}
                                                     </span>
