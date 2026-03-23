@@ -111,7 +111,7 @@ const Sidebar = () => {
                 .nav-link:hover { background: rgba(172, 248, 0, 0.05) !important; color: white !important; }
                 .nav-link.active { 
                     background: rgba(172, 248, 0, 0.1) !important; 
-                    color: white !important;
+                    color: var(--text-primary) !important;
                     border-left-color: var(--primary-color) !important;
                 }
                 
@@ -196,15 +196,16 @@ const Sidebar = () => {
                 .special-nav svg { color: black !important; }
 
                 .user-info-section {
-                    background: rgba(255, 255, 255, 0.03);
+                    background: var(--card-bg-subtle);
                     backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                    border: 1px solid var(--surface-border-subtle);
+                    box-shadow: var(--shadow-sm);
                 }
                 .user-avatar-container {
-                    background: rgba(255,255,255,0.05);
+                    background: var(--bg-primary);
                     border: 2px solid rgba(172, 248, 0, 0.2);
                 }
+
                 .user-avatar-container.admin {
                     background: var(--primary-gradient);
                     box-shadow: 0 0 20px rgba(172, 248, 0, 0.15);
@@ -300,15 +301,17 @@ const Sidebar = () => {
                     {!isEditingNotify ? (
                         <div className="flex items-center gap-2">
                             <Smartphone size={14} color="var(--primary-color)" />
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'white' }}>{user?.notification_number || '5531988868362'}</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user?.notification_number || '5531988868362'}</span>
                         </div>
+
                     ) : (
                         <input
                             value={notifyNum}
                             onChange={(e) => setNotifyNum(e.target.value)}
                             className="input-field"
-                            style={{ height: '28px', fontSize: '0.8rem', padding: '0 8px', borderRadius: '6px', background: 'rgba(0,0,0,0.2)', color: 'white', border: '1px solid rgba(172,248,0,0.3)' }}
+                            style={{ height: '28px', fontSize: '0.8rem', padding: '0 8px', borderRadius: '6px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--surface-border)' }}
                             placeholder="Ex: 551199..."
+
                         />
                     )}
                 </div>

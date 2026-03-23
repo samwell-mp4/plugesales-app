@@ -288,8 +288,8 @@ const Accounts = () => {
                             borderRadius: '16px',
                             fontWeight: 900,
                             fontSize: '1rem',
-                            color: activeTab === 'TEMPLATES' ? 'black' : 'white',
-                            border: activeTab === 'TEMPLATES' ? 'none' : '1px solid rgba(255,255,255,0.05)'
+                            color: activeTab === 'TEMPLATES' ? 'black' : 'var(--text-primary)',
+                            border: activeTab === 'TEMPLATES' ? 'none' : '1px solid var(--surface-border-subtle)'
                         }}
                     >
                         <LayoutDashboard size={20} /> MEUS TEMPLATES (META)
@@ -301,8 +301,8 @@ const Accounts = () => {
                             borderRadius: '16px',
                             fontWeight: 900,
                             fontSize: '1rem',
-                            color: activeTab === 'RASCUNHOS' ? 'black' : 'white',
-                            border: activeTab === 'RASCUNHOS' ? 'none' : '1px solid rgba(172,248,0,0.2)'
+                            color: activeTab === 'RASCUNHOS' ? 'black' : 'var(--text-primary)',
+                            border: activeTab === 'RASCUNHOS' ? 'none' : '1px solid var(--surface-border-subtle)'
                         }}
                     >
                         <BookMarked size={20} /> PRONTOS PARA DISPARO (RASCUNHOS)
@@ -358,8 +358,8 @@ const Accounts = () => {
                                             style={{
                                                 background: 'transparent',
                                                 border: 'none',
-                                                borderBottom: '2px solid rgba(172, 248, 0, 0.3)',
-                                                color: 'white',
+                                                borderBottom: '2px solid var(--primary-color)',
+                                                color: 'var(--text-primary)',
                                                 fontSize: '1.8rem',
                                                 fontWeight: 900,
                                                 outline: 'none',
@@ -367,6 +367,7 @@ const Accounts = () => {
                                                 width: '100%',
                                                 letterSpacing: '-0.5px'
                                             }}
+
                                             value={senderNumber}
                                             onChange={e => setSenderNumber(e.target.value)}
                                             placeholder="Escolha ou digite o número..."

@@ -117,7 +117,7 @@ const MediaHosting = () => {
                     background: var(--card-bg-subtle); 
                     border-color: var(--surface-border);
                     transform: translateY(-2px);
-                    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
+                    box-shadow: var(--shadow-md);
                 }
 
                 .action-btn { padding: 12px 20px; border-radius: 14px; border: none; cursor: pointer; font-weight: 900; font-size: 11px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; text-transform: uppercase; }
@@ -370,7 +370,7 @@ const MediaHosting = () => {
                         onClick={() => setPreviewFile(null)}
                     >
                         <button 
-                            style={{ position: 'absolute', top: 32, right: 32, background: 'none', border: 'none', color: 'white', cursor: 'pointer', zIndex: 10 }}
+                            style={{ position: 'absolute', top: 32, right: 32, background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', zIndex: 10 }}
                             onClick={() => setPreviewFile(null)}
                         >
                             <X size={32} />
@@ -381,9 +381,9 @@ const MediaHosting = () => {
                             onClick={e => e.stopPropagation()}
                         >
                             {previewFile.type === 'video' ? (
-                                <video src={previewFile.shortUrl} controls autoPlay style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: '0 30px 60px rgba(0,0,0,0.8)' }} />
+                                <video src={previewFile.shortUrl} controls autoPlay style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: 'var(--shadow-md)' }} />
                             ) : (
-                                <img src={previewFile.shortUrl} alt="" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: '0 30px 60px rgba(0,0,0,0.8)' }} />
+                                <img src={previewFile.shortUrl} alt="" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: 'var(--shadow-md)' }} />
                             )}
                             
                             <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -239,7 +239,7 @@ const ClientSubmissions = () => {
     const getTemplateIcon = (type: string) => {
         if (type === 'image') return <ImageIcon size={14} className="text-purple-400" />;
         if (type === 'video') return <Video size={14} className="text-blue-400" />;
-        return <FileText size={14} className="text-white/30" />;
+        return <FileText size={14} style={{ opacity: 0.3 }} />;
     };
 
     const formatDate = (ts: string) => {
@@ -431,7 +431,7 @@ const ClientSubmissions = () => {
             { id: 'PENDENTE', title: 'PENDENTES', filter: (s: ClientSubmission) => !s.assigned_to && s.status !== 'GERADO' && s.status !== 'CONCLUIDO' },
             { id: 'ANDAMENTO', title: 'EM MÃOS', filter: (s: ClientSubmission) => !!s.assigned_to && s.status !== 'GERADO' && s.status !== 'CONCLUIDO' },
             { id: 'GERADO', title: 'GERADOS', filter: (s: ClientSubmission) => s.status === 'GERADO' },
-            { id: 'CONCLUIDO', title: 'CONCLUÍDO', filter: (s: ClientSubmission) => s.status === 'CONCLUIDO' }
+            { id: 'CONCLUIDO', title: 'CONCLUIDO', filter: (s: ClientSubmission) => s.status === 'CONCLUIDO' }
         ];
         return (
             <div className="kanban-board">
@@ -510,11 +510,11 @@ const ClientSubmissions = () => {
                 }
                 .accept-btn:hover { transform: scale(1.02); box-shadow: 0 8px 20px -4px rgba(172,248,0,0.4); }
                 .open-btn {
-                    width: 100%; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); font-weight: 900;
-                    font-size: 11px; letter-spacing: 1px; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+                    width: 100%; background: var(--card-bg-subtle); color: var(--text-secondary); font-weight: 900;
+                    font-size: 11px; letter-spacing: 1px; padding: 12px; border-radius: 12px; border: 1px solid var(--surface-border-subtle);
                     cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
                 }
-                .open-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.15); }
+                .open-btn:hover { background: var(--surface-hover); color: var(--text-primary); border-color: var(--surface-border); }
                 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 24px; }
                 .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 16px; }
 
@@ -537,10 +537,10 @@ const ClientSubmissions = () => {
 
                 .list-btn {
                     width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
-                    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); 
-                    color: rgba(255,255,255,0.4); cursor: pointer; transition: all 0.2s;
+                    background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); 
+                    color: var(--text-muted); cursor: pointer; transition: all 0.2s;
                 }
-                .list-btn:hover { background: rgba(255,255,255,0.08); color: white; border-color: rgba(255,255,255,0.15); }
+                .list-btn:hover { background: var(--surface-hover); color: var(--text-primary); border-color: var(--surface-border); }
                 .list-btn.primary { background: var(--primary-color); border-color: var(--primary-color); color: #000; box-shadow: 0 0 12px rgba(172,248,0,0.2); }
                 .list-btn.primary:hover { background: #bdfa00; transform: scale(1.05); }
 
@@ -581,12 +581,12 @@ const ClientSubmissions = () => {
                     margin-top: 40px; padding: 20px;
                 }
                 .page-btn {
-                    padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
+                    padding: 8px 12px; border-radius: 8px; background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle); color: var(--text-muted);
                     cursor: pointer; font-weight: 800; font-size: 12px; transition: all 0.2s;
                     display: flex; align-items: center; gap: 4px;
                 }
-                .page-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: white; }
+                .page-btn:hover:not(:disabled) { background: var(--surface-hover); color: var(--text-primary); }
                 .page-btn.active { background: var(--primary-color); color: #000; border-color: var(--primary-color); }
                 .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
             `}</style>

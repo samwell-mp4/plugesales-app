@@ -329,7 +329,8 @@ const Dashboard = () => {
                 }
                 .shortcut-item .icon-box {
                     padding: 12px;
-                    background: rgba(0,0,0,0.2);
+                    background: var(--bg-primary);
+                    border: 1px solid var(--surface-border-subtle);
                     border-radius: 14px;
                     display: flex;
                     align-items: center;
