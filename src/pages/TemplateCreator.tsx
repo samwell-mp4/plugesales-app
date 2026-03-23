@@ -564,6 +564,75 @@ const TemplateCreator = () => {
         ]);
     };
 
+    const [isShorteningGlobal, setIsShorteningGlobal] = useState(false);
+    const [shorteningCell, setShorteningCell] = useState<{ row: number, url: number } | null>(null);
+
+    const shortenAndReplicate = async (rowIndex: number, urlIndex: number) => {
+        const originalUrl = bulkRows[rowIndex].buttonUrls[urlIndex];
+        if (!originalUrl || (!originalUrl.startsWith('http') && !originalUrl.includes('.'))) return;
+
+        setShorteningCell({ row: rowIndex, url: urlIndex });
+        try {
+            const res = await dbService.createShortLink({
+                user_id: user?.id,
+                client_id: Number(selectedClientId),
+                original_url: originalUrl,
+                title: `Bulk: ${bulkPrefix}${bulkRows[rowIndex].suffix} - B${urlIndex + 1}`
+            });
+
+            if (res.shortUrl) {
+                setBulkRows(prev => prev.map((row, i) => {
+                    if (i < rowIndex) return row;
+                    const newUrls = [...row.buttonUrls];
+                    newUrls[urlIndex] = res.shortUrl;
+                    return { ...row, buttonUrls: newUrls };
+                }));
+            }
+        } catch (err) {
+            console.error("Error shortening link:", err);
+            alert("Erro ao encurtar link");
+        } finally {
+            setShorteningCell(null);
+        }
+    };
+
+    const applyGlobalShortener = async () => {
+        if (!selectedClientId) return alert("Selecione um cliente primeiro.");
+        const hasLinks = bulkRows.some(r => r.buttonUrls.some((u: string) => u && (u.startsWith('http') || u.includes('.'))));
+        if (!hasLinks) return alert("Nenhum link detectado para encurtar.");
+
+        setIsShorteningGlobal(true);
+        const newRows = [...bulkRows];
+        let totalProcessed = 0;
+
+        for (let i = 0; i < newRows.length; i++) {
+            const row = newRows[i];
+            const urls = [...row.buttonUrls];
+            for (let u: number = 0; u < urls.length; u++) {
+                const url = urls[u];
+                if (url && (url.startsWith('http') || url.includes('.')) && !url.includes('/s/')) {
+                    try {
+                        const res = await dbService.createShortLink({
+                            user_id: user?.id,
+                            client_id: Number(selectedClientId),
+                            original_url: url,
+                            title: `Bulk: ${bulkPrefix}${row.suffix} - B${u + 1}`
+                        });
+                        if (res.shortUrl) {
+                            urls[u] = res.shortUrl;
+                            totalProcessed++;
+                        }
+                    } catch (e) { console.error(e); }
+                }
+            }
+            newRows[i] = { ...row, buttonUrls: urls };
+        }
+
+        setBulkRows(newRows);
+        setIsShorteningGlobal(false);
+        alert(`${totalProcessed} link(s) encurtado(s) com sucesso!`);
+    };
+
     return (
         <div className="animate-fade-in creator-page" style={{ paddingBottom: '80px' }}>
             {isGenerating && (
@@ -1053,6 +1122,20 @@ const TemplateCreator = () => {
                                                         />
                                                     </div>
                                                 </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Links Geral</span>
+                                                    <div className="flex bg-black/20 p-1 rounded-lg">
+                                                        <button 
+                                                            onClick={applyGlobalShortener} 
+                                                            disabled={isShorteningGlobal}
+                                                            className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase flex items-center gap-1" 
+                                                            style={{ color: 'var(--primary-color)' }}
+                                                        >
+                                                            {isShorteningGlobal ? <Activity size={10} className="animate-spin" /> : <Link size={10} />}
+                                                            ENCURTAR TODOS
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -1135,11 +1218,21 @@ const TemplateCreator = () => {
                                                                             }} />
                                                                         </td>
                                                                         <td key={`link-td-${urlIdx}`}>
-                                                                            <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
-                                                                                const n = [...bulkRows];
-                                                                                n[i].buttonUrls[urlIdx] = e.target.value;
-                                                                                setBulkRows(n);
-                                                                            }} />
+                                                                            <div className="flex items-center gap-2">
+                                                                                <input className="input-field" disabled={row.hasButtons === false} style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', opacity: row.hasButtons === false ? 0.3 : 1, flex: 1 }} value={row.buttonUrls[urlIdx]} onChange={e => {
+                                                                                    const n = [...bulkRows];
+                                                                                    n[i].buttonUrls[urlIdx] = e.target.value;
+                                                                                    setBulkRows(n);
+                                                                                }} />
+                                                                                <button 
+                                                                                    onClick={() => shortenAndReplicate(i, urlIdx)}
+                                                                                    disabled={row.hasButtons === false || (shorteningCell?.row === i && shorteningCell?.url === urlIdx)}
+                                                                                    title="Encurtar e Replicar para baixo"
+                                                                                    style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: row.hasButtons === false ? 0.3 : 1 }}
+                                                                                >
+                                                                                    {shorteningCell?.row === i && shorteningCell?.url === urlIdx ? <Activity size={14} className="animate-spin" /> : <Link size={14} />}
+                                                                                </button>
+                                                                            </div>
                                                                         </td>
                                                                     </Fragment>
                                                                 ))}
