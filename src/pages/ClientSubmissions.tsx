@@ -152,6 +152,35 @@ const ClientSubmissions = () => {
         else setSelectedIds(filteredSubmissions.map(s => s.id));
     };
 
+    const handlePreFillCreator = (sub: ClientSubmission) => {
+        const adsToFill = sub.ads && sub.ads.length > 0 ? sub.ads : [{
+            ad_name: sub.profile_name,
+            template_type: sub.template_type,
+            media_url: sub.media_url,
+            ad_copy: sub.ad_copy,
+            button_link: sub.button_link,
+            variables: []
+        }];
+
+        const preFillData = {
+            templateName: `${sub.profile_name.toLowerCase().replace(/\s+/g, '_')}_${sub.ddd}`,
+            templateType: sub.template_type || adsToFill[0].template_type || 'none',
+            senderNumber: sub.sender_number || '',
+            rows: adsToFill.map((ad, idx) => ({
+                id: idx + 1,
+                suffix: ad.ad_name ? `_${ad.ad_name.toLowerCase().replace(/\s+/g, '_')}` : `_v${idx + 1}`,
+                mediaUrl: ad.media_url || ad.ad_copy_file || '',
+                var1: ad.variables?.[0] || 'Leandro',
+                var2: ad.variables?.[1] || 'Plug Sales',
+                var3: ad.variables?.[2] || 'Marketing',
+                var4: ad.variables?.[3] || 'WhatsApp',
+                buttonUrl: ad.button_link || ''
+            }))
+        };
+
+        navigate('/templates', { state: { preFillData } });
+    };
+
     const handleAssign = async (id: number, employeeName: string) => {
         try {
             await dbService.updateClientSubmission(id, { assigned_to: employeeName || null });
@@ -362,6 +391,15 @@ const ClientSubmissions = () => {
                                 </select>
                             </div>
                         )}
+                        <div className="flex gap-2" style={{ marginBottom: '14px' }}>
+                            <button 
+                                className="btn flex-1" 
+                                onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
+                                style={{ background: '#f97316', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                            >
+                                <Layers size={14} /> PREENCHER NO CREATOR
+                            </button>
+                        </div>
                         <button className="open-btn" onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>ABRIR PAINEL <ChevronRight size={15} /></button>
                     </div>
                 );
@@ -406,6 +444,14 @@ const ClientSubmissions = () => {
 
                     {/* COL 5: ACTIONS */}
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button 
+                            className="list-btn" 
+                            onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
+                            style={{ background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)' }}
+                            title="Preencher no Creator"
+                        >
+                            <Layers size={16} />
+                        </button>
                         <button 
                             className="list-btn" 
                             onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}

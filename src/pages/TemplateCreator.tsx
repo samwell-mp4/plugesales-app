@@ -82,6 +82,28 @@ const TemplateCreator = () => {
         } else if (user?.infobip_sender) {
             setSenderNumbers(user.infobip_sender);
         }
+
+        if (location.state?.preFillData) {
+            const data = location.state.preFillData;
+            if (data.templateName) setModelName(data.templateName);
+            if (data.templateType) setHeaderType(data.templateType);
+            if (data.senderNumber) setSenderNumbers(data.senderNumber);
+            if (data.rows && data.rows.length > 0) {
+                setBulkRows(data.rows);
+                // Also set initial media and button from first row if available
+                if (data.rows[0].mediaUrl) setHeaderMediaUrl(data.rows[0].mediaUrl);
+                if (data.rows[0].buttonUrl) {
+                    setButtons([{ type: 'url', text: 'Clique Aqui', url: data.rows[0].buttonUrl }]);
+                }
+                // Pre-fill variable examples with Leandro, Plug Sales, etc as requested
+                _setVariablesExample([
+                    data.rows[0].var1 || 'Leandro',
+                    data.rows[0].var2 || 'Plug Sales',
+                    data.rows[0].var3 || 'Marketing',
+                    data.rows[0].var4 || 'WhatsApp'
+                ]);
+            }
+        }
     }, [location.state, user]); // Depend on location.state and user to re-run if navigation state or user profile changes
 
     // Reverted: removed fetchSenders logic as requested
