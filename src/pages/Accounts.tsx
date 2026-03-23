@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar, BookMarked, FileEdit, LayoutDashboard } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface InfobipTemplate {
     id: string;
@@ -44,35 +45,39 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: { currentPage: nu
 
 const Accounts = () => {
     const navigate = useNavigate();
+    const { user, setUser } = useAuth();
+    
     // --- API / CONFIG STATE ---
-    const [apiKey, setApiKey] = useState('5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [senderNumber, setSenderNumber] = useState('5511997625247');
+    const [apiKey, setApiKey] = useState(user?.infobip_key || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
+    const [senderNumber, setSenderNumber] = useState(user?.infobip_sender || '5511997625247');
     const [senders, setSenders] = useState<any[]>([]);
     const [recentNumbers, setRecentNumbers] = useState<string[]>([]);
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
-
-    // Load settings from DB on mount
+    
+    // Load state from User on mount
     useEffect(() => {
-        dbService.getSettings().then(settings => {
-            if (settings['infobip_key']) setApiKey(settings['infobip_key']);
-            if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
-        });
+        if (user?.infobip_key) setApiKey(user.infobip_key);
+        if (user?.infobip_sender) setSenderNumber(user.infobip_sender);
 
         const savedRecents = localStorage.getItem('recent_senders');
         if (savedRecents) setRecentNumbers(JSON.parse(savedRecents));
-    }, []);
+    }, [user]);
 
-    // Save to DB on change
+    // Save to Profile on change
     useEffect(() => {
-        if (apiKey) {
-            dbService.saveSetting('infobip_key', apiKey);
+        if (apiKey && apiKey !== user?.infobip_key) {
+            dbService.updateProfile({ id: user?.id, infobip_key: apiKey }).then(updated => {
+                if (updated && !updated.error) setUser(updated);
+            });
             fetchSenders();
         }
     }, [apiKey]);
 
     useEffect(() => {
-        if (senderNumber) {
-            dbService.saveSetting('infobip_sender', senderNumber);
+        if (senderNumber && senderNumber !== user?.infobip_sender) {
+            dbService.updateProfile({ id: user?.id, infobip_sender: senderNumber }).then(updated => {
+                if (updated && !updated.error) setUser(updated);
+            });
             addToRecents(senderNumber);
         }
     }, [senderNumber]);

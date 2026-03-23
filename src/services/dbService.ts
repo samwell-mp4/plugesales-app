@@ -503,4 +503,31 @@ export const dbService = {
             console.error("Error tracking template:", err);
         }
     },
+    getAllUsers: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/users`);
+            if (!res.ok) throw new Error("Erro ao buscar usuários");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching users:", err);
+            return [];
+        }
+    },
+    adminUpdatePassword: async (userId: number, newPassword: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/update-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, newPassword })
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Erro ao atualizar senha");
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error updating password:", err);
+            return { error: err.message };
+        }
+    },
 };

@@ -17,8 +17,8 @@ const TemplateCreator = () => {
     const [activeTab, setActiveTab] = useState<'MODEL' | 'BULK'>('MODEL');
 
     // --- API / CONFIG STATE ---
-    const [apiKey, setApiKey] = useState(''); // Initialized as empty string
-    const [senderNumbers, setSenderNumbers] = useState('');
+    const [apiKey, setApiKey] = useState(user?.infobip_key || '');
+    const [senderNumbers, setSenderNumbers] = useState(user?.infobip_sender || '');
     const [isUploading, setIsUploading] = useState(false);
 
     // --- CLIENT SELECTION STATE ---
@@ -63,21 +63,16 @@ const TemplateCreator = () => {
         // Prioritize values from location state if available
         if (location.state?.key) {
             setApiKey(location.state.key);
-        }
-        if (location.state?.sender) {
-            setSenderNumbers(location.state.sender);
+        } else if (user?.infobip_key) {
+            setApiKey(user.infobip_key);
         }
 
-        // Fallback to DB settings if not provided via location state
-        dbService.getSettings().then(settings => {
-            if (!location.state?.key && settings['infobip_key']) {
-                setApiKey(settings['infobip_key']);
-            }
-            if (!location.state?.sender && settings['infobip_sender']) {
-                setSenderNumbers(settings['infobip_sender']);
-            }
-        });
-    }, [location.state]); // Depend on location.state to re-run if navigation state changes
+        if (location.state?.sender) {
+            setSenderNumbers(location.state.sender);
+        } else if (user?.infobip_sender) {
+            setSenderNumbers(user.infobip_sender);
+        }
+    }, [location.state, user]); // Depend on location.state and user to re-run if navigation state or user profile changes
 
     // Reverted: removed fetchSenders logic as requested
 
@@ -102,10 +97,15 @@ const TemplateCreator = () => {
     const [copyCount, setCopyCount] = useState(1);
 
     // --- BULK STATE ---
-    const [bulkPrefix, setBulkPrefix] = useState('pagamento_');
     const [bulkRows, setBulkRows] = useState<any[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
+    const [campaignPrefix, setCampaignPrefix] = useState('PAGAMENTO_');
+    const [queueSize, setQueueSize] = useState(5);
+
+    const handleGenerateRows = () => {
+        autoGenerateRows(queueSize);
+    };
 
     const handleFileUpload = async (file: File) => {
         const formData = new FormData();
@@ -244,14 +244,14 @@ const TemplateCreator = () => {
             const response = await fetch("/api/webhook-push", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    targetUrl, 
-                    payload: { 
-                        to: user?.notification_number || '5531988868362',
+                body: JSON.stringify({
+                    targetUrl,
+                    payload: {
+                        to: user?.notification_number || '',
                         mensagem: `🆕 *Novo Template Criado!* 🛠️\n\n📌 *Nome*: ${payload.name}\n📂 *Categoria*: ${payload.category}\n🌐 *Idioma*: ${payload.language}\n\nO template foi enviado para análise da Meta e o monitoramento já foi iniciado.`,
                         template: payload.name,
                         status: 'PENDING'
-                    } 
+                    }
                 })
             });
             const result = await response.json();
@@ -294,7 +294,7 @@ const TemplateCreator = () => {
         if (targetNumbers.length === 0) return alert("Por favor, insira pelo menos um remetente oficial.");
 
         setIsGenerating(true);
-        
+
         let totalSuccess = 0;
         let lastError = '';
         const totalOps = targetNumbers.length * copyCount;
@@ -304,22 +304,22 @@ const TemplateCreator = () => {
             for (let i = 1; i <= copyCount; i++) {
                 currentOp++;
                 const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
-                
-                setGeneratingProgress({ 
-                    current: currentOp, 
-                    total: totalOps, 
-                    msg: `Publicando "${currentName}" no remetente ${sender}...` 
+
+                setGeneratingProgress({
+                    current: currentOp,
+                    total: totalOps,
+                    msg: `Publicando "${currentName}" no remetente ${sender}...`
                 });
 
                 const payload = buildInfobipPayload(currentName);
-                
+
                 const res = await callInfobipAPI(payload, sender);
                 if (res.success) {
                     totalSuccess++;
                     if (user?.id) {
                         await dbService.trackTemplate(currentName, user.id);
                     }
-                    
+
                     // Track in DB (log once per creation)
                     dbService.addLog({
                         logType: 'TEMPLATE',
@@ -393,7 +393,7 @@ const TemplateCreator = () => {
 
         for (let i = 0; i < bulkRows.length; i++) {
             const row = bulkRows[i];
-            const name = `${bulkPrefix}${row.suffix}`;
+            const name = `${campaignPrefix}${row.suffix}`;
             setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Processando ${name}...` });
 
             // 1. Process and shorten links if necessary
@@ -424,7 +424,7 @@ const TemplateCreator = () => {
 
             // 2. Build payload with potentially shortened URLs
             const payload: any = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons);
-            
+
             // 3. Inject correct button texts from the bulk table
             if (payload.structure?.buttons && finalButtonTexts.length > 0) {
                 payload.structure.buttons = payload.structure.buttons.map((btn: any, idx: number) => {
@@ -493,7 +493,7 @@ const TemplateCreator = () => {
             await dbService.addClientSubmission({
                 user_id: selectedClientId,
                 client_name: client?.name || '',
-                profile_name: `Lote: ${bulkPrefix}*`,
+                profile_name: `Lote: ${campaignPrefix}*`,
                 ddd: client?.phone?.substring(0, 2) || '11',
                 template_type: 'none',
                 media_url: '',
@@ -516,7 +516,7 @@ const TemplateCreator = () => {
         const urlButtons = buttons.filter(b => b.type === 'url');
         const startIdx = bulkRows.length + 1;
         const newRows: any[] = [];
-        
+
         const firstSender = senderNumbers.split(/[\n,]/)[0]?.trim() || '';
 
         for (let i = 0; i < qty; i++) {
@@ -581,7 +581,7 @@ const TemplateCreator = () => {
                 user_id: user?.id,
                 client_id: Number(selectedClientId),
                 original_url: utilityLinkOriginal,
-                title: `Utility: ${bulkPrefix}*`
+                title: `Utility: ${campaignPrefix}*`
             });
             if (res.shortUrl) {
                 setUtilityLinkShort(res.shortUrl);
@@ -777,13 +777,110 @@ const TemplateCreator = () => {
                     100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0); }
                 }
 
+                .bulk-field-input {
+                    background: rgba(255, 255, 255, 0.05) !important;
+                    border: 1px solid rgba(172, 248, 0, 0.15) !important;
+                    border-radius: 12px !important;
+                    padding: 12px 16px !important;
+                    color: white !important;
+                    font-size: 0.9rem !important;
+                    outline: none !important;
+                    transition: all 0.2s !important;
+                    width: 100%;
+                }
+                .bulk-field-input:focus {
+                    background: rgba(255, 255, 255, 0.08) !important;
+                    border-color: var(--primary-color) !important;
+                    box-shadow: 0 0 15px rgba(172, 248, 0, 0.1) !important;
+                }
+                .global-tile-btn {
+                    border-radius: 16px !important;
+                    font-weight: 900 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 1.5px !important;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 10px !important;
+                    cursor: pointer !important;
+                    border: 1px solid transparent !important;
+                    font-size: 0.75rem !important;
+                }
+                .global-tile-btn-primary {
+                    background: var(--primary-color) !important;
+                    color: black !important;
+                    box-shadow: 0 4px 20px rgba(172, 248, 0, 0.2) !important;
+                }
+                .global-tile-btn-primary:hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 8px 25px rgba(172, 248, 0, 0.35) !important;
+                    filter: brightness(1.1) !important;
+                }
+                .global-tile-btn-ghost {
+                    background: rgba(255, 255, 255, 0.03) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                    color: white !important;
+                }
+                .global-tile-btn-ghost:hover {
+                    background: rgba(172, 248, 0, 0.08) !important;
+                    border-color: var(--primary-color) !important;
+                    color: var(--primary-color) !important;
+                }
+                .global-tile-btn-danger {
+                    background: rgba(255, 77, 77, 0.1) !important;
+                    border: 1px solid rgba(255, 77, 77, 0.3) !important;
+                    color: #ff4d4d !important;
+                }
+                .global-tile-btn-danger:hover {
+                    background: #ff4d4d !important;
+                    color: white !important;
+                    box-shadow: 0 4px 15px rgba(255, 77, 77, 0.3) !important;
+                }
+                .global-tile-panel {
+                    background: rgba(172, 248, 0, 0.02) !important;
+                    border-radius: 32px !important;
+                    border: 1px solid rgba(172, 248, 0, 0.1) !important;
+                    backdrop-filter: blur(10px);
+                }
+                .global-input-wrapper {
+                    background: rgba(0, 0, 0, 0.2) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                    border-radius: 16px !important;
+                    padding: 0 16px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    gap: 12px !important;
+                    transition: all 0.2s !important;
+                }
+                .global-input-wrapper:focus-within {
+                    border-color: var(--primary-color) !important;
+                    background: rgba(0, 0, 0, 0.4) !important;
+                }
+                .bulk-card {
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 24px;
+                    padding: 24px;
+                }
+                .bulk-input-container {
+                    display: flex;
+                    gap: 24px;
+                    align-items: flex-end;
+                }
+                
                 .bulk-table-container {
-                    max-height: 450px; 
-                    overflow-y: auto; 
-                    border: 1px solid var(--surface-border); 
-                    border-radius: 20px; 
-                    padding: 8px; 
-                    background: var(--card-bg-subtle);
+                    max-height: 500px;
+                    overflow-x: auto;
+                    overflow-y: auto;
+                    background: rgba(0, 0, 0, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 20px;
+                    padding: 8px;
+                }
+                .bulk-table {
+                    width: 100%;
+                    border-collapse: collapse;
                 }
                 .bulk-table th {
                     padding: 16px;
@@ -798,8 +895,53 @@ const TemplateCreator = () => {
                     padding: 12px 16px;
                     border-bottom: 1px solid rgba(255,255,255,0.03);
                 }
+                .input-field {
+                    background: rgba(255, 255, 255, 0.04) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                    color: white !important;
+                    border-radius: 10px !important;
+                    padding: 8px 12px !important;
+                    outline: none !important;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    width: 100%;
+                }
+                .input-field:focus {
+                    border-color: var(--primary-color) !important;
+                    background: rgba(172, 248, 0, 0.05) !important;
+                    box-shadow: 0 0 10px rgba(172, 248, 0, 0.1) !important;
+                }
+                .input-field::placeholder {
+                    color: rgba(255, 255, 255, 0.2);
+                }
                 .bulk-row:hover {
-                    background: rgba(172, 248, 0, 0.02);
+                    background: rgba(172, 248, 0, 0.04) !important;
+                }
+                select.input-field option {
+                    background: #0f172a;
+                    color: white;
+                }
+                .btn-secondary {
+                    background: rgba(255, 255, 255, 0.03) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                    color: white !important;
+                }
+                .btn-secondary:hover {
+                    background: rgba(255, 255, 255, 0.08) !important;
+                    border-color: var(--primary-color) !important;
+                    color: var(--primary-color) !important;
+                }
+                label { 
+                    color: var(--primary-color) !important;
+                    opacity: 0.8 !important;
+                    font-weight: 900 !important;
+                    letter-spacing: 0.5px !important;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 0.4s ease-out forwards;
                 }
             `}</style>
 
@@ -831,7 +973,7 @@ const TemplateCreator = () => {
                                     </div>
 
                                     <div className="flex flex-col gap-3">
-                                        <div className="flex flex-col">
+                                        <div className="flex flex-col" style={{ marginBottom: '10px' }}>
                                             <span style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7 }}>Remetentes Oficiais (Manual)</span>
                                             <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>Insira um ou mais números separados por vírgula ou linha</span>
                                         </div>
@@ -854,7 +996,7 @@ const TemplateCreator = () => {
 
                                     {/* CLIENT SELECTION */}
                                     {user?.role === 'ADMIN' && (
-                                        <div className="space-y-4" style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div className="space-y-4" style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '10px', marginTop: '10px' }}>
                                             <div className="flex items-center justify-between pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                                 <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>VINCULAR A UM CLIENTE</h4>
                                             </div>
@@ -1035,166 +1177,190 @@ const TemplateCreator = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="glass-card flex-1 relative overflow-hidden animate-fade-in">
-                                <div className="flex justify-between items-center">
+                            <div className="glass-card animate-fade-in" style={{ flex: 1, position: 'relative', overflow: 'hidden', padding: '32px', borderRadius: '32px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                                     <div>
                                         <h2 style={{ fontWeight: 900, marginBottom: '4px' }}>Gerador Bulk High-Speed</h2>
-
                                     </div>
                                     <button className="btn btn-secondary" onClick={() => setBulkRows([])} style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '0.75rem' }}>LIMPAR TUDO</button>
                                 </div>
 
-                                {/* FERRAMENTA DE ENCURTAMENTO STANDALONE */}
-                                <div className="mt-6 mb-2 p-5 rounded-2xl border border-primary-color/10 bg-primary-color/[0.02] flex flex-col gap-5">
-                                    <div className="flex items-center gap-3">
-                                        <div style={{ background: 'var(--primary-color)', color: 'black', padding: '6px', borderRadius: '10px' }}><Link size={18} /></div>
-                                        <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ferramenta de Encurtamento</h4>
+                                <div className="global-tile-panel" style={{ padding: '24px', marginBottom: '32px', border: '2px solid var(--surface-border)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                        <div style={{ background: 'var(--primary-color)', color: 'black', padding: '8px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Link size={20} /></div>
+                                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--primary-color)' }}>Ferramenta de Encurtamento</h4>
                                     </div>
 
-                                    <div className="flex flex-col md:flex-row gap-4">
-                                        <div className="flex-1 flex flex-col gap-2">
-                                            <label style={{ fontSize: '10px', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase' }}>Link Original</label>
-                                            <div className="flex gap-2">
-                                                <input 
-                                                    className="input-field" 
-                                                    style={{ borderRadius: '12px', fontSize: '0.85rem' }} 
+                                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '32px' }}>
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '300px' }}>
+                                            <label style={{ fontSize: '10px', fontWeight: 900, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '1px', marginLeft: '4px' }}>Link Original para Encurtar</label>
+                                            <div style={{ display: 'flex', gap: '16px' }}>
+                                                <input
+                                                    className="bulk-field-input"
+                                                    style={{ flex: 1 }}
                                                     placeholder="https://sua-url-longa.com/pagina?id=123"
                                                     value={utilityLinkOriginal}
                                                     onChange={e => setUtilityLinkOriginal(e.target.value)}
                                                 />
-                                                <button 
-                                                    className="btn btn-primary" 
-                                                    style={{ color: 'black', borderRadius: '12px', padding: '0 20px', whiteSpace: 'nowrap' }}
+                                                <button
+                                                    className="global-tile-btn global-tile-btn-primary"
+                                                    style={{ height: '52px', minWidth: '180px' }}
                                                     onClick={handleUtilityShorten}
-                                                    disabled={isShorteningUtility}
+                                                    disabled={isShorteningUtility || !utilityLinkOriginal}
                                                 >
-                                                    {isShorteningUtility ? <Activity size={16} className="animate-spin" /> : 'ENCURTAR'}
+                                                    {isShorteningUtility ? 'ENCURTANDO...' : 'ENCURTAR AGORA'}
                                                 </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex-1 flex flex-col gap-2">
-                                            <label style={{ fontSize: '10px', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase' }}>Link Curto Gerado</label>
-                                            <div className="flex gap-2">
-                                                <input 
-                                                    readOnly 
-                                                    className="input-field" 
-                                                    style={{ borderRadius: '12px', fontSize: '0.85rem', background: 'rgba(0,0,0,0.1)', cursor: 'default' }}
-                                                    value={utilityLinkShort}
-                                                    placeholder="Aguardando geração..."
-                                                />
                                                 {utilityLinkShort && (
-                                                    <button 
-                                                        className="btn btn-secondary" 
-                                                        style={{ borderRadius: '12px', padding: '0 15px' }}
+                                                    <button
+                                                        className="global-tile-btn global-tile-btn-ghost"
+                                                        style={{ height: '52px', width: '52px', padding: 0 }}
                                                         onClick={() => {
                                                             navigator.clipboard.writeText(utilityLinkShort);
-                                                            alert("Copiado!");
+                                                            alert("Link copiado!");
                                                         }}
                                                     >
-                                                        <Copy size={16} />
+                                                        <Copy size={20} />
                                                     </button>
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {utilityLinkShort && (
-                                        <div className="flex flex-wrap gap-3 p-3 bg-black/20 rounded-xl border border-white/5">
-                                            <span style={{ fontSize: '10px', fontWeight: 800, opacity: 0.5, alignSelf: 'center', marginRight: '8px' }}>APLICAR À FILA:</span>
-                                            {buttons.filter(b => b.type === 'url').map((btn, idx) => (
-                                                <button 
-                                                    key={idx}
-                                                    onClick={() => applyUtilityLinkToAll(idx)}
-                                                    className="btn btn-secondary"
-                                                    style={{ fontSize: '0.7rem', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--primary-color)' }}
-                                                >
-                                                    BOTÃO {idx + 1} ({btn.text || 'Link'})
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                        {utilityLinkShort && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '32px' }}>
+                                                <label style={{ fontSize: '10px', fontWeight: 900, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '1px', marginLeft: '4px' }}>Aplicar Globalmente:</label>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                                                    {buttons.filter(b => b.type === 'url').map((btn, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => applyUtilityLinkToAll(idx)}
+                                                            className="global-tile-btn global-tile-btn-ghost"
+                                                            style={{ fontSize: '10px', padding: '8px 16px', minWidth: '100px' }}
+                                                        >
+                                                            {idx + 1}. {btn.text || 'LINK'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="flex flex-col gap-6">
-                                    <div className="bulk-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr', gap: '20px' }}>
-                                        <div className="input-group">
-                                            <label>Prefixo Base</label>
-                                            <input className="input-field" style={{ borderRadius: '12px' }} value={bulkPrefix} onChange={e => setBulkPrefix(e.target.value.toLowerCase())} placeholder="ex: v1_" />
+                                <div className="bulk-card" style={{ marginBottom: '32px' }}>
+                                    <div className="bulk-input-container">
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, opacity: 0.5, marginBottom: '8px', textTransform: 'uppercase' }}>Fixo da Campanha (Ex: OBRIGADO_)</label>
+                                            <input
+                                                value={campaignPrefix}
+                                                onChange={e => setCampaignPrefix(e.target.value.toUpperCase().replace(/\s/g, '_'))}
+                                                className="bulk-field-input"
+                                                placeholder="PREFIXO_FIXO_"
+                                            />
                                         </div>
-                                        <div className="input-group">
-                                            <label>Adicionar à Fila</label>
-                                            <div className="flex gap-2">
-                                                <input type="number" className="input-field" style={{ borderRadius: '12px', width: '80px' }} defaultValue={5} id="bulk_qty" />
-                                                <button className="btn btn-primary" style={{ flex: 1, borderRadius: '12px', color: 'black' }} onClick={() => {
-                                                    const qty = Number((document.getElementById('bulk_qty') as HTMLInputElement)?.value || 0);
-                                                    autoGenerateRows(qty);
-                                                }}>+ ADICIONAR LINHAS</button>
+                                        <div style={{ width: '260px' }}>
+                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, opacity: 0.5, marginBottom: '8px', textTransform: 'uppercase' }}>Tamanho Fila</label>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <input
+                                                    type="number"
+                                                    value={queueSize}
+                                                    onChange={e => setQueueSize(parseInt(e.target.value) || 1)}
+                                                    className="bulk-field-input"
+                                                    style={{ textAlign: 'center' }}
+                                                />
+                                                <button
+                                                    className="global-tile-btn global-tile-btn-primary"
+                                                    style={{ height: '52px', padding: '0 24px', whiteSpace: 'nowrap' }}
+                                                    onClick={handleGenerateRows}
+                                                >
+                                                    <Plus size={20} /> CRIAR LOTE
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    {bulkRows.length > 0 && (
-                                        <div className="animate-fade-in p-5 rounded-2xl border border-primary-color/20 bg-primary-color/5 flex flex-wrap items-center justify-between gap-4">
-                                            <div className="flex flex-col">
-                                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Editar Todos ({bulkRows.length})</span>
-                                                <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>Aplica a mudança em todas as linhas da fila abaixo</span>
+                                {bulkRows.length > 0 && (
+                                    <>
+                                        <div className="global-tile-panel animate-fade-in" style={{ padding: '24px', marginBottom: '40px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                                                <div style={{ background: 'var(--primary-color)', color: 'black', padding: '10px', borderRadius: '14px' }}><Settings2 size={24} /></div>
+                                                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem', color: 'var(--primary-color)' }}>PAINEL DE AÇÃO GLOBAL</h3>
                                             </div>
-                                            <div className="flex flex-wrap gap-4 items-center">
-                                                <div className="flex flex-col gap-1">
-                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Mídia Geral</span>
-                                                    <div className="flex bg-black/20 p-1 rounded-lg">
+
+                                            <div style={{ padding: '12px', display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>1. TIPO DE MÍDIA</span>
+                                                    <div style={{ display: 'flex', gap: '16px' }}>
                                                         {(['none', 'image', 'video'] as const).map(t => (
-                                                            <button key={t} onClick={() => applyGlobalHeaderType(t)} className="px-2 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>{t === 'none' ? 'SEM' : t}</button>
+                                                            <button
+                                                                key={t}
+                                                                onClick={() => applyGlobalHeaderType(t)}
+                                                                className={`global-tile-btn ${headerType === t ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
+                                                                style={{ minWidth: '120px', height: '48px' }}
+                                                            >
+                                                                {t === 'none' ? 'SEM MÍDIA' : t.toUpperCase()}
+                                                            </button>
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Botões Geral</span>
-                                                    <div className="flex bg-black/20 p-1 rounded-lg">
-                                                        <button onClick={() => applyGlobalButtons(true)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>COM</button>
-                                                        <button onClick={() => applyGlobalButtons(false)} className="px-3 py-1 text-[10px] font-bold rounded-md hover:text-white transition-colors uppercase" style={{ color: 'var(--text-muted)' }}>SEM</button>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '48px' }}>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>2. BOTÕES</span>
+                                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                                        <button
+                                                            onClick={() => applyGlobalButtons(true)}
+                                                            className="global-tile-btn global-tile-btn-primary"
+                                                            style={{ minWidth: '140px', height: '48px' }}
+                                                        >
+                                                            ATIVAR TDS
+                                                        </button>
+                                                        <button
+                                                            onClick={() => applyGlobalButtons(false)}
+                                                            className="global-tile-btn global-tile-btn-danger"
+                                                            style={{ minWidth: '140px', height: '48px' }}
+                                                        >
+                                                            REMOVER
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5 }}>Sender Geral</span>
-                                                    <div className="flex bg-black/20 p-1 rounded-lg">
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '0px', flex: 1, minWidth: '280px' }}>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>3. REMETENTE GERAL</span>
+                                                    <div className="global-input-wrapper" style={{ height: '64px' }}>
+                                                        <Smartphone size={20} className="text-emerald-500" />
                                                         <input
                                                             onChange={(e) => applyGlobalSender(e.target.value)}
-                                                            className="px-2 py-1 text-[10px] font-bold rounded-md bg-transparent border-none outline-none uppercase"
-                                                            style={{ color: 'var(--text-muted)', cursor: 'pointer', width: '100px' }}
-                                                            placeholder="MUDAR TODOS"
+                                                            className="text-sm font-black bg-transparent border-none outline-none uppercase p-0 w-full"
+                                                            style={{ color: 'black', letterSpacing: '1.5px', padding: '5px' }}
+                                                            placeholder="DIGITE O NÚMERO DE DISPARO"
                                                         />
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
 
-                                    {bulkRows.length > 0 && (
-                                        <div className="flex flex-col gap-6">
-                                            <div className="bulk-table-container shadow-inner">
+                                        <div className="flex flex-col gap-8 animate-fade-in">
+                                            <div className="bulk-table-container shadow-2xl bg-black/20 p-2 rounded-3xl border border-white/10 overflow-hidden">
                                                 <table className="bulk-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                                                     <thead>
                                                         <tr>
-                                                            <th>Sufixo</th>
-                                                            <th>Sender (BM)</th>
-                                                            <th>Tipo Mídia</th>
-                                                            {buttons.length > 0 && <th>Botões</th>}
+                                                            <th>SUFIXO</th>
+                                                            <th>SENDER</th>
+                                                            <th>TIPO</th>
+                                                            {buttons.length > 0 && <th>BOTÕES</th>}
                                                             {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
                                                                 <Fragment key={urlIdx}>
-                                                                    <th key={`label-${urlIdx}`}>Texto B{urlIdx + 1}</th>
-                                                                    <th key={`link-${urlIdx}`}>Link {urlIdx + 1}</th>
+                                                                    <th key={`label-${urlIdx}`}>LABEL B{urlIdx + 1}</th>
+                                                                    <th key={`link-${urlIdx}`}>LINK {urlIdx + 1}</th>
                                                                 </Fragment>
                                                             ))}
-                                                            <th style={{ width: '40px' }}></th>
+                                                            <th style={{ width: '60px' }}></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {bulkRows.map((row, i) => (
                                                             <tr key={i} className="bulk-row">
                                                                 <td>
-                                                                    <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.suffix} onChange={e => {
+                                                                    <input className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }} value={row.suffix} onChange={e => {
                                                                         const n = [...bulkRows];
                                                                         n[i].suffix = e.target.value.toLowerCase().replace(/\s/g, '_');
                                                                         setBulkRows(n);
@@ -1203,9 +1369,9 @@ const TemplateCreator = () => {
                                                                 <td>
                                                                     <input
                                                                         className="input-field"
-                                                                        style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 700 }}
+                                                                        style={{ padding: '8px', borderRadius: '10px', fontSize: '0.81rem', fontWeight: 800 }}
                                                                         value={row.sender || ''}
-                                                                         placeholder={senderNumbers.split(/[\n,]/)[0] || ''}
+                                                                        placeholder={senderNumbers.split(/[\n,]/)[0] || ''}
                                                                         onChange={e => {
                                                                             const n = [...bulkRows];
                                                                             n[i].sender = e.target.value;
@@ -1214,7 +1380,7 @@ const TemplateCreator = () => {
                                                                     />
                                                                 </td>
                                                                 <td>
-                                                                    <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.headerType} onChange={e => {
+                                                                    <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700 }} value={row.headerType} onChange={e => {
                                                                         const n = [...bulkRows];
                                                                         n[i].headerType = e.target.value;
                                                                         if (e.target.value === 'none') n[i].mediaUrl = '';
@@ -1228,7 +1394,7 @@ const TemplateCreator = () => {
                                                                 </td>
                                                                 {buttons.length > 0 && (
                                                                     <td>
-                                                                        <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.85rem' }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={e => {
+                                                                        <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700 }} value={row.hasButtons !== false ? 'yes' : 'no'} onChange={e => {
                                                                             const n = [...bulkRows];
                                                                             n[i].hasButtons = e.target.value === 'yes';
                                                                             setBulkRows(n);
@@ -1258,11 +1424,11 @@ const TemplateCreator = () => {
                                                                     </Fragment>
                                                                 ))}
                                                                 <td style={{ textAlign: 'center' }}>
-                                                                    <div className="flex gap-2 justify-center">
-                                                                        <button onClick={() => duplicateRow(i)} title="Duplicar esta linha" style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '1rem', opacity: 0.7 }}>
-                                                                            <Copy size={16} />
+                                                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                                                                        <button onClick={() => duplicateRow(i)} title="Duplicar" style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', transition: 'transform 0.2s' }}>
+                                                                            <Copy size={18} />
                                                                         </button>
-                                                                        <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} title="Excluir" style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                                                                        <button onClick={() => setBulkRows(bulkRows.filter((_, idx) => idx !== i))} title="Remover" style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '1.3rem' }}>✕</button>
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -1271,16 +1437,15 @@ const TemplateCreator = () => {
                                                 </table>
                                             </div>
 
-                                            <button className="btn btn-primary shadow-lg mt-4 w-full" style={{ minHeight: '60px', fontSize: '1.1rem', fontWeight: 900, color: 'black', borderRadius: '20px', textTransform: 'uppercase' }} onClick={handleGenerateBulk} disabled={isGenerating}>
-                                                {isGenerating ? `Publicando ${generatingProgress.current}/${generatingProgress.total}...` : 'CRIAR TEMPLATE EM MASSA'}
+                                            <button className="btn btn-primary shadow-xl mt-6 w-full" style={{ minHeight: '74px', fontSize: '1.2rem', fontWeight: 900, color: 'black', borderRadius: '24px', textTransform: 'uppercase', letterSpacing: '1px' }} onClick={handleGenerateBulk} disabled={isGenerating}>
+                                                {isGenerating ? `PROCESSANDO (${generatingProgress.current}/${generatingProgress.total})...` : '🚀 LANÇAR CAMPANHA EM MASSA'}
                                             </button>
                                         </div>
-                                    )}
-                                </div>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
-
                     {/* Preview Sticky */}
                     <div className="preview-sticky">
                         <div className="glass-card" style={{ border: '1px solid var(--primary-color)', background: 'rgba(172, 248, 0, 0.02)' }}>

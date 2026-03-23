@@ -9,6 +9,8 @@ interface User {
     phone?: string;
     role: Role;
     notification_number?: string;
+    infobip_key?: string;
+    infobip_sender?: string;
 }
 
 interface AuthContextType {
