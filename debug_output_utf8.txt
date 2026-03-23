@@ -1,0 +1,12 @@
+﻿--- Testing Protocol Normalization ---
+Original: [google.com] -> Normalized: [https://google.com]
+Original: [http://example.com] -> Normalized: [http://example.com]
+Original: [https://github.com] -> Normalized: [https://github.com]
+Original: [  ftp://mysite.com] -> Normalized: [https://ftp://mysite.com]
+Original: [samwellmidia.com.br] -> Normalized: [https://samwellmidia.com.br]
+
+--- Testing Case-Insensitivity Concept ---
+Code: [CODE123] -> Lowercase (for DB lookup): [code123]
+Code: [code123] -> Lowercase (for DB lookup): [code123]
+Code: [SamwellMidia.com.br] -> Lowercase (for DB lookup): [samwellmidia.com.br]
+Code: [samwellmidia.com.br] -> Lowercase (for DB lookup): [samwellmidia.com.br]

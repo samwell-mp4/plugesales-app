@@ -889,74 +889,7 @@ app.delete('/api/shortener/:id', async (req, res) => {
     }
 });
 
-// Redirection Global Endpoint
-app.get('/l/:shortCode', async (req, res) => {
-    const { shortCode } = req.params;
-    console.log(`[LINK_REDIRECT] Request for: ${shortCode}`);
-    
-    try {
-        const result = await pool.query('SELECT * FROM shortened_links WHERE short_code = $1', [shortCode]);
-        if (result.rows.length === 0) {
-            console.warn(`[LINK_REDIRECT] 404: Code "${shortCode}" not found.`);
-            return res.status(404).send('<h1>404 - Link não encontrado</h1>');
-        }
-
-        const link = result.rows[0];
-        console.log(`[LINK_REDIRECT] Found: ID=${link.id}, Target=${link.original_url}`);
-        const userIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
-
-        // Track Click (Fire and Forget with Geolocation)
-        (async () => {
-            try {
-                let geoData = { country: 'Local', city: 'N/A', region: 'N/A', lat: 0, lon: 0 };
-
-                // Only fetch if not internal/localhost
-                const cleanIp = userIp.includes(',') ? userIp.split(',')[0].trim() : userIp;
-                if (cleanIp !== '127.0.0.1' && cleanIp !== '::1' && !cleanIp.startsWith('::ffff:127.0.0.1')) {
-                    try {
-                        const geoResp = await fetch(`http://ip-api.com/json/${cleanIp}`);
-                        const geo = await geoResp.json();
-                        if (geo.status === 'success') {
-                            geoData = {
-                                country: geo.country,
-                                city: geo.city,
-                                region: geo.regionName,
-                                lat: geo.lat,
-                                lon: geo.lon
-                            };
-                        }
-                    } catch (e) {
-                        console.error("Geo API Error:", e.message);
-                    }
-                }
-
-                await pool.query(
-                    `INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer, country, city, region, latitude, longitude) 
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-                    [
-                        link.id,
-                        cleanIp,
-                        req.headers['user-agent'],
-                        req.headers['referer'] || 'Direto',
-                        geoData.country,
-                        geoData.city,
-                        geoData.region,
-                        geoData.lat || 0,
-                        geoData.lon || 0
-                    ]
-                );
-            } catch (err) {
-                console.error("Error tracking click:", err);
-            }
-        })();
-
-        // Redirect
-        res.redirect(link.original_url);
-    } catch (err) {
-        res.status(500).send('Erro interno');
-    }
-});
-
+// --- Link Shortener Routes (MOVED UP FOR PRECEDENCE) ---
 // --- REDIS: Dispatch Queue Control ---
 app.post('/api/dispatch/queue', async (req, res) => {
     const { messages } = req.body;
@@ -1025,7 +958,7 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configuração do Multer
+// Configuração do Multer (mantido)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => { cb(null, uploadDir); },
     filename: (req, file, cb) => {
@@ -1037,6 +970,103 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage,
     limits: { fileSize: 50 * 1024 * 1024 }
+});
+
+// --- Link Shortener Routes (High Precedence) ---
+// Test Endpoint to verify protocol normalization without DB side-effects
+app.get('/api/shortener/test-protocol', (req, res) => {
+    let url = req.query.url;
+    if (!url) return res.status(400).json({ error: 'Faltando url' });
+    
+    let original = url;
+    let normalized = url.trim();
+    if (!/^https?:\/\//i.test(normalized)) {
+        normalized = `https://${normalized}`;
+    }
+    res.json({ original, normalized });
+});
+
+// Redirection Global Endpoint
+app.get('/l/:shortCode', async (req, res) => {
+    const { shortCode } = req.params;
+    console.log(`[LINK_REDIRECT] Request for: "${shortCode}"`);
+    
+    try {
+        // Search case-insensitive just in case
+        const result = await pool.query('SELECT * FROM shortened_links WHERE LOWER(short_code) = LOWER($1)', [shortCode]);
+        
+        if (result.rows.length === 0) {
+            console.warn(`[LINK_REDIRECT] 404: Code "${shortCode}" not found.`);
+            // Redirect to home/dashboard instead of showing 404
+            return res.redirect('/?error=link_not_found');
+        }
+
+        const link = result.rows[0];
+        console.log(`[LINK_REDIRECT] Found: ID=${link.id}, Target=${link.original_url}`);
+        const userIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+        // Track Click (Fire and Forget with Geolocation)
+        (async () => {
+            try {
+                let geoData = { country: 'Local', city: 'N/A', region: 'N/A', lat: 0, lon: 0 };
+
+                // Only fetch if not internal/localhost
+                const cleanIp = userIp.includes(',') ? userIp.split(',')[0].trim() : userIp;
+                if (cleanIp !== '127.0.0.1' && cleanIp !== '::1' && !cleanIp.startsWith('::ffff:127.0.0.1')) {
+                    try {
+                        const geoResp = await fetch(`http://ip-api.com/json/${cleanIp}`);
+                        const geo = await geoResp.json();
+                        if (geo.status === 'success') {
+                            geoData = {
+                                country: geo.country,
+                                city: geo.city,
+                                region: geo.regionName,
+                                lat: geo.lat,
+                                lon: geo.lon
+                            };
+                        }
+                    } catch (e) {
+                        console.error("Geo API Error:", e.message);
+                    }
+                }
+
+                await pool.query(
+                    `INSERT INTO link_clicks (link_id, ip_address, user_agent, referrer, country, city, region, latitude, longitude) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                    [
+                        link.id,
+                        cleanIp,
+                        req.headers['user-agent'],
+                        req.headers['referer'] || 'Direto',
+                        geoData.country,
+                        geoData.city,
+                        geoData.region,
+                        geoData.lat || 0,
+                        geoData.lon || 0
+                    ]
+                );
+            } catch (err) {
+                console.error("Error tracking click:", err);
+            }
+        })();
+
+        // Redirect with Protocol Normalization
+        let targetUrl = link.original_url.trim();
+        if (!/^https?:\/\//i.test(targetUrl)) {
+            console.log(`[LINK_REDIRECT] Normalizing URL: ${targetUrl} -> https://${targetUrl}`);
+            targetUrl = `https://${targetUrl}`;
+        }
+
+        res.redirect(targetUrl);
+    } catch (err) {
+        res.status(500).send('Erro interno ao processar redirecionamento.');
+    }
+});
+
+// Catch-all for /l/ paths that didn't match :shortCode (e.g. nested paths or empty)
+app.get('/l/*', (req, res) => {
+    console.log(`[LINK_REDIRECT] Catch-all triggered for: ${req.url}`);
+    res.redirect('/?error=invalid_link_format');
 });
 
 // Servir frontend estático

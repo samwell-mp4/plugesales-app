@@ -236,7 +236,13 @@ const ClientSubmissionDetail = () => {
         if (!sub) return;
         setIsGeneratingLink(true);
         try {
-            const dashboardUrl = `${window.location.origin}/client-submissions/${sub.id}`;
+            const ensureProtocol = (url: string) => {
+                if (!url) return '';
+                const trimmed = url.trim();
+                return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+            };
+            
+            const dashboardUrl = ensureProtocol(`${window.location.origin}/client-submissions/${sub.id}`);
             const res = await fetch('/api/shortener/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -969,10 +975,31 @@ const ClientSubmissionDetail = () => {
                                         </div>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                             {currentAd.variables?.map((v, i) => (
-                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--surface-border-subtle)' }}>
+                                                <div key={i} style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '6px', 
+                                                    padding: '6px 12px', 
+                                                    background: 'var(--bg-primary)', 
+                                                    borderRadius: '8px', 
+                                                    border: '1px solid var(--surface-border-subtle)',
+                                                    maxWidth: '100%',
+                                                    boxSizing: 'border-box'
+                                                }}>
                                                     {user?.role !== 'CLIENT' ? (
                                                         <input 
-                                                            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, width: `${Math.max(v.length, 5) * 8}px`, minWidth: '40px', outline: 'none' }}
+                                                            style={{ 
+                                                                background: 'transparent', 
+                                                                border: 'none', 
+                                                                color: 'var(--text-primary)', 
+                                                                fontSize: '11px', 
+                                                                fontWeight: 700, 
+                                                                width: 'auto',
+                                                                maxWidth: 'calc(100% - 40px)', 
+                                                                minWidth: '40px', 
+                                                                outline: 'none',
+                                                                textOverflow: 'ellipsis'
+                                                            }}
                                                             value={v}
                                                             onChange={(e) => {
                                                                 const newVars = [...(currentAd.variables || [])];
@@ -981,7 +1008,15 @@ const ClientSubmissionDetail = () => {
                                                             }}
                                                         />
                                                     ) : (
-                                                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                                        <span style={{ 
+                                                            fontSize: '11px', 
+                                                            fontWeight: 700, 
+                                                            color: 'var(--text-muted)',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                            maxWidth: 'calc(100% - 20px)'
+                                                        }}>
                                                             {v}
                                                         </span>
                                                     )}

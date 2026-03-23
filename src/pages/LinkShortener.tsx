@@ -37,6 +37,15 @@ const LinkShortener = () => {
         fetchClients();
     }, [user]);
 
+    const ensureProtocol = (url: string) => {
+        if (!url) return '';
+        const trimmed = url.trim();
+        if (!/^https?:\/\//i.test(trimmed)) {
+            return `https://${trimmed}`;
+        }
+        return trimmed;
+    };
+
     const fetchClients = async () => {
         try {
             const data = await dbService.getClientSubmissions();
@@ -71,14 +80,14 @@ const LinkShortener = () => {
             if (isBulk) {
                 payload.links = bulkLinks
                     .filter(l => l.url)
-                    .map(l => ({ title: l.title, original_url: l.url }));
+                    .map(l => ({ title: l.title, original_url: ensureProtocol(l.url) }));
                 if (payload.links.length === 0) {
                     alert("Adicione pelo menos uma URL válida.");
                     return;
                 }
             } else {
                 if (!originalUrl) return;
-                payload.original_url = originalUrl;
+                payload.original_url = ensureProtocol(originalUrl);
                 payload.title = title || undefined;
             }
 
