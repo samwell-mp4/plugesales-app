@@ -807,51 +807,66 @@ const TemplateCreator = () => {
                     border: 1px solid transparent !important;
                     font-size: 0.75rem !important;
                 }
+                .global-tile-btn {
+                    transition: all 0.2s ease !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 8px !important;
+                    cursor: pointer !important;
+                    border: 1px solid transparent !important;
+                    font-size: 0.7rem !important;
+                    padding: 8px 16px !important;
+                    height: 38px !important;
+                    border-radius: 8px !important;
+                    font-weight: 700 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.5px !important;
+                }
                 .global-tile-btn-primary {
                     background: var(--primary-color) !important;
                     color: black !important;
-                    box-shadow: 0 4px 20px rgba(172, 248, 0, 0.2) !important;
+                    box-shadow: none !important;
                 }
                 .global-tile-btn-primary:hover {
-                    transform: translateY(-2px) !important;
-                    box-shadow: 0 8px 25px rgba(172, 248, 0, 0.35) !important;
-                    filter: brightness(1.1) !important;
+                    box-shadow: 0 4px 12px rgba(172, 248, 0, 0.2) !important;
+                    filter: brightness(1.05) !important;
                 }
                 .global-tile-btn-ghost {
-                    background: rgba(255, 255, 255, 0.03) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                    color: white !important;
+                    background: rgba(255, 255, 255, 0.02) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                    color: rgba(255, 255, 255, 0.7) !important;
                 }
                 .global-tile-btn-ghost:hover {
-                    background: rgba(172, 248, 0, 0.08) !important;
-                    border-color: var(--primary-color) !important;
-                    color: var(--primary-color) !important;
+                    background: rgba(255, 255, 255, 0.05) !important;
+                    border-color: rgba(255, 255, 255, 0.2) !important;
+                    color: white !important;
                 }
                 .global-tile-btn-danger {
-                    background: rgba(255, 77, 77, 0.1) !important;
-                    border: 1px solid rgba(255, 77, 77, 0.3) !important;
-                    color: #ff4d4d !important;
+                    background: rgba(239, 68, 68, 0.05) !important;
+                    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+                    color: #f87171 !important;
                 }
                 .global-tile-btn-danger:hover {
-                    background: #ff4d4d !important;
+                    background: #ef4444 !important;
                     color: white !important;
-                    box-shadow: 0 4px 15px rgba(255, 77, 77, 0.3) !important;
                 }
                 .global-tile-panel {
-                    background: rgba(172, 248, 0, 0.02) !important;
-                    border-radius: 32px !important;
-                    border: 1px solid rgba(172, 248, 0, 0.1) !important;
-                    backdrop-filter: blur(10px);
+                    background: rgba(15, 23, 42, 0.3) !important;
+                    border-radius: 16px !important;
+                    border: 1px solid var(--surface-border-subtle) !important;
+                    backdrop-filter: blur(8px);
                 }
                 .global-input-wrapper {
-                    background: rgba(0, 0, 0, 0.2) !important;
+                    background: rgba(0, 0, 0, 0.3) !important;
                     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                    border-radius: 16px !important;
-                    padding: 0 16px !important;
+                    border-radius: 10px !important;
+                    padding: 0 12px !important;
                     display: flex !important;
                     align-items: center !important;
-                    gap: 12px !important;
-                    transition: all 0.2s !important;
+                    gap: 10px !important;
+                    height: 42px !important;
+                    transition: border-color 0.2s !important;
                 }
                 .global-input-wrapper:focus-within {
                     border-color: var(--primary-color) !important;
@@ -1248,16 +1263,16 @@ const TemplateCreator = () => {
                                 <div className="bulk-card" style={{ marginBottom: '32px' }}>
                                     <div className="bulk-input-container">
                                         <div style={{ flex: 1 }}>
-                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, opacity: 0.5, marginBottom: '8px', textTransform: 'uppercase' }}>Fixo da Campanha (Ex: OBRIGADO_)</label>
+                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, opacity: 0.5, marginBottom: '8px' }}>Fixo da Campanha (Ex: OBRIGADO_)</label>
                                             <input
                                                 value={campaignPrefix}
-                                                onChange={e => setCampaignPrefix(e.target.value.toUpperCase().replace(/\s/g, '_'))}
+                                                onChange={e => setCampaignPrefix(e.target.value.replace(/\s/g, '_'))}
                                                 className="bulk-field-input"
                                                 placeholder="PREFIXO_FIXO_"
                                             />
                                         </div>
                                         <div style={{ width: '260px' }}>
-                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, opacity: 0.5, marginBottom: '8px', textTransform: 'uppercase' }}>Tamanho Fila</label>
+                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, opacity: 0.5, marginBottom: '8px' }}>Tamanho Fila</label>
                                             <div style={{ display: 'flex', gap: '8px' }}>
                                                 <input
                                                     type="number"
@@ -1280,22 +1295,22 @@ const TemplateCreator = () => {
 
                                 {bulkRows.length > 0 && (
                                     <>
-                                        <div className="global-tile-panel animate-fade-in" style={{ padding: '24px', marginBottom: '40px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                                                <div style={{ background: 'var(--primary-color)', color: 'black', padding: '10px', borderRadius: '14px' }}><Settings2 size={24} /></div>
-                                                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem', color: 'var(--primary-color)' }}>PAINEL DE AÇÃO GLOBAL</h3>
+                                        <div className="global-tile-panel animate-fade-in" style={{ padding: '20px', marginBottom: '32px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                                                <div style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '8px', borderRadius: '10px' }}><Settings2 size={18} /></div>
+                                                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>PAINEL DE AÇÃO GLOBAL</h3>
                                             </div>
 
-                                            <div style={{ padding: '12px', display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>1. TIPO DE MÍDIA</span>
-                                                    <div style={{ display: 'flex', gap: '16px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>1. TIPO DE MÍDIA</span>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
                                                         {(['none', 'image', 'video'] as const).map(t => (
                                                             <button
                                                                 key={t}
                                                                 onClick={() => applyGlobalHeaderType(t)}
                                                                 className={`global-tile-btn ${headerType === t ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
-                                                                style={{ minWidth: '120px', height: '48px' }}
+                                                                style={{ flex: 1 }}
                                                             >
                                                                 {t === 'none' ? 'SEM MÍDIA' : t.toUpperCase()}
                                                             </button>
@@ -1303,34 +1318,34 @@ const TemplateCreator = () => {
                                                     </div>
                                                 </div>
 
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '48px' }}>
-                                                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>2. BOTÕES</span>
-                                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>2. BOTÕES</span>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
                                                         <button
                                                             onClick={() => applyGlobalButtons(true)}
                                                             className="global-tile-btn global-tile-btn-primary"
-                                                            style={{ minWidth: '140px', height: '48px' }}
+                                                            style={{ flex: 1 }}
                                                         >
                                                             ATIVAR TDS
                                                         </button>
                                                         <button
                                                             onClick={() => applyGlobalButtons(false)}
                                                             className="global-tile-btn global-tile-btn-danger"
-                                                            style={{ minWidth: '140px', height: '48px' }}
+                                                            style={{ flex: 1 }}
                                                         >
                                                             REMOVER
                                                         </button>
                                                     </div>
                                                 </div>
 
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '0px', flex: 1, minWidth: '280px' }}>
-                                                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>3. REMETENTE GERAL</span>
-                                                    <div className="global-input-wrapper" style={{ height: '64px' }}>
-                                                        <Smartphone size={20} className="text-emerald-500" />
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>3. REMETENTE GERAL</span>
+                                                    <div className="global-input-wrapper">
+                                                        <Smartphone size={16} className="text-muted" style={{ opacity: 0.5 }} />
                                                         <input
                                                             onChange={(e) => applyGlobalSender(e.target.value)}
-                                                            className="text-sm font-black bg-transparent border-none outline-none uppercase p-0 w-full"
-                                                            style={{ color: 'black', letterSpacing: '1.5px', padding: '5px' }}
+                                                            className="bg-transparent border-none outline-none font-bold text-xs w-full"
+                                                            style={{ color: 'var(--primary-color)', letterSpacing: '1px' }}
                                                             placeholder="DIGITE O NÚMERO DE DISPARO"
                                                         />
                                                     </div>
