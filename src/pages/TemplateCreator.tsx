@@ -29,9 +29,14 @@ const TemplateCreator = () => {
     const [newClientData, setNewClientData] = useState({ name: '', email: '', phone: '', password: '' });
 
     useEffect(() => {
+        console.log('DEBUG: Current User:', user);
         if (user?.role === 'ADMIN') {
-            dbService.getClients().then(setClients);
+            dbService.getClients().then(data => {
+                console.log('DEBUG: Fetched Clients:', data);
+                setClients(data);
+            });
         } else {
+            console.log('DEBUG: User is not ADMIN, setting id:', user?.id);
             setSelectedClientId(user?.id || '');
         }
     }, [user]);

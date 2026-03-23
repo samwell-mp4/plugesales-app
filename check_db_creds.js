@@ -1,14 +1,13 @@
 import pg from 'pg';
 const { Pool } = pg;
-const pool = new Pool({ connectionString: 'postgres://postgres:123456@localhost:5432/plugesales' });
+const pgUrl = "postgres://postgres:Marketing@plugsales2026!@127.0.0.1:5432/plug_sales_dispatch_app";
+const pool = new Pool({ connectionString: pgUrl });
 async function test() {
     try {
         const res = await pool.query('SELECT id, name, email, role FROM users');
         console.table(res.rows);
     } catch (err) {
-        console.error('Full Error Object:', err);
-        console.error('Error Code:', err.code);
-        console.error('Error Message:', err.message);
+        console.error('Error:', err.message);
     } finally {
         pool.end();
     }
