@@ -5,6 +5,7 @@ export const dbService = {
     getSettings: async (): Promise<Record<string, string>> => {
         try {
             const res = await fetch(`${API_BASE}/settings`);
+            if (!res.ok) return {};
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching settings:", err);
@@ -28,6 +29,7 @@ export const dbService = {
         try {
             const url = type ? `${API_BASE}/logs?type=${type}` : `${API_BASE}/logs`;
             const res = await fetch(url);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching logs:", err);
@@ -61,6 +63,7 @@ export const dbService = {
     getMedia: async () => {
         try {
             const res = await fetch(`${API_BASE}/media`);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching media:", err);
@@ -79,6 +82,7 @@ export const dbService = {
     getUploadHistory: async () => {
         try {
             const res = await fetch(`${API_BASE}/upload-history`);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching upload history:", err);
@@ -110,6 +114,7 @@ export const dbService = {
     getContacts: async () => {
         try {
             const res = await fetch(`${API_BASE}/contacts`);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching contacts:", err);
@@ -149,6 +154,7 @@ export const dbService = {
     getCampaigns: async () => {
         try {
             const res = await fetch(`${API_BASE}/campaigns`);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching campaigns:", err);
@@ -182,6 +188,7 @@ export const dbService = {
     getEngineLogs: async () => {
         try {
             const res = await fetch(`${API_BASE}/engine-logs`);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching engine logs:", err);
@@ -240,6 +247,7 @@ export const dbService = {
     getPlannerDrafts: async () => {
         try {
             const res = await fetch(`${API_BASE}/planner-drafts`);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching planner drafts:", err);
@@ -292,6 +300,7 @@ export const dbService = {
     getClientSubmissions: async () => {
         try {
             const res = await fetch(`${API_BASE}/client-submissions`);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching client submissions:", err);
@@ -301,6 +310,7 @@ export const dbService = {
     getClients: async () => {
         try {
             const res = await fetch(`${API_BASE}/clients`);
+            if (!res.ok) return [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching clients:", err);
