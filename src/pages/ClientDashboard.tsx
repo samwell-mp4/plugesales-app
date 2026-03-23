@@ -10,7 +10,8 @@ import {
     Smartphone,
     ExternalLink,
     Zap,
-    Link as LinkIcon
+    Link as LinkIcon,
+    Trash2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -101,6 +102,28 @@ const ClientDashboard = () => {
             setIsSavingProfile(false);
         }
     };
+    const handleDeleteSubmission = async (id: number) => {
+        if (!window.confirm("Tem certeza que deseja excluir esta submissão?")) return;
+        try {
+            await dbService.deleteClientSubmission(id);
+            setSubmissions(prev => prev.filter(s => s.id !== id));
+        } catch (error) {
+            console.error("Error deleting submission:", error);
+            alert("Erro ao excluir submissão.");
+        }
+    };
+
+    const handleDeleteLink = async (id: number) => {
+        if (!window.confirm("Tem certeza que deseja excluir este link?")) return;
+        try {
+            await dbService.deleteShortLink(id);
+            setLinks(prev => prev.filter(l => l.id !== id));
+        } catch (error) {
+            console.error("Error deleting link:", error);
+            alert("Erro ao excluir link.");
+        }
+    };
+
     const statusCfg = (status: string) => {
         switch (status) {
             case 'PENDENTE': return { label: 'Pendente', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' };
@@ -317,13 +340,25 @@ const ClientDashboard = () => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <button 
-                                                onClick={() => navigate(`/client-submissions/${sub.id}`)}
-                                                className="action-btn ghost-btn" 
-                                                style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
-                                            >
-                                                DETALHES <ExternalLink size={14} />
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                {sub.status === 'PENDENTE' && (
+                                                    <button 
+                                                        onClick={() => handleDeleteSubmission(sub.id)}
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ height: 36, width: 36, padding: 0, color: '#ef4444' }}
+                                                        title="Excluir Submissão"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => navigate(`/client-submissions/${sub.id}`)}
+                                                    className="action-btn ghost-btn" 
+                                                    style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
+                                                >
+                                                    DETALHES <ExternalLink size={14} />
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })
@@ -349,10 +384,18 @@ const ClientDashboard = () => {
                                                 <div style={{ background: 'rgba(172,248,0,0.1)', padding: '8px', borderRadius: '10px' }}>
                                                     <LinkIcon size={18} className="text-primary-color" />
                                                 </div>
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
-                                                    <div style={{ fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
-
+                                                <div style={{ textAlign: 'right', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
+                                                        <div style={{ fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => handleDeleteLink(link.id)}
+                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                                                        title="Excluir Link"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
                                                 </div>
                                             </div>
                                             <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>

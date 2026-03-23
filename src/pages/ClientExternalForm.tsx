@@ -193,7 +193,7 @@ const ClientExternalForm = () => {
                 setStep(4); // Success step
                 setTimeout(() => {
                     navigate('/client-dashboard');
-                }, 3000);
+                }, 1500); // Reduced from 3000ms
             } else {
                 alert("Erro ao enviar os dados. Tente novamente.");
             }
@@ -1163,10 +1163,10 @@ const ClientExternalForm = () => {
                             <h1 style={{ fontSize: '4rem', fontWeight: 900, marginBottom: '24px', letterSpacing: '-3px' }}>Tudo <span className="text-primary">Pronto!</span></h1>
                             <p className="text-xl font-bold opacity-60 mb-12">Seus dados e campanha foram enviados com sucesso. Agora nossa equipe processará sua lista.</p>
                             <div className="flex flex-wrap gap-4 justify-center">
-                                <button onClick={() => setStep(1)} className="btn btn-secondary px-8 py-4 rounded-[20px] font-black border border-white/10">
+                                <button onClick={() => setStep(1)} className="nav-btn nav-btn-secondary px-8 py-4 rounded-[20px] font-black">
                                     ENVIAR OUTRO FORMULÁRIO
                                 </button>
-                                <button onClick={() => navigate('/client-dashboard')} className="btn btn-primary px-8 py-4 rounded-[20px] font-black">
+                                <button onClick={() => navigate('/client-dashboard')} className="nav-btn nav-btn-primary px-8 py-4 rounded-[20px] font-black">
                                     IR PARA MEU PAINEL
                                 </button>
                             </div>

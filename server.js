@@ -135,6 +135,7 @@ const initDB = async () => {
                 title TEXT,
                 original_url TEXT NOT NULL,
                 short_code TEXT UNIQUE NOT NULL,
+                clicks INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `CREATE TABLE IF NOT EXISTS link_clicks (
