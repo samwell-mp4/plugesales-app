@@ -61,6 +61,7 @@ const Sidebar = () => {
     ] : user?.role === 'EMPLOYEE' ? [
         { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Minhas Tarefas', path: '/client-submissions', icon: <FileUp size={20} /> },
+        { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
         { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },

@@ -12,10 +12,12 @@ import {
     Layers,
     Activity,
     ChevronRight,
-    FileSpreadsheet
+    FileSpreadsheet,
+    Link
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { dbService } from '../services/dbService';
+import { useAuth } from '../contexts/AuthContext';
 
 const StatCard = ({ title, value, subtitle, icon, color }: { title: string, value: string, subtitle: string, icon: React.ReactNode, color: string }) => {
     return (
@@ -52,6 +54,7 @@ const StatCard = ({ title, value, subtitle, icon, color }: { title: string, valu
 };
 
 const Dashboard = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [templates, setTemplates] = useState<any[]>([]);
     const [recentDrafts, setRecentDrafts] = useState<any[]>([]);
@@ -130,8 +133,12 @@ const Dashboard = () => {
         <div className="animate-fade-in dashboard-root" style={{ paddingBottom: '60px' }}>
             <div className="flex items-center justify-between mb-10 header-section">
                 <div>
-                    <h1 style={{ fontWeight: 900, fontSize: '3rem', letterSpacing: '-2px', margin: 0, background: 'linear-gradient(to right, #ffffff, #888888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dashboard de Operações</h1>
-                    <p className="subtitle" style={{ fontSize: '1.1rem', opacity: 0.7 }}>Gestão de templates e monitoramento de performance em tempo real</p>
+                    <h1 style={{ fontWeight: 900, fontSize: '3rem', letterSpacing: '-2px', margin: 0, background: 'linear-gradient(to right, #ffffff, #888888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        {user?.role === 'ADMIN' ? 'Dashboard de Operações' : 'Painel de Colaborador'}
+                    </h1>
+                    <p className="subtitle" style={{ fontSize: '1.1rem', opacity: 0.7 }}>
+                        {user?.role === 'ADMIN' ? 'Gestão de templates e monitoramento de performance em tempo real' : 'Acesse suas ferramentas e acompanhe suas tarefas'}
+                    </p>
                 </div>
                 <div className="flex gap-4">
                     <button className="btn btn-secondary" style={{ borderRadius: '16px', padding: '12px 24px', fontWeight: 800 }} onClick={fetchData} disabled={isLoading}>
@@ -191,12 +198,15 @@ const Dashboard = () => {
                         </h2>
                         <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                             {[
-                                { path: '/dispatch', icon: <Send size={20} />, label: 'Disparo Rápido', color: 'var(--primary-color)' },
-                                { path: '/upload', icon: <FileSpreadsheet size={20} />, label: 'Envio em Lote', color: '#60a5fa' },
-                                { path: '/accounts', icon: <Monitor size={20} />, label: 'Monitor WABA', color: '#fbbf24' },
-                                { path: '/media', icon: <Database size={20} />, label: 'Hospedagem', color: '#2dd4bf' },
-                                { path: '/control', icon: <ShieldCheck size={20} />, label: 'Painel Central', color: '#f43f5e' },
-                            ].map((item, i) => (
+                                { path: '/dispatch', icon: <Send size={20} />, label: 'Disparo Rápido', color: 'var(--primary-color)', roles: ['ADMIN'] },
+                                { path: '/client-submissions', icon: <FileSpreadsheet size={20} />, label: 'Minhas Tarefas', color: '#a855f7', roles: ['EMPLOYEE'] },
+                                { path: '/upload', icon: <FileSpreadsheet size={20} />, label: 'Envio em Lote', color: '#60a5fa', roles: ['ADMIN'] },
+                                { path: '/accounts', icon: <Monitor size={20} />, label: 'Monitor WABA', color: '#fbbf24', roles: ['ADMIN', 'EMPLOYEE'] },
+                                { path: '/media', icon: <Database size={20} />, label: 'Hospedagem', color: '#2dd4bf', roles: ['ADMIN', 'EMPLOYEE'] },
+                                { path: '/link-shortener', icon: <Link size={20} />, label: 'Encurtador', color: '#a855f7', roles: ['ADMIN', 'EMPLOYEE'] },
+                                { path: '/control', icon: <ShieldCheck size={20} />, label: 'Painel Central', color: '#f43f5e', roles: ['ADMIN'] },
+                            ].filter(item => item.roles.includes(user?.role || ''))
+                             .map((item, i) => (
                                 <NavLink key={i} to={item.path} className="shortcut-item">
                                     <div className="icon-box" style={{ color: item.color }}>{item.icon}</div>
                                     <span>{item.label}</span>
