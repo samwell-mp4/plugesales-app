@@ -726,6 +726,8 @@ app.delete('/api/client-submissions/:id', async (req, res) => {
 // --- Link Shortener ---
 app.post('/api/shortener/create', async (req, res) => {
     const { user_id, client_id, links, original_url, title, short_code: custom_code } = req.body;
+    console.log(`[SHORTENER_CREATE] Request: user=${user_id}, client=${client_id}, url=${original_url}, custom=${custom_code}`);
+    
     const linksToCreate = Array.isArray(links) ? links : [{ original_url, title, short_code: custom_code }];
 
     if (linksToCreate.some(l => !l.original_url)) {
@@ -739,7 +741,8 @@ app.post('/api/shortener/create', async (req, res) => {
 
         for (const l of linksToCreate) {
             let short_code = l.short_code || Math.random().toString(36).substring(2, 8);
-            
+            console.log(`[SHORTENER_CREATE] Processing: code=${short_code}, target=${l.original_url}`);
+
             if (l.short_code) {
                 const check = await clientDB.query('SELECT id FROM shortened_links WHERE short_code = $1', [l.short_code]);
                 if (check.rows.length > 0) {
@@ -750,10 +753,15 @@ app.post('/api/shortener/create', async (req, res) => {
             const result = await clientDB.query(
                 `INSERT INTO shortened_links (user_id, client_id, title, original_url, short_code) 
                  VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-                [user_id, client_id, l.title || 'Link sem título', l.original_url, short_code]
+                [user_id || null, client_id || null, l.title || 'Link sem título', l.original_url, short_code]
             );
 
-            const fullShortUrl = `${req.protocol}://${req.get('host')}/l/${short_code}`;
+            // Robust Host/Protocol detection for Easypanel/Proxies
+            const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+            const host = req.headers['x-forwarded-host'] || req.headers['host'] || req.get('host');
+            const fullShortUrl = `${protocol}://${host}/l/${short_code}`;
+            
+            console.log(`[SHORTENER_CREATE] Saved: ID=${result.rows[0].id}, FullURL=${fullShortUrl}`);
             results.push({ ...result.rows[0], shortUrl: fullShortUrl });
         }
 
@@ -761,6 +769,7 @@ app.post('/api/shortener/create', async (req, res) => {
         res.json(Array.isArray(links) ? results : { success: true, ...results[0] });
     } catch (err) {
         await clientDB.query('ROLLBACK');
+        console.error('[SHORTENER_CREATE_ERROR]', err.message);
         res.status(500).json({ error: err.message });
     } finally {
         clientDB.release();
@@ -841,13 +850,17 @@ app.delete('/api/shortener/:id', async (req, res) => {
 // Redirection Global Endpoint
 app.get('/l/:shortCode', async (req, res) => {
     const { shortCode } = req.params;
+    console.log(`[LINK_REDIRECT] Request for: ${shortCode}`);
+    
     try {
         const result = await pool.query('SELECT * FROM shortened_links WHERE short_code = $1', [shortCode]);
         if (result.rows.length === 0) {
+            console.warn(`[LINK_REDIRECT] 404: Code "${shortCode}" not found.`);
             return res.status(404).send('<h1>404 - Link não encontrado</h1>');
         }
 
         const link = result.rows[0];
+        console.log(`[LINK_REDIRECT] Found: ID=${link.id}, Target=${link.original_url}`);
         const userIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
         // Track Click (Fire and Forget with Geolocation)
