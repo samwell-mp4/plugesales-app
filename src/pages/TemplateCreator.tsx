@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, CheckCircle, X, Check } from 'lucide-react';
+import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -19,7 +19,6 @@ const TemplateCreator = () => {
     // --- API / CONFIG STATE ---
     const [apiKey, setApiKey] = useState(''); // Initialized as empty string
     const [senderNumbers, setSenderNumbers] = useState('');
-    const [isLoadingSenders, setIsLoadingSenders] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
     // --- CLIENT SELECTION STATE ---
