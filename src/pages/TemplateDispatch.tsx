@@ -19,7 +19,8 @@ import {
     Trash2,
     BookMarked,
     PlayCircle,
-    Settings2
+    Settings2,
+    Check
 } from 'lucide-react';
 
 interface PlaceholderField {
