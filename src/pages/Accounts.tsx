@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar, BookMarked, FileEdit, LayoutDashboard, ShieldCheck, ExternalLink } from 'lucide-react';
+import { CheckCircle, RefreshCcw, Layers, Search, Eye, AlertTriangle, Smartphone, Send, Calendar, BookMarked, FileEdit, LayoutDashboard, ShieldCheck, ExternalLink } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 
