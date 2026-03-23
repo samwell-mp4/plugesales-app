@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-    ShieldCheck, MessageSquare, Send, Activity, 
-    ChevronRight, User, 
+import {
+    ShieldCheck, MessageSquare, Send, Activity,
+    ChevronRight, User,
     Search, Zap, BookMarked, FileEdit, LayoutDashboard
 } from 'lucide-react';
 
@@ -115,17 +115,17 @@ const AdminControl = () => {
 
     const filteredLogs = useMemo(() => {
         let all: any[] = [];
-        if (activeFilter === 'ALL' || activeFilter === 'TEMPLATE') 
+        if (activeFilter === 'ALL' || activeFilter === 'TEMPLATE')
             all.push(...templateLogs.map(l => ({ ...l, logType: 'TEMPLATE' })));
-        if (activeFilter === 'ALL' || activeFilter === 'DISPATCH') 
+        if (activeFilter === 'ALL' || activeFilter === 'DISPATCH')
             all.push(...dispatchLogs.map(l => ({ ...l, logType: 'DISPATCH' })));
-        if (activeFilter === 'ALL' || activeFilter === 'ENGINE') 
+        if (activeFilter === 'ALL' || activeFilter === 'ENGINE')
             all.push(...engineLogs.map(l => ({ ...l, logType: 'ENGINE' })));
 
         return all
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .filter(l => !selectedEmployee || l.author === selectedEmployee)
-            .filter(l => !searchTerm || 
+            .filter(l => !searchTerm ||
                 l.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (l.name && l.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (l.template && l.template.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -147,7 +147,7 @@ const AdminControl = () => {
 
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '80px' }}>
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-2">
                 <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: 0 }}>Painel de Controle</h1>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
@@ -159,12 +159,12 @@ const AdminControl = () => {
 
             {/* Main Tabs */}
             <div className="flex gap-4 mb-8">
-                <button 
+                <button
                     onClick={() => setActiveTab('MONITOR')}
                     className={`btn flex-1 py-4 flex items-center justify-center gap-3 ${activeTab === 'MONITOR' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ 
-                        borderRadius: '16px', 
-                        fontWeight: 900, 
+                    style={{
+                        borderRadius: '16px',
+                        fontWeight: 900,
                         fontSize: '1rem',
                         color: activeTab === 'MONITOR' ? 'black' : 'var(--text-primary)',
                         border: activeTab === 'MONITOR' ? 'none' : '1px solid var(--surface-border-subtle)'
@@ -172,12 +172,12 @@ const AdminControl = () => {
                 >
                     <LayoutDashboard size={20} /> PAINEL DE MONITORAMENTO
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('RASCUNHOS')}
                     className={`btn flex-1 py-4 flex items-center justify-center gap-3 ${activeTab === 'RASCUNHOS' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ 
-                        borderRadius: '16px', 
-                        fontWeight: 900, 
+                    style={{
+                        borderRadius: '16px',
+                        fontWeight: 900,
                         fontSize: '1rem',
                         color: activeTab === 'RASCUNHOS' ? 'black' : 'var(--text-primary)',
                         border: activeTab === 'RASCUNHOS' ? 'none' : '1px solid var(--surface-border-subtle)'
@@ -186,12 +186,12 @@ const AdminControl = () => {
                     <BookMarked size={20} /> PRONTOS PARA DISPARO (RASCUNHOS)
                 </button>
                 {currentUser?.role === 'ADMIN' && (
-                    <button 
+                    <button
                         onClick={() => setActiveTab('USUARIOS')}
                         className={`btn flex-1 py-4 flex items-center justify-center gap-3 ${activeTab === 'USUARIOS' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ 
-                            borderRadius: '16px', 
-                            fontWeight: 900, 
+                        style={{
+                            borderRadius: '16px',
+                            fontWeight: 900,
                             fontSize: '1rem',
                             color: activeTab === 'USUARIOS' ? 'black' : 'var(--text-primary)',
                             border: activeTab === 'USUARIOS' ? 'none' : '1px solid var(--surface-border-subtle)'
@@ -205,36 +205,36 @@ const AdminControl = () => {
             {activeTab === 'MONITOR' ? (
                 <div className="animate-fade-in">
                     {/* Global Stats Grid - Matching Home Page Style */}
-                    <div className="flex gap-6 mb-10 overflow-x-auto pb-4" style={{ flexWrap: 'nowrap' }}>
-                        <StatCard 
+                    <div className="flex gap-4 mb-10 overflow-x-auto pb-4" style={{ flexWrap: 'nowrap', marginBottom: '20px' }}>
+                        <StatCard
                             title="Ações Globais"
                             value={(templateLogs.length + dispatchLogs.length + engineLogs.length + draftLogs.length).toString()}
                             subtitle="Registradas no sistema"
                             icon={<Activity size={24} />}
                             color="var(--primary-color)"
                         />
-                        <StatCard 
+                        <StatCard
                             title="Templates"
                             value={templateLogs.length.toString()}
                             subtitle="Modelos criados hoje"
                             icon={<MessageSquare size={24} />}
                             color="#4ade80"
                         />
-                        <StatCard 
+                        <StatCard
                             title="Envios"
                             value={dispatchLogs.length.toString()}
                             subtitle="Campanhas disparadas"
                             icon={<Send size={24} />}
                             color="#60a5fa"
                         />
-                        <StatCard 
+                        <StatCard
                             title="Motores"
                             value={engineLogs.length.toString()}
                             subtitle="Ciclos executados"
                             icon={<Zap size={24} />}
                             color="#facc15"
                         />
-                        <StatCard 
+                        <StatCard
                             title="Rascunhos"
                             value={draftLogs.length.toString()}
                             subtitle="Prontos para disparo"
@@ -243,7 +243,7 @@ const AdminControl = () => {
                         />
                     </div>
 
-                    <div className="flex gap-8 flex-wrap">
+                    <div className="flex gap-4 flex-wrap">
                         {/* Column 1: Employee Ranking */}
                         <div className="flex-col gap-8" style={{ flex: '1 1 300px' }}>
                             <div className="glass-card flex-col" style={{ minHeight: '300px' }}>
@@ -255,11 +255,11 @@ const AdminControl = () => {
                                     {employees.map((employee) => {
                                         const stats = getStats(employee);
                                         return (
-                                            <div 
-                                                key={employee} 
-                                                className={`flex items-center justify-between p-4 hover-row cursor-pointer ${selectedEmployee === employee ? 'selected-employee' : ''}`} 
-                                                style={{ 
-                                                    border: '1px solid var(--surface-border-subtle)', 
+                                            <div
+                                                key={employee}
+                                                className={`flex items-center justify-between p-4 hover-row cursor-pointer ${selectedEmployee === employee ? 'selected-employee' : ''}`}
+                                                style={{
+                                                    border: '1px solid var(--surface-border-subtle)',
                                                     background: selectedEmployee === employee ? 'rgba(172,248,0,0.1)' : 'var(--card-bg-subtle)',
                                                     borderRadius: '16px',
                                                     transition: 'all 0.2s',
@@ -300,12 +300,12 @@ const AdminControl = () => {
                                 <div className="mb-6">
                                     <div style={{ position: 'relative' }}>
                                         <Search size={16} style={{ position: 'absolute', left: 16, top: 14, opacity: 0.3 }} />
-                                        <input 
-                                            className="input-field" 
-                                            style={{ 
-                                                paddingLeft: 46, 
-                                                borderRadius: '14px', 
-                                                background: 'var(--card-bg-subtle)', 
+                                        <input
+                                            className="input-field"
+                                            style={{
+                                                paddingLeft: 46,
+                                                borderRadius: '14px',
+                                                background: 'var(--card-bg-subtle)',
                                                 border: '1px solid var(--surface-border-subtle)',
                                                 fontSize: '0.85rem',
                                                 height: '46px',
@@ -320,10 +320,10 @@ const AdminControl = () => {
 
                                 <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
                                     {['ALL', 'TEMPLATE', 'DISPATCH', 'ENGINE'].map((f: any) => (
-                                        <button 
+                                        <button
                                             key={f}
                                             onClick={() => setActiveFilter(f)}
-                                            style={{ 
+                                            style={{
                                                 padding: '6px 14px',
                                                 borderRadius: '10px',
                                                 fontSize: '0.7rem',
@@ -343,8 +343,8 @@ const AdminControl = () => {
 
                                 <div className="flex-col gap-3" style={{ paddingRight: '12px' }}>
                                     {paginatedLogs.map((log, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-4 hover-row shadow-sm" style={{ 
-                                            border: '1px solid var(--surface-border-subtle)', 
+                                        <div key={idx} className="flex items-center justify-between p-4 hover-row shadow-sm" style={{
+                                            border: '1px solid var(--surface-border-subtle)',
                                             background: 'var(--card-bg-subtle)',
                                             borderRadius: '16px',
                                             transition: 'all 0.2s',
@@ -354,10 +354,10 @@ const AdminControl = () => {
                                                 <div style={{
                                                     width: '42px', height: '42px', borderRadius: '12px',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    background: log.logType === 'TEMPLATE' ? 'rgba(74, 222, 128, 0.1)' : 
-                                                                log.logType === 'DISPATCH' ? 'rgba(96, 165, 250, 0.1)' : 'rgba(250, 204, 21, 0.1)',
-                                                    color: log.logType === 'TEMPLATE' ? '#4ade80' : 
-                                                           log.logType === 'DISPATCH' ? '#60a5fa' : '#facc15'
+                                                    background: log.logType === 'TEMPLATE' ? 'rgba(74, 222, 128, 0.1)' :
+                                                        log.logType === 'DISPATCH' ? 'rgba(96, 165, 250, 0.1)' : 'rgba(250, 204, 21, 0.1)',
+                                                    color: log.logType === 'TEMPLATE' ? '#4ade80' :
+                                                        log.logType === 'DISPATCH' ? '#60a5fa' : '#facc15'
                                                 }}>
                                                     {log.logType === 'TEMPLATE' && <MessageSquare size={20} />}
                                                     {log.logType === 'DISPATCH' && <Send size={20} />}
@@ -366,7 +366,7 @@ const AdminControl = () => {
                                                 <div className="flex-col">
                                                     <div className="flex items-center gap-2">
                                                         <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>{log.author}</span>
-                                                        <span className="badge" style={{ 
+                                                        <span className="badge" style={{
                                                             fontSize: '0.6rem', padding: '1px 6px',
                                                             background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.05)',
                                                             color: 'var(--text-muted)'
@@ -397,8 +397,8 @@ const AdminControl = () => {
 
                                 {totalPages > 1 && (
                                     <div className="flex items-center justify-between mt-6 pt-6" style={{ borderTop: '1px solid var(--surface-border-subtle)' }}>
-                                        <button 
-                                            className="btn btn-secondary" 
+                                        <button
+                                            className="btn btn-secondary"
                                             style={{ padding: '8px 16px', fontSize: '0.75rem', borderRadius: '10px' }}
                                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                             disabled={currentPage === 1}
@@ -408,8 +408,8 @@ const AdminControl = () => {
                                         <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)' }}>
                                             Página <span style={{ color: 'var(--text-primary)' }}>{currentPage}</span> de {totalPages}
                                         </span>
-                                        <button 
-                                            className="btn btn-secondary" 
+                                        <button
+                                            className="btn btn-secondary"
                                             style={{ padding: '8px 16px', fontSize: '0.75rem', borderRadius: '10px' }}
                                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                             disabled={currentPage === totalPages}
@@ -445,7 +445,7 @@ const AdminControl = () => {
                                                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>{new Date(draft.timestamp).toLocaleDateString()} {new Date(draft.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex-col gap-1 mb-6">
                                             <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-primary)' }}>{draft.label}</h4>
                                             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Template: {draft.template}</span>
@@ -454,14 +454,14 @@ const AdminControl = () => {
                                         </div>
 
                                         <div className="flex gap-3 mt-auto">
-                                            <button 
+                                            <button
                                                 className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
                                                 onClick={() => navigate('/template-dispatch', { state: { draft: draft } })}
                                                 style={{ fontSize: '0.75rem', fontWeight: 800, borderRadius: '12px' }}
                                             >
                                                 <FileEdit size={14} /> EDITAR
                                             </button>
-                                            <button 
+                                            <button
                                                 className="btn btn-primary flex-1 flex items-center justify-center gap-2"
                                                 onClick={() => navigate('/template-dispatch', { state: { draft: draft, autoSend: true } })}
                                                 style={{ color: 'black', fontSize: '0.75rem', fontWeight: 900, borderRadius: '12px' }}
@@ -495,12 +495,12 @@ const AdminControl = () => {
                         <div className="mb-6">
                             <div style={{ position: 'relative' }}>
                                 <Search size={16} style={{ position: 'absolute', left: 16, top: 14, opacity: 0.3 }} />
-                                <input 
-                                    className="input-field" 
-                                    style={{ 
-                                        paddingLeft: 46, 
-                                        borderRadius: '14px', 
-                                        background: 'var(--card-bg-subtle)', 
+                                <input
+                                    className="input-field"
+                                    style={{
+                                        paddingLeft: 46,
+                                        borderRadius: '14px',
+                                        background: 'var(--card-bg-subtle)',
                                         border: '1px solid var(--surface-border-subtle)',
                                         fontSize: '0.85rem',
                                         height: '46px',
@@ -520,12 +520,12 @@ const AdminControl = () => {
                             </div>
                         ) : (
                             <div className="flex-col gap-3">
-                                {users.filter(u => 
-                                    u.name.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
+                                {users.filter(u =>
+                                    u.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
                                     u.email.toLowerCase().includes(userSearchTerm.toLowerCase())
                                 ).map((u, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 hover-row shadow-sm" style={{ 
-                                        border: '1px solid var(--surface-border-subtle)', 
+                                    <div key={idx} className="flex items-center justify-between p-4 hover-row shadow-sm" style={{
+                                        border: '1px solid var(--surface-border-subtle)',
                                         background: 'var(--card-bg-subtle)',
                                         borderRadius: '16px',
                                         transition: 'all 0.2s',
@@ -543,7 +543,7 @@ const AdminControl = () => {
                                             <div className="flex-col">
                                                 <div className="flex items-center gap-2">
                                                     <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>{u.name}</span>
-                                                    <span className="badge" style={{ 
+                                                    <span className="badge" style={{
                                                         fontSize: '0.6rem', padding: '2px 8px',
                                                         background: u.role === 'ADMIN' ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)',
                                                         color: u.role === 'ADMIN' ? 'var(--primary-color)' : 'var(--text-muted)',
@@ -556,7 +556,7 @@ const AdminControl = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <button 
+                                        <button
                                             className="btn btn-secondary"
                                             style={{ fontSize: '0.75rem', fontWeight: 800, borderRadius: '10px', padding: '8px 16px' }}
                                             onClick={async () => {
