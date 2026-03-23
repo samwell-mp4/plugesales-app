@@ -552,14 +552,30 @@ const TemplateCreator = () => {
 
     const duplicateRow = (index: number) => {
         const sourceRow = bulkRows[index];
-        const newRow = {
-            ...sourceRow,
-            buttonUrls: [...sourceRow.buttonUrls] // deep copy array
-        };
+        const copiesStr = window.prompt("Quantas cópias deseja criar?", "1");
+        const copies = parseInt(copiesStr || "0");
+        
+        if (isNaN(copies) || copies <= 0) return;
+
+        // Find the highest current numeric suffix to continue the sequence
+        const highestSuffix = bulkRows.reduce((max, row) => {
+            const num = parseInt(row.suffix);
+            return isNaN(num) ? max : Math.max(max, num);
+        }, 0);
+
+        const newRows = [];
+        for (let i = 1; i <= copies; i++) {
+            newRows.push({
+                ...sourceRow,
+                suffix: String(highestSuffix + i).padStart(3, '0'),
+                buttonUrls: [...sourceRow.buttonUrls],
+                buttonTexts: sourceRow.buttonTexts ? [...sourceRow.buttonTexts] : []
+            });
+        }
 
         setBulkRows(prev => [
             ...prev.slice(0, index + 1),
-            newRow,
+            ...newRows,
             ...prev.slice(index + 1)
         ]);
     };
@@ -867,6 +883,12 @@ const TemplateCreator = () => {
                     gap: 10px !important;
                     height: 42px !important;
                     transition: border-color 0.2s !important;
+                }
+                .global-input-wrapper input {
+                    color: white !important;
+                    background: transparent !important;
+                    border: none !important;
+                    outline: none !important;
                 }
                 .global-input-wrapper:focus-within {
                     border-color: var(--primary-color) !important;
@@ -1341,11 +1363,11 @@ const TemplateCreator = () => {
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                                     <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>3. REMETENTE GERAL</span>
                                                     <div className="global-input-wrapper">
-                                                        <Smartphone size={16} className="text-muted" style={{ opacity: 0.5 }} />
+                                                        <Smartphone size={16} style={{ color: 'var(--primary-color)', opacity: 0.8 }} />
                                                         <input
                                                             onChange={(e) => applyGlobalSender(e.target.value)}
-                                                            className="bg-transparent border-none outline-none font-bold text-xs w-full"
-                                                            style={{ color: 'var(--primary-color)', letterSpacing: '1px' }}
+                                                            className="font-bold text-xs w-full"
+                                                            style={{ letterSpacing: '1px' }}
                                                             placeholder="DIGITE O NÚMERO DE DISPARO"
                                                         />
                                                     </div>
