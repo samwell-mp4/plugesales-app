@@ -72,7 +72,7 @@ const ClientSubmissions = () => {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0 });
-    const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>('all');
+    const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>('mine');
     const [employees, setEmployees] = useState<string[]>([]);
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
