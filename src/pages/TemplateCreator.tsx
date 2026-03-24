@@ -87,7 +87,6 @@ const TemplateCreator = () => {
         if (location.state?.preFillData) {
             const data = location.state.preFillData;
             if (data.templateName) setModelName(data.templateName);
-            if (data.templateType) setHeaderType(data.templateType);
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
             if (data.rows && data.rows.length > 0) {
                 // Ensure rows are initialized with correct types if pre-filled
@@ -119,7 +118,6 @@ const TemplateCreator = () => {
 
     // --- MODEL STATE ---
     const [modelName, setModelName] = useState('pagamento_confirmado');
-    const [category, setCategory] = useState('UTILITY');
     const [language, setLanguage] = useState('pt_BR');
 
     const [headerType, setHeaderType] = useState<'none' | 'image' | 'video'>('none');
