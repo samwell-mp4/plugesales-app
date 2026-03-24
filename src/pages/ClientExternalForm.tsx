@@ -60,7 +60,7 @@ const ClientExternalForm = () => {
         profile_name: '',
         ddd: '',
         ads: [{
-            template_type: 'none' as 'none' | 'image' | 'video',
+            template_type: 'TEXT' as 'TEXT' | 'IMAGE' | 'VIDEO',
             media_url: '',
             ad_copy: 'Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇',
             ad_copy_file: '',
@@ -131,8 +131,8 @@ const ClientExternalForm = () => {
                 errors.push(`${adLabel}: Falta carregar a planilha de contatos.`);
             }
             
-            if (ad.template_type !== 'none' && !ad.media_url) {
-                errors.push(`${adLabel}: Escolheu ${ad.template_type === 'image' ? 'Imagem' : 'Vídeo'}, mas não enviou o arquivo.`);
+            if (ad.template_type !== 'TEXT' && !ad.media_url) {
+                errors.push(`${adLabel}: Escolheu ${ad.template_type === 'IMAGE' ? 'Imagem' : 'Vídeo'}, mas não enviou o arquivo.`);
             }
 
             if (ad.message_mode === 'upload' && !ad.ad_copy_file) {
@@ -181,7 +181,7 @@ const ClientExternalForm = () => {
                     id: ad.id,
                 })),
                 // Keep top-level fields for backward compat (first ad)
-                template_type: formData.ads[0]?.template_type || 'none',
+                template_type: formData.ads[0]?.template_type || 'TEXT',
                 media_url: formData.ads[0]?.media_url || '',
                 ad_copy: formData.ads[0]?.ad_copy || '',
                 button_link: formData.ads[0]?.button_link || '',
@@ -731,7 +731,7 @@ const ClientExternalForm = () => {
                                                                         setFormData(p => ({
                                                                             ...p,
                                                                             ads: [...p.ads, {
-                                                                                template_type: 'none',
+                                                                                template_type: 'TEXT',
                                                                                 media_url: '',
                                                                                 ad_copy: 'Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇',
                                                                                 ad_copy_file: '',
@@ -787,7 +787,7 @@ const ClientExternalForm = () => {
                                                                 >
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-[10px] font-black opacity-30">#{idx + 1}</span>
-                                                                        <span className="text-[10px] font-bold uppercase tracking-widest">{ad.ad_name || (ad.template_type === 'none' ? 'Texto' : ad.template_type === 'image' ? 'Imagem' : 'Vídeo')}</span>
+                                                                        <span className="text-[10px] font-bold uppercase tracking-widest">{ad.ad_name || (ad.template_type === 'TEXT' ? 'Texto' : ad.template_type === 'IMAGE' ? 'Imagem' : 'Vídeo')}</span>
                                                                     </div>
                                                                     <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                                                                         <button
@@ -842,16 +842,16 @@ const ClientExternalForm = () => {
                                                     <div className="mt-4">
                                                         <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 mb-4 block">Tipo de Criativo</label>
                                                         <div className="flex flex-row gap-6 w-full">
-                                                            {(['none', 'image', 'video'] as const).map(t => (
+                                                            {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (
                                                                 <div key={t} onClick={() => {
                                                                     const newAds = [...formData.ads];
                                                                     newAds[formData.currentAdIndex].template_type = t;
                                                                     setFormData(p => ({ ...p, ads: newAds }));
                                                                 }} className={`creative-card mt-4 ${formData.ads[formData.currentAdIndex].template_type === t ? 'active' : ''}`}>
                                                                     <div className="icon-box ">
-                                                                        {t === 'none' ? <Send size={16} /> : t === 'image' ? <ImageIcon size={16} /> : <Video size={16} />}
+                                                                        {t === 'TEXT' ? <Send size={16} /> : t === 'IMAGE' ? <ImageIcon size={16} /> : <Video size={16} />}
                                                                     </div>
-                                                                    <span className="text-[10px] font-black uppercase tracking-wider">{t === 'none' ? 'Texto' : t === 'image' ? 'Imagem' : 'Vídeo'}</span>
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider">{t === 'TEXT' ? 'Texto' : t === 'IMAGE' ? 'Imagem' : 'Vídeo'}</span>
                                                                     {formData.ads[formData.currentAdIndex].template_type === t && <div className="absolute top-2 right-2 text-primary"><CheckCircle size={14} /></div>}
                                                                 </div>
                                                             ))}
@@ -859,11 +859,11 @@ const ClientExternalForm = () => {
                                                     </div>
                                                 </div>
 
-                                                {formData.ads[formData.currentAdIndex].template_type !== 'none' && (
+                                                {formData.ads[formData.currentAdIndex].template_type !== 'TEXT' && (
                                                     <div className="space-y-3">
                                                         <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40">Upload da Mídia</label>
                                                         <div className="upload-zone py-8" onClick={() => document.getElementById(`media-upload-${formData.currentAdIndex}`)?.click()}>
-                                                            <input id={`media-upload-${formData.currentAdIndex}`} type="file" hidden accept={formData.ads[formData.currentAdIndex].template_type === 'image' ? 'image/*' : 'video/*'} onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'media_url')} />
+                                                            <input id={`media-upload-${formData.currentAdIndex}`} type="file" hidden accept={formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'image/*' : 'video/*'} onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'media_url')} />
                                                             {formData.ads[formData.currentAdIndex].media_url ? (
                                                                 <div className="flex flex-col items-center gap-2 text-primary">
                                                                     <CheckCircle size={24} />
@@ -1062,7 +1062,7 @@ const ClientExternalForm = () => {
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center gap-2 mb-1 ">
-                                                                            <p className={`font-black text-[10px] uppercase tracking-widest ${!ad.spreadsheet_url ? 'text-rose-400' : 'text-primary/80'}`}>{ad.template_type === 'none' ? 'Texto' : ad.template_type === 'image' ? 'Imagem' : 'Vídeo'}</p>
+                                                                            <p className={`font-black text-[10px] uppercase tracking-widest ${!ad.spreadsheet_url ? 'text-rose-400' : 'text-primary/80'}`}>{ad.template_type === 'TEXT' ? 'Texto' : ad.template_type === 'IMAGE' ? 'Imagem' : 'Vídeo'}</p>
                                                                             {ad.spreadsheet_url ? (
                                                                                 <span className="flex items-center gap-1 text-[8px] font-black text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full"><FileSpreadsheet size={10} /> LISTA OK</span>
                                                                             ) : (
@@ -1127,10 +1127,10 @@ const ClientExternalForm = () => {
                                         <div className="flex-1 overflow-y-auto p-4 flex flex-col items-start translate-z-0">
                                             {formData.ads.map((ad, idx) => (
                                                 <div key={ad.id || idx} className={`chat-bubble ${formData.currentAdIndex === idx ? 'ring-2 ring-primary/50' : 'opacity-40'}`}>
-                                                    {ad.template_type === 'image' && ad.media_url && (
+                                                    {ad.template_type === 'IMAGE' && ad.media_url && (
                                                         <img src={ad.media_url} className="chat-image" />
                                                     )}
-                                                    {ad.template_type === 'video' && ad.media_url && (
+                                                    {ad.template_type === 'VIDEO' && ad.media_url && (
                                                         <div className="chat-video">
                                                             <Video size={32} className="text-white/20" />
                                                         </div>

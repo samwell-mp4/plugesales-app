@@ -143,7 +143,7 @@ const ClientSubmissions = () => {
         const matchesUpcoming = !showUpcoming || hasUpcomingAd;
 
         const matchesStatus = !selectedStatusFilter || s.status === selectedStatusFilter;
-        const currentType = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'none';
+        const currentType = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'TEXT';
         const matchesType = !selectedTypeFilter || currentType === selectedTypeFilter;
         const matchesEmployee = !selectedEmployeeFilter || s.assigned_to === selectedEmployeeFilter;
 
@@ -164,7 +164,7 @@ const ClientSubmissions = () => {
     const handlePreFillCreator = (sub: ClientSubmission) => {
         const adsToFill = sub.ads && sub.ads.length > 0 ? sub.ads : [{
             ad_name: sub.profile_name,
-            template_type: sub.template_type,
+            template_type: sub.template_type || 'TEXT',
             media_url: sub.media_url,
             ad_copy: sub.ad_copy,
             button_link: sub.button_link,
@@ -172,13 +172,15 @@ const ClientSubmissions = () => {
         }];
 
         const preFillData = {
+            clientId: sub.user_id,
+            clientName: sub.client_name,
             templateName: `${sub.profile_name.toLowerCase().replace(/\s+/g, '_')}_${sub.ddd}`,
-            templateType: sub.template_type || adsToFill[0].template_type || 'none',
+            templateType: sub.template_type || adsToFill[0].template_type || 'TEXT',
             senderNumber: sub.sender_number || '',
             rows: adsToFill.map((ad, idx) => ({
                 id: idx + 1,
                 suffix: ad.ad_name ? `_${ad.ad_name.toLowerCase().replace(/\s+/g, '_')}` : `_v${idx + 1}`,
-                headerType: (ad.template_type || sub.template_type || 'none').toLowerCase(),
+                headerType: ad.template_type || sub.template_type || 'TEXT',
                 mediaUrl: ad.media_url || ad.ad_copy_file || '',
                 var1: ad.variables?.[0] || 'Leandro',
                 var2: ad.variables?.[1] || 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',

@@ -13,7 +13,7 @@ type ButtonDef = {
 type BulkRow = {
     suffix: string;
     sender: string;
-    headerType: 'none' | 'image' | 'video';
+    headerType: 'TEXT' | 'IMAGE' | 'VIDEO';
     mediaUrl: string;
     hasButtons: boolean;
     buttonUrl?: string;
@@ -40,13 +40,14 @@ const TemplateCreator = () => {
 
     useEffect(() => {
         console.log('DEBUG: Current User:', user);
-        if (user?.role === 'ADMIN') {
+        if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
             dbService.getClients().then(data => {
                 console.log('DEBUG: Fetched Clients:', data);
                 setClients(data);
             });
-        } else {
-            console.log('DEBUG: User is not ADMIN, setting id:', user?.id);
+        }
+        
+        if (user?.role === 'CLIENT') {
             setSelectedClientId(user?.id || '');
         }
     }, [user]);
@@ -88,11 +89,13 @@ const TemplateCreator = () => {
             const data = location.state.preFillData;
             if (data.templateName) setModelName(data.templateName);
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
+            if (data.clientId) setSelectedClientId(data.clientId);
+            
             if (data.rows && data.rows.length > 0) {
                 // Ensure rows are initialized with correct types if pre-filled
                 const initializedRows = data.rows.map((row: any) => ({
                     ...row,
-                    headerType: row.headerType || data.templateType || 'none',
+                    headerType: row.headerType || data.templateType || 'TEXT',
                     buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
                     buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : [])
                 }));
@@ -120,7 +123,7 @@ const TemplateCreator = () => {
     const [modelName, setModelName] = useState('pagamento_confirmado');
     const [language, setLanguage] = useState('pt_BR');
 
-    const [headerType, setHeaderType] = useState<'none' | 'image' | 'video'>('none');
+    const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
     const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/qv5OXja.jpg');
 
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
@@ -141,6 +144,7 @@ const TemplateCreator = () => {
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
     const [campaignPrefix, setCampaignPrefix] = useState('PAGAMENTO_');
     const [queueSize, setQueueSize] = useState(5);
+    const [campaignCount, setCampaignCount] = useState(1);
 
     const handleGenerateRows = () => {
         autoGenerateRows(queueSize);
@@ -169,7 +173,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload = (name: string, overrideHeaderType?: 'none' | 'image' | 'video', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean) => {
+    const buildInfobipPayload = (name: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean) => {
         const varMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
         const varCount = varMatches.length;
         const examples = variablesExample.slice(0, varCount);
@@ -189,7 +193,7 @@ const TemplateCreator = () => {
 
         const effectiveHeaderType = overrideHeaderType || headerType;
 
-        if (effectiveHeaderType !== 'none') {
+        if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qv5OXja.jpg";
 
@@ -378,7 +382,7 @@ const TemplateCreator = () => {
                         profile_name: currentName,
                         ddd: client?.phone?.substring(0, 2) || '11',
                         template_type: headerType,
-                        media_url: headerType !== 'none' ? headerMediaUrl : '',
+                        media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
                         ad_copy: bodyText,
                         button_link: buttons.find(b => b.type === 'url')?.url || '',
                         spreadsheet_url: '',
@@ -389,7 +393,7 @@ const TemplateCreator = () => {
                             ad_name: currentName,
                             template_type: headerType,
                             message_mode: 'manual',
-                            media_url: headerType !== 'none' ? headerMediaUrl : '',
+                            media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
                             ad_copy: bodyText,
                             button_link: buttons.find(b => b.type === 'url')?.url || '',
                             variables: variablesExample,
@@ -422,7 +426,8 @@ const TemplateCreator = () => {
     const handleGenerateBulk = async () => {
         if (bulkRows.length === 0) return alert("Adicione pelo menos uma linha no gerador.");
         if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
-        const confirmBulk = window.confirm(`Isso irá disparar ${bulkRows.length} chamadas de API. Continuar?`);
+        const totalTotal = bulkRows.length * campaignCount;
+        const confirmBulk = window.confirm(`Isso irá disparar ${totalTotal} chamadas de API (${campaignCount} campanhas). Continuar?`);
         if (!confirmBulk) return;
 
         setIsGenerating(true);
@@ -430,106 +435,112 @@ const TemplateCreator = () => {
         let errors = [];
         const generatedAds = [];
 
-        for (let i = 0; i < bulkRows.length; i++) {
-            const row = bulkRows[i];
-            const name = `${campaignPrefix}${row.suffix}`;
-            setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Processando ${name}...` });
-
-            // 1. Process and shorten links if necessary
-            // Fallback for buttonUrl (singular) if buttonUrls is missing or empty
-            let finalButtonUrls = row.buttonUrls && row.buttonUrls.length > 0 
-                ? [...row.buttonUrls] 
-                : (row.buttonUrl ? [row.buttonUrl] : []);
+        for (let c = 0; c < campaignCount; c++) {
+            const campaignSuffix = campaignCount > 1 ? `_C${c + 1}` : '';
             
-            const finalButtonTexts = row.buttonTexts && row.buttonTexts.length > 0 
-                ? [...row.buttonTexts] 
-                : [];
+            for (let i = 0; i < bulkRows.length; i++) {
+                const row = bulkRows[i];
+                const name = `${campaignPrefix}${campaignSuffix}_${row.suffix}`.replace(/__+/g, '_');
+                const currentOp = (c * bulkRows.length) + (i + 1);
+                
+                setGeneratingProgress({ 
+                    current: currentOp, 
+                    total: totalTotal, 
+                    msg: `Processando Campanha ${c + 1}/${campaignCount}: ${name}...` 
+                });
 
-            if (row.hasButtons !== false && finalButtonUrls.length > 0) {
-                setGeneratingProgress({ current: i + 1, total: bulkRows.length, msg: `Encurtando links para ${name}...` });
-                for (let urlIdx = 0; urlIdx < finalButtonUrls.length; urlIdx++) {
-                    const originalUrl = finalButtonUrls[urlIdx];
-                    if (originalUrl && (originalUrl.startsWith('http') || originalUrl.includes('.'))) {
-                        try {
-                            const shortRes = await dbService.createShortLink({
-                                user_id: user?.id,
-                                client_id: Number(selectedClientId),
-                                original_url: originalUrl,
-                                title: `Bulk: ${name} - B${urlIdx + 1}`
-                            });
-                            if (shortRes.shortUrl) {
-                                finalButtonUrls[urlIdx] = shortRes.shortUrl;
+                // 1. Process and shorten links if necessary
+                let finalButtonUrls = row.buttonUrls && row.buttonUrls.length > 0 
+                    ? [...row.buttonUrls] 
+                    : (row.buttonUrl ? [row.buttonUrl] : []);
+                
+                const finalButtonTexts = row.buttonTexts && row.buttonTexts.length > 0 
+                    ? [...row.buttonTexts] 
+                    : [];
+
+                if (row.hasButtons !== false && finalButtonUrls.length > 0) {
+                    setGeneratingProgress({ 
+                        current: currentOp, 
+                        total: totalTotal, 
+                        msg: `Encurtando links para ${name}...` 
+                    });
+                    
+                    for (let urlIdx = 0; urlIdx < finalButtonUrls.length; urlIdx++) {
+                        const originalUrl = finalButtonUrls[urlIdx];
+                        if (originalUrl && (originalUrl.startsWith('http') || originalUrl.includes('.'))) {
+                            try {
+                                const shortRes = await dbService.createShortLink({
+                                    user_id: user?.id,
+                                    client_id: Number(selectedClientId),
+                                    original_url: originalUrl,
+                                    title: `Bulk: ${name} - B${urlIdx + 1}`
+                                });
+                                if (shortRes.shortUrl) {
+                                    finalButtonUrls[urlIdx] = shortRes.shortUrl;
+                                }
+                            } catch (err) {
+                                console.error(`Shortener error for ${name}:`, err);
                             }
-                        } catch (err) {
-                            console.error(`Shortener error for ${name}:`, err);
                         }
                     }
                 }
-            }
 
-            // 2. Build payload with potentially shortened URLs
-            const payload: any = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons);
+                // 2. Build payload with potentially shortened URLs
+                const payload: any = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons);
 
-            // 3. Inject correct button texts from the bulk table
-            if (payload.structure?.buttons && finalButtonTexts.length > 0) {
-                payload.structure.buttons = payload.structure.buttons.map((btn: any, idx: number) => {
-                    if (finalButtonTexts[idx]) {
-                        return { ...btn, text: finalButtonTexts[idx] };
-                    }
-                    return btn;
-                });
-            }
-
-            // Inject sender into payload for tracking/webhooks
-            const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
-            const extendedPayload = { ...payload, sender: rowSender };
-
-            console.log(`[BULK] Creating template "${name}" on sender "${rowSender}"...`, extendedPayload);
-
-            const res = await callInfobipAPI(payload, rowSender);
-            if (res.success) {
-                successCount++;
-                if (user?.id) {
-                    await dbService.trackTemplate(name, user.id);
+                // 3. Inject correct button texts from the bulk table
+                if (payload.structure?.buttons && finalButtonTexts.length > 0) {
+                    payload.structure.buttons = payload.structure.buttons.map((btn: any, idx: number) => {
+                        if (finalButtonTexts[idx]) {
+                            return { ...btn, text: finalButtonTexts[idx] };
+                        }
+                        return btn;
+                    });
                 }
-                dbService.addLog({
-                    logType: 'TEMPLATE',
-                    name: name,
-                    author: user?.name,
-                    mode: 'BULK'
-                });
-                await sendToWebhook(extendedPayload);
 
-                // Collect for Client Submission
-                generatedAds.push({
-                    ad_name: name,
-                    template_type: row.headerType,
-                    message_mode: 'manual',
-                    media_url: row.headerType !== 'none' ? row.mediaUrl : '',
-                    ad_copy: bodyText,
-                    button_link: (finalButtonUrls && finalButtonUrls.length > 0) ? finalButtonUrls[0] : '',
-                    variables: variablesExample || [],
-                    delivered_leads: 0,
-                    price_per_msg: 0.04
-                });
-            }
-            else {
-                errors.push(`${name}: ${res.error}`);
-                // LOG ERROR TO BACKEND
-                await fetch('/api/logs/template-error', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                // Inject sender into payload for tracking/webhooks
+                const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
+                const extendedPayload = { ...payload, sender: rowSender };
+
+                const res = await callInfobipAPI(payload, rowSender);
+                if (res.success) {
+                    successCount++;
+                    if (user?.id) {
+                        await dbService.trackTemplate(name, user.id);
+                    }
+                    dbService.addLog({
+                        logType: 'TEMPLATE',
                         name: name,
-                        error: res.error,
-                        author: user?.name
-                    })
-                }).catch(e => console.error('Failed to log error to backend:', e));
-            }
+                        author: user?.name,
+                        mode: 'BULK'
+                    });
+                    await sendToWebhook(extendedPayload);
 
-            // Safety Delay: 2.5 seconds for Meta/Infobip stability
-            if (i < bulkRows.length - 1) {
-                await new Promise(r => setTimeout(r, 2500));
+                    generatedAds.push({
+                        ad_name: name,
+                        template_type: row.headerType,
+                        message_mode: 'manual',
+                        media_url: row.headerType !== 'TEXT' ? row.mediaUrl : '',
+                        ad_copy: bodyText,
+                        button_link: (finalButtonUrls && finalButtonUrls.length > 0) ? finalButtonUrls[0] : '',
+                        variables: variablesExample || [],
+                        delivered_leads: 0,
+                        price_per_msg: 0.04
+                    });
+                }
+                else {
+                    errors.push(`${name}: ${res.error}`);
+                    await fetch('/api/logs/template-error', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, error: res.error, author: user?.name })
+                    }).catch(e => console.error('Failed to log error to backend:', e));
+                }
+
+                // Safety Delay: 2.5 seconds for Meta/Infobip stability
+                if (currentOp < totalTotal) {
+                    await new Promise(r => setTimeout(r, 2500));
+                }
             }
         }
 
@@ -538,9 +549,9 @@ const TemplateCreator = () => {
             await dbService.addClientSubmission({
                 user_id: selectedClientId,
                 client_name: client?.name || '',
-                profile_name: `Lote: ${campaignPrefix}*`,
+                profile_name: campaignCount > 1 ? `Lote Multi: ${campaignPrefix}* (${campaignCount} campanhas)` : `Lote: ${campaignPrefix}*`,
                 ddd: client?.phone?.substring(0, 2) || '11',
-                template_type: 'none',
+                template_type: 'TEXT',
                 media_url: '',
                 ad_copy: bodyText,
                 button_link: '',
@@ -570,7 +581,7 @@ const TemplateCreator = () => {
                 suffix: String(currentNum).padStart(3, '0'),
                 sender: firstSender,
                 headerType: headerType,
-                mediaUrl: headerType !== 'none' ? headerMediaUrl : '',
+                mediaUrl: headerType !== 'TEXT' ? headerMediaUrl : '',
                 hasButtons: buttons.length > 0,
                 buttonUrl: urlButtons[0]?.url || '',
                 buttonUrls: urlButtons.map(b => b.url || ''),
@@ -584,11 +595,11 @@ const TemplateCreator = () => {
         setBulkRows(prev => prev.map(r => ({ ...r, sender })));
     };
 
-    const applyGlobalHeaderType = (type: 'none' | 'image' | 'video') => {
+    const applyGlobalHeaderType = (type: 'TEXT' | 'IMAGE' | 'VIDEO') => {
         setBulkRows(bulkRows.map(row => ({
             ...row,
             headerType: type,
-            mediaUrl: type !== 'none' ? (row.mediaUrl || headerMediaUrl) : ''
+            mediaUrl: type !== 'TEXT' ? (row.mediaUrl || headerMediaUrl) : ''
         })));
     };
 
@@ -1155,7 +1166,7 @@ const TemplateCreator = () => {
                                     <div className="flex items-center justify-between">
                                         <label style={{ fontWeight: 800, color: 'white', fontSize: '0.9rem' }}>Tipo de Cabeçalho</label>
                                         <div className="flex gap-2">
-                                            {(['none', 'image', 'video'] as const).map(type => (
+                                            {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(type => (
                                                 <button
                                                     key={type}
                                                     onClick={() => setHeaderType(type)}
@@ -1170,16 +1181,16 @@ const TemplateCreator = () => {
                                                         cursor: 'pointer'
                                                     }}
                                                 >
-                                                    {type === 'none' ? 'SEM' : type.toUpperCase()}
+                                                    {type === 'TEXT' ? 'SEM' : type.toUpperCase()}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
 
-                                    {headerType !== 'none' && (
+                                    {headerType !== 'TEXT' && (
                                         <div className="flex-col gap-3 mt-4" style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                             <div className="flex items-center justify-between mb-4">
-                                                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Mídia do Cabeçalho ({headerType === 'image' ? 'Imagem' : 'Vídeo'})</h4>
+                                                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Mídia do Cabeçalho ({headerType === 'IMAGE' ? 'Imagem' : 'Vídeo'})</h4>
                                             </div>
 
                                             <div className="flex items-center gap-4">
@@ -1203,14 +1214,14 @@ const TemplateCreator = () => {
                                                         ) : (
                                                             <>
                                                                 <ImageIcon size={32} className="opacity-20 mx-auto mb-2" />
-                                                                <p style={{ fontSize: '11px', fontWeight: 800, opacity: 0.4, textTransform: 'uppercase' }}>Clique para enviar {headerType === 'image' ? 'Imagem' : 'Vídeo'}</p>
+                                                                <p style={{ fontSize: '11px', fontWeight: 800, opacity: 0.4, textTransform: 'uppercase' }}>Clique para enviar {headerType === 'IMAGE' ? 'Imagem' : 'Vídeo'}</p>
                                                             </>
                                                         )}
                                                         <input
                                                             id="header-upload"
                                                             type="file"
                                                             hidden
-                                                            accept={headerType === 'image' ? 'image/*' : 'video/*'}
+                                                            accept={headerType === 'IMAGE' ? 'image/*' : 'video/*'}
                                                             onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
                                                         />
                                                     </div>
@@ -1337,7 +1348,19 @@ const TemplateCreator = () => {
                                                 placeholder="PREFIXO_FIXO_"
                                             />
                                         </div>
-                                        <div style={{ width: '260px' }}>
+                                        <div style={{ width: '120px' }}>
+                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, opacity: 0.5, marginBottom: '8px' }}>Qtd Campanhas</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="50"
+                                                value={campaignCount}
+                                                onChange={e => setCampaignCount(parseInt(e.target.value) || 1)}
+                                                className="bulk-field-input"
+                                                style={{ textAlign: 'center' }}
+                                            />
+                                        </div>
+                                        <div style={{ width: '120px' }}>
                                             <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, opacity: 0.5, marginBottom: '8px' }}>Tamanho Fila</label>
                                             <div style={{ display: 'flex', gap: '8px' }}>
                                                 <input
@@ -1371,14 +1394,14 @@ const TemplateCreator = () => {
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                                     <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>1. TIPO DE MÍDIA</span>
                                                     <div style={{ display: 'flex', gap: '8px' }}>
-                                                        {(['none', 'image', 'video'] as const).map(t => (
+                                                        {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (
                                                             <button
                                                                 key={t}
                                                                 onClick={() => applyGlobalHeaderType(t)}
                                                                 className={`global-tile-btn ${headerType === t ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
                                                                 style={{ flex: 1 }}
                                                             >
-                                                                {t === 'none' ? 'SEM MÍDIA' : t.toUpperCase()}
+                                                                {t === 'TEXT' ? 'SEM MÍDIA' : t.toUpperCase()}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -1464,7 +1487,7 @@ const TemplateCreator = () => {
                                                                     <select className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700 }} value={row.headerType} onChange={(e: any) => {
                                                                         const n = [...bulkRows];
                                                                         n[i].headerType = e.target.value;
-                                                                        if (e.target.value === 'none') n[i].mediaUrl = '';
+                                                                        if (e.target.value === 'TEXT') n[i].mediaUrl = '';
                                                                         else if (!n[i].mediaUrl) n[i].mediaUrl = headerMediaUrl;
                                                                         setBulkRows(n);
                                                                     }}>
@@ -1538,9 +1561,9 @@ const TemplateCreator = () => {
 
                             <div className="wp-bubble">
                                 <div className="wp-content">
-                                    {headerType !== 'none' && (
+                                    {headerType !== 'TEXT' && (
                                         <div style={{ height: '140px', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            {headerType === 'image' ? <ImageIcon size={40} color="#9ca3af" /> : <Video size={40} color="#9ca3af" />}
+                                            {headerType === 'IMAGE' ? <ImageIcon size={40} color="#9ca3af" /> : <Video size={40} color="#9ca3af" />}
                                         </div>
                                     )}
                                     <div style={{ padding: '14px' }}>
