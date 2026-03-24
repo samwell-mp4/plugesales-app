@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Smartphone, Layers, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, X, Trash2 } from 'lucide-react';
+import { Smartphone, Layers, Plus, Activity, Image as ImageIcon, Video, Link, MessageSquareReply, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -21,11 +21,12 @@ type BulkRow = {
     buttonTexts: string[];
 };
 
-type CampaignBatch = {
+interface CampaignBatch {
     id: string;
     prefix: string;
     rows: BulkRow[];
-};
+    collapsed?: boolean;
+}
 
 const TemplateCreator = () => {
     const { user } = useAuth();
@@ -779,9 +780,9 @@ const TemplateCreator = () => {
                     <p className="subtitle" style={{ fontSize: 'clamp(0.75rem, 3.5vw, 1rem)', opacity: 0.6 }}>Criação oficial via Infobip Cloud</p>
                 </div>
 
-                <div className="creator-layout mt-4" style={{ gap: '48px' }}>
-                    <div className="flex flex-col gap-12">
-                        <div className="glass-card flex flex-col gap-6 animate-fade-in">
+                <div className="creator-layout mt-8" style={{ gap: '48px' }}>
+                    <div className="flex flex-col" style={{ gap: '0px' }}>
+                        <div className="glass-card flex flex-col gap-2 animate-fade-in" style={{ marginBottom: '24px' }}>
                             <div className="flex items-center gap-4 mb-2">
                                 <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}><Plus size={24} color="var(--primary-color)" /></div>
                                 <h3 style={{ margin: 0, fontWeight: 900 }}>Estrutura Básica</h3>
@@ -795,14 +796,14 @@ const TemplateCreator = () => {
                             </div>
                         </div>
 
-                        <div className="tab-btns flex gap-4 mb-6">
-                            <button className={`global-tile-btn ${activeTab === 'MODEL' ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} onClick={() => setActiveTab('MODEL')} style={{ flex: 1, height: '48px' }}><Layers size={18} /> GERAR INDIVIDUALMENTE</button>
-                            <button className={`global-tile-btn ${activeTab === 'BULK' ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} onClick={() => setActiveTab('BULK')} style={{ flex: 1, height: '48px' }}><Copy size={18} /> GERAR EM MASSA</button>
+                        <div className="tab-btns flex gap-4" style={{ marginBottom: '32px', padding: '5px 0' }}>
+                            <button className={`global-tile-btn ${activeTab === 'MODEL' ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} onClick={() => setActiveTab('MODEL')} style={{ flex: 1, height: '64px' }}><Layers size={18} /> GERAR INDIVIDUALMENTE</button>
+                            <button className={`global-tile-btn ${activeTab === 'BULK' ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} onClick={() => setActiveTab('BULK')} style={{ flex: 1, height: '64px' }}><Copy size={18} /> GERAR EM MASSA</button>
                         </div>
 
                         {activeTab === 'MODEL' ? (
-                            <div className="flex flex-col gap-12 animate-fade-in">
-                                <div className="glass-card flex flex-col gap-8">
+                            <div className="flex flex-col gap-8 animate-fade-in" style={{ marginTop: '10px' }}>
+                                <div className="glass-card flex flex-col gap-8" style={{ marginBottom: '24px' }}>
                                     <div className="flex items-center gap-4 mb-4">
                                         <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}><Activity size={24} color="var(--primary-color)" /></div>
                                         <h3 style={{ margin: 0, fontWeight: 900 }}>Estrutura do Modelo</h3>
@@ -874,8 +875,8 @@ const TemplateCreator = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-12 animate-fade-in">
-                                <div className="glass-card flex flex-col gap-6">
+                            <div className="flex flex-col animate-fade-in" style={{ gap: '32px', marginTop: '10px' }}>
+                                <div className="glass-card flex flex-col gap-6" style={{ marginBottom: '16px' }}>
                                     <div className="flex items-center gap-3"><Link size={18} color="var(--primary-color)" /><h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>Encurtador de Links</h3></div>
                                     <div className="flex gap-4">
                                         <input className="bulk-field-input" placeholder="Deseja encurtar alguma URL?" value={utilityLinkOriginal} onChange={e => setUtilityLinkOriginal(e.target.value)} />
@@ -888,47 +889,57 @@ const TemplateCreator = () => {
                                     )}
                                 </div>
 
-                                <div className="flex justify-between items-center mt-12 mb-6"><h3 style={{ margin: 0, fontWeight: 900 }}>Campanhas Multi-Gerador</h3><div className="flex gap-3"><button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'CAMP_1_', rows: [] }])}>LIMPAR</button><button className="global-tile-btn global-tile-btn-primary " onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `CAMP_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button></div></div>
+                                <div className="flex justify-between items-center" style={{ marginTop: '24px', marginBottom: '16px' }}><h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Campanhas Multi-Gerador</h3><div className="flex gap-4"><button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'CAMP_1_', rows: [] }])}>LIMPAR</button><button className="global-tile-btn global-tile-btn-primary " onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `CAMP_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button></div></div>
 
                                 {campaigns.map((camp, cIdx) => (
                                     <div key={camp.id} className="glass-card flex flex-col gap-8 animate-fade-in">
                                         <div className="flex justify-between items-center">
                                             <div className="flex items-center gap-4">
+                                                <button onClick={() => setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, collapsed: !c.collapsed } : c))} className="global-tile-btn global-tile-btn-ghost" style={{ width: '32px', height: '32px', padding: 0 }}>
+                                                    {camp.collapsed ? <ChevronRight size={20} /> : <ChevronDown size={20} />}
+                                                </button>
                                                 <div style={{ background: 'var(--primary-color)', color: 'black', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem' }}>{cIdx + 1}</div>
                                                 <input className="bulk-prefix-input" value={camp.prefix} onChange={e => { const val = e.target.value.replace(/\s/g, '_').toLowerCase(); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} />
+                                                <span style={{ fontSize: '12px', opacity: 0.5, fontWeight: 700 }}>{camp.rows.length} ANÚNCIOS</span>
                                             </div>
-                                            {campaigns.length > 1 && <button onClick={() => setCampaigns(campaigns.filter(c => c.id !== camp.id))} className="text-red-500 opacity-50 hover:opacity-100 transition-opacity"><X size={20} /></button>}
+                                            <div className="flex items-center gap-3">
+                                                {campaigns.length > 1 && <button onClick={() => setCampaigns(campaigns.filter(c => c.id !== camp.id))} className="text-red-500 opacity-50 hover:opacity-100 transition-opacity"><Trash2 size={20} /></button>}
+                                            </div>
                                         </div>
-                                        <div className="flex gap-4 items-end"><div className="flex-1"><label>Adicionar Anúncios</label><div className="flex gap-2"><input type="number" className="bulk-field-input" value={queueSize} onChange={e => setQueueSize(parseInt(e.target.value) || 1)} style={{ width: '80px', textAlign: 'center' }} /><button className="global-tile-btn global-tile-btn-primary" onClick={() => autoGenerateRows(queueSize, camp.id)}>GERAR {queueSize} LINHAS</button></div></div></div>
-                                        {camp.rows.length > 0 && (
-                                            <div className="mt-4 animate-fade-in">
-                                                <div className="flex flex-col gap-4 mb-6" style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                                                    <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px', textTransform: 'uppercase' }}>Painel de Configuração Rápida</span>
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                        <div className="flex flex-col gap-2">
-                                                            <label style={{ fontSize: '10px' }}>REMETENTE GLOBAL</label>
-                                                            <div className="flex gap-2">
-                                                                <input id={`global-sender-${camp.id}`} className="bulk-row-input" style={{ height: '38px' }} placeholder="Ex: 55119..." />
-                                                                <button className="global-tile-btn global-tile-btn-primary" onClick={() => {
-                                                                    const val = (document.getElementById(`global-sender-${camp.id}`) as HTMLInputElement)?.value;
-                                                                    if (val) applyGlobalSender(val, camp.id);
-                                                                }} style={{ minWidth: '80px' }}>APLICAR</button>
+                                        {!camp.collapsed && (
+                                            <div className="flex flex-col gap-8 animate-slide-up">
+                                                <div className="flex gap-4 items-end"><div className="flex-1"><label>Adicionar Anúncios</label><div className="flex gap-2"><input type="number" className="bulk-field-input" value={queueSize} onChange={e => setQueueSize(parseInt(e.target.value) || 1)} style={{ width: '80px', textAlign: 'center' }} /><button className="global-tile-btn global-tile-btn-primary" onClick={() => autoGenerateRows(queueSize, camp.id)}>GERAR {queueSize} LINHAS</button></div></div></div>
+                                                {camp.rows.length > 0 && (
+                                                    <div className="mt-4 animate-fade-in">
+                                                        <div className="flex flex-col gap-4 mb-6" style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                                            <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px', textTransform: 'uppercase' }}>Painel de Configuração Rápida</span>
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                                <div className="flex flex-col gap-2">
+                                                                    <label style={{ fontSize: '10px' }}>REMETENTE GLOBAL</label>
+                                                                    <div className="flex gap-2">
+                                                                        <input id={`global-sender-${camp.id}`} className="bulk-row-input" style={{ height: '38px' }} placeholder="Ex: 55119..." />
+                                                                        <button className="global-tile-btn global-tile-btn-primary" onClick={() => {
+                                                                            const val = (document.getElementById(`global-sender-${camp.id}`) as HTMLInputElement)?.value;
+                                                                            if (val) applyGlobalSender(val, camp.id);
+                                                                        }} style={{ minWidth: '80px' }}>APLICAR</button>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col gap-2">
+                                                                    <label style={{ fontSize: '10px' }}>MÍDIA GLOBAL</label>
+                                                                    <div className="flex gap-1">{(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (<button key={t} onClick={() => applyGlobalHeaderType(t, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>{t}</button>))}</div>
+                                                                </div>
+                                                                <div className="flex flex-col gap-2">
+                                                                    <label style={{ fontSize: '10px' }}>BOTÕES GLOBAIS</label>
+                                                                    <div className="flex gap-1"><button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>LIGAR BOTÕES</button><button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>DESLIGAR</button></div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col gap-2">
-                                                            <label style={{ fontSize: '10px' }}>MÍDIA GLOBAL</label>
-                                                            <div className="flex gap-1">{(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (<button key={t} onClick={() => applyGlobalHeaderType(t, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>{t}</button>))}</div>
-                                                        </div>
-                                                        <div className="flex flex-col gap-2">
-                                                            <label style={{ fontSize: '10px' }}>BOTÕES GLOBAIS</label>
-                                                            <div className="flex gap-1"><button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>LIGAR BOTÕES</button><button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>DESLIGAR</button></div>
-                                                        </div>
+                                                        <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => {
+                                                            const isDuplicate = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim() === row.suffix.trim() && row.suffix.trim() !== "");
+                                                            return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isDuplicate ? 'error-border' : ''}`} value={row.suffix} title={isDuplicate ? "Suffixo duplicado na mesma campanha!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-1"><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Copy size={16} color="white" /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={16} color="white" /></button></div></td></tr>);
+                                                        })}</tbody></table></div>
                                                     </div>
-                                                </div>
-                                                <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => {
-                                                    const isDuplicate = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim() === row.suffix.trim() && row.suffix.trim() !== "");
-                                                    return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isDuplicate ? 'error-border' : ''}`} value={row.suffix} title={isDuplicate ? "Suffixo duplicado na mesma campanha!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-1"><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Copy size={16} color="white"/></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={16} color="white" /></button></div></td></tr>);
-                                                })}</tbody></table></div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
