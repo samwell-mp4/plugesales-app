@@ -1,0 +1,5 @@
+﻿
+> plug---sales@0.0.0 build
+> node node_modules/typescript/bin/tsc -b && node node_modules/vite/bin/vite.js build
+
+src/pages/TemplateCreator.tsx(3,116): error TS6133: 'Trash' is declared but its value is never read.

@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Smartphone, Layers, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, X } from 'lucide-react';
+import { Smartphone, Layers, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -476,6 +476,10 @@ const TemplateCreator = () => {
     };
 
 
+    const applyGlobalSender = (sender: string, campaignId: string) => {
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({ ...r, sender })) } : c));
+    };
+
     const applyGlobalHeaderType = (type: 'TEXT' | 'IMAGE' | 'VIDEO', campaignId: string) => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({
             ...r,
@@ -503,6 +507,15 @@ const TemplateCreator = () => {
             const finalRows = [...c.rows];
             finalRows.splice(rowIndex + 1, 0, ...newRows);
             return { ...c, rows: finalRows };
+        }));
+    };
+
+    const deleteRow = (campaignId: string, rowIndex: number) => {
+        setCampaigns(prev => prev.map(c => {
+            if (c.id !== campaignId) return c;
+            const nRows = [...c.rows];
+            nRows.splice(rowIndex, 1);
+            return { ...c, rows: nRows };
         }));
     };
 
@@ -599,15 +612,31 @@ const TemplateCreator = () => {
                     box-shadow: var(--shadow-md); 
                 }
                 
+                .bulk-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+                .bulk-table th { text-align: left; padding: 12px; color: var(--primary-color); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 900; opacity: 0.6; }
+                .bulk-table td { padding: 4px; vertical-align: middle; }
+                .bulk-table tr { background: rgba(255,255,255,0.02); transition: all 0.2s; }
+                .bulk-table tr:hover { background: rgba(255,255,255,0.05); }
+                .bulk-row-input {
+                    background: rgba(0, 0, 0, 0.2) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                    border-radius: 8px !important;
+                    padding: 8px 12px !important;
+                    color: white !important;
+                    font-size: 0.85rem !important;
+                    width: 100%;
+                    outline: none !important;
+                }
+                .bulk-row-input:focus { border-color: var(--primary-color) !important; background: rgba(172, 248, 0, 0.05) !important; }
+
                 @media (max-width: 768px) {
                     .creator-layout { grid-template-columns: 1fr !important; gap: 16px !important; width: 100% !important; margin: 0 !important; }
                     .glass-card { padding: 12px !important; border-radius: 12px !important; }
                     .button-editor { flex-direction: column !important; align-items: stretch !important; }
                     .bulk-table-container { padding: 2px !important; border-radius: 6px !important; overflow-x: auto !important; width: 100% !important; border: 1px solid var(--surface-border-subtle) !important; }
-                    .bulk-table { min-width: 550px !important; }
-                    .bulk-table th { font-size: 0.5rem !important; padding: 6px 3px !important; }
-                    .bulk-table td { padding: 4px !important; }
-                    .bulk-row input, .bulk-row select { font-size: 0.65rem !important; height: 30px !important; padding: 4px 6px !important; }
+                    .bulk-table { min-width: 600px !important; }
+                    .bulk-table th { font-size: 0.65rem !important; padding: 8px 4px !important; }
+                    .bulk-row-input { font-size: 0.75rem !important; padding: 6px 8px !important; }
                     .wp-bubble { padding: 8px !important; border-radius: 14px !important; }
                 }
 
@@ -727,6 +756,20 @@ const TemplateCreator = () => {
 
                 <div className="creator-layout mt-4">
                     <div className="flex flex-col gap-8">
+                        <div className="glass-card flex flex-col gap-6 animate-fade-in">
+                            <div className="flex items-center gap-4 mb-2">
+                                <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}><Plus size={24} color="var(--primary-color)" /></div>
+                                <h3 style={{ margin: 0, fontWeight: 900 }}>Estrutura Básica</h3>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label>Selecionar Cliente</label>
+                                <select className="input-field" value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)}>
+                                    <option value="">Selecione um cliente...</option>
+                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="tab-btns flex gap-4 mb-6">
                             <button className={`global-tile-btn ${activeTab === 'MODEL' ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} onClick={() => setActiveTab('MODEL')} style={{ flex: 1, height: '48px' }}><Layers size={18} /> GERAR INDIVIDUALMENTE</button>
                             <button className={`global-tile-btn ${activeTab === 'BULK' ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} onClick={() => setActiveTab('BULK')} style={{ flex: 1, height: '48px' }}><Copy size={18} /> GERAR EM MASSA</button>
@@ -825,14 +868,36 @@ const TemplateCreator = () => {
                                 {campaigns.map((camp, cIdx) => (
                                     <div key={camp.id} className="glass-card flex flex-col gap-6 animate-fade-in">
                                         <div className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3"><div style={{ background: 'var(--primary-color)', color: 'black', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.8rem' }}>{cIdx + 1}</div><input className="bg-transparent border-none text-white font-black uppercase text-lg underline decoration-primary/30" value={camp.prefix} onChange={e => { const val = e.target.value.replace(/\s/g, '_').toUpperCase(); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} /></div>
+                                            <div className="flex items-center gap-3"><div style={{ background: 'var(--primary-color)', color: 'black', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.8rem' }}>{cIdx + 1}</div><input className="bg-transparent border-none text-white font-black lowercase text-lg underline decoration-primary/30 outline-none" style={{ minWidth: '150px' }} value={camp.prefix} onChange={e => { const val = e.target.value.replace(/\s/g, '_').toLowerCase(); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} /></div>
                                             {campaigns.length > 1 && <button onClick={() => setCampaigns(campaigns.filter(c => c.id !== camp.id))} className="text-red-500 opacity-50 hover:opacity-100 transition-opacity"><X size={20} /></button>}
                                         </div>
                                         <div className="flex gap-4 items-end"><div className="flex-1"><label>Adicionar Anúncios</label><div className="flex gap-2"><input type="number" className="bulk-field-input" value={queueSize} onChange={e => setQueueSize(parseInt(e.target.value) || 1)} style={{ width: '80px', textAlign: 'center' }} /><button className="global-tile-btn global-tile-btn-primary" onClick={() => autoGenerateRows(queueSize, camp.id)}>GERAR {queueSize} LINHAS</button></div></div></div>
                                         {camp.rows.length > 0 && (
                                             <div className="mt-4 animate-fade-in">
-                                                <div className="flex gap-4 mb-4" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '16px' }}><div className="flex-1 flex flex-col gap-2"><span style={{ fontSize: '10px', fontWeight: 800, opacity: 0.5 }}>MÍDIA GLOBAL</span><div className="flex gap-1">{(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (<button key={t} onClick={() => applyGlobalHeaderType(t, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px', padding: '4px' }}>{t}</button>))}</div></div><div className="flex-1 flex flex-col gap-2"><span style={{ fontSize: '10px', fontWeight: 800, opacity: 0.5 }}>BOTÕES GLOBAIS</span><div className="flex gap-1"><button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px', padding: '4px' }}>LIGA</button><button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px', padding: '4px' }}>DESLIGA</button></div></div></div>
-                                                <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table" style={{ width: '100%' }}><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th>{buttons.filter(b => b.type === 'url').map((_, i) => <th key={i}>LINK {i+1}</th>)}<th></th></tr></thead><tbody>{camp.rows.map((row, rIdx) => (<tr key={rIdx}><td><input className="bulk-field-input" style={{ padding: '6px' }} value={row.suffix} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-field-input" style={{ padding: '6px' }} value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-field-input" style={{ padding: '4px' }} value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<td key={urlIdx}><input className="bulk-field-input" style={{ padding: '6px' }} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>))}<td><button onClick={() => duplicateRow(camp.id, rIdx)}><Copy size={12} /></button></td></tr>))}</tbody></table></div>
+                                                <div className="flex flex-col gap-4 mb-6" style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                                    <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px', textTransform: 'uppercase' }}>Painel de Configuração Rápida</span>
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                        <div className="flex flex-col gap-2">
+                                                            <label style={{ fontSize: '10px' }}>REMETENTE GLOBAL</label>
+                                                            <div className="flex gap-2">
+                                                                <input id={`global-sender-${camp.id}`} className="bulk-row-input" style={{ height: '38px' }} placeholder="Ex: 55119..." />
+                                                                <button className="global-tile-btn global-tile-btn-primary" onClick={() => {
+                                                                    const val = (document.getElementById(`global-sender-${camp.id}`) as HTMLInputElement)?.value;
+                                                                    if (val) applyGlobalSender(val, camp.id);
+                                                                }} style={{ minWidth: '80px' }}>APLICAR</button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col gap-2">
+                                                            <label style={{ fontSize: '10px' }}>MÍDIA GLOBAL</label>
+                                                            <div className="flex gap-1">{(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (<button key={t} onClick={() => applyGlobalHeaderType(t, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>{t}</button>))}</div>
+                                                        </div>
+                                                        <div className="flex flex-col gap-2">
+                                                            <label style={{ fontSize: '10px' }}>BOTÕES GLOBAIS</label>
+                                                            <div className="flex gap-1"><button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>LIGAR BOTÕES</button><button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>DESLIGAR</button></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th>{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i+1}</th><th>LINK B{i+1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className="bulk-row-input" value={row.suffix} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.5 : 1 }} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.5 : 1 }} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-1"><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Copy size={16} /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0, color: '#ff4444' }} onClick={() => { if(window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={16} /></button></div></td></tr>))}</tbody></table></div>
                                             </div>
                                         )}
                                     </div>
