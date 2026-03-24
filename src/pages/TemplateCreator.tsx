@@ -48,7 +48,7 @@ const TemplateCreator = () => {
                 setClients(data);
             });
         }
-        
+
         if (user?.role === 'CLIENT') {
             setSelectedClientId(user?.id || '');
         }
@@ -73,7 +73,7 @@ const TemplateCreator = () => {
             if (data.templateName) setModelName(data.templateName);
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
             if (data.clientId) setSelectedClientId(data.clientId);
-            
+
             if (data.rows && data.rows.length > 0) {
                 const initializedRows = data.rows.map((row: any) => ({
                     ...row,
@@ -86,7 +86,7 @@ const TemplateCreator = () => {
                     prefix: data.campaignPrefix || 'CAMP_1_',
                     rows: initializedRows
                 }]);
-                
+
                 if (initializedRows[0].mediaUrl) setHeaderMediaUrl(initializedRows[0].mediaUrl);
                 if (initializedRows[0].buttonUrl) {
                     setButtons([{ type: 'url', text: 'Clique Aqui', url: initializedRows[0].buttonUrl }]);
@@ -352,7 +352,16 @@ const TemplateCreator = () => {
     const handleGenerateBulk = async () => {
         if (campaigns.every(c => c.rows.length === 0)) return alert("Adicione pelo menos uma linha em alguma campanha.");
         if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
-        
+
+        // Check for duplicate suffixes in each campaign
+        for (const camp of campaigns) {
+            const suffixes = camp.rows.map(r => r.suffix.trim());
+            const duplicates = suffixes.filter((s, i) => suffixes.indexOf(s) !== i && s !== "");
+            if (duplicates.length > 0) {
+                return alert(`⚠️ Suffixos duplicados na Campanha "${camp.prefix}": ${[...new Set(duplicates)].join(', ')}. Por favor, corrija antes de prosseguir.`);
+            }
+        }
+
         const totalTotal = campaigns.reduce((acc, c) => acc + c.rows.length, 0);
         const confirmBulk = window.confirm(`Isso irá disparar ${totalTotal} chamadas de API em ${campaigns.length} campanhas. Continuar?`);
         if (!confirmBulk) return;
@@ -481,11 +490,13 @@ const TemplateCreator = () => {
     };
 
     const applyGlobalHeaderType = (type: 'TEXT' | 'IMAGE' | 'VIDEO', campaignId: string) => {
-        setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({
-            ...r,
-            headerType: type,
-            mediaUrl: type !== 'TEXT' ? (r.mediaUrl || headerMediaUrl) : ''
-        })) } : c));
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? {
+            ...c, rows: c.rows.map(r => ({
+                ...r,
+                headerType: type,
+                mediaUrl: type !== 'TEXT' ? (r.mediaUrl || headerMediaUrl) : ''
+            }))
+        } : c));
     };
 
     const applyGlobalButtons = (hasButtons: boolean, campaignId: string) => {
@@ -586,7 +597,7 @@ const TemplateCreator = () => {
                     border: 1px solid var(--surface-border-subtle);
                     box-shadow: var(--shadow-md);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    padding: 24px;
+                    padding: 32px;
                     border-radius: 24px;
                 }
                 .var-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
@@ -628,6 +639,20 @@ const TemplateCreator = () => {
                     outline: none !important;
                 }
                 .bulk-row-input:focus { border-color: var(--primary-color) !important; background: rgba(172, 248, 0, 0.05) !important; }
+                .bulk-prefix-input {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 10px;
+                    padding: 6px 14px;
+                    color: var(--primary-color);
+                    font-weight: 800;
+                    font-size: 1.1rem;
+                    outline: none;
+                    transition: all 0.2s;
+                    min-width: 180px;
+                }
+                .bulk-prefix-input:focus { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.05); }
+                .error-border { border-color: #ff4444 !important; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2) !important; }
 
                 @media (max-width: 768px) {
                     .creator-layout { grid-template-columns: 1fr !important; gap: 16px !important; width: 100% !important; margin: 0 !important; }
@@ -749,13 +774,13 @@ const TemplateCreator = () => {
             `}</style>
 
             <div className="p-4 md:p-8 creator-page min-h-screen">
-                <div className="flex flex-col mb-4">
+                <div className="flex flex-col mb-10">
                     <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.4rem, 6vw, 2.4rem)', letterSpacing: '-1.5px', lineHeight: 1 }}>Templates WhatsApp</h1>
                     <p className="subtitle" style={{ fontSize: 'clamp(0.75rem, 3.5vw, 1rem)', opacity: 0.6 }}>Criação oficial via Infobip Cloud</p>
                 </div>
 
-                <div className="creator-layout mt-4">
-                    <div className="flex flex-col gap-8">
+                <div className="creator-layout mt-4" style={{ gap: '48px' }}>
+                    <div className="flex flex-col gap-12">
                         <div className="glass-card flex flex-col gap-6 animate-fade-in">
                             <div className="flex items-center gap-4 mb-2">
                                 <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}><Plus size={24} color="var(--primary-color)" /></div>
@@ -776,8 +801,8 @@ const TemplateCreator = () => {
                         </div>
 
                         {activeTab === 'MODEL' ? (
-                            <div className="flex flex-col gap-8 animate-fade-in">
-                                <div className="glass-card flex flex-col gap-6">
+                            <div className="flex flex-col gap-12 animate-fade-in">
+                                <div className="glass-card flex flex-col gap-8">
                                     <div className="flex items-center gap-4 mb-4">
                                         <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}><Activity size={24} color="var(--primary-color)" /></div>
                                         <h3 style={{ margin: 0, fontWeight: 900 }}>Estrutura do Modelo</h3>
@@ -849,8 +874,8 @@ const TemplateCreator = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-8 animate-fade-in">
-                                <div className="glass-card flex flex-col gap-4">
+                            <div className="flex flex-col gap-12 animate-fade-in">
+                                <div className="glass-card flex flex-col gap-6">
                                     <div className="flex items-center gap-3"><Link size={18} color="var(--primary-color)" /><h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>Encurtador de Links</h3></div>
                                     <div className="flex gap-4">
                                         <input className="bulk-field-input" placeholder="Deseja encurtar alguma URL?" value={utilityLinkOriginal} onChange={e => setUtilityLinkOriginal(e.target.value)} />
@@ -863,12 +888,15 @@ const TemplateCreator = () => {
                                     )}
                                 </div>
 
-                                <div className="flex justify-between items-center"><h3 style={{ margin: 0, fontWeight: 900 }}>Campanhas Multi-Gerador</h3><div className="flex gap-3"><button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'CAMP_1_', rows: [] }])}>LIMPAR</button><button className="global-tile-btn global-tile-btn-primary" onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `CAMP_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button></div></div>
+                                <div className="flex justify-between items-center mt-12 mb-6"><h3 style={{ margin: 0, fontWeight: 900 }}>Campanhas Multi-Gerador</h3><div className="flex gap-3"><button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'CAMP_1_', rows: [] }])}>LIMPAR</button><button className="global-tile-btn global-tile-btn-primary " onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `CAMP_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button></div></div>
 
                                 {campaigns.map((camp, cIdx) => (
-                                    <div key={camp.id} className="glass-card flex flex-col gap-6 animate-fade-in">
+                                    <div key={camp.id} className="glass-card flex flex-col gap-8 animate-fade-in">
                                         <div className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3"><div style={{ background: 'var(--primary-color)', color: 'black', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.8rem' }}>{cIdx + 1}</div><input className="bg-transparent border-none text-white font-black lowercase text-lg underline decoration-primary/30 outline-none" style={{ minWidth: '150px' }} value={camp.prefix} onChange={e => { const val = e.target.value.replace(/\s/g, '_').toLowerCase(); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} /></div>
+                                            <div className="flex items-center gap-4">
+                                                <div style={{ background: 'var(--primary-color)', color: 'black', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem' }}>{cIdx + 1}</div>
+                                                <input className="bulk-prefix-input" value={camp.prefix} onChange={e => { const val = e.target.value.replace(/\s/g, '_').toLowerCase(); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} />
+                                            </div>
                                             {campaigns.length > 1 && <button onClick={() => setCampaigns(campaigns.filter(c => c.id !== camp.id))} className="text-red-500 opacity-50 hover:opacity-100 transition-opacity"><X size={20} /></button>}
                                         </div>
                                         <div className="flex gap-4 items-end"><div className="flex-1"><label>Adicionar Anúncios</label><div className="flex gap-2"><input type="number" className="bulk-field-input" value={queueSize} onChange={e => setQueueSize(parseInt(e.target.value) || 1)} style={{ width: '80px', textAlign: 'center' }} /><button className="global-tile-btn global-tile-btn-primary" onClick={() => autoGenerateRows(queueSize, camp.id)}>GERAR {queueSize} LINHAS</button></div></div></div>
@@ -897,12 +925,15 @@ const TemplateCreator = () => {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th>{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i+1}</th><th>LINK B{i+1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className="bulk-row-input" value={row.suffix} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.5 : 1 }} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.5 : 1 }} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-1"><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Copy size={16} /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0, color: '#ff4444' }} onClick={() => { if(window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={16} /></button></div></td></tr>))}</tbody></table></div>
+                                                <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => {
+                                                    const isDuplicate = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim() === row.suffix.trim() && row.suffix.trim() !== "");
+                                                    return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isDuplicate ? 'error-border' : ''}`} value={row.suffix} title={isDuplicate ? "Suffixo duplicado na mesma campanha!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-1"><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Copy size={16} color="white"/></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={16} color="white" /></button></div></td></tr>);
+                                                })}</tbody></table></div>
                                             </div>
                                         )}
                                     </div>
                                 ))}
-                                <button className="global-tile-btn global-tile-btn-primary" onClick={handleGenerateBulk} disabled={isGenerating || campaigns.every(c => c.rows.length === 0)} style={{ padding: '24px', borderRadius: '24px', fontSize: '1.2rem', fontWeight: 900 }}>🚀 GERAR TODAS AS CAMPANHAS AGORA</button>
+                                <button className="global-tile-btn global-tile-btn-primary mt-12 mb-12" onClick={handleGenerateBulk} disabled={isGenerating || campaigns.every(c => c.rows.length === 0)} style={{ padding: '24px', borderRadius: '24px', fontSize: '1.2rem', fontWeight: 900 }}>🚀 GERAR TODAS AS CAMPANHAS AGORA</button>
                             </div>
                         )}
                     </div>
