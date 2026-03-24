@@ -373,12 +373,15 @@ export const dbService = {
             return null;
         }
     },
-    updateClientSubmissionStatus: async (id: number, status: string) => {
+    updateClientSubmissionStatus: async (id: number, status?: string, assignedTo?: string) => {
         try {
+            const body: any = {};
+            if (status) body.status = status;
+            if (assignedTo) body.assigned_to = assignedTo;
             await fetch(`${API_BASE}/client-submissions/${id}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
+                body: JSON.stringify(body)
             });
         } catch (err: any) {
             console.error("Error updating client submission status:", err);

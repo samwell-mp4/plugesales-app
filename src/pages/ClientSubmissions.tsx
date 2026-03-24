@@ -219,6 +219,68 @@ const ClientSubmissions = () => {
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (!window.confirm(`Deseja realmente excluir ${selectedIds.length} envios selecionados?`)) return;
+        setIsProcessing(true);
+        try {
+            for (const id of selectedIds) {
+                await dbService.deleteClientSubmission(id);
+            }
+            alert("Exclusão concluída!");
+            setSelectedIds([]);
+            loadSubmissions();
+        } catch (err) {
+            console.error("Bulk delete error:", err);
+            alert("Erro ao excluir envios em lote.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleBulkAssign = async () => {
+        if (selectedIds.length === 0) return;
+        const employee = window.prompt(`Digite o nome do funcionário para atribuir ${selectedIds.length} envios:\nOpções: ${employees.join(', ')}`);
+        if (!employee) return;
+        
+        setIsProcessing(true);
+        try {
+            for (const id of selectedIds) {
+                await dbService.updateClientSubmissionStatus(id, undefined, employee);
+            }
+            alert("Atribuição concluída!");
+            setSelectedIds([]);
+            loadSubmissions();
+        } catch (err) {
+            console.error("Bulk assign error:", err);
+            alert("Erro ao atribuir envios em lote.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleBulkStatusChange = async () => {
+        if (selectedIds.length === 0) return;
+        const newStatus = window.prompt(`Digite o novo status para ${selectedIds.length} envios:\n(PENDENTE, EM ANDAMENTO, GERADO, CONCLUIDO, CANCELADO)`);
+        if (!newStatus) return;
+        
+        const statusUpper = newStatus.toUpperCase();
+        setIsProcessing(true);
+        try {
+            for (const id of selectedIds) {
+                await dbService.updateClientSubmissionStatus(id, statusUpper);
+            }
+            alert("Status atualizado com sucesso!");
+            setSelectedIds([]);
+            loadSubmissions();
+        } catch (err) {
+            console.error("Bulk status error:", err);
+            alert("Erro ao alterar status em lote.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleBulkGenerate = async () => {
         if (selectedIds.length === 0) return;
         if (!window.confirm(`Deseja gerar templates reais na Infobip para ${selectedIds.length} envios selecionados?`)) return;
@@ -701,14 +763,37 @@ const ClientSubmissions = () => {
                                 <Plus size={16} /> NOVO ENVIO
                             </button>
                             {selectedIds.length > 0 && (
-                                <button
-                                    onClick={handleBulkGenerate}
-                                    disabled={isProcessing}
-                                    style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '12px', border: '1px solid rgba(172,248,0,0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                >
-                                    {isProcessing ? <Activity size={15} className="animate-spin" /> : <Layers size={15} />}
-                                    {isProcessing ? 'GERANDO...' : `GERAR (${selectedIds.length})`}
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={handleBulkGenerate}
+                                        disabled={isProcessing}
+                                        style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '12px', border: '1px solid rgba(172,248,0,0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    >
+                                        {isProcessing ? <Activity size={15} className="animate-spin" /> : <Layers size={15} />}
+                                        {isProcessing ? 'GERANDO...' : `GERAR (${selectedIds.length})`}
+                                    </button>
+                                    <button
+                                        onClick={handleBulkAssign}
+                                        disabled={isProcessing}
+                                        style={{ background: 'rgba(59,130,246,0.1)', color: '#60a5fa', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '10px', border: '1px solid rgba(96,165,240,0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    >
+                                        <User size={14} /> ATRIBUIR
+                                    </button>
+                                    <button
+                                        onClick={handleBulkStatusChange}
+                                        disabled={isProcessing}
+                                        style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '10px', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    >
+                                        <Activity size={14} /> STATUS
+                                    </button>
+                                    <button
+                                        onClick={handleBulkDelete}
+                                        disabled={isProcessing}
+                                        style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '10px', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    >
+                                        <Trash2 size={14} /> EXCLUIR
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
