@@ -84,6 +84,7 @@ const ClientSubmissions = () => {
     const [showUpcoming, setShowUpcoming] = useState(false);
     const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
     const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
+    const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('');
 
     const loadSubmissions = async () => {
         setIsLoading(true);
@@ -106,9 +107,12 @@ const ClientSubmissions = () => {
 
     useEffect(() => { 
         loadSubmissions(); 
+        if (user?.role === 'ADMIN') {
+            setActiveTab('available');
+        }
         const interval = setInterval(loadSubmissions, 20000);
         return () => clearInterval(interval);
-    }, []);
+    }, [user?.role]);
 
     const handleDelete = async (id: number) => {
         if (!window.confirm("Deseja realmente excluir este envio?")) return;
@@ -141,8 +145,9 @@ const ClientSubmissions = () => {
         const matchesStatus = !selectedStatusFilter || s.status === selectedStatusFilter;
         const currentType = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'none';
         const matchesType = !selectedTypeFilter || currentType === selectedTypeFilter;
+        const matchesEmployee = !selectedEmployeeFilter || s.assigned_to === selectedEmployeeFilter;
 
-        return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming && matchesStatus && matchesType;
+        return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming && matchesStatus && matchesType && matchesEmployee;
     });
 
     const filteredSubmissions = activeTab === 'available' ? allFiltered.filter(s => !s.assigned_to)
@@ -422,10 +427,31 @@ const ClientSubmissions = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ fontWeight: 900, fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                            {s.template_type || 'TEMPLATE'}
-                        </span>
                         <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700 }}>pt_BR</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>RESPONSÁVEL</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: s.assigned_to ? 'rgba(172,248,0,0.2)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>
+                                <User size={10} style={{ color: s.assigned_to ? 'var(--primary-color)' : 'var(--text-muted)' }} />
+                            </div>
+                            <span style={{ fontWeight: 800, fontSize: '11px', color: s.assigned_to ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                                {s.assigned_to || 'Ninguém'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '120px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>DETALHES</span>
+                        <div className="flex-col">
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                {s.client_name ? `Cliente: ${s.client_name}` : 'Sem Cliente'}
+                            </span>
+                            <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
+                                DDD: {s.ddd || '--'} | Ad: {s.ads && s.ads.length > 0 ? s.ads[0].ad_name : 'Sem Ad'}
+                            </span>
+                        </div>
                     </div>
 
                     <div>
@@ -578,7 +604,7 @@ const ClientSubmissions = () => {
                 .list-container { display: flex; flex-direction: column; gap: 8px; width: 100%; }
                 .list-row {
                     display: grid;
-                    grid-template-columns: 2fr 1fr 1fr 1.5fr 120px;
+                    grid-template-columns: 1.8fr 0.4fr 1.2fr 2fr 0.8fr 1fr 150px;
                     align-items: center;
                     padding: 16px 24px;
                     background: rgba(255,255,255,0.015);
@@ -786,6 +812,12 @@ const ClientSubmissions = () => {
                                         <option value="GERADO" style={{ background: '#0f172a' }}>GERADO</option>
                                         <option value="CONCLUIDO" style={{ background: '#0f172a' }}>CONCLUÍDO</option>
                                         <option value="CANCELADO" style={{ background: '#0f172a' }}>CANCELADO</option>
+                                    </select>
+                                </div>
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                    <select value={selectedEmployeeFilter} onChange={e => { setSelectedEmployeeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedEmployeeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                        <option value="" style={{ background: '#0f172a' }}>FUNCIONÁRIOS</option>
+                                        {employees.map(emp => <option key={emp} value={emp} style={{ background: '#0f172a' }}>{emp.toUpperCase()}</option>)}
                                     </select>
                                 </div>
                                 <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
