@@ -1,0 +1,15 @@
+﻿
+> plug---sales@0.0.0 build
+> node node_modules/typescript/bin/tsc -b && node node_modules/vite/bin/vite.js build
+
+src/pages/TemplateCreator.tsx(3,10): error TS6133: 'Send' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(3,36): error TS6133: 'Settings2' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(3,122): error TS6133: 'CheckCircle' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(3,138): error TS6133: 'User' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(3,144): error TS6133: 'Settings' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(3,154): error TS6133: 'Rocket' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(3,162): error TS6133: 'Upload' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(44,12): error TS6133: 'isCreatingClient' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(59,11): error TS6133: 'handleCreateClient' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(141,23): error TS6133: 'setCopyCount' is declared but its value is never read.
+src/pages/TemplateCreator.tsx(498,11): error TS6133: 'applyGlobalSender' is declared but its value is never read.

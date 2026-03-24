@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Send, Smartphone, Layers, Settings2, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, CheckCircle, X, User, Settings, Rocket, Upload } from 'lucide-react';
+import { Smartphone, Layers, Image as ImageIcon, Video, Link, MessageSquareReply, Plus, Activity, Copy, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -41,8 +41,6 @@ const TemplateCreator = () => {
     // --- CLIENT SELECTION STATE ---
     const [clients, setClients] = useState<any[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string | number>('');
-    const [isCreatingClient, setIsCreatingClient] = useState(false);
-    const [newClientData, setNewClientData] = useState({ name: '', email: '', phone: '', password: '' });
 
     useEffect(() => {
         if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
@@ -56,24 +54,6 @@ const TemplateCreator = () => {
         }
     }, [user]);
 
-    const handleCreateClient = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const result = await dbService.register({ ...newClientData, role: 'CLIENT' });
-            if (result.error) {
-                alert(result.error);
-            } else {
-                setClients(prev => [...prev, result.user]);
-                setSelectedClientId(result.user.id);
-                setIsCreatingClient(false);
-                setNewClientData({ name: '', email: '', phone: '', password: '' });
-                alert("Cliente criado com sucesso!");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Erro ao criar cliente");
-        }
-    };
 
     useEffect(() => {
         if (location.state?.key) {
@@ -138,7 +118,7 @@ const TemplateCreator = () => {
         { type: 'url', text: 'Clique Aqui', url: 'https://site.com' }
     ]);
 
-    const [copyCount, setCopyCount] = useState(1);
+    const [copyCount] = useState(1);
 
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
@@ -495,9 +475,6 @@ const TemplateCreator = () => {
         }));
     };
 
-    const applyGlobalSender = (sender: string, campaignId: string) => {
-        setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({ ...r, sender })) } : c));
-    };
 
     const applyGlobalHeaderType = (type: 'TEXT' | 'IMAGE' | 'VIDEO', campaignId: string) => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({
