@@ -34,6 +34,8 @@ const VALID_USERS = [
     { name: 'Lucas', role: 'EMPLOYEE' as Role, password: 'lucas762' },
     { name: 'Geraldo', role: 'EMPLOYEE' as Role, password: 'geraldo104' },
     { name: 'Ricardo', role: 'EMPLOYEE' as Role, password: 'ricardo883' },
+    { name: 'gabriel', role: 'EMPLOYEE' as Role, password: 'gabriel123' },
+
 ];
 
 import { dbService } from '../services/dbService';
@@ -56,10 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (username: string, password: string): Promise<boolean> => {
         // Try static login first (Internal Team)
-        const foundStatic = VALID_USERS.find(u => 
+        const foundStatic = VALID_USERS.find(u =>
             u.name.toLowerCase() === username.toLowerCase() && u.password === password
         );
-        
+
         if (foundStatic) {
             // Ensure static user exists in DB to have an ID and persistent settings
             try {
@@ -71,14 +73,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     password: foundStatic.password,
                     role: foundStatic.role
                 });
-                
+
                 // If already exists, result will have error or user. DB register returns {user, token} usually or just user.
                 // Our current register returns the user object directly if success.
                 const finalUser = dbRes.error ? (await dbService.login({ email: `${foundStatic.name.toLowerCase()}@internal.system`, password: foundStatic.password })) : dbRes;
-                
+
                 // Note: dbRes/finalUser from login endpoint is usually { token, user }
                 const userObj = finalUser.user || finalUser;
-                
+
                 if (userObj && userObj.id) {
                     setUser(userObj);
                     localStorage.setItem('auth_user', JSON.stringify(userObj));
@@ -127,9 +129,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ 
+        <AuthContext.Provider value={{
             user, login, register, logout, setUser: handleSetUser,
-            theme, toggleTheme 
+            theme, toggleTheme
         }}>
             {children}
         </AuthContext.Provider>

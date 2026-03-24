@@ -90,18 +90,26 @@ const TemplateCreator = () => {
             if (data.templateType) setHeaderType(data.templateType);
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
             if (data.rows && data.rows.length > 0) {
-                setBulkRows(data.rows);
+                // Ensure rows are initialized with correct types if pre-filled
+                const initializedRows = data.rows.map((row: any) => ({
+                    ...row,
+                    headerType: row.headerType || data.templateType || 'none',
+                    buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
+                    buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : [])
+                }));
+                setBulkRows(initializedRows);
+                
                 // Also set initial media and button from first row if available
-                if (data.rows[0].mediaUrl) setHeaderMediaUrl(data.rows[0].mediaUrl);
-                if (data.rows[0].buttonUrl) {
-                    setButtons([{ type: 'url', text: 'Clique Aqui', url: data.rows[0].buttonUrl }]);
+                if (initializedRows[0].mediaUrl) setHeaderMediaUrl(initializedRows[0].mediaUrl);
+                if (initializedRows[0].buttonUrl) {
+                    setButtons([{ type: 'url', text: 'Clique Aqui', url: initializedRows[0].buttonUrl }]);
                 }
                 // Pre-fill variable examples with Leandro, Plug Sales, etc as requested
                 _setVariablesExample([
-                    data.rows[0].var1 || 'Leandro',
-                    data.rows[0].var2 || 'Plug Sales',
-                    data.rows[0].var3 || 'Marketing',
-                    data.rows[0].var4 || 'WhatsApp'
+                    initializedRows[0].var1 || 'Leandro',
+                    initializedRows[0].var2 || 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
+                    initializedRows[0].var3 || 'O comprovante digital já se encontra disponível para conferência',
+                    initializedRows[0].var4 || 'acessar o comprovante digital #54333 e verificar a entrega'
                 ]);
             }
         }
@@ -230,7 +238,7 @@ const TemplateCreator = () => {
         return {
             name: name,
             language: language,
-            category: category,
+            category: 'UTILITY',
             structure: structure
         };
     };
@@ -1126,11 +1134,9 @@ const TemplateCreator = () => {
                                             <input className="input-field" style={{ borderRadius: '12px' }} value={modelName} onChange={e => setModelName(e.target.value.toLowerCase().replace(/\s/g, '_'))} />
                                         </div>
                                         <div className="input-group">
-                                            <label>Categoria</label>
-                                            <select className="input-field" style={{ borderRadius: '12px' }} value={category} onChange={e => setCategory(e.target.value)}>
-                                                <option value="MARKETING">Marketing</option>
-                                                <option value="UTILITY">Utilidade</option>
-                                                <option value="AUTHENTICATION">Autenticação</option>
+                                            <label>Categoria (Fixa)</label>
+                                            <select className="input-field" style={{ borderRadius: '12px', opacity: 0.7, cursor: 'not-allowed' }} value="UTILITY" disabled>
+                                                <option value="UTILITY">Utilidade (Padrão)</option>
                                             </select>
                                         </div>
                                         <div className="input-group">

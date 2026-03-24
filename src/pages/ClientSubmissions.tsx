@@ -173,11 +173,12 @@ const ClientSubmissions = () => {
             rows: adsToFill.map((ad, idx) => ({
                 id: idx + 1,
                 suffix: ad.ad_name ? `_${ad.ad_name.toLowerCase().replace(/\s+/g, '_')}` : `_v${idx + 1}`,
+                headerType: (ad.template_type || sub.template_type || 'none').toLowerCase(),
                 mediaUrl: ad.media_url || ad.ad_copy_file || '',
                 var1: ad.variables?.[0] || 'Leandro',
-                var2: ad.variables?.[1] || 'Plug Sales',
-                var3: ad.variables?.[2] || 'Marketing',
-                var4: ad.variables?.[3] || 'WhatsApp',
+                var2: ad.variables?.[1] || 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
+                var3: ad.variables?.[2] || 'O comprovante digital já se encontra disponível para conferência',
+                var4: ad.variables?.[3] || 'acessar o comprovante digital #54333 e verificar a entrega',
                 buttonUrl: ad.button_link || ''
             }))
         };
@@ -393,15 +394,17 @@ const ClientSubmissions = () => {
                                 </select>
                             </div>
                         )}
-                        <div className="flex gap-2" style={{ marginBottom: '14px' }}>
-                            <button 
-                                className="btn flex-1" 
-                                onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
-                                style={{ background: '#f97316', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                            >
-                                <Layers size={14} /> PREENCHER NO CREATOR
-                            </button>
-                        </div>
+                        {s.status !== 'CONCLUIDO' && (
+                            <div className="flex gap-2" style={{ marginBottom: '14px' }}>
+                                <button 
+                                    className="btn flex-1" 
+                                    onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
+                                    style={{ background: '#f97316', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                >
+                                    <Layers size={14} /> PREENCHER NO CREATOR
+                                </button>
+                            </div>
+                        )}
                         <button className="open-btn" onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}>ABRIR PAINEL <ChevronRight size={15} /></button>
                     </div>
                 );
@@ -441,14 +444,16 @@ const ClientSubmissions = () => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button 
-                            className="list-btn" 
-                            onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
-                            style={{ background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)' }}
-                            title="Preencher no Creator"
-                        >
-                            <Layers size={16} />
-                        </button>
+                        {s.status !== 'CONCLUIDO' && (
+                            <button 
+                                className="list-btn" 
+                                onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
+                                style={{ background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)' }}
+                                title="Preencher no Creator"
+                            >
+                                <Layers size={16} />
+                            </button>
+                        )}
                         <button 
                             className="list-btn" 
                             onClick={e => { e.stopPropagation(); navigate(`/client-submissions/${s.id}`); }}
@@ -495,6 +500,14 @@ const ClientSubmissions = () => {
                                         </div>
                                     </div>
                                     {s.assigned_to && <p style={{ margin: 0, fontSize: '9px', color: '#f59e0b', fontWeight: 800 }}>👤 {s.assigned_to}</p>}
+                                    {s.status !== 'CONCLUIDO' && (
+                                        <button 
+                                            onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
+                                            style={{ width: '100%', marginTop: '12px', background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)', padding: '8px', borderRadius: '8px', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                        >
+                                            <Layers size={12} /> CREATOR
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
