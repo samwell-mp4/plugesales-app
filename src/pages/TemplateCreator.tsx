@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Smartphone, Layers, Plus, Activity, Image as ImageIcon, Video, Link, MessageSquareReply, Copy, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
+import { Smartphone, Layers, Plus, Activity, Image as ImageIcon, Video, Link, MessageSquareReply, Copy, Trash2, ChevronRight, ChevronDown, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
@@ -422,9 +422,9 @@ const TemplateCreator = () => {
                         ad_name: name,
                         template_type: row.headerType,
                         message_mode: 'manual',
-                        media_url: row.headerType !== 'TEXT' ? row.mediaUrl : '',
+                        media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/qv5OXja.jpg") : '',
                         ad_copy: bodyText,
-                        button_link: (finalButtonUrls && finalButtonUrls.length > 0) ? finalButtonUrls[0] : '',
+                        button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                         variables: variablesExample || [],
                         delivered_leads: 0,
                         price_per_msg: 0.04
@@ -448,7 +448,7 @@ const TemplateCreator = () => {
                 template_type: 'TEXT',
                 media_url: '',
                 ad_copy: bodyText,
-                button_link: '',
+                button_link: generatedAds.length > 0 ? (generatedAds[0].button_link || '') : '',
                 spreadsheet_url: '',
                 status: 'GERADO',
                 submitted_by: user?.name,
@@ -624,22 +624,24 @@ const TemplateCreator = () => {
                     box-shadow: var(--shadow-md); 
                 }
                 
-                .bulk-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
-                .bulk-table th { text-align: left; padding: 12px; color: var(--primary-color); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 900; opacity: 0.6; }
-                .bulk-table td { padding: 4px; vertical-align: middle; }
-                .bulk-table tr { background: rgba(255,255,255,0.02); transition: all 0.2s; }
-                .bulk-table tr:hover { background: rgba(255,255,255,0.05); }
+                .bulk-table { width: 100%; border-collapse: separate; border-spacing: 0 16px; margin-top: 24px; }
+                .bulk-table th { text-align: left; padding: 16px 12px; color: var(--primary-color); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 1000; opacity: 0.9; }
+                .bulk-table td { padding: 12px 6px; vertical-align: middle; }
+                .bulk-table tr { background: rgba(255, 255, 255, 0.04); border-radius: 16px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+                .bulk-table tr:hover { background: rgba(255, 255, 255, 0.08); transform: scale(1.002); }
                 .bulk-row-input {
-                    background: rgba(0, 0, 0, 0.2) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                    border-radius: 8px !important;
-                    padding: 8px 12px !important;
+                    background: rgba(255, 255, 255, 0.06) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                    border-radius: 12px !important;
+                    padding: 10px 16px !important;
                     color: white !important;
-                    font-size: 0.85rem !important;
+                    font-size: 0.95rem !important;
                     width: 100%;
+                    height: 44px !important;
                     outline: none !important;
+                    transition: all 0.2s ease;
                 }
-                .bulk-row-input:focus { border-color: var(--primary-color) !important; background: rgba(172, 248, 0, 0.05) !important; }
+                .bulk-row-input:focus { border-color: var(--primary-color) !important; background: rgba(255, 255, 255, 0.1) !important; box-shadow: 0 0 15px rgba(172, 248, 0, 0.1) !important; }
                 .bulk-prefix-input {
                     background: rgba(255, 255, 255, 0.03);
                     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -781,8 +783,8 @@ const TemplateCreator = () => {
                 </div>
 
                 <div className="creator-layout mt-8" style={{ gap: '48px' }}>
-                    <div className="flex flex-col" style={{ gap: '0px' }}>
-                        <div className="glass-card flex flex-col gap-2 animate-fade-in" style={{ marginBottom: '24px' }}>
+                    <div className="flex flex-col" style={{ gap: '24px' }}>
+                        <div className="glass-card flex flex-col gap-6 animate-fade-in" style={{ marginBottom: '16px' }}>
                             <div className="flex items-center gap-4 mb-2">
                                 <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}><Plus size={24} color="var(--primary-color)" /></div>
                                 <h3 style={{ margin: 0, fontWeight: 900 }}>Estrutura Básica</h3>
@@ -902,8 +904,12 @@ const TemplateCreator = () => {
                                                 <input className="bulk-prefix-input" value={camp.prefix} onChange={e => { const val = e.target.value.replace(/\s/g, '_').toLowerCase(); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} />
                                                 <span style={{ fontSize: '12px', opacity: 0.5, fontWeight: 700 }}>{camp.rows.length} ANÚNCIOS</span>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                {campaigns.length > 1 && <button onClick={() => setCampaigns(campaigns.filter(c => c.id !== camp.id))} className="text-red-500 opacity-50 hover:opacity-100 transition-opacity"><Trash2 size={20} /></button>}
+                                            <div className="flex items-center gap-4">
+                                                {campaigns.length > 1 && (
+                                                    <button onClick={() => setCampaigns(campaigns.filter(c => c.id !== camp.id))} className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0 }} title="Remover Campanha">
+                                                        <Trash2 size={24} stroke="white" strokeWidth={3} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                         {!camp.collapsed && (
@@ -936,7 +942,7 @@ const TemplateCreator = () => {
                                                         </div>
                                                         <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => {
                                                             const isDuplicate = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim() === row.suffix.trim() && row.suffix.trim() !== "");
-                                                            return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isDuplicate ? 'error-border' : ''}`} value={row.suffix} title={isDuplicate ? "Suffixo duplicado na mesma campanha!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-1"><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Copy size={16} color="white" /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '34px', height: '34px', padding: 0 }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={16} color="white" /></button></div></td></tr>);
+                                                            return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isDuplicate ? 'error-border' : ''}`} value={row.suffix} title={isDuplicate ? "Suffixo duplicado na mesma campanha!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-3" style={{ position: 'relative', zIndex: 100, minWidth: '120px', justifyContent: 'center' }}><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={28} color="#FFFFFF" strokeWidth={3} /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={28} color="#FFFFFF" strokeWidth={3} /></button></div></td></tr>);
                                                         })}</tbody></table></div>
                                                     </div>
                                                 )}
