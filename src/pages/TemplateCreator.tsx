@@ -84,7 +84,7 @@ const TemplateCreator = () => {
                 }));
                 setCampaigns([{
                     id: Date.now().toString(),
-                    prefix: data.campaignPrefix || 'CAMP_1_',
+                    prefix: data.campaignPrefix || 'nome_campanha_1_',
                     rows: initializedRows
                 }]);
 
@@ -124,7 +124,7 @@ const TemplateCreator = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
     const [queueSize, setQueueSize] = useState(5);
-    const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'CAMP_1_', rows: [] }]);
+    const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
 
 
     const handleFileUpload = async (file: File) => {
@@ -921,7 +921,7 @@ const TemplateCreator = () => {
                                     )}
                                 </div>
 
-                                <div className="flex justify-between items-center" style={{ marginTop: '24px', marginBottom: '16px' }}><h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Campanhas Multi-Gerador</h3><div className="flex gap-4"><button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'CAMP_1_', rows: [] }])}>LIMPAR</button><button className="global-tile-btn global-tile-btn-primary " onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `CAMP_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button></div></div>
+                                <div className="flex justify-between items-center" style={{ marginTop: '24px', marginBottom: '16px' }}><h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Campanhas Multi-Gerador</h3><div className="flex gap-4"><button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }])}>LIMPAR</button><button className="global-tile-btn global-tile-btn-primary " onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `nome_campanha_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button></div></div>
 
                                 {campaigns.map((camp, cIdx) => (
                                     <div key={camp.id} className="glass-card flex flex-col gap-8 animate-fade-in">
