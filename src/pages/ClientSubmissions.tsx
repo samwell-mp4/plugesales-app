@@ -4,7 +4,7 @@ import {
     Plus, 
     Trash2, 
     User, 
-    Image as ImageIcon, 
+    ImageIcon, 
     Video, 
     FileText, 
     Link as LinkIcon, 
@@ -82,6 +82,8 @@ const ClientSubmissions = () => {
     const [itemsPerPage] = useState(12);
     const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
     const [showUpcoming, setShowUpcoming] = useState(false);
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
+    const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
 
     const loadSubmissions = async () => {
         setIsLoading(true);
@@ -89,7 +91,7 @@ const ClientSubmissions = () => {
             const data = await dbService.getClientSubmissions();
             setSubmissions(Array.isArray(data) ? data : []);
             
-            if (user?.role === 'ADMIN') {
+            if (['ADMIN', 'EMPLOYEE'].includes(user?.role || '')) {
                 const empData = await dbService.getEmployees();
                 setEmployees(empData);
                 const clientsData = await dbService.getClients();
@@ -104,7 +106,6 @@ const ClientSubmissions = () => {
 
     useEffect(() => { 
         loadSubmissions(); 
-        // Auto-refresh every 20 seconds
         const interval = setInterval(loadSubmissions, 20000);
         return () => clearInterval(interval);
     }, []);
@@ -119,7 +120,6 @@ const ClientSubmissions = () => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    // Fix: treat null, undefined, and empty string as "not accepted"
     const isAccepted = (s: ClientSubmission) => !!(s.accepted_by && s.accepted_by.trim() !== '') || !!(s.assigned_to && s.assigned_to.trim() !== '');
 
     const allSubmissions = Array.isArray(submissions) ? submissions : [];
@@ -138,7 +138,11 @@ const ClientSubmissions = () => {
         const hasUpcomingAd = s.ads?.some(ad => ad.scheduled_at && new Date(ad.scheduled_at) > new Date()) || false;
         const matchesUpcoming = !showUpcoming || hasUpcomingAd;
 
-        return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming;
+        const matchesStatus = !selectedStatusFilter || s.status === selectedStatusFilter;
+        const currentType = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'none';
+        const matchesType = !selectedTypeFilter || currentType === selectedTypeFilter;
+
+        return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming && matchesStatus && matchesType;
     });
 
     const filteredSubmissions = activeTab === 'available' ? allFiltered.filter(s => !s.assigned_to)
@@ -222,7 +226,6 @@ const ClientSubmissions = () => {
                 if (!sub) continue;
                 setGeneratingProgress({ current: i + 1, total: selectedIds.length });
 
-                // Automatic Link Shortening
                 let linkToUse = sub.button_link;
                 if (linkToUse) {
                     try {
@@ -292,7 +295,7 @@ const ClientSubmissions = () => {
         return sum + adsFaturado;
     }, 0);
 
-    const renderGridView = () => (
+        const renderGridView = () => (
         <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
             {paginatedSubmissions.map(s => {
                 const adCount = s.ads?.length || 0;
@@ -327,10 +330,9 @@ const ClientSubmissions = () => {
                             <div style={{ overflow: 'hidden' }}><h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>{s.client_name && <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>Cliente: {s.client_name}</div>}<div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}><span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span><span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {formatDate(s.timestamp)}</span></div></div>
                         </div>
 
-                        {/* Additional detail rows from original card */}
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                             <div style={{ flex: 1, background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {getTemplateIcon(s.template_type || s.ads?.[0]?.template_type || 'none')}
+                                {getTemplateIcon((s.template_type || s.ads?.[0]?.template_type || 'none'))}
                                 <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                                     {(s.template_type || s.ads?.[0]?.template_type || 'none').toUpperCase()}
                                 </span>
@@ -383,7 +385,7 @@ const ClientSubmissions = () => {
                                 </div>
                             </div>
                         )}
-                        {user?.role === 'ADMIN' && (
+                        {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
                             <div style={{ marginBottom: '14px' }} onClick={e => e.stopPropagation()}>
                                 <select value={s.assigned_to || ''} onChange={e => handleAssign(s.id, e.target.value)} style={{ width: '100%', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '10px', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, outline: 'none' }}>
                                     <option value="">Atribuir...</option>
@@ -411,13 +413,11 @@ const ClientSubmissions = () => {
         <div className="list-container">
             {paginatedSubmissions.map(s => (
                 <div key={s.id} className={`list-row ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)}>
-                    {/* COL 1: NAME & SUBTITLE */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span style={{ fontWeight: 900, fontSize: '14px', color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>{s.profile_name}</span>
                         <span style={{ fontSize: '10px', color: 'var(--primary-color)', opacity: 0.6, fontWeight: 800 }}>{s.id.toString().padStart(6, '0')}...</span>
                     </div>
 
-                    {/* COL 2: TYPE & LOCALE */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span style={{ fontWeight: 900, fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                             {s.template_type || 'TEMPLATE'}
@@ -425,7 +425,6 @@ const ClientSubmissions = () => {
                         <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700 }}>pt_BR</span>
                     </div>
 
-                    {/* COL 3: STATUS BADGE */}
                     <div>
                         <span className="list-badge" style={{
                             borderColor: s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.3)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.3)' : 'rgba(172,248,0,0.3)',
@@ -436,13 +435,11 @@ const ClientSubmissions = () => {
                         </span>
                     </div>
 
-                    {/* COL 4: DATE */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 700 }}>
                         <Calendar size={14} opacity={0.5} />
                         {formatDate(s.timestamp)}
                     </div>
 
-                    {/* COL 5: ACTIONS */}
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button 
                             className="list-btn" 
@@ -638,7 +635,6 @@ const ClientSubmissions = () => {
             `}</style>
 
             <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
-                {/* ── HEADER ── */}
                 <div style={{ marginBottom: '36px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
@@ -678,7 +674,6 @@ const ClientSubmissions = () => {
                         </div>
                     </div>
 
-                    {/* Stats bar */}
                     <div className="stats-grid">
                         {(['ADMIN', 'EMPLOYEE'].includes(user?.role || '') ? [
                             { label: 'Total', value: allSubmissions.length, color: 'var(--text-secondary)' },
@@ -698,7 +693,6 @@ const ClientSubmissions = () => {
                         ))}
                     </div>
 
-                    {/* Interactive mini-charts */}
                     {allSubmissions.length > 0 && (() => {
                         const total = allSubmissions.length;
                         const avail = allFiltered.filter(s => !s.assigned_to).length;
@@ -706,17 +700,15 @@ const ClientSubmissions = () => {
                         const done = allSubmissions.filter(s => s.status === 'GERADO').length;
                         const cancelled = allSubmissions.filter(s => s.status === 'CANCELADO').length;
 
-                        // Template type breakdown
                         const byType: Record<string, number> = {};
                         allSubmissions.forEach(s => {
                             const t = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'none';
                             byType[t] = (byType[t] || 0) + 1;
                         });
-                        const typeColors: Record<string, string> = { image: '#a855f7', video: '#3b82f6', none: 'var(--text-muted)', text: 'var(--text-muted)' };
+                        const typeColors: Record<string, string> = { image: '#a855f7', video: '#3b82f6', none: 'var(--text-muted)' };
 
                         return (
                             <div className="chart-grid">
-                                {/* Status distribution */}
                                 <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '16px', padding: '18px' }}>
                                     <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Distribuição de Status</p>
                                     {[
@@ -737,7 +729,6 @@ const ClientSubmissions = () => {
                                     ))}
                                 </div>
 
-                                {/* Template type */}
                                 <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '16px', padding: '18px' }}>
                                     <p style={{ margin: '0 0 14px 0', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Tipos de Template</p>
                                     {Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([type, count]) => (
@@ -757,176 +748,102 @@ const ClientSubmissions = () => {
                     })()}
                 </div>
 
-                {/* ── TABS + SEARCH ── */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', gap: '4px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '4px' }}>
                         {tabs.map(tab => (
-                            <button
-                                key={tab.id}
-                                className={`tab-pill ${activeTab === tab.id ? 'active' : 'inactive'}`}
-                                onClick={() => setActiveTab(tab.id)}
-                            >
-                                {tab.icon}
-                                {tab.label}
-                                <span className={`count-badge ${activeTab === tab.id ? 'active' : 'inactive'}`}>{tab.count}</span>
+                            <button key={tab.id} className={`tab-pill ${activeTab === tab.id ? 'active' : 'inactive'}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}>
+                                {tab.icon} {tab.label} <span className={`count-badge ${activeTab === tab.id ? 'active' : 'inactive'}`}>{tab.count}</span>
                             </button>
                         ))}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                        {user?.role === 'ADMIN' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, flexWrap: 'wrap' }}>
+                        {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
                             <>
                                 <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                    <select 
-                                        value={selectedClientFilter} 
-                                        onChange={e => setSelectedClientFilter(e.target.value)}
-                                        style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '13px', padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}
-                                    >
-                                        <option value="" style={{ background: '#0f172a' }}>Todos os Clientes</option>
-                                        {clients.map(c => (
-                                            <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{c.name}</option>
-                                        ))}
+                                    <select value={selectedClientFilter} onChange={e => { setSelectedClientFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                        <option value="" style={{ background: '#0f172a' }}>CLIENTES</option>
+                                        {clients.map(c => <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{c.name.toUpperCase()}</option>)}
+                                    </select>
+                                </div>
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                    <select value={selectedStatusFilter} onChange={e => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedStatusFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                        <option value="" style={{ background: '#0f172a' }}>STATUS</option>
+                                        <option value="PENDENTE" style={{ background: '#0f172a' }}>PENDENTE</option>
+                                        <option value="GERADO" style={{ background: '#0f172a' }}>GERADO</option>
+                                        <option value="CONCLUIDO" style={{ background: '#0f172a' }}>CONCLUÍDO</option>
+                                        <option value="CANCELADO" style={{ background: '#0f172a' }}>CANCELADO</option>
+                                    </select>
+                                </div>
+                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                    <select value={selectedTypeFilter} onChange={e => { setSelectedTypeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedTypeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                        <option value="" style={{ background: '#0f172a' }}>TIPO</option>
+                                        <option value="image" style={{ background: '#0f172a' }}>IMAGEM</option>
+                                        <option value="video" style={{ background: '#0f172a' }}>VÍDEO</option>
+                                        <option value="none" style={{ background: '#0f172a' }}>TEXTO / OUTRO</option>
                                     </select>
                                 </div>
                                 <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>DE:</span>
-                                    <input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({ ...p, start: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: dateRange.start ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
+                                    <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)' }}>DE:</span>
+                                    <input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({ ...p, start: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, outline: 'none' }} />
                                 </div>
                                 <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ:</span>
-                                    <input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({ ...p, end: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: dateRange.end ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '13px', padding: '10.5px 0', outline: 'none' }} />
+                                    <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ:</span>
+                                    <input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({ ...p, end: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, outline: 'none' }} />
                                 </div>
-                                <button
-                                    onClick={() => { setShowUpcoming(!showUpcoming); setCurrentPage(1); }}
-                                    style={{ 
-                                        background: showUpcoming ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)', 
-                                        border: `1px solid ${showUpcoming ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)'}`, 
-                                        color: showUpcoming ? '#3b82f6' : 'rgba(255,255,255,0.4)', 
-                                        padding: '0 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s', height: '38px' 
-                                    }}
-                                >
+                                <button onClick={() => { setShowUpcoming(!showUpcoming); setCurrentPage(1); }} style={{ background: showUpcoming ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${showUpcoming ? '#3b82f6' : 'var(--surface-border-subtle)'}`, color: showUpcoming ? '#3b82f6' : 'var(--text-muted)', padding: '0 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', height: '38px' }}>
                                     <Clock size={14} /> PRÓXIMOS
                                 </button>
                             </>
                         )}
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                            <Search size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                            <input
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                placeholder="Buscar..."
-                                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '13px', padding: '10px 0', width: '100%' }}
-                            />
+                            <Search size={15} style={{ color: 'var(--text-muted)' }} />
+                            <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} placeholder="Buscar..." style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '13px', padding: '10px 0', width: '100%' }} />
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                            {filteredSubmissions.length > 0 && (
-                                <button
-                                    onClick={selectAll}
-                                    style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontWeight: 900, letterSpacing: '1px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                >
-                                    {selectedIds.length === filteredSubmissions.length && filteredSubmissions.length > 0 ? 'DESSELECIONAR' : 'SEL. TUDO'}
-                                </button>
-                            )}
-                        </div>
+                        <button onClick={selectAll} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>
+                            {selectedIds.length === filteredSubmissions.length && filteredSubmissions.length > 0 ? 'DESSELECIONAR' : 'SEL. TUDO'}
+                        </button>
                     </div>
                 </div>
 
-                {/* ── VIEW MODE TOGGLE ── */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', gap: '8px', flexWrap: 'wrap' }}>
-                    {[
-                        { id: 'grid', icon: <LayoutGrid size={16} />, label: 'GRADE' },
-                        { id: 'list', icon: <List size={16} />, label: 'LISTA' },
-                        { id: 'kanban', icon: <Trello size={16} />, label: 'KANBAN' }
-                    ].map(mode => (
-                        <button
-                            key={mode.id}
-                            onClick={() => { setViewMode(mode.id as any); setCurrentPage(1); }}
-                            className={`page-btn ${viewMode === mode.id ? 'active' : ''}`}
-                            style={{ padding: '8px 16px', textTransform: 'uppercase', letterSpacing: '1px' }}
-                        >
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', gap: '8px' }}>
+                    {[{ id: 'grid', icon: <LayoutGrid size={16} />, label: 'GRADE' }, { id: 'list', icon: <List size={16} />, label: 'LISTA' }, { id: 'kanban', icon: <Trello size={16} />, label: 'KANBAN' }].map(mode => (
+                        <button key={mode.id} onClick={() => { setViewMode(mode.id as any); setCurrentPage(1); }} className={`page-btn ${viewMode === mode.id ? 'active' : ''}`}>
                             {mode.icon} {mode.label}
                         </button>
                     ))}
                 </div>
 
-                {/* ── GRID ── */}
                 {isLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '16px' }}>
-                        <div style={{ width: 48, height: 48, border: '3px solid var(--surface-border-subtle)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                        <span style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '12px', letterSpacing: '2px' }}>CARREGANDO...</span>
-                    </div>
+                    <div style={{ padding: '80px', textAlign: 'center' }}><div style={{ width: 48, height: 48, border: '3px solid var(--surface-border-subtle)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} /> <span style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '12px', letterSpacing: '2px' }}>CARREGANDO...</span></div>
                 ) : filteredSubmissions.length === 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '16px', opacity: 0.3 }}>
-                        <Inbox size={70} strokeWidth={1} />
-                        <div style={{ textAlign: 'center' }}>
-                            <p style={{ fontWeight: 900, fontSize: '1.1rem', margin: 0 }}>
-                                {activeTab === 'available' ? 'SEM TAREFAS PENDENTES' :
-                                 activeTab === 'mine' ? 'NENHUMA TAREFA ATRIBUÍDA' : 'SEM REGISTROS'}
-                            </p>
-                            <p style={{ fontSize: '12px', marginTop: '6px', opacity: 0.6 }}>
-                                {activeTab === 'available' ? 'Todas as tarefas já foram atribuídas.' : 
-                                 activeTab === 'mine' ? 'Aguarde o Admin atribuir tarefas para você.' : 'Sem registros encontrados.'}
-                            </p>
-                        </div>
-                    </div>
+                    <div style={{ padding: '80px', textAlign: 'center', opacity: 0.3 }}><Inbox size={70} strokeWidth={1} style={{ margin: '0 auto 16px' }} /><p style={{ fontWeight: 900, fontSize: '1.1rem' }}>SEM REGISTROS</p></div>
                 ) : (
                     <>
                         {viewMode === 'grid' && renderGridView()}
                         {viewMode === 'list' && renderListView()}
                         {viewMode === 'kanban' && renderKanbanView()}
 
-                        {/* ── PAGINATION ── */}
                         {viewMode !== 'kanban' && filteredSubmissions.length > itemsPerPage && (
                             <div className="pagination-bar">
-                                <button 
-                                    className="page-btn" 
-                                    disabled={currentPage === 1} 
-                                    onClick={() => setCurrentPage(prev => prev - 1)}
-                                >
-                                    <ChevronLeft size={16} /> ANTERIOR
-                                </button>
-                                
-                                {Array.from({ length: Math.ceil(filteredSubmissions.length / itemsPerPage) }).map((_, i) => {
-                                    const pageNum = i + 1;
-                                    // Show first, last, and pages around current
-                                    if (pageNum === 1 || pageNum === Math.ceil(filteredSubmissions.length / itemsPerPage) || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
-                                        return (
-                                            <button 
-                                                key={i} 
-                                                className={`page-btn ${currentPage === pageNum ? 'active' : ''}`}
-                                                onClick={() => setCurrentPage(pageNum)}
-                                            >
-                                                {pageNum}
-                                            </button>
-                                        );
-                                    }
-                                    if (pageNum === currentPage - 2 || pageNum === currentPage + 2) return <span key={i} style={{ color: 'rgba(255,255,255,0.2)' }}>...</span>;
-                                    return null;
-                                })}
-
-                                <button 
-                                    className="page-btn" 
-                                    disabled={currentPage === Math.ceil(filteredSubmissions.length / itemsPerPage)} 
-                                    onClick={() => setCurrentPage(prev => prev + 1)}
-                                >
-                                    PRÓXIMO <ChevronRight size={16} />
-                                </button>
+                                <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}><ChevronLeft size={16} /> ANTERIOR</button>
+                                {Array.from({ length: Math.ceil(filteredSubmissions.length / itemsPerPage) }).map((_, i) => (
+                                    <button key={i} className={`page-btn ${currentPage === i+1 ? 'active' : ''}`} onClick={() => setCurrentPage(i+1)}>{i+1}</button>
+                                ))}
+                                <button className="page-btn" disabled={currentPage === Math.ceil(filteredSubmissions.length / itemsPerPage)} onClick={() => setCurrentPage(p => p + 1)}>PRÓXIMO <ChevronRight size={16} /></button>
                             </div>
                         )}
                     </>
                 )}
             </div>
 
-            {/* Progress Overlay */}
             {generatingProgress.total > 0 && (
                 <div className="progress-overlay">
                     <div style={{ width: 80, height: 80, border: '4px solid var(--surface-border-subtle)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '32px' }} />
-                    <h2 style={{ fontWeight: 900, fontSize: '2rem', margin: 0 }}>Gerando Templates...</h2>
-                    <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '12px' }}>
-                        Processando {generatingProgress.current} de {generatingProgress.total}
-                    </p>
+                    <h2 style={{ fontWeight: 900, fontSize: '2rem' }}>Gerando Templates...</h2>
+                    <p style={{ color: 'var(--text-muted)' }}>Processando {generatingProgress.current} de {generatingProgress.total}</p>
                     <div style={{ width: '380px', height: '6px', background: 'var(--card-bg-subtle)', borderRadius: '999px', marginTop: '32px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', background: 'var(--primary-color)', borderRadius: '999px', width: `${(generatingProgress.current / generatingProgress.total) * 100}%`, boxShadow: '0 0 16px var(--primary-color)', transition: 'width 0.5s' }} />
+                        <div style={{ height: '100%', background: 'var(--primary-color)', width: `${(generatingProgress.current / generatingProgress.total) * 100}%`, transition: 'width 0.5s' }} />
                     </div>
                 </div>
             )}
