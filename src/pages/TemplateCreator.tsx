@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Smartphone, Layers, Plus, Activity, Image as ImageIcon, Video, Link, MessageSquareReply, Copy, Trash2, ChevronRight, ChevronDown, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -278,6 +278,36 @@ const TemplateCreator = () => {
     const handleRemoveButton = (index: number) => {
         setButtons(buttons.filter((_: any, i: number) => i !== index));
     };
+
+    const hasValidationErrors = useMemo(() => {
+        const allFullNames: string[] = [];
+        const allPrefixes: string[] = [];
+        
+        campaigns.forEach(c => {
+            const p = c.prefix.trim().toLowerCase();
+            if (p) allPrefixes.push(p);
+            c.rows.forEach(r => {
+                const full = `${c.prefix}${r.suffix}`.toLowerCase().trim();
+                if (full) allFullNames.push(full);
+            });
+        });
+
+        const hasDuplicatePrefix = campaigns.some(c => {
+            const p = c.prefix.trim().toLowerCase();
+            return p !== "" && allPrefixes.filter(x => x === p).length > 1;
+        });
+
+        const hasEmptyPrefix = campaigns.some(c => c.prefix.trim() === "");
+
+        const hasDuplicateFullName = campaigns.some(c => 
+            c.rows.some(r => {
+                const full = `${c.prefix}${r.suffix}`.toLowerCase().trim();
+                return full !== "" && allFullNames.filter(x => x === full).length > 1;
+            })
+        );
+
+        return hasDuplicatePrefix || hasEmptyPrefix || hasDuplicateFullName;
+    }, [campaigns]);
 
     const handleCreateModel = async () => {
         if (!modelName) return alert("Defina um nome para o template.");
@@ -959,12 +989,7 @@ const TemplateCreator = () => {
                                 <button
                                     className="global-tile-btn global-tile-btn-primary mt-12 mb-12"
                                     onClick={handleGenerateBulk}
-                                    disabled={isGenerating || campaigns.every(c => c.rows.length === 0) || campaigns.some(c => c.prefix.trim() === "" || campaigns.filter(c2 => c2.prefix.trim().toLowerCase() === c.prefix.trim().toLowerCase()).length > 1 || c.rows.some((r, rIdx) => {
-                                        const fullName = `${c.prefix}${r.suffix}`.toLowerCase().trim();
-                                        const allNames: string[] = [];
-                                        campaigns.forEach(ca => ca.rows.forEach(ra => allNames.push(`${ca.prefix}${ra.suffix}`.toLowerCase().trim())));
-                                        return fullName !== "" && allNames.filter(n => n === fullName).length > 1;
-                                    }))}
+                                    disabled={isGenerating || campaigns.every(c => c.rows.length === 0) || hasValidationErrors}
                                     style={{ padding: '24px', borderRadius: '24px', fontSize: '1.2rem', fontWeight: 900, width: '100%' }}
                                 >
                                     <Activity size={24} className={isGenerating ? "animate-spin" : ""} />
