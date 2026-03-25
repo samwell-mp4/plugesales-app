@@ -856,6 +856,10 @@ const TemplateCreator = () => {
                     border-color: var(--primary-color) !important;
                     background: rgba(172, 248, 0, 0.05) !important;
                 }
+                select, option {
+                    background-color: #000 !important;
+                    color: #fff !important;
+                }
                 label { 
                     color: var(--primary-color) !important;
                     opacity: 0.8 !important;

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Link, 
     Copy, 
     Trash2, 
     BarChart3, 
@@ -237,45 +236,28 @@ const LinkShortener = () => {
                     border-color: rgba(239, 68, 68, 0.2);
                 }
 
+                .main-grid {
+                    display: grid;
+                    grid-template-columns: ${user?.role === 'CLIENT' ? '1fr' : '360px 1fr'};
+                    gap: 32px;
+                }
+
+                select, option {
+                    background-color: #000 !important;
+                    color: #fff !important;
+                }
+
+                @media (max-width: 1200px) {
+                    .main-grid { grid-template-columns: 1fr; }
+                }
+
                 @media (max-width: 992px) {
                     .link-item { flex-direction: column; align-items: stretch; gap: 16px; }
                 }
             `}</style>
 
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-                {/* ── HEADER ── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '40px' }}>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                            <div style={{ background: 'rgba(172,248,0,0.1)', padding: '8px', borderRadius: '12px' }}>
-                                <Link size={24} color="var(--primary-color)" />
-                            </div>
-                            <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px', textTransform: 'uppercase' }}>
-                                Advanced Tools
-                            </span>
-                        </div>
-                        <h1 style={{ margin: 0, fontWeight: 900, fontSize: '3rem', letterSpacing: '-2px', lineHeight: 1 }}>
-                            Encurtador de <span className="text-primary-color">Links</span>
-                        </h1>
-                        <p style={{ margin: '12px 0 0 0', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 500 }}>
-                            Crie, gerencie e acompanhe a performance dos seus links em tempo real.
-                        </p>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '30px' }}>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '24px', fontWeight: 900 }}>{links.length}</div>
-                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Links Ativos</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary-color)' }}>
-                                {links.reduce((acc, curr) => acc + parseInt(curr.clicks || 0), 0)}
-                            </div>
-                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cliques Totais</div>
-                        </div>
-                </div>
-  
-                 <div style={{ display: 'grid', gridTemplateColumns: user?.role === 'CLIENT' ? '1fr' : 'minmax(320px, 360px) 1fr', gap: '32px' }}>
+                 <div className="main-grid">
                      {/* ── CREATE SECTION ── */}
                      {user?.role !== 'CLIENT' && (
                         <div className="glass-card" style={{ height: 'fit-content', position: 'sticky', top: '24px' }}>
@@ -447,7 +429,7 @@ const LinkShortener = () => {
                                 <Globe size={48} style={{ opacity: 0.1, marginBottom: '20px' }} />
                                 <h3 style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 900 }}>Nenhum link encontrado</h3>
                                 <p style={{ margin: '8px 0 0 0', color: 'var(--text-muted)', opacity: 0.5, fontSize: '14px' }}>
-                                    Comece criando seu primeiro link encurtado ao lado.
+                                    Comece criando seu primeiro link encurtado.
                                 </p>
                             </div>
                         ) : (
@@ -558,8 +540,7 @@ const LinkShortener = () => {
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
 };
 
 export default LinkShortener;

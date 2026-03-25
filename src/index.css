@@ -296,6 +296,11 @@ body {
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
+select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
 /* Layout */
 .app-layout {
   display: flex;
