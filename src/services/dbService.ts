@@ -64,10 +64,12 @@ export const dbService = {
     },
 
     // --- Client Reports ---
-    getReports: async (userId?: number) => {
+    getReports: async (userId?: number, submissionId?: number) => {
         try {
-            const url = userId ? `${API_BASE}/reports?userId=${userId}` : `${API_BASE}/reports`;
-            const res = await fetch(url);
+            const url = new URL(`${API_BASE}/reports`);
+            if (userId) url.searchParams.append('userId', String(userId));
+            if (submissionId) url.searchParams.append('submissionId', String(submissionId));
+            const res = await fetch(url.toString());
             if (!res.ok) return [];
             return await res.json();
         } catch (err) { return []; }

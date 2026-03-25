@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { dbService } from '../services/dbService';
 import * as XLSX from 'xlsx';
 import { 
@@ -18,6 +19,7 @@ import {
 
 const ClientReports = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [reports, setReports] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
@@ -33,7 +35,8 @@ const ClientReports = () => {
 
     const fetchReports = async () => {
         setIsLoading(true);
-        const data = await dbService.getReports(user?.id);
+        const fetchId = user?.role === 'CLIENT' ? user?.id : undefined;
+        const data = await dbService.getReports(fetchId);
         setReports(data);
         setIsLoading(false);
     };
@@ -260,9 +263,14 @@ const ClientReports = () => {
                                     </div>
                                     <div className="flex-col">
                                         <div className="flex items-center gap-2">
-                                            <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px' }}>{report.report_name}</h4>
+                                            <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px' }}>
+                                                {report.submission_name ? `Campanha: ${report.submission_name}` : report.report_name}
+                                            </h4>
                                             {report.submission_id && (
-                                                <span style={{ fontSize: '9px', fontWeight: 900, background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(172, 248, 0, 0.2)' }}>
+                                                <span 
+                                                    onClick={(e) => { e.stopPropagation(); navigate(`/client-submissions/${report.submission_id}`); }}
+                                                    style={{ cursor: 'pointer', fontSize: '9px', fontWeight: 900, background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(172, 248, 0, 0.2)' }}
+                                                >
                                                     SUB #{report.submission_id}
                                                 </span>
                                             )}

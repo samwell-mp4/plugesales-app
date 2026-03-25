@@ -736,13 +736,18 @@ const ClientSubmissionDetail = () => {
                             )}
 
                             {attachedReport && (
-                                <button onClick={() => navigate('/client-reports')} className="asset-link" style={{ width: '100%', textAlign: 'left', border: '1px solid var(--primary-color)' }}>
-                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(172,248,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <BarChart3 size={20} color="var(--primary-color)" />
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 900 }}>RELATÓRIO DE ENTREGA</p>
-                                        <p style={{ margin: 0, fontSize: '10px', color: 'var(--primary-color)', fontWeight: 700 }}>VISUALIZAR DASHBOARD</p>
+                                <div className="asset-link" style={{ width: '100%', border: '1px solid var(--primary-color)', cursor: 'default' }}>
+                                    <div 
+                                        onClick={() => navigate('/client-reports')}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, cursor: 'pointer' }}
+                                    >
+                                        <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(172,248,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <BarChart3 size={20} color="var(--primary-color)" />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ margin: 0, fontSize: '12px', fontWeight: 900 }}>RELATÓRIO DE ENTREGA</p>
+                                            <p style={{ margin: 0, fontSize: '10px', color: 'var(--primary-color)', fontWeight: 700 }}>VISUALIZAR DASHBOARD</p>
+                                        </div>
                                     </div>
                                     <div className="flex gap-2">
                                         <div className="flex-col items-end">
@@ -752,13 +757,14 @@ const ClientSubmissionDetail = () => {
                                         {user?.role !== 'CLIENT' && (
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleDeleteReport(); }} 
-                                                style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', padding: '6px', borderRadius: '8px', cursor: 'pointer', display: 'flex' }}
+                                                style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex' }}
+                                                title="Excluir Relatório"
                                             >
-                                                <Trash2 size={14} />
+                                                <Trash2 size={16} />
                                             </button>
                                         )}
                                     </div>
-                                </button>
+                                </div>
                             )}
 
                             {(sub.status === 'CONCLUIDO' || sub.status === 'CONCLUÍDO') && user?.role !== 'CLIENT' && !attachedReport && (

@@ -418,16 +418,20 @@ app.post('/api/logs', async (req, res) => {
 app.get('/api/reports', async (req, res) => {
     try {
         const { userId, submissionId } = req.query;
-        let query = 'SELECT id, user_id, submission_id, report_name, filename, summary, timestamp FROM client_reports';
+        let query = `
+            SELECT r.*, s.profile_name as submission_name 
+            FROM client_reports r 
+            LEFT JOIN client_submissions s ON r.submission_id = s.id
+        `;
         const params = [];
-        if (userId) {
-            query += ' WHERE user_id = $1';
+        if (userId && userId !== 'null' && userId !== 'undefined') {
+            query += ' WHERE r.user_id = $1';
             params.push(userId);
         } else if (submissionId) {
-            query += ' WHERE submission_id = $1';
+            query += ' WHERE r.submission_id = $1';
             params.push(submissionId);
         }
-        query += ' ORDER BY timestamp DESC';
+        query += ' ORDER BY r.timestamp DESC';
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (err) {
