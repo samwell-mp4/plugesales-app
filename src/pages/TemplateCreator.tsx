@@ -356,7 +356,7 @@ const TemplateCreator = () => {
                 if (res.success) {
                     totalSuccess++;
                     if (user?.id) await dbService.trackTemplate(currentName, user.id);
-                    dbService.addLog({ logType: 'TEMPLATE', name: currentName, author: user?.name, mode: 'SINGLE' });
+                    dbService.addLog({ logType: 'TEMPLATE', name: currentName, author: user?.name, mode: 'SINGLE', userId: Number(selectedClientId) });
                     await sendToWebhook(payload);
 
                     const client = clients.find(c => String(c.id) === String(selectedClientId));
@@ -472,7 +472,7 @@ const TemplateCreator = () => {
                 if (res.success) {
                     successCount++;
                     if (user?.id) await dbService.trackTemplate(name, user.id);
-                    dbService.addLog({ logType: 'TEMPLATE', name, author: user?.name, mode: 'BULK' });
+                    dbService.addLog({ logType: 'TEMPLATE', name, author: user?.name, mode: 'BULK', userId: Number(selectedClientId) });
                     await sendToWebhook(extendedPayload);
 
                     generatedAds.push({

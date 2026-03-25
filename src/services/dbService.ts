@@ -25,9 +25,12 @@ export const dbService = {
     },
 
     // --- Audit Logs ---
-    getLogs: async (type?: string) => {
+    getLogs: async (type?: string, userId?: number) => {
         try {
-            const url = type ? `${API_BASE}/logs?type=${type}` : `${API_BASE}/logs`;
+            const params = new URLSearchParams();
+            if (type) params.append('type', type);
+            if (userId) params.append('userId', userId.toString());
+            const url = `${API_BASE}/logs?${params.toString()}`;
             const res = await fetch(url);
             if (!res.ok) return [];
             return await res.json();
@@ -47,6 +50,7 @@ export const dbService = {
         transmissionId?: string;
         campaignName?: string;
         stepIndex?: number;
+        userId?: number;
     }) => {
         try {
             await fetch(`${API_BASE}/logs`, {

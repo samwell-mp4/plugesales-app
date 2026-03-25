@@ -94,7 +94,7 @@ const initDB = async () => {
             `CREATE TABLE IF NOT EXISTS audit_logs (
                 id SERIAL PRIMARY KEY, log_type TEXT, author TEXT, name TEXT, template TEXT, mode TEXT, 
                 total INTEGER DEFAULT 0, success INTEGER DEFAULT 0, transmission_id TEXT, 
-                campaign_name TEXT, step_index INTEGER, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                campaign_name TEXT, step_index INTEGER, user_id INTEGER, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `CREATE TABLE IF NOT EXISTS contacts_list (
                 id SERIAL PRIMARY KEY, tag TEXT UNIQUE, data JSONB, count INTEGER DEFAULT 0, 
@@ -371,13 +371,25 @@ app.post('/api/settings', async (req, res) => {
 // Audit Logs (dispatch, template, engine)
 app.get('/api/logs', async (req, res) => {
     try {
-        const { type } = req.query;
-        let query = 'SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 200';
-        let params = [];
+        const { type, userId } = req.query;
+        let query = 'SELECT * FROM audit_logs';
+        const params = [];
+
+        const conditions = [];
         if (type) {
-            query = 'SELECT * FROM audit_logs WHERE log_type = $1 ORDER BY timestamp DESC LIMIT 200';
-            params = [type];
+            conditions.push(`log_type = $${conditions.length + 1}`);
+            params.push(type);
         }
+        if (userId) {
+            conditions.push(`user_id = $${conditions.length + 1}`);
+            params.push(userId);
+        }
+
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        query += ' ORDER BY timestamp DESC LIMIT 200';
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (err) {
@@ -386,11 +398,11 @@ app.get('/api/logs', async (req, res) => {
 });
 
 app.post('/api/logs', async (req, res) => {
-    const { logType, author, name, template, mode, total, success, transmissionId, campaignName, stepIndex } = req.body;
+    const { logType, author, name, template, mode, total, success, transmissionId, campaignName, stepIndex, userId } = req.body;
     try {
         await pool.query(
-            'INSERT INTO audit_logs (log_type, author, name, template, mode, total, success, transmission_id, campaign_name, step_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
-            [logType, author, name, template, mode, total || 0, success || 0, transmissionId, campaignName, stepIndex]
+            'INSERT INTO audit_logs (log_type, author, name, template, mode, total, success, transmission_id, campaign_name, step_index, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+            [logType, author, name, template, mode, total || 0, success || 0, transmissionId, campaignName, stepIndex, userId]
         );
         res.json({ success: true });
     } catch (err) {
