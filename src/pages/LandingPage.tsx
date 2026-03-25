@@ -9,10 +9,8 @@ import {
     BarChart3, 
     ArrowRight, 
     CheckCircle2,
-    ChevronDown,
     Plus,
-    X,
-    Play
+    X
 } from 'lucide-react';
 import './LandingPage.css';
 
