@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     ArrowRight,
     MessageSquare,
@@ -30,6 +30,10 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
         btnText: 'Quero Saber Mais'
     });
 
+    useEffect(() => {
+        console.log("DemoQuiz mounted. affiliateId prop:", affiliateId);
+    }, [affiliateId]);
+
     const nextStep = async () => {
         if (step === 1 && (!formData.leadName || !formData.leadPhone || !formData.leadEmail)) {
             alert("Por favor, preencha seus dados para continuar o teste.");
@@ -37,6 +41,8 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
         }
         
         if (step === 1) {
+            console.log("Attempting to save lead...", { affiliateId, formData });
+            alert("Iniciando captura de Lead para o Afiliado ID: " + (affiliateId || 'Nenhum'));
             try {
                 const res = await dbService.addLead({
                     affiliate_id: affiliateId,
@@ -46,9 +52,17 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                     company_name: formData.companyName,
                     offer_text: formData.offer
                 });
-                if (res && res.id) setLeadId(res.id);
+                console.log("AddLead response:", res);
+                if (res && res.id) {
+                    setLeadId(res.id);
+                    alert("Lead salvo com sucesso! ID: " + res.id);
+                } else if (res && res.error) {
+                    console.error("Server returned error:", res.error);
+                    alert("Erro ao salvar: " + JSON.stringify(res.error));
+                }
             } catch (err) {
                 console.error("Erro ao salvar lead:", err);
+                alert("Erro de rede: " + (err as any).message);
             }
         }
 

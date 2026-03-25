@@ -56,6 +56,11 @@ const AffiliateDashboard = () => {
         alert("Link de Afiliado copiado com sucesso!");
     };
 
+    const checkDb = async () => {
+        const res = await dbService.debugDb();
+        alert("DIAGNÓSTICO DB:\n" + JSON.stringify(res, null, 2));
+    };
+
     const filteredLeads = leads.filter(l => {
         const matchesSearch = (l.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                              (l.phone || '').includes(searchTerm);
@@ -88,6 +93,9 @@ const AffiliateDashboard = () => {
                     <p className="subtitle">Monitore seus leads e converta mais com CRM integrado</p>
                 </div>
                 <div className="flex gap-3">
+                    <button className="btn btn-secondary" onClick={checkDb} style={{ borderRadius: '16px', padding: '12px 24px', opacity: 0.5 }}>
+                        DEBUG DB
+                    </button>
                     <button className="btn btn-primary" onClick={copyLink} style={{ borderRadius: '16px', padding: '12px 24px' }}>
                         <Copy size={18} /> COPIAR MEU LINK
                     </button>

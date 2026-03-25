@@ -1759,22 +1759,41 @@ const startTemplateMonitoring = () => {
 // Start monitoring session
 // --- AFFILIATE LEADS API ---
 app.post('/api/leads', async (req, res) => {
+    console.log('Incoming lead capture request:', req.body);
     const { affiliate_id, name, phone, email, company_name, offer_text } = req.body;
     try {
         const result = await pool.query(
             `INSERT INTO affiliate_leads (affiliate_id, name, phone, email, company_name, offer_text) 
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [affiliate_id || null, name, phone, email, company_name, offer_text]
+            [affiliate_id || null, name, phone, email, company_name || 'Minha Empresa Pro', offer_text || '']
         );
-        res.json(result.rows[0]);
+        console.log('Lead saved successfully:', result.rows[0]);
+        res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error('Error creating lead:', err);
-        res.status(500).json({ error: 'Erro ao salvar Lead' });
+        console.error('Error saving lead:', err);
+        res.status(500).json({ error: 'Erro ao salvar lead' });
+    }
+});
+
+app.get('/api/debug/db', async (req, res) => {
+    try {
+        const leadCount = await pool.query('SELECT COUNT(*) FROM affiliate_leads');
+        const userCount = await pool.query('SELECT COUNT(*) FROM users');
+        const latestLeads = await pool.query('SELECT * FROM affiliate_leads ORDER BY created_at DESC LIMIT 5');
+        res.json({
+            status: 'ok',
+            leads: leadCount.rows[0].count,
+            users: userCount.rows[0].count,
+            latest: latestLeads.rows
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', error: err.message });
     }
 });
 
 app.get('/api/leads', async (req, res) => {
     const { affiliate_id, role } = req.query;
+    console.log('Fetching leads for:', { affiliate_id, role });
     try {
         let query = 'SELECT * FROM affiliate_leads';
         let params = [];
@@ -1786,6 +1805,7 @@ app.get('/api/leads', async (req, res) => {
         
         query += ' ORDER BY created_at DESC';
         const result = await pool.query(query, params);
+        console.log(`Found ${result.rows.length} leads`);
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching leads:', err);

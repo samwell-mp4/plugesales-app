@@ -659,5 +659,11 @@ export const dbService = {
             });
             return await res.json();
         } catch (err) { return { error: err }; }
+    },
+    debugDb: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/debug/db`);
+            return await res.json();
+        } catch (err) { return { error: err }; }
     }
 };
