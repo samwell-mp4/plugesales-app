@@ -15,6 +15,7 @@ import ClientExternalForm from './pages/ClientExternalForm';
 import ClientDashboard from './pages/ClientDashboard';
 import LinkShortener from './pages/LinkShortener';
 import LinkStats from './pages/LinkStats';
+import ClientReports from './pages/ClientReports';
 import LandingPage from './pages/LandingPage';
 import './index.css';
 
@@ -59,6 +60,8 @@ function AppContent() {
     '/dashboard'
   ];
 
+  const clientAllowedRoutes = ['/client-dashboard', '/link-shortener', '/client-reports'];
+
   if (isClient && adminOnlyRoutes.some(route => {
     // Special case: Clients CAN access /client-submissions/:id but NOT /client-submissions (list) or /client-submissions/add
     if (route === '/client-submissions') {
@@ -97,6 +100,7 @@ function AppContent() {
           <Route path="/media" element={<MediaHosting />} />
           <Route path="/dispatch" element={<TemplateDispatch />} />
           <Route path="/link-shortener" element={<LinkShortener />} />
+          <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />

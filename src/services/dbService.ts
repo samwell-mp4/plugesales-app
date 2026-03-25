@@ -63,6 +63,39 @@ export const dbService = {
         }
     },
 
+    // --- Client Reports ---
+    getReports: async (userId?: number) => {
+        try {
+            const url = userId ? `${API_BASE}/reports?userId=${userId}` : `${API_BASE}/reports`;
+            const res = await fetch(url);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) { return []; }
+    },
+    getReportById: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/reports/${id}`);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (err) { return null; }
+    },
+    addReport: async (reportData: { userId: number; reportName: string; filename: string; data: any[]; summary: any }) => {
+        try {
+            const res = await fetch(`${API_BASE}/reports`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reportData)
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
+    deleteReport: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/reports/${id}`, { method: 'DELETE' });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
+
     // --- Media Library ---
     getMedia: async () => {
         try {

@@ -96,6 +96,10 @@ const initDB = async () => {
                 total INTEGER DEFAULT 0, success INTEGER DEFAULT 0, transmission_id TEXT, 
                 campaign_name TEXT, step_index INTEGER, user_id INTEGER, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
+            `CREATE TABLE IF NOT EXISTS client_reports (
+                id SERIAL PRIMARY KEY, user_id INTEGER, report_name TEXT, filename TEXT, 
+                data JSONB, summary JSONB, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
             `CREATE TABLE IF NOT EXISTS contacts_list (
                 id SERIAL PRIMARY KEY, tag TEXT UNIQUE, data JSONB, count INTEGER DEFAULT 0, 
                 validator TEXT, creator TEXT DEFAULT 'Admin', status TEXT DEFAULT 'CONCLUÍDO', 
@@ -409,7 +413,55 @@ app.post('/api/logs', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// --- Client Reports ---
+app.get('/api/reports', async (req, res) => {
+    try {
+        const { userId } = req.query;
+        let query = 'SELECT id, user_id, report_name, filename, summary, timestamp FROM client_reports';
+        const params = [];
+        if (userId) {
+            query += ' WHERE user_id = $1';
+            params.push(userId);
+        }
+        query += ' ORDER BY timestamp DESC';
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
+app.get('/api/reports/:id', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM client_reports WHERE id = $1', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Relatório não encontrado' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/reports', async (req, res) => {
+    const { userId, reportName, filename, data, summary } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO client_reports (user_id, report_name, filename, data, summary) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [userId, reportName, filename, JSON.stringify(data), JSON.stringify(summary)]
+        );
+        res.json({ success: true, id: result.rows[0].id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/reports/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM client_reports WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 // Media Library
 app.get('/api/media', async (req, res) => {
     try {
