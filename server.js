@@ -919,7 +919,7 @@ app.put('/api/shortener/:id', async (req, res) => {
     }
 });
 app.get('/api/shortener/links', async (req, res) => {
-    const { user_id, client_id, role } = req.query;
+    const { user_id, client_id, role, startDate, endDate } = req.query;
     try {
         let query = `
             SELECT l.*, 
@@ -942,6 +942,17 @@ app.get('/api/shortener/links', async (req, res) => {
 
         if (whereClauses.length > 0) {
             query += ' WHERE ' + whereClauses.join(' AND ');
+        }
+
+        if (startDate) {
+            query += (whereClauses.length > 0 ? ' AND ' : ' WHERE ') + `l.created_at >= $${params.length + 1}`;
+            params.push(new Date(startDate));
+        }
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query += (whereClauses.length > 0 || startDate ? ' AND ' : ' WHERE ') + `l.created_at <= $${params.length + 1}`;
+            params.push(end);
         }
 
         query += ' ORDER BY l.created_at DESC';
@@ -1060,6 +1071,28 @@ app.get('/api/shortener/stats/all', async (req, res) => {
 app.delete('/api/shortener/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM shortened_links WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/shortener/bulk-delete', async (req, res) => {
+    const { ids } = req.body;
+    if (!ids || !ids.length) return res.status(400).json({ error: 'IDs são obrigatórios.' });
+    try {
+        await pool.query('DELETE FROM shortened_links WHERE id = ANY($1)', [ids]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/shortener/bulk-associate', async (req, res) => {
+    const { ids, target_user_id } = req.body;
+    if (!ids || !ids.length) return res.status(400).json({ error: 'IDs são obrigatórios.' });
+    try {
+        await pool.query('UPDATE shortened_links SET target_user_id = $1 WHERE id = ANY($2)', [target_user_id || null, ids]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

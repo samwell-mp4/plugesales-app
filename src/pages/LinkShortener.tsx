@@ -8,8 +8,17 @@ import {
     Search,
     ChevronRight,
     Zap,
+    MapPin,
+    Calendar,
+    CheckSquare,
+    Square,
+    XCircle,
+    Check,
     Users,
-    Trash
+    Trash,
+    MousePointer2,
+    Link as LinkIcon,
+    Smartphone
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -31,11 +40,37 @@ const LinkShortener = () => {
     const [clients, setClients] = useState<any[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string>('');
     const [filterClientId, setFilterClientId] = useState<string>('');
+    const [stats, setStats] = useState<any>(null);
+    const [isStatsLoading, setIsStatsLoading] = useState(false);
+    const [selectedLinkIds, setSelectedLinkIds] = useState<number[]>([]);
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
+    const [showBulkAssociateModal, setShowBulkAssociateModal] = useState(false);
+    const [bulkAssociateTargetId, setBulkAssociateTargetId] = useState<string>('');
 
     useEffect(() => {
         fetchLinks();
         fetchClients();
-    }, [user]);
+    }, [user, filterClientId, startDate, endDate]);
+
+    useEffect(() => {
+        fetchStats();
+    }, [user, filterClientId, startDate, endDate]);
+
+    const fetchStats = async () => {
+        const targetUserId = user?.role === 'CLIENT' ? user.id : (filterClientId ? parseInt(filterClientId) : null);
+        if (!targetUserId && user?.role === 'CLIENT') return;
+
+        setIsStatsLoading(true);
+        try {
+            const data = await dbService.getAllLinkStats(targetUserId || 0, startDate, endDate);
+            setStats(data);
+        } catch (error) {
+            console.error("Error fetching stats:", error);
+        } finally {
+            setIsStatsLoading(false);
+        }
+    };
 
     const ensureProtocol = (url: string) => {
         if (!url) return '';
@@ -60,7 +95,7 @@ const LinkShortener = () => {
     const fetchLinks = async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getShortLinks(user?.role, user?.role !== 'ADMIN' ? user?.id : undefined);
+            const data = await dbService.getShortLinks(user?.role, user?.role !== 'ADMIN' ? user?.id : undefined, startDate, endDate);
             setLinks(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching links:", error);
@@ -134,6 +169,46 @@ const LinkShortener = () => {
             l.short_code?.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesClient && matchesSearch;
     });
+
+    const toggleSelectAll = () => {
+        if (selectedLinkIds.length === filteredLinks.length && filteredLinks.length > 0) {
+            setSelectedLinkIds([]);
+        } else {
+            setSelectedLinkIds(filteredLinks.map(l => l.id));
+        }
+    };
+
+    const toggleSelectLink = (id: number) => {
+        if (selectedLinkIds.includes(id)) {
+            setSelectedLinkIds(selectedLinkIds.filter(sid => sid !== id));
+        } else {
+            setSelectedLinkIds([...selectedLinkIds, id]);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`Deseja excluir ${selectedLinkIds.length} links permanentemente?`)) return;
+        try {
+            await dbService.bulkDeleteShortLinks(selectedLinkIds);
+            setSelectedLinkIds([]);
+            fetchLinks();
+            fetchStats();
+        } catch (error) {
+            alert("Erro ao excluir links em massa.");
+        }
+    };
+
+    const handleBulkAssociate = async () => {
+        if (!bulkAssociateTargetId) return alert("Selecione um cliente.");
+        try {
+            await dbService.bulkAssociateShortLinks(selectedLinkIds, parseInt(bulkAssociateTargetId));
+            setSelectedLinkIds([]);
+            setShowBulkAssociateModal(false);
+            fetchLinks();
+        } catch (error) {
+            alert("Erro ao vincular links em massa.");
+        }
+    };
 
     return (
         <div className="container-root" style={{ minHeight: '100vh', padding: '28px 24px', overflowX: 'hidden' }}>
@@ -401,10 +476,116 @@ const LinkShortener = () => {
 
                     {/* ── LIST SECTION ── */}
                     <div style={{ minWidth: 0 }}>
+                        {/* Quick Stats Overview */}
+                        {(user?.role === 'CLIENT' || filterClientId) && (
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                                gap: '20px', 
+                                marginBottom: '32px',
+                                animation: 'fadeInUp 0.6s ease-out'
+                            }}>
+                                {/* Total Clicks Card */}
+                                <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                                        <MousePointer2 size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Cliques Totais</div>
+                                        <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                                            {isStatsLoading ? '...' : (stats?.summary?.total_clicks || 0)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Active Links Card */}
+                                <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                                        <LinkIcon size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Links Encurtados</div>
+                                        <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                                            {isStatsLoading ? '...' : (stats?.summary?.total_links || 0)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Top Device Card */}
+                                <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(168, 85, 247, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a855f7' }}>
+                                        <Smartphone size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Dispositivo Top</div>
+                                        <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+                                            {isStatsLoading ? '...' : (stats?.devices?.[0]?.device_type || 'N/A')}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Top Geo Card */}
+                                <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b' }}>
+                                        <MapPin size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Origem Principal</div>
+                                        <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                                            {isStatsLoading ? '...' : (stats?.geo?.[0]?.country || 'Brasil')}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) /* Quick Stats Overview */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Seus Links</h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Seus Links</h2>
+                                <button 
+                                    onClick={toggleSelectAll}
+                                    style={{ 
+                                        background: 'var(--card-bg-subtle)', 
+                                        border: '1px solid var(--surface-border-subtle)',
+                                        borderRadius: '8px',
+                                        padding: '4px 12px',
+                                        fontSize: '11px',
+                                        fontWeight: 900,
+                                        color: 'var(--text-muted)',
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}
+                                >
+                                    {selectedLinkIds.length === filteredLinks.length && filteredLinks.length > 0 ? <CheckSquare size={14} /> : <Square size={14} />}
+                                    Selecionar Tudo
+                                </button>
+                            </div>
                             
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                {/* Date Filters */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--card-bg-subtle)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--surface-border-subtle)' }}>
+                                    <Calendar size={14} style={{ opacity: 0.3 }} />
+                                    <input 
+                                        type="date" 
+                                        className="input-field" 
+                                        style={{ background: 'transparent', border: 'none', padding: '0', height: '32px', fontSize: '11px', width: 'auto' }}
+                                        value={startDate}
+                                        onChange={e => setStartDate(e.target.value)}
+                                    />
+                                    <span style={{ fontSize: '11px', opacity: 0.3 }}>até</span>
+                                    <input 
+                                        type="date" 
+                                        className="input-field" 
+                                        style={{ background: 'transparent', border: 'none', padding: '0', height: '32px', fontSize: '11px', width: 'auto' }}
+                                        value={endDate}
+                                        onChange={e => setEndDate(e.target.value)}
+                                    />
+                                    {(startDate || endDate) && (
+                                        <button onClick={() => { setStartDate(''); setEndDate(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                            <XCircle size={14} />
+                                        </button>
+                                    )}
+                                </div>
+
                                 {/* Client Filter for Admin/Employee */}
                                 {user?.role !== 'CLIENT' && (
                                     <div style={{ position: 'relative' }}>
@@ -414,14 +595,14 @@ const LinkShortener = () => {
                                             style={{ 
                                                 padding: '8px 12px 8px 36px', 
                                                 fontSize: '12px', 
-                                                width: '200px',
+                                                width: '180px',
                                                 height: '40px',
                                                 background: 'var(--card-bg-subtle)'
                                             }}
                                             value={filterClientId}
                                             onChange={e => setFilterClientId(e.target.value)}
                                         >
-                                            <option value="">Filtrar por Cliente (Todos)</option>
+                                            <option value="">Filtrar Cliente</option>
                                             {clients.map(u => (
                                                 <option key={u.id} value={u.id.toString()}>
                                                     {u.name}
@@ -434,7 +615,7 @@ const LinkShortener = () => {
                                 <div style={{ position: 'relative' }}>
                                     <Search size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
                                     <input 
-                                        placeholder="Buscar links..."
+                                        placeholder="Buscar..."
                                         style={{ 
                                             background: 'var(--card-bg-subtle)', 
                                             border: '1px solid var(--surface-border-subtle)',
@@ -443,7 +624,7 @@ const LinkShortener = () => {
                                             fontSize: '13px',
                                             color: 'var(--text-primary)',
                                             outline: 'none',
-                                            width: '240px',
+                                            width: '160px',
                                             height: '40px'
                                         }}
                                         value={searchTerm}
@@ -452,6 +633,49 @@ const LinkShortener = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Bulk Action Toolbar */}
+                        {selectedLinkIds.length > 0 && (
+                            <div style={{ 
+                                position: 'sticky', 
+                                top: '24px', 
+                                zIndex: 100, 
+                                background: 'var(--primary-color)', 
+                                color: 'black',
+                                borderRadius: '16px',
+                                padding: '12px 24px',
+                                marginBottom: '24px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                boxShadow: '0 10px 30px rgba(172, 248, 0, 0.3)',
+                                animation: 'slideInTop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ fontSize: '14px', fontWeight: 900 }}>
+                                        {selectedLinkIds.length} selecionado(s)
+                                    </div>
+                                    <div style={{ width: '1px', height: '20px', background: 'rgba(0,0,0,0.1)' }} />
+                                    <button 
+                                        onClick={handleBulkDelete}
+                                        style={{ background: 'none', border: 'none', color: 'black', fontWeight: 900, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                    >
+                                        <Trash2 size={16} /> Excluir
+                                    </button>
+                                    {user?.role !== 'CLIENT' && (
+                                        <button 
+                                            onClick={() => setShowBulkAssociateModal(true)}
+                                            style={{ background: 'none', border: 'none', color: 'black', fontWeight: 900, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        >
+                                            <Users size={16} /> Vincular Cliente
+                                        </button>
+                                    )}
+                                </div>
+                                <button onClick={() => setSelectedLinkIds([])} style={{ background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                    <XCircle size={18} />
+                                </button>
+                            </div>
+                        )}
 
                         {isLoading ? (
                             <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -468,7 +692,22 @@ const LinkShortener = () => {
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 {filteredLinks.map((l) => (
-                                    <div key={l.id} className="link-item">
+                                    <div key={l.id} className={`link-item ${selectedLinkIds.includes(l.id) ? 'selected' : ''}`} style={{ position: 'relative', borderLeft: selectedLinkIds.includes(l.id) ? '4px solid var(--primary-color)' : 'none' }}>
+                                        {/* Checkbox */}
+                                        <div 
+                                            onClick={() => toggleSelectLink(l.id)}
+                                            style={{ 
+                                                padding: '0 24px', 
+                                                cursor: 'pointer', 
+                                                color: selectedLinkIds.includes(l.id) ? 'var(--primary-color)' : 'var(--text-muted)',
+                                                opacity: selectedLinkIds.includes(l.id) ? 1 : 0.3,
+                                                display: 'flex',
+                                                alignItems: 'center'
+                                            }}
+                                        >
+                                            {selectedLinkIds.includes(l.id) ? <CheckSquare size={20} /> : <Square size={20} />}
+                                        </div>
+
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.title}</h3>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -572,6 +811,45 @@ const LinkShortener = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Bulk Associate Modal */}
+            {showBulkAssociateModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="glass-card" style={{ maxWidth: '400px', width: '100%', padding: '32px', animation: 'scaleIn 0.3s ease-out' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                                <Users size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontWeight: 900 }}>Vincular em Massa</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>{selectedLinkIds.length} links selecionados</p>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '24px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-muted)' }}>Selecionar Cliente</label>
+                            <select 
+                                className="input-field" 
+                                value={bulkAssociateTargetId}
+                                onChange={e => setBulkAssociateTargetId(e.target.value)}
+                                style={{ background: 'var(--card-bg-subtle)' }}
+                            >
+                                <option value="">Escolha um cliente...</option>
+                                {clients.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button onClick={() => setShowBulkAssociateModal(false)} className="action-btn" style={{ flex: 1 }}>Cancelar</button>
+                            <button onClick={handleBulkAssociate} className="action-btn primary-btn" style={{ flex: 1 }} disabled={!bulkAssociateTargetId}>
+                                <Check size={16} /> Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

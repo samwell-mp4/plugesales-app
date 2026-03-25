@@ -494,11 +494,13 @@ export const dbService = {
             return { error: err.message };
         }
     },
-    getShortLinks: async (role?: string, user_id?: number) => {
+    getShortLinks: async (role?: string, user_id?: number, startDate?: string, endDate?: string) => {
         try {
             const params = new URLSearchParams();
             if (role) params.append('role', role);
             if (user_id) params.append('user_id', user_id.toString());
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
             
             const res = await fetch(`${API_BASE}/shortener/links?${params.toString()}`);
             if (!res.ok) throw new Error("Erro ao buscar links");
@@ -559,6 +561,32 @@ export const dbService = {
             return await res.json();
         } catch (err: any) {
             console.error("Error updating short link:", err);
+            return { error: err.message };
+        }
+    },
+    bulkDeleteShortLinks: async (ids: number[]) => {
+        try {
+            const res = await fetch(`${API_BASE}/shortener/bulk-delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids })
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error bulk deleting short links:", err);
+            return { error: err.message };
+        }
+    },
+    bulkAssociateShortLinks: async (ids: number[], targetUserId: number | null) => {
+        try {
+            const res = await fetch(`${API_BASE}/shortener/bulk-associate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids, target_user_id: targetUserId })
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error bulk associating short links:", err);
             return { error: err.message };
         }
     },
