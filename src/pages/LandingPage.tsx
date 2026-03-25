@@ -47,11 +47,11 @@ const LandingPage = () => {
             <section className="lp-hero">
                 <div className="lp-hero-tag reveal-trigger delay-1">API Oficial Meta Partner</div>
                 <h1 className="lp-hero-title reveal-trigger delay-2">
-                    <span className="text-gradient-animate">A Infraestrutura que sua</span> <br /> 
+                    <span className="text-gradient-animate">A Infraestrutura que sua</span> <br />
                     <span className="text-primary">Operação de WhatsApp</span> Merece
                 </h1>
                 <p className="lp-hero-subtitle reveal-trigger delay-3">
-                    Estabilidade total, sem riscos de banimento e escala ilimitada. 
+                    Estabilidade total, sem riscos de banimento e escala ilimitada.
                     Gerencie múltiplos clientes e campanhas em uma única plataforma profissional.
                 </p>
                 <div className="lp-cta-group reveal-trigger delay-4">
@@ -114,35 +114,40 @@ const LandingPage = () => {
                 </div>
                 <div className="lp-features-grid">
                     {[
-                        { 
-                            icon: <Users size={28} />, 
-                            title: "Controle Total de Clientes", 
-                            desc: "Dashboard centralizado para gerenciar subcontas, monitorar envios e performance de cada cliente individualmente." 
+                        {
+                            icon: <Users size={28} />,
+                            title: "Controle Total de Clientes",
+                            desc: "Dashboard centralizado para gerenciar subcontas, monitorar envios e performance de cada cliente individualmente."
                         },
-                        { 
-                            icon: <Shield size={28} />, 
-                            title: "Templates Homologados Meta", 
-                            desc: "Criação em lote e aprovação ultra-rápida de templates com botões interativos e mídia de alta qualidade." 
+                        {
+                            icon: <Shield size={28} />,
+                            title: "Templates Homologados Meta",
+                            desc: "Criação em lote e aprovação ultra-rápida de templates com botões interativos e mídia de alta qualidade."
                         },
-                        { 
-                            icon: <Zap size={28} />, 
-                            title: "Disparos em Massa de Alta Escala", 
-                            desc: "Nossa infraestrutura suporta milhares de mensagens por segundo, garantindo entrega instantânea sem bloqueios." 
+                        {
+                            icon: <Zap size={28} />,
+                            title: "Disparos em Massa de Alta Escala",
+                            desc: "Nossa infraestrutura suporta milhares de mensagens por segundo, garantindo entrega instantânea sem bloqueios."
                         },
-                        { 
-                            icon: <Share2 size={28} />, 
-                            title: "Encurtador com Rastreamento", 
-                            desc: "Gere links curtos inteligentes e saiba exatamente quem clicou, otimizando o ROI das suas campanhas." 
+                        {
+                            icon: <Share2 size={28} />,
+                            title: "Encurtador com Rastreamento",
+                            desc: "Gere links curtos inteligentes e saiba exatamente quem clicou, otimizando o ROI das suas campanhas."
                         },
-                        { 
-                            icon: <BarChart3 size={28} />, 
-                            title: "Analytics Preditivo", 
-                            desc: "Dados consolidados de delivery, leitura e conversão. exporte relatórios profissionais para seus clientes." 
+                        {
+                            icon: <BarChart3 size={28} />,
+                            title: "Analytics Preditivo",
+                            desc: "Dados consolidados de delivery, leitura e conversão. exporte relatórios profissionais para seus clientes."
                         },
-                        { 
-                            icon: <Smartphone size={28} />, 
-                            title: "Hospedagem de Mídia Integrada", 
-                            desc: "Upload direto de arquivos para nossos servidores seguros, garantindo que suas mídias sempre carreguem no WhatsApp." 
+                        {
+                            icon: <Smartphone size={28} />,
+                            title: "Hospedagem de Mídia Integrada",
+                            desc: "Upload direto de arquivos para nossos servidores seguros, garantindo que suas mídias sempre carreguem no WhatsApp."
+                        },
+                        {
+                            icon: <Smartphone size={28} />,
+                            title: "Hospedagem de Mídia Integrada",
+                            desc: "Upload direto de arquivos para nossos servidores seguros, garantindo que suas mídias sempre carreguem no WhatsApp."
                         }
                     ].map((f, i) => (
                         <div key={i} className={`lp-feature-card reveal-trigger delay-${(i % 3) + 1}`}>
@@ -165,6 +170,8 @@ const LandingPage = () => {
                     Começar Agora <Zap className="ml-2" size={24} />
                 </button>
             </section>
+
+
 
             {/* Footer */}
             <footer className="lp-footer">

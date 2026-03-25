@@ -71,7 +71,6 @@ const ClientSubmissions = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0 });
     const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>('mine');
     const [employees, setEmployees] = useState<string[]>([]);
     const [clients, setClients] = useState<any[]>([]);
@@ -174,12 +173,13 @@ const ClientSubmissions = () => {
         const preFillData = {
             clientId: sub.user_id,
             clientName: sub.client_name,
-            templateName: `${sub.profile_name.toLowerCase().replace(/\s+/g, '_')}_${sub.ddd}`,
+            templateName: `${sub.profile_name.toLowerCase().replace(/[\s-@]/g, '_')}_${sub.ddd}`,
             templateType: sub.template_type || adsToFill[0].template_type || 'TEXT',
             senderNumber: sub.sender_number || '',
             rows: adsToFill.map((ad, idx) => ({
                 id: idx + 1,
-                suffix: ad.ad_name ? `_${ad.ad_name.toLowerCase().replace(/\s+/g, '_')}` : `_v${idx + 1}`,
+                suffix: ad.ad_name ? `_${ad.ad_name.toLowerCase().replace(/[\s-@]/g, '_')}` : `_v${idx + 1}`,
+                sender: sub.sender_number || '',
                 headerType: ad.template_type || sub.template_type || 'TEXT',
                 mediaUrl: ad.media_url || ad.ad_copy_file || '',
                 var1: ad.variables?.[0] || 'Leandro',
@@ -190,7 +190,50 @@ const ClientSubmissions = () => {
             }))
         };
 
-        navigate('/templates', { state: { preFillData } });
+        navigate('/templates', { state: { preFillData, activeTab: adsToFill.length > 1 ? 'BULK' : 'MODEL' } });
+    };
+
+    const handleBulkRedirectToCreator = () => {
+        if (selectedIds.length === 0) return;
+        
+        const selectedSubmissions = submissions.filter(s => selectedIds.includes(s.id));
+        
+        const campaigns = selectedSubmissions.map((sub) => {
+            const adsToFill = sub.ads && sub.ads.length > 0 ? sub.ads : [{
+                ad_name: sub.profile_name,
+                template_type: sub.template_type || 'TEXT',
+                media_url: sub.media_url,
+                ad_copy: sub.ad_copy,
+                button_link: sub.button_link,
+                variables: []
+            }];
+
+            return {
+                id: `sub_${sub.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                prefix: `${sub.profile_name.toLowerCase().replace(/[\s-@]/g, '_')}_${sub.ddd}_`,
+                rows: adsToFill.map((ad, idx) => ({
+                    suffix: ad.ad_name ? ad.ad_name.toLowerCase().replace(/[\s-@]/g, '_') : `v${idx + 1}`,
+                    sender: sub.sender_number || '',
+                    headerType: ad.template_type || sub.template_type || 'TEXT',
+                    mediaUrl: ad.media_url || ad.ad_copy_file || '',
+                    var1: ad.variables?.[0] || 'Leandro',
+                    var2: ad.variables?.[1] || 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
+                    var3: ad.variables?.[2] || 'O comprovante digital já se encontra disponível para conferência',
+                    var4: ad.variables?.[3] || 'acessar o comprovante digital #54333 e verificar a entrega',
+                    buttonUrls: [ad.button_link || ''],
+                    buttonTexts: ['Clique Aqui'],
+                    hasButtons: !!ad.button_link
+                }))
+            };
+        });
+
+        const preFillData = {
+            clientId: selectedSubmissions[0].user_id,
+            clientName: selectedSubmissions[0].client_name,
+            campaigns: campaigns
+        };
+
+        navigate('/templates', { state: { preFillData, activeTab: 'BULK' } });
     };
 
     const handleAssign = async (id: number, employeeName: string) => {
@@ -199,25 +242,6 @@ const ClientSubmissions = () => {
             loadSubmissions();
         } catch (err) {
             console.error("Error assigning task:", err);
-        }
-    };
-
-    const callInfobipAPI = async (payload: any) => {
-        try {
-            const settings = await dbService.getSettings();
-            const apiKey = settings['infobip_key'];
-            if (!apiKey) throw new Error("API Key não configurada.");
-            const res = await fetch('https://qgylyz.api.infobip.com/whatsapp/1/templates', {
-                method: 'POST', headers: { 'Authorization': `App ${apiKey}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                return { success: false, error: errorData.errorMessage || `HTTP ${res.status}` };
-            }
-            return { success: true };
-        } catch (err: any) {
-            return { success: false, error: err.message };
         }
     };
 
@@ -280,61 +304,6 @@ const ClientSubmissions = () => {
             alert("Erro ao alterar status em lote.");
         } finally {
             setIsProcessing(false);
-        }
-    };
-
-    const handleBulkGenerate = async () => {
-        if (selectedIds.length === 0) return;
-        if (!window.confirm(`Deseja gerar templates reais na Infobip para ${selectedIds.length} envios selecionados?`)) return;
-        setIsProcessing(true);
-        setGeneratingProgress({ current: 0, total: selectedIds.length });
-        let successCount = 0; let errorCount = 0;
-        try {
-            for (let i = 0; i < selectedIds.length; i++) {
-                const id = selectedIds[i];
-                const sub = submissions.find(s => s.id === id);
-                if (!sub) continue;
-                setGeneratingProgress({ current: i + 1, total: selectedIds.length });
-
-                let linkToUse = sub.button_link;
-                if (linkToUse) {
-                    try {
-                        const shortRes = await fetch('/api/shortener/create', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                original_url: linkToUse,
-                                title: `Botão: ${sub.profile_name}`
-                            })
-                        });
-                        const shortData = await shortRes.json();
-                        if (shortData.success && shortData.shortUrl) {
-                            linkToUse = shortData.shortUrl;
-                        }
-                    } catch (err) {
-                        console.error("Error shortening link for bulk:", err);
-                    }
-                }
-
-                const techName = `${sub.profile_name.toLowerCase().replace(/\s+/g, '_')}_${sub.ddd}_${sub.template_type}`;
-                const payload: any = { name: techName, language: 'pt_BR', category: 'MARKETING', structure: { body: { text: sub.ad_copy } } };
-                if (sub.template_type !== 'none') payload.structure.header = { format: sub.template_type.toUpperCase(), example: sub.media_url };
-                if (linkToUse) payload.structure.buttons = [{ type: 'URL', text: 'Acessar Agora', url: linkToUse }];
-                
-                const res = await callInfobipAPI(payload);
-                if (res.success) { successCount++; await dbService.updateClientSubmissionStatus(id, 'GERADO'); }
-                else { errorCount++; await fetch('/api/logs/template-error', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: techName, error: res.error, author: 'Client Area' }) }).catch(() => {}); }
-                if (i < selectedIds.length - 1) await new Promise(r => setTimeout(r, 2500));
-            }
-            alert(`Processamento concluído!\nSucesso: ${successCount}\nErros: ${errorCount}`);
-            setSelectedIds([]);
-            loadSubmissions();
-        } catch (err) {
-            console.error("Bulk error:", err);
-            alert("Erro fatal ao processar envios.");
-        } finally {
-            setIsProcessing(false);
-            setGeneratingProgress({ current: 0, total: 0 });
         }
     };
 
@@ -767,12 +736,12 @@ const ClientSubmissions = () => {
                             {selectedIds.length > 0 && (
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <button
-                                        onClick={handleBulkGenerate}
+                                        onClick={handleBulkRedirectToCreator}
                                         disabled={isProcessing}
                                         style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '12px', border: '1px solid rgba(172,248,0,0.2)', display: 'flex', alignItems: 'center', gap: '8px' }}
                                     >
-                                        {isProcessing ? <Activity size={15} className="animate-spin" /> : <Layers size={15} />}
-                                        {isProcessing ? 'GERANDO...' : `GERAR (${selectedIds.length})`}
+                                        <Layers size={15} />
+                                        PREENCHER LOTE ({selectedIds.length})
                                     </button>
                                     <button
                                         onClick={handleBulkAssign}
@@ -969,16 +938,6 @@ const ClientSubmissions = () => {
                 )}
             </div>
 
-            {generatingProgress.total > 0 && (
-                <div className="progress-overlay">
-                    <div style={{ width: 80, height: 80, border: '4px solid var(--surface-border-subtle)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '32px' }} />
-                    <h2 style={{ fontWeight: 900, fontSize: '2rem' }}>Gerando Templates...</h2>
-                    <p style={{ color: 'var(--text-muted)' }}>Processando {generatingProgress.current} de {generatingProgress.total}</p>
-                    <div style={{ width: '380px', height: '6px', background: 'var(--card-bg-subtle)', borderRadius: '999px', marginTop: '32px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', background: 'var(--primary-color)', width: `${(generatingProgress.current / generatingProgress.total) * 100}%`, transition: 'width 0.5s' }} />
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
