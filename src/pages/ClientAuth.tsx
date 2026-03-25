@@ -4,7 +4,7 @@ import { MessageSquare, ShieldCheck, Lock, User, Mail, Phone, ArrowRight, UserPl
 
 const ClientAuth = () => {
     const { login, register } = useAuth();
-    const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>('REGISTER');
+    const [mode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
     
     // Form fields
     const [name, setName] = useState('');
@@ -351,15 +351,6 @@ const ClientAuth = () => {
                             )}
                         </button>
 
-                        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-                            <button 
-                                type="button"
-                                onClick={() => setMode(mode === 'REGISTER' ? 'LOGIN' : 'REGISTER')}
-                                style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
-                            >
-                                {mode === 'REGISTER' ? 'Já tenho uma conta? Entrar' : 'Não tenho conta? Cadastrar'}
-                            </button>
-                        </div>
 
                         <div className="security-tag">
                             <ShieldCheck size={12} />
