@@ -175,6 +175,7 @@ const ClientExternalForm = () => {
                     ad_copy: ad.ad_copy,
                     ad_copy_file: ad.ad_copy_file,
                     button_link: ad.button_link,
+                    original_button_link: ad.button_link,
                     spreadsheet_url: ad.spreadsheet_url,
                     message_mode: ad.message_mode,
                     variables: ad.variables,
@@ -185,6 +186,7 @@ const ClientExternalForm = () => {
                 media_url: formData.ads[0]?.media_url || '',
                 ad_copy: formData.ads[0]?.ad_copy || '',
                 button_link: formData.ads[0]?.button_link || '',
+                original_button_link: formData.ads[0]?.button_link || '',
                 spreadsheet_url: formData.ads[0]?.spreadsheet_url || '',
             };
 

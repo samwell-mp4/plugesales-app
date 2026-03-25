@@ -40,6 +40,7 @@ interface Ad {
     ad_copy_file?: string;
     message_mode?: 'manual' | 'upload';
     button_link?: string;
+    original_button_link?: string;
     variables?: string[];
     spreadsheet_url?: string;
     sender_number?: string;
@@ -68,6 +69,7 @@ interface Submission {
     template_type?: string;
     media_url?: string;
     button_link?: string;
+    original_button_link?: string;
     spreadsheet_url?: string;
     timestamp: string;
     notes?: string;
@@ -916,6 +918,18 @@ const ClientSubmissionDetail = () => {
                                             <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentAd.button_link || 'Nenhum link'}</p>
                                         )}
                                     </div>
+
+                                    {(currentAd.original_button_link || sub.original_button_link) && (
+                                        <div style={{ padding: '16px', background: 'rgba(255,170,0,0.05)', borderRadius: '16px', border: '1px solid rgba(255,170,0,0.1)', borderLeft: '4px solid #ffaa00' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <label style={{ fontSize: '9px', fontWeight: 900, color: '#ffaa00', opacity: 0.8 }}>LINK ORIGINAL (SEM ENCURTAR)</label>
+                                                <button onClick={() => copyToClipboard(currentAd.original_button_link || sub.original_button_link || '', 'Link Original')} style={{ background: 'none', border: 'none', color: '#ffaa00', cursor: 'pointer' }}>
+                                                    <Copy size={14} />
+                                                </button>
+                                            </div>
+                                            <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.7 }}>{currentAd.original_button_link || sub.original_button_link}</p>
+                                        </div>
+                                    )}
 
                                     <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid var(--primary-color)' }}>
                                         <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>

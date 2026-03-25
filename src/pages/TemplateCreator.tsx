@@ -19,6 +19,7 @@ type BulkRow = {
     buttonUrl?: string; // Legacy field, kept for safety
     buttonUrls: string[];
     buttonTexts: string[];
+    originalButtonUrls?: string[];
 };
 
 interface CampaignBatch {
@@ -87,7 +88,7 @@ const TemplateCreator = () => {
                     }))
                 }));
                 setCampaigns(initializedCampaigns);
-                
+
                 if (initializedCampaigns[0].rows[0]) {
                     const firstRow = initializedCampaigns[0].rows[0];
                     if (firstRow.mediaUrl) setHeaderMediaUrl(firstRow.mediaUrl);
@@ -264,9 +265,10 @@ const TemplateCreator = () => {
                     targetUrl,
                     payload: {
                         to: user?.notification_number || '',
-                        mensagem: `🆕 *Novo Template Criado!* 🛠️\n\n📌 *Nome*: ${payload.name}\n📂 *Categoria*: ${payload.category}\n🌐 *Idioma*: ${payload.language}\n\nO template foi enviado para análise da Meta e o monitoramento já foi iniciado.`,
+                        mensagem: `🆕 *Novo Template Criado!* 🛠️\n\n📌 *Nome*: ${payload.name}\n📂 *Categoria*: ${payload.category}\n🌐 *Idioma*: ${payload.language}${payload.original_button_link ? `\n🔗 *Link Original*: ${payload.original_button_link}` : ''}\n\nO template foi enviado para análise da Meta e o monitoramento já foi iniciado.`,
                         template: payload.name,
-                        status: 'PENDING'
+                        status: 'PENDING',
+                        original_button_link: payload.original_button_link
                     }
                 })
             });
@@ -302,7 +304,7 @@ const TemplateCreator = () => {
     const hasValidationErrors = useMemo(() => {
         const allFullNames: string[] = [];
         const allPrefixes: string[] = [];
-        
+
         campaigns.forEach(c => {
             const p = c.prefix.trim().toLowerCase();
             if (p) allPrefixes.push(p);
@@ -319,7 +321,7 @@ const TemplateCreator = () => {
 
         const hasEmptyPrefix = campaigns.some(c => c.prefix.trim() === "");
 
-        const hasDuplicateFullName = campaigns.some(c => 
+        const hasDuplicateFullName = campaigns.some(c =>
             c.rows.some(r => {
                 const full = `${c.prefix}${r.suffix}`.toLowerCase().trim();
                 return full !== "" && allFullNames.filter(x => x === full).length > 1;
@@ -435,6 +437,7 @@ const TemplateCreator = () => {
                 const finalButtonTexts = row.buttonTexts && row.buttonTexts.length > 0 ? [...row.buttonTexts] : [];
 
                 if (row.hasButtons !== false && finalButtonUrls.length > 0) {
+                    row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
                     for (let urlIdx = 0; urlIdx < finalButtonUrls.length; urlIdx++) {
                         const originalUrl = finalButtonUrls[urlIdx];
                         if (originalUrl && (originalUrl.startsWith('http') || originalUrl.includes('.'))) {
@@ -460,7 +463,11 @@ const TemplateCreator = () => {
                 }
 
                 const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
-                const extendedPayload = { ...payload, sender: rowSender };
+                const extendedPayload = { 
+                    ...payload, 
+                    sender: rowSender,
+                    original_button_link: (row.originalButtonUrls && row.originalButtonUrls.length > 0) ? row.originalButtonUrls[0] : ''
+                };
                 const res = await callInfobipAPI(payload, rowSender);
                 if (res.success) {
                     successCount++;
@@ -475,6 +482,7 @@ const TemplateCreator = () => {
                         media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/qv5OXja.jpg") : '',
                         ad_copy: bodyText,
                         button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
+                        original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
                         variables: variablesExample || [],
                         delivered_leads: 0,
                         price_per_msg: 0.04
@@ -499,6 +507,7 @@ const TemplateCreator = () => {
                 media_url: '',
                 ad_copy: bodyText,
                 button_link: generatedAds.length > 0 ? (generatedAds[0].button_link || '') : '',
+                original_button_link: generatedAds.length > 0 ? (generatedAds[0].original_button_link || '') : '',
                 spreadsheet_url: '',
                 status: 'GERADO',
                 submitted_by: user?.name,
