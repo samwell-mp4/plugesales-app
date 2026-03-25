@@ -140,7 +140,7 @@ const ClientDashboard = () => {
     const stats = {
         total: submissions.length,
         pending: submissions.filter(s => s.status === 'PENDENTE').length,
-        completed: submissions.filter(s => s.status === 'CONCLUÍDO').length
+        completed: submissions.filter(s => s.status === 'CONCLUÍDO' || s.status === 'CONCLUIDO').length
     };
 
     return (
@@ -308,7 +308,6 @@ const ClientDashboard = () => {
                 <div className="control-card" style={{ animationDelay: '0.4s', padding: activeTab === 'profile' ? '40px' : '24px' }}>
                     {activeTab === 'submissions' ? (
                         <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
-                            {/* ... submissions content ... */}
                             {isLoading ? (
                                 <div style={{ padding: '80px', textAlign: 'center' }}>
                                     <div style={{ width: 32, height: 32, margin: '0 auto 16px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -320,48 +319,104 @@ const ClientDashboard = () => {
                                     <p style={{ fontWeight: 800 }}>Nenhuma submissão encontrada</p>
                                 </div>
                             ) : (
-                                submissions.map((sub) => {
-                                    const cfg = statusCfg(sub.status);
-                                    return (
-                                        <div key={sub.id} className="submission-link">
-                                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                                                    {sub.profile_name}
-                                                    {sub.status === 'CONCLUÍDO' && <CheckCircle size={14} className="text-primary-color" />}
-                                                </h4>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
-                                                    <span style={{ color: 'var(--surface-border-subtle)' }}>•</span>
-                                                    <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
-                                                        {cfg.label.toUpperCase()}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                {sub.status === 'PENDENTE' && (
-                                                    <button 
-                                                        onClick={() => handleDeleteSubmission(sub.id)}
-                                                        className="action-btn ghost-btn" 
-                                                        style={{ height: 36, width: 36, padding: 0, color: '#ef4444' }}
-                                                        title="Excluir Submissão"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                )}
-                                                <button 
-                                                    onClick={() => navigate(`/client-submissions/${sub.id}`)}
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
-                                                >
-                                                    DETALHES <ExternalLink size={14} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })
+                                <>
+                                    {/* --- Minhas Submissões (Created by Client) --- */}
+                                    <div style={{ marginBottom: '32px' }}>
+                                        <h3 style={{ fontSize: '11px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <User size={14} /> MINHAS SUBMISSÕES (MANUAIS)
+                                        </h3>
+                                        {submissions.filter(s => s.submitted_by === user?.name || s.submitted_by === 'Cliente (Externo)' || !s.submitted_by).length === 0 ? (
+                                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', opacity: 0.5, paddingLeft: '4px' }}>Nenhuma submissão manual registrada.</p>
+                                        ) : (
+                                            submissions.filter(s => s.submitted_by === user?.name || s.submitted_by === 'Cliente (Externo)' || !s.submitted_by).map((sub) => {
+                                                const cfg = statusCfg(sub.status);
+                                                return (
+                                                    <div key={sub.id} className="submission-link">
+                                                        <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                            <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                                                                {sub.profile_name}
+                                                                {sub.status === 'CONCLUÍDO' && <CheckCircle size={14} className="text-primary-color" />}
+                                                            </h4>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
+                                                                <span style={{ color: 'var(--surface-border-subtle)' }}>•</span>
+                                                                <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
+                                                                    {cfg.label.toUpperCase()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            {sub.status === 'PENDENTE' && (
+                                                                <button 
+                                                                    onClick={() => handleDeleteSubmission(sub.id)}
+                                                                    className="action-btn ghost-btn" 
+                                                                    style={{ height: 36, width: 36, padding: 0, color: '#ef4444' }}
+                                                                    title="Excluir Submissão"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            )}
+                                                            <button 
+                                                                onClick={() => navigate(`/client-submissions/${sub.id}`)}
+                                                                className="action-btn ghost-btn" 
+                                                                style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
+                                                            >
+                                                                DETALHES <ExternalLink size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+
+                                    {/* --- Lotes da Agência (Created by Staff) --- */}
+                                    <div>
+                                        <h3 style={{ fontSize: '11px', fontWeight: 900, color: '#3b82f6', letterSpacing: '2px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Zap size={14} /> LOTES / CAMPANHAS DA AGÊNCIA
+                                        </h3>
+                                        {submissions.filter(s => s.submitted_by && s.submitted_by !== user?.name && s.submitted_by !== 'Cliente (Externo)').length === 0 ? (
+                                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', opacity: 0.5, paddingLeft: '4px' }}>Nenhum lote automático registrado.</p>
+                                        ) : (
+                                            submissions.filter(s => s.submitted_by && s.submitted_by !== user?.name && s.submitted_by !== 'Cliente (Externo)').map((sub) => {
+                                                const cfg = statusCfg(sub.status);
+                                                return (
+                                                    <div key={sub.id} className="submission-link" style={{ borderLeft: '4px solid #3b82f6' }}>
+                                                        <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                            <Layers size={20} style={{ opacity: 0.5, color: '#3b82f6' }} />
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                                                                {sub.profile_name}
+                                                                {(sub.status === 'CONCLUIDO' || sub.status === 'CONCLUÍDO') && <CheckCircle size={14} style={{ color: '#3b82f6' }} />}
+                                                            </h4>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
+                                                                <span style={{ color: 'var(--surface-border-subtle)' }}>•</span>
+                                                                <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
+                                                                    {cfg.label.toUpperCase()}
+                                                                </span>
+                                                                <span style={{ fontSize: '8px', fontWeight: 900, color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '2px 6px', borderRadius: '4px' }}>POR: {sub.submitted_by.toUpperCase()}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button 
+                                                                onClick={() => navigate(`/client-submissions/${sub.id}`)}
+                                                                className="action-btn ghost-btn" 
+                                                                style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
+                                                            >
+                                                                DETALHES <ExternalLink size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </>
                             )}
                         </div>
                     ) : activeTab === 'links' ? (
