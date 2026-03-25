@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
     MessageSquare, 
     Zap, 
@@ -8,14 +7,13 @@ import {
     Smartphone, 
     BarChart3, 
     ArrowRight, 
-    CheckCircle2,
     Plus,
     X
 } from 'lucide-react';
 import './LandingPage.css';
+import DemoQuiz from '../components/DemoQuiz';
 
 const LandingPage = () => {
-    const navigate = useNavigate();
     const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
     const toggleFaq = (index: number) => {
@@ -88,11 +86,9 @@ const LandingPage = () => {
                 <nav className="lp-nav">
                     <a href="#funciona" className="lp-nav-link">Como Funciona</a>
                     <a href="#features" className="lp-nav-link">Recursos</a>
-                    <a href="#precos" className="lp-nav-link">Planos</a>
-                    <button onClick={() => navigate('/login')} className="lp-nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>Entrar</button>
-                    <button onClick={() => navigate('/client-form')} className="lp-btn lp-btn-primary" style={{ padding: '10px 20px', fontSize: '0.8rem' }}>
-                        COMEÇAR AGORA
-                    </button>
+                    <a href="#testar" className="lp-btn lp-btn-primary" style={{ padding: '10px 20px', fontSize: '0.8rem' }}>
+                        TESTAR AGORA
+                    </a>
                 </nav>
             </header>
 
@@ -110,11 +106,11 @@ const LandingPage = () => {
                         disparos em massa com API oficial e gestão completa de campanhas.
                     </p>
                     <div className="lp-cta-group">
-                        <button onClick={() => navigate('/client-form')} className="lp-btn lp-btn-primary">
-                            CRIAR CONTA GRÁTIS <ArrowRight size={18} />
-                        </button>
-                        <button onClick={() => navigate('/login')} className="lp-btn lp-btn-secondary">
-                            FILA DE DISPARO
+                        <a href="#testar" className="lp-btn lp-btn-primary">
+                            TESTAR AGORA GRATUITAMENTE <ArrowRight size={18} />
+                        </a>
+                        <button onClick={() => window.open('https://wa.me/5511999999999', '_blank')} className="lp-btn lp-btn-secondary">
+                            FALAR COM AGENTE
                         </button>
                     </div>
                 </div>
@@ -178,42 +174,19 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* ── PRICING ── */}
-            <section id="precos" className="lp-section">
-                <div className="lp-section-header">
-                    <span className="lp-section-tag">INVESTIMENTO</span>
-                    <h2 className="lp-section-title">Simples e Transparente</h2>
+            {/* ── INTERACTIVE DEMO ── */}
+            <section id="testar" className="lp-section" style={{ paddingLeft: '4%', paddingRight: '4%' }}>
+                <div className="lp-section-header" style={{ maxWidth: '1000px' }}>
+                    <span className="lp-section-tag">SIMULADOR OFICIAL</span>
+                    <h2 className="lp-section-title">Experimente O Poder Do <span style={{ color: '#acf800' }}>WhatsApp Marketing</span></h2>
+                    <p>Personalize cada detalhe da sua campanha abaixo e veja o resultado instantâneo no preview à direita.</p>
                 </div>
                 
-                <div className="lp-pricing-grid">
-                    <div className="lp-price-card">
-                        <h3>START</h3>
-                        <div className="lp-price-amount">R$ 197<span>/mês</span></div>
-                        <ul style={{ listStyle: 'none', padding: 0, textAlign: 'left', marginBottom: '40px' }}>
-                            <li style={{ marginBottom: '12px' }}><CheckCircle2 size={16} color="#acf800" style={{ verticalAlign: 'middle', marginRight: '10px' }}/> Até 5.000 Envios/mês</li>
-                            <li style={{ marginBottom: '12px' }}><CheckCircle2 size={16} color="#acf800" style={{ verticalAlign: 'middle', marginRight: '10px' }}/> 1 Conta WhatsApp</li>
-                            <li style={{ marginBottom: '12px' }}><CheckCircle2 size={16} color="#acf800" style={{ verticalAlign: 'middle', marginRight: '10px' }}/> Suporte via Chat</li>
-                        </ul>
-                        <button onClick={() => navigate('/client-form')} className="lp-btn lp-btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>ASSINAR AGORA</button>
-                    </div>
-
-                    <div className="lp-price-card featured">
-                        <div style={{ position: 'absolute', top: '24px', right: '24px', background: '#acf800', color: '#000', fontSize: '10px', fontWeight: 900, padding: '4px 12px', borderRadius: '100px' }}>MAIS POPULAR</div>
-                        <h3>PRO</h3>
-                        <div className="lp-price-amount">R$ 497<span>/mês</span></div>
-                        <ul style={{ listStyle: 'none', padding: 0, textAlign: 'left', marginBottom: '40px' }}>
-                            <li style={{ marginBottom: '12px' }}><CheckCircle2 size={16} color="#acf800" style={{ verticalAlign: 'middle', marginRight: '10px' }}/> Envios Ilimitados*</li>
-                            <li style={{ marginBottom: '12px' }}><CheckCircle2 size={16} color="#acf800" style={{ verticalAlign: 'middle', marginRight: '10px' }}/> 5 Contas WhatsApp</li>
-                            <li style={{ marginBottom: '12px' }}><CheckCircle2 size={16} color="#acf800" style={{ verticalAlign: 'middle', marginRight: '10px' }}/> Dashboard Analytics PRO</li>
-                            <li style={{ marginBottom: '12px' }}><CheckCircle2 size={16} color="#acf800" style={{ verticalAlign: 'middle', marginRight: '10px' }}/> Suporte Prioritário</li>
-                        </ul>
-                        <button onClick={() => navigate('/client-form')} className="lp-btn lp-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>COMEÇAR AGORA</button>
-                    </div>
-                </div>
+                <DemoQuiz />
             </section>
 
             {/* ── FAQ ── */}
-            <section className="lp-section">
+            <section id="faq" className="lp-section">
                 <div className="lp-section-header">
                     <span className="lp-section-tag">DÚVIDAS</span>
                     <h2 className="lp-section-title">Perguntas Frequentes</h2>
