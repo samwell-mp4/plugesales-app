@@ -290,14 +290,16 @@ const ClientReports = () => {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); downloadXLS(report); }} 
-                                            className="action-btn ghost-btn" 
-                                            style={{ height: 36, width: 36, padding: 0 }}
-                                            title="Download Excel"
-                                        >
-                                            <Download size={14} />
-                                        </button>
+                                        {user?.role !== 'CLIENT' && (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); downloadXLS(report); }} 
+                                                className="action-btn ghost-btn" 
+                                                style={{ height: 36, width: 36, padding: 0 }}
+                                                title="Download Excel"
+                                            >
+                                                <Download size={14} />
+                                            </button>
+                                        )}
                                         {user?.role !== 'CLIENT' && (
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(report.id); }} 

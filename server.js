@@ -226,8 +226,9 @@ const initDB = async () => {
         await client.query("UPDATE users SET role = 'EMPLOYEE' WHERE name IN ('Vini', 'Italo', 'Matheus')");
         
         // Ensure client_reports schema is up-to-date
-        await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS submission_id INTEGER`);
-        await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS summary JSONB`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS summary JSONB`);
+        await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`); // Wait, user said CARD (campaign), which is client_submissions
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
         await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`);
 
         console.log('✅ Database initialized and verified.');

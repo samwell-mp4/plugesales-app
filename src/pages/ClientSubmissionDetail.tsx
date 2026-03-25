@@ -75,6 +75,7 @@ interface Submission {
     spreadsheet_url?: string;
     timestamp: string;
     notes?: string;
+    logs?: any[];
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -154,6 +155,25 @@ const ClientSubmissionDetail = () => {
 
     useEffect(() => { load(); }, [load]);
 
+    const addLog = async (message: string, type: 'info' | 'success' | 'error' = 'info') => {
+        if (!sub) return;
+        const newLog = {
+            id: Date.now(),
+            type,
+            message,
+            timestamp: new Date().toISOString(),
+            author: user?.name || 'Sistema'
+        };
+        const updatedLogs = [...(sub.logs || []), newLog];
+        // Optimistic update
+        setSub(prev => prev ? { ...prev, logs: updatedLogs } : null);
+        try {
+            await dbService.updateClientSubmission(Number(id), { logs: JSON.stringify(updatedLogs) });
+        } catch (err) {
+            console.error("Error adding log:", err);
+        }
+    };
+
     const handleSaveSender = async () => {
         if (!id) return;
         setIsSaving(true);
@@ -164,6 +184,7 @@ const ClientSubmissionDetail = () => {
                 profile_name: titleVal 
             });
             setIsEditingTitle(false);
+            await addLog("Informações básicas da campanha atualizadas", 'success');
             await load();
         } catch (err) {
             console.error(err);
@@ -177,6 +198,7 @@ const ClientSubmissionDetail = () => {
         setUpdatingStatus(true);
         try {
             await dbService.updateClientSubmission(Number(id), { status: newStatus });
+            await addLog(`Status alterado para: ${newStatus}`, 'info');
             await load();
         } catch (err) {
             console.error(err);
@@ -190,6 +212,7 @@ const ClientSubmissionDetail = () => {
         setUpdatingAssign(true);
         try {
             await dbService.updateClientSubmission(Number(id), { assigned_to: employeeName || null });
+            await addLog(`Responsável alterado para: ${employeeName || 'Nenhum'}`, 'info');
             await load();
         } catch (err) {
             console.error(err);
@@ -245,6 +268,7 @@ const ClientSubmissionDetail = () => {
                 body: JSON.stringify({ targetUrl: webhookUrl, payload })
             });
 
+            await addLog("Notificação de conclusão (PDF) enviada para WhatsApp", 'success');
             alert("Notificação enfileirada com sucesso! O sistema processará o envio em instantes.");
         } catch (err) {
             console.error("Webhook error:", err);
@@ -270,6 +294,7 @@ const ClientSubmissionDetail = () => {
             const data = await res.json();
             if (data.success && data.shortUrl) {
                 copyToClipboard(data.shortUrl, 'Link Encurtador');
+                await addLog("Link curto gerado para acesso ao relatório", 'info');
             } else {
                 alert("Erro ao gerar link: " + (data.error || ""));
             }
@@ -296,6 +321,8 @@ const ClientSubmissionDetail = () => {
 
         try {
             await dbService.updateClientSubmission(Number(id), { ads: newAds });
+            // Only log if it's a significant change (not just keystroke) - but here it's called on blur/etc usually
+            // To avoid spam, we'll only log if it's not a frequent update
         } catch (err) {
             console.error("Error updating ad:", err);
             load();
@@ -398,6 +425,7 @@ const ClientSubmissionDetail = () => {
 
                 if (res.success) {
                     await load();
+                    await addLog(`Relatório de entrega anexado: ${file.name}`, 'success');
                     alert("✅ Relatório de entrega anexado com sucesso!");
                 } else {
                     alert("❌ Erro ao salvar relatório: " + res.error);
@@ -418,6 +446,7 @@ const ClientSubmissionDetail = () => {
             const res = await dbService.deleteReport(attachedReport.id);
             if (res.success) {
                 setAttachedReport(null);
+                await addLog("Relatório de entrega removido", 'error');
                 alert("✅ Relatório removido com sucesso.");
             }
         } catch (err) {
@@ -725,7 +754,7 @@ const ClientSubmissionDetail = () => {
                                 )}
                             </div>
 
-                            {sub.spreadsheet_url && (
+                            {sub.spreadsheet_url && user?.role !== 'CLIENT' && (
                                 <a href={sub.spreadsheet_url} target="_blank" rel="noreferrer" className="asset-link">
                                     <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <FileSpreadsheet size={20} color="#22c55e" />
@@ -822,6 +851,33 @@ const ClientSubmissionDetail = () => {
                                     {isNotifying ? 'NOTIFICANDO...' : 'NOTIFICAR CLIENTE (WHATSAPP)'}
                                 </button>
                             )}
+
+                            {/* --- HISTÓRICO DA CAMPANHA --- */}
+                            <div style={{ marginTop: '32px' }}>
+                                <label className="field-label" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Activity size={14} color="var(--primary-color)" /> HISTÓRICO DA CAMPANHA
+                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {(!sub.logs || sub.logs.length === 0) ? (
+                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed var(--surface-border-subtle)', textAlign: 'center' }}>
+                                            <p style={{ margin: 0, fontSize: '10px', opacity: 0.4 }}>Nenhum histórico registrado.</p>
+                                        </div>
+                                    ) : (
+                                        [...sub.logs].reverse().map((log: any) => (
+                                            <div key={log.id} style={{ padding: '12px 16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: log.type === 'error' ? '#ef4444' : (log.type === 'success' ? '#22c55e' : 'var(--primary-color)'), marginTop: '4px' }} />
+                                                <div style={{ flex: 1 }}>
+                                                    <p style={{ margin: 0, fontSize: '12px', fontWeight: 800 }}>{log.message}</p>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', opacity: 0.5, fontSize: '9px', fontWeight: 700 }}>
+                                                        <span>{log.author || 'Sistema'}</span>
+                                                        <span>{new Date(log.timestamp).toLocaleString('pt-BR')}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
 

@@ -422,7 +422,9 @@ const TemplateCreator = () => {
         setIsGenerating(true);
         let successCount = 0;
         let errors = [];
-        const generatedAds = [];
+        // Map to store ads grouped by campaign ID
+        const adsByCampaignId: { [key: string]: any[] } = {};
+        campaigns.forEach(c => adsByCampaignId[c.id] = []);
 
         let currentOpTotal = 0;
         for (let cIdx = 0; cIdx < campaigns.length; cIdx++) {
@@ -475,7 +477,7 @@ const TemplateCreator = () => {
                     dbService.addLog({ logType: 'TEMPLATE', name, author: user?.name, mode: 'BULK', userId: Number(selectedClientId) });
                     await sendToWebhook(extendedPayload);
 
-                    generatedAds.push({
+                    adsByCampaignId[campaign.id].push({
                         ad_name: name,
                         template_type: row.headerType,
                         message_mode: 'manual',
@@ -495,25 +497,61 @@ const TemplateCreator = () => {
             }
         }
 
-        if (generatedAds.length > 0) {
-            const client = clients.find(c => String(c.id) === String(selectedClientId));
-            const campaignSummary = campaigns.map(c => `${c.prefix}*`).join(' / ');
-            await dbService.addClientSubmission({
-                user_id: String(selectedClientId),
-                client_name: client?.name || '',
-                profile_name: `Lote Multi: ${campaignSummary}`,
-                ddd: client?.phone?.substring(0, 2) || '11',
-                template_type: 'TEXT',
-                media_url: '',
-                ad_copy: bodyText,
-                button_link: generatedAds.length > 0 ? (generatedAds[0].button_link || '') : '',
-                original_button_link: generatedAds.length > 0 ? (generatedAds[0].original_button_link || '') : '',
-                spreadsheet_url: '',
-                status: 'GERADO',
-                submitted_by: user?.name,
-                timestamp: new Date().toISOString(),
-                ads: generatedAds
-            });
+        // Finalize: Reconcile with existing submissions or create new ones
+        const client = clients.find(c => String(c.id) === String(selectedClientId));
+        
+        for (const campaign of campaigns) {
+            const campaignAds = adsByCampaignId[campaign.id];
+            if (campaignAds.length === 0) continue;
+
+            if (campaign.id.startsWith('sub_')) {
+                // Reconcile with original card
+                const subId = campaign.id.split('_')[1];
+                try {
+                    const existingSub = await dbService.getClientSubmissionById(Number(subId));
+                    const currentLogs = existingSub?.logs || [];
+                    const newLog = {
+                        id: Date.now(),
+                        type: 'info',
+                        message: `🚀 Templates gerados com sucesso (${campaignAds.length} variações)`,
+                        timestamp: new Date().toISOString(),
+                        author: user?.name
+                    };
+
+                    await dbService.updateClientSubmission(Number(subId), {
+                        ads: campaignAds,
+                        status: 'GERADO',
+                        logs: [...currentLogs, newLog]
+                    });
+                } catch (err) {
+                    console.error(`Error updating submission ${subId}:`, err);
+                }
+            } else {
+                // Creating a NEW submission Card
+                await dbService.addClientSubmission({
+                    user_id: String(selectedClientId),
+                    client_name: client?.name || '',
+                    profile_name: campaign.prefix.endsWith('_') ? campaign.prefix.slice(0, -1) : campaign.prefix,
+                    ddd: client?.phone?.substring(0, 2) || '11',
+                    template_type: 'TEXT',
+                    media_url: '',
+                    ad_copy: bodyText,
+                    button_link: campaignAds.length > 0 ? (campaignAds[0].button_link || '') : '',
+                    original_button_link: campaignAds.length > 0 ? (campaignAds[0].original_button_link || '') : '',
+                    spreadsheet_url: '',
+                    status: 'GERADO',
+                    submitted_by: user?.name,
+                    timestamp: new Date().toISOString(),
+                    ads: campaignAds,
+                    logs: [{
+                        id: Date.now(),
+                        type: 'info',
+                        message: '🎉 Campanha criada via CREADOR',
+                        timestamp: new Date().toISOString(),
+                        author: user?.name
+                    }]
+                });
+            }
         }
 
         setIsGenerating(false);
