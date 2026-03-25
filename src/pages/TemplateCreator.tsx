@@ -446,7 +446,7 @@ const TemplateCreator = () => {
                             try {
                                 const shortRes = await dbService.createShortLink({
                                     user_id: user?.id,
-                                    client_id: Number(selectedClientId),
+                                    target_user_id: Number(selectedClientId),
                                     original_url: originalUrl,
                                     title: `Bulk: ${name} - B${urlIdx + 1}`
                                 });

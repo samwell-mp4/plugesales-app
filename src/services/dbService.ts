@@ -481,7 +481,7 @@ export const dbService = {
     },
 
     // --- Link Shortener ---
-    createShortLink: async (data: { user_id?: number; client_id?: number; original_url?: string; title?: string; links?: any[] }) => {
+    createShortLink: async (data: { user_id?: number; client_id?: number; target_user_id?: number; original_url?: string; title?: string; links?: any[] }) => {
         try {
             const res = await fetch(`${API_BASE}/shortener/create`, {
                 method: 'POST',

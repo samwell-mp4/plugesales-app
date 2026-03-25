@@ -30,6 +30,7 @@ const LinkShortener = () => {
     const [bulkLinks, setBulkLinks] = useState([{ title: '', url: '' }]);
     const [clients, setClients] = useState<any[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string>('');
+    const [filterClientId, setFilterClientId] = useState<string>('');
 
     useEffect(() => {
         fetchLinks();
@@ -125,11 +126,14 @@ const LinkShortener = () => {
         alert("Link copiado para o clipboard!");
     };
 
-    const filteredLinks = links.filter(l => 
-        l.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        l.original_url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        l.short_code?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredLinks = links.filter(l => {
+        const matchesClient = filterClientId ? String(l.target_user_id) === filterClientId : true;
+        const matchesSearch = 
+            l.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            l.original_url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            l.short_code?.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesClient && matchesSearch;
+    });
 
     return (
         <div className="container-root" style={{ minHeight: '100vh', padding: '28px 24px', overflowX: 'hidden' }}>
@@ -397,26 +401,55 @@ const LinkShortener = () => {
 
                     {/* ── LIST SECTION ── */}
                     <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
                             <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Seus Links</h2>
                             
-                            <div style={{ position: 'relative' }}>
-                                <Search size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
-                                <input 
-                                    placeholder="Buscar links..."
-                                    style={{ 
-                                        background: 'var(--card-bg-subtle)', 
-                                        border: '1px solid var(--surface-border-subtle)',
-                                        borderRadius: '12px',
-                                        padding: '10px 16px 10px 44px',
-                                        fontSize: '13px',
-                                        color: 'var(--text-primary)',
-                                        outline: 'none',
-                                        width: '240px'
-                                    }}
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                {/* Client Filter for Admin/Employee */}
+                                {user?.role !== 'CLIENT' && (
+                                    <div style={{ position: 'relative' }}>
+                                        <Users size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                                        <select 
+                                            className="input-field"
+                                            style={{ 
+                                                padding: '8px 12px 8px 36px', 
+                                                fontSize: '12px', 
+                                                width: '200px',
+                                                height: '40px',
+                                                background: 'var(--card-bg-subtle)'
+                                            }}
+                                            value={filterClientId}
+                                            onChange={e => setFilterClientId(e.target.value)}
+                                        >
+                                            <option value="">Filtrar por Cliente (Todos)</option>
+                                            {clients.map(u => (
+                                                <option key={u.id} value={u.id.toString()}>
+                                                    {u.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                <div style={{ position: 'relative' }}>
+                                    <Search size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                                    <input 
+                                        placeholder="Buscar links..."
+                                        style={{ 
+                                            background: 'var(--card-bg-subtle)', 
+                                            border: '1px solid var(--surface-border-subtle)',
+                                            borderRadius: '12px',
+                                            padding: '10px 16px 10px 44px',
+                                            fontSize: '13px',
+                                            color: 'var(--text-primary)',
+                                            outline: 'none',
+                                            width: '240px',
+                                            height: '40px'
+                                        }}
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
 
