@@ -186,7 +186,7 @@ const ClientSubmissions = () => {
                 var2: ad.variables?.[1] || 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
                 var3: ad.variables?.[2] || 'O comprovante digital já se encontra disponível para conferência',
                 var4: ad.variables?.[3] || 'acessar o comprovante digital #54333 e verificar a entrega',
-                buttonUrl: ad.button_link || ''
+                buttonUrl: ''
             }))
         };
 
@@ -220,7 +220,7 @@ const ClientSubmissions = () => {
                     var2: ad.variables?.[1] || 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
                     var3: ad.variables?.[2] || 'O comprovante digital já se encontra disponível para conferência',
                     var4: ad.variables?.[3] || 'acessar o comprovante digital #54333 e verificar a entrega',
-                    buttonUrls: [ad.button_link || ''],
+                    buttonUrls: [''],
                     buttonTexts: ['Clique Aqui'],
                     hasButtons: !!ad.button_link
                 }))
