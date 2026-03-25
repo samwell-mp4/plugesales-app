@@ -41,11 +41,11 @@ const Sidebar = () => {
     // Add common Admin/Employee tools
     if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
         menuItems.push({ name: 'Afiliados', path: '/affiliates', icon: <Users size={20} color="var(--primary-color)" /> });
-        menuItems.push({ name: 'Criar Transmissão', path: '/dispatch', icon: <Send size={20} />, special: true });
     }
 
     // Add SuperAdmin Control
     if (user?.role === 'ADMIN') {
+        menuItems.push({ name: 'Criar Transmissão', path: '/dispatch', icon: <Send size={20} />, special: true });
         menuItems.push({ name: 'Controle', path: '/control', icon: <ShieldCheck size={20} color="var(--primary-color)" /> });
     }
 
