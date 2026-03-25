@@ -117,7 +117,7 @@ const LandingPage = () => {
                 
                 <div className="lp-hero-mockup">
                     <img 
-                        src="https://plug-sales-dispatch-app-test-dispatch.hx8235.easypanel.host/uploads/1774476492932-634680861.png" 
+                        src="https://iili.io/qshz9nt.jpg" 
                         alt="Dashboard Mockup" 
                         className="lp-mockup-frame"
                     />
