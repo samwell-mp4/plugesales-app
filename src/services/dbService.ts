@@ -66,10 +66,10 @@ export const dbService = {
     // --- Client Reports ---
     getReports: async (userId?: number, submissionId?: number) => {
         try {
-            const url = new URL(`${API_BASE}/reports`);
-            if (userId) url.searchParams.append('userId', String(userId));
-            if (submissionId) url.searchParams.append('submissionId', String(submissionId));
-            const res = await fetch(url.toString());
+            let url = `${API_BASE}/reports?`;
+            if (userId) url += `userId=${userId}&`;
+            if (submissionId) url += `submissionId=${submissionId}&`;
+            const res = await fetch(url);
             if (!res.ok) return [];
             return await res.json();
         } catch (err) { return []; }

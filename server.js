@@ -86,9 +86,6 @@ const initDB = async () => {
     try {
         client = await pool.connect();
         const tables = [
-            `ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS submission_id INTEGER`,
-            `ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS summary JSONB`,
-            `ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`,
             `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`,
             `CREATE TABLE IF NOT EXISTS media_library (
                 id SERIAL PRIMARY KEY, name TEXT, type TEXT, url TEXT, short_url TEXT, 
@@ -227,6 +224,12 @@ const initDB = async () => {
         // Patch: Restore roles for static team members if they were incorrectly registered as CLIENT
         await client.query("UPDATE users SET role = 'ADMIN' WHERE name = 'Admin'");
         await client.query("UPDATE users SET role = 'EMPLOYEE' WHERE name IN ('Vini', 'Italo', 'Matheus')");
+        
+        // Ensure client_reports schema is up-to-date
+        await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS submission_id INTEGER`);
+        await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS summary JSONB`);
+        await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`);
+
         console.log('✅ Database initialized and verified.');
 
     } catch (err) {
