@@ -22,19 +22,11 @@ import { useAuth } from '../contexts/AuthContext';
 const Sidebar = () => {
     const { user, logout, theme, toggleTheme } = useAuth();
 
-    const menuItems = user?.role === 'CLIENT' ? [
+    const menuItems: any[] = user?.role === 'CLIENT' ? [
         { name: 'Meu Painel', path: '/client-dashboard', icon: <Home size={20} /> },
         { name: 'Meus Links', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet size={20} /> },
         { name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> },
-    ] : user?.role === 'EMPLOYEE' ? [
-        { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
-        { name: 'Minhas Tarefas', path: '/client-submissions', icon: <FileUp size={20} /> },
-        { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
-        { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
-        { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
-        { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
-        { name: 'Afiliados', path: '/affiliates', icon: <Users size={20} color="var(--primary-color)" /> },
     ] : [
         { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
@@ -44,12 +36,16 @@ const Sidebar = () => {
         { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> },
-        { name: 'Criar Transmissão', path: '/dispatch', icon: <Send size={20} />, special: true },
     ];
 
-    // Add Admin Control only if user is Admin
-    if (user?.role === 'ADMIN') {
+    // Add common Admin/Employee tools
+    if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
         menuItems.push({ name: 'Afiliados', path: '/affiliates', icon: <Users size={20} color="var(--primary-color)" /> });
+        menuItems.push({ name: 'Criar Transmissão', path: '/dispatch', icon: <Send size={20} />, special: true });
+    }
+
+    // Add SuperAdmin Control
+    if (user?.role === 'ADMIN') {
         menuItems.push({ name: 'Controle', path: '/control', icon: <ShieldCheck size={20} color="var(--primary-color)" /> });
     }
 
