@@ -105,6 +105,8 @@ const ClientSubmissionDetail = () => {
     const [updatingAssign, setUpdatingAssign] = useState(false);
     const [copyFeedback, setCopyFeedback] = useState('');
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+    const [titleVal, setTitleVal] = useState('');
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
 
     const load = useCallback(async () => {
         if (!id) return;
@@ -122,6 +124,7 @@ const ClientSubmissionDetail = () => {
                 setSub(data);
                 setSenderNumber(data.sender_number || '');
                 setNotes(data.notes || '');
+                setTitleVal(data.profile_name || '');
 
                 if (user?.role === 'ADMIN') {
                     const empData = await dbService.getEmployees();
@@ -143,7 +146,12 @@ const ClientSubmissionDetail = () => {
         if (!id) return;
         setIsSaving(true);
         try {
-            await dbService.updateClientSubmission(Number(id), { sender_number: senderNumber, notes });
+            await dbService.updateClientSubmission(Number(id), { 
+                sender_number: senderNumber, 
+                notes,
+                profile_name: titleVal 
+            });
+            setIsEditingTitle(false);
             await load();
         } catch (err) {
             console.error(err);
@@ -500,7 +508,30 @@ const ClientSubmissionDetail = () => {
                             </div>
                         </div>
                         <div>
-                            <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', letterSpacing: '-1px', color: 'var(--text-primary)' }}>{sub.profile_name}</h1>
+                            {isEditingTitle ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <input 
+                                        className="field-input" 
+                                        value={titleVal} 
+                                        onChange={e => setTitleVal(e.target.value)}
+                                        style={{ fontSize: '1.5rem', fontWeight: 900, padding: '8px 12px', height: 'auto', width: 'auto', minWidth: '300px' }}
+                                        autoFocus
+                                    />
+                                    <button onClick={handleSaveSender} disabled={isSaving} className="action-btn primary-btn" style={{ padding: '8px', width: 36, height: 36 }}>
+                                        {isSaving ? <RefreshCw size={16} className="animate-spin" /> : <CheckCircle size={18} />}
+                                    </button>
+                                    <button onClick={() => { setIsEditingTitle(false); setTitleVal(sub.profile_name || ''); }} className="action-btn ghost-btn" style={{ padding: '8px', width: 36, height: 36 }}>
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', letterSpacing: '-1px', color: 'var(--text-primary)' }}>{sub.profile_name}</h1>
+                                    <button onClick={() => setIsEditingTitle(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: 0.5 }}>
+                                        <Plus size={18} style={{ transform: 'rotate(45deg)' }} /> 
+                                    </button>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                                 <span className="info-chip" style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.2)' }}>
                                     REGIONAL {sub.ddd}
