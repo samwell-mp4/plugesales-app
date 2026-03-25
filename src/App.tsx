@@ -15,6 +15,7 @@ import ClientExternalForm from './pages/ClientExternalForm';
 import ClientDashboard from './pages/ClientDashboard';
 import LinkShortener from './pages/LinkShortener';
 import LinkStats from './pages/LinkStats';
+import LandingPage from './pages/LandingPage';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -28,7 +29,7 @@ function AppContent() {
   const { user, theme } = useAuth();
   const location = useLocation();
 
-  const isPublicRoute = location.pathname === '/client-form' || location.pathname === '/client' || location.pathname.startsWith('/l/');
+  const isPublicRoute = location.pathname === '/landing' || location.pathname === '/client-form' || location.pathname === '/client' || location.pathname.startsWith('/l/');
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -97,6 +98,7 @@ function AppContent() {
           <Route path="/dispatch" element={<TemplateDispatch />} />
           <Route path="/link-shortener" element={<LinkShortener />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
         </Routes>
       </main>

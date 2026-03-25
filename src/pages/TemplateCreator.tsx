@@ -93,10 +93,10 @@ const TemplateCreator = () => {
                     setButtons([{ type: 'url', text: 'Clique Aqui', url: initializedRows[0].buttonUrl }]);
                 }
                 _setVariablesExample([
-                    initializedRows[0].var1 || 'Leandro',
-                    initializedRows[0].var2 || 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
-                    initializedRows[0].var3 || 'O comprovante digital já se encontra disponível para conferência',
-                    initializedRows[0].var4 || 'acessar o comprovante digital #54333 e verificar a entrega'
+                    'Leandro',
+                    'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
+                    'O comprovante digital já se encontra disponível para conferência',
+                    'acessar o comprovante digital #54333 e verificar a entrega'
                 ]);
             }
         }
@@ -153,7 +153,13 @@ const TemplateCreator = () => {
     const buildInfobipPayload = (name: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean) => {
         const varMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
         const varCount = varMatches.length;
-        const examples = variablesExample.slice(0, varCount);
+        const examples = [
+            "Leandro",
+            "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025",
+            "O comprovante digital já se encontra disponível para conferência",
+            "acessar o comprovante digital #54333 e verificar a entrega"
+        ].slice(0, varCount);
+
         while (examples.length < varCount) {
             examples.push("Exemplo");
         }
