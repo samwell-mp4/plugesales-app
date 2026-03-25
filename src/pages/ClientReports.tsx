@@ -13,16 +13,11 @@ import {
     Info,
     ChevronDown,
     ChevronUp,
-    Search,
-    Smartphone,
-    ExternalLink,
-    Layers
+    Search
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 const ClientReports = () => {
     const { user } = useAuth();
-    const navigate = useNavigate();
     const [reports, setReports] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
@@ -42,7 +37,8 @@ const ClientReports = () => {
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file || !user?.id) return;
+        const userId = user?.id; // Capture ID
+        if (!file || !userId) return;
 
         setIsUploading(true);
         const reader = new FileReader();
@@ -72,7 +68,7 @@ const ClientReports = () => {
                 const reportName = file.name.replace(/\.[^/.]+$/, "");
                 
                 const res = await dbService.addReport({
-                    userId: user.id,
+                    userId: userId,
                     reportName: reportName,
                     filename: file.name,
                     data: rawData,

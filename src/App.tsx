@@ -60,8 +60,6 @@ function AppContent() {
     '/dashboard'
   ];
 
-  const clientAllowedRoutes = ['/client-dashboard', '/link-shortener', '/client-reports'];
-
   if (isClient && adminOnlyRoutes.some(route => {
     // Special case: Clients CAN access /client-submissions/:id but NOT /client-submissions (list) or /client-submissions/add
     if (route === '/client-submissions') {
