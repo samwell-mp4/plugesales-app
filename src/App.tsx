@@ -15,7 +15,7 @@ import ClientExternalForm from './pages/ClientExternalForm';
 import ClientDashboard from './pages/ClientDashboard';
 import LinkShortener from './pages/LinkShortener';
 import LinkStats from './pages/LinkStats';
-import ClientReports from './pages/ClientReports';
+import ClientReports from './pages/ClientReportsPage';
 import LandingPage from './pages/LandingPage';
 import Profile from './pages/Profile';
 import './index.css';
@@ -80,7 +80,7 @@ function AppContent() {
   return (
     <div className={`app-layout ${theme === 'light' ? 'light-theme' : ''}`}>
       {!isPublicRoute && <Sidebar />}
-      <main className="main-content">
+      <main className={`main-content ${isPublicRoute ? 'no-padding' : ''}`}>
         <Routes>
           <Route path="/" element={<Navigate to={isClient ? "/client-dashboard" : "/dashboard"} replace />} />
           <Route path="/dashboard" element={<Dashboard />} />

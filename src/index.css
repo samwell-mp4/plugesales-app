@@ -160,7 +160,7 @@ body {
 
 .light-theme .neon-border {
   border: 1px solid var(--surface-border);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .text-gradient {

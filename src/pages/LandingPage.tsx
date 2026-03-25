@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { 
-    MessageSquare, 
-    Zap, 
-    ShieldCheck, 
-    Layers, 
-    Smartphone, 
-    BarChart3, 
-    ArrowRight, 
+import {
+    MessageSquare,
+    Zap,
+    ShieldCheck,
+    Layers,
+    Smartphone,
+    BarChart3,
+    ArrowRight,
     Plus,
     X
 } from 'lucide-react';
@@ -82,7 +82,7 @@ const LandingPage = () => {
                     </div>
                     Plug & Sales
                 </div>
-                
+
                 <nav className="lp-nav">
                     <a href="#funciona" className="lp-nav-link">Como Funciona</a>
                     <a href="#features" className="lp-nav-link">Recursos</a>
@@ -102,7 +102,7 @@ const LandingPage = () => {
                         Escalone Suas Vendas No <span style={{ color: '#acf800' }}>WhatsApp</span>
                     </h1>
                     <p className="lp-hero-subtitle">
-                        A plataforma definitiva para agências e empresas que buscam automação profissional, 
+                        A plataforma definitiva para agências e empresas que buscam automação profissional,
                         disparos em massa com API oficial e gestão completa de campanhas.
                     </p>
                     <div className="lp-cta-group">
@@ -114,11 +114,11 @@ const LandingPage = () => {
                         </button>
                     </div>
                 </div>
-                
+
                 <div className="lp-hero-mockup">
-                    <img 
-                        src="https://iili.io/qshz9nt.jpg" 
-                        alt="Dashboard Mockup" 
+                    <img
+                        src="https://iili.io/qshz9nt.jpg"
+                        alt="Dashboard Mockup"
                         className="lp-mockup-frame"
                     />
                     <div style={{ position: 'absolute', top: '20%', right: '-40px', background: 'rgba(5,7,10,0.8)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
@@ -136,7 +136,7 @@ const LandingPage = () => {
                     <h2 className="lp-section-title">Três Passos Para O Sucesso</h2>
                     <p>Dominamos a complexidade para que você foque no que importa: vender.</p>
                 </div>
-                
+
                 <div className="lp-steps-grid">
                     <div className="lp-step-card">
                         <div className="lp-step-number">01</div>
@@ -162,7 +162,7 @@ const LandingPage = () => {
                     <span className="lp-section-tag">RECURSOS</span>
                     <h2 className="lp-section-title">Tudo O Que Você Precisa</h2>
                 </div>
-                
+
                 <div className="lp-features-grid">
                     {features.map((f, i) => (
                         <div key={i} className="lp-feature-card">
@@ -181,7 +181,7 @@ const LandingPage = () => {
                     <h2 className="lp-section-title">Experimente O Poder Do <span style={{ color: '#acf800' }}>WhatsApp Marketing</span></h2>
                     <p>Personalize cada detalhe da sua campanha abaixo e veja o resultado instantâneo no preview à direita.</p>
                 </div>
-                
+
                 <DemoQuiz />
             </section>
 
@@ -191,7 +191,7 @@ const LandingPage = () => {
                     <span className="lp-section-tag">DÚVIDAS</span>
                     <h2 className="lp-section-title">Perguntas Frequentes</h2>
                 </div>
-                
+
                 <div className="lp-faq-container">
                     {faqs.map((faq, i) => (
                         <div key={i} className={`lp-faq-item ${activeFaq === i ? 'active' : ''}`} onClick={() => toggleFaq(i)}>
@@ -210,7 +210,7 @@ const LandingPage = () => {
             {/* ── FOOTER ── */}
             <footer className="lp-footer">
                 <div className="lp-logo" style={{ justifyContent: 'center', marginBottom: '32px' }}>
-                   Plug & Sales
+                    Plug & Sales
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginBottom: '48px' }}>
                     <a href="#" className="lp-nav-link">Termos de Uso</a>
