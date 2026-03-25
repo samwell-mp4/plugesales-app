@@ -112,9 +112,9 @@ const LandingPage = () => {
                         <a href="#testar" className="lp-btn lp-btn-primary">
                             TESTAR AGORA GRATUITAMENTE <ArrowRight size={18} />
                         </a>
-                        <button onClick={() => window.open('https://wa.me/5511999999999', '_blank')} className="lp-btn lp-btn-secondary">
+                        <a href="#testar" className="lp-btn lp-btn-secondary">
                             FALAR COM AGENTE
-                        </button>
+                        </a>
                     </div>
                 </div>
 

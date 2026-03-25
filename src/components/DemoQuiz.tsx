@@ -363,8 +363,8 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                     <button className="btn-premium btn-premium-s" onClick={prevStep} style={{ visibility: step === 1 ? 'hidden' : 'visible' }}>Voltar</button>
 
                     {step === 5 ? (
-                        <button className="btn-premium btn-premium-p" onClick={() => window.open('https://wa.me/5511999999999?text=Oi, meu nome é ' + formData.leadName + ' e quero escalar com a Plug e Sales!', '_blank')}>
-                            Falar com um de nossos Especialistas <ArrowRight size={20} />
+                        <button className="btn-premium btn-premium-p" onClick={() => window.location.href = '/obrigado'}>
+                            Finalizar e Falar com Especialista <ArrowRight size={20} />
                         </button>
                     ) : (
                         <button className="btn-premium btn-premium-p" onClick={nextStep}>Próximo Passo <ArrowRight size={20} /></button>

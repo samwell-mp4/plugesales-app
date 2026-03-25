@@ -18,6 +18,7 @@ import LinkStats from './pages/LinkStats';
 import ClientReports from './pages/ClientReportsPage';
 import LandingPage from './pages/LandingPage';
 import AffiliateDashboard from './pages/AffiliateDashboard';
+import ThankYou from './pages/ThankYou';
 import Profile from './pages/Profile';
 import './index.css';
 
@@ -31,7 +32,7 @@ function AppContent() {
   const { user, theme } = useAuth();
   const location = useLocation();
 
-  const isPublicRoute = location.pathname === '/landing' || location.pathname === '/client-form' || location.pathname === '/client' || location.pathname.startsWith('/l/');
+  const isPublicRoute = location.pathname === '/landing' || location.pathname === '/obrigado' || location.pathname === '/client-form' || location.pathname === '/client' || location.pathname.startsWith('/l/');
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -103,6 +104,7 @@ function AppContent() {
           <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />
+          <Route path="/obrigado" element={<ThankYou />} />
           <Route path="/affiliates" element={isAdmin || isEmployee ? <AffiliateDashboard /> : <Navigate to="/dashboard" />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
