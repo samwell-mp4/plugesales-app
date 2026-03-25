@@ -11,7 +11,8 @@ import {
     ExternalLink,
     Zap,
     Link as LinkIcon,
-    Trash2
+    Trash2,
+    X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -38,14 +39,38 @@ const ClientDashboard = () => {
     });
     const [isSavingProfile, setIsSavingProfile] = useState(false);
     const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
+    
+    // Analytics State
+    const [statsDate, setStatsDate] = useState({
+        start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 7 days
+        end: new Date().toISOString().split('T')[0]
+    });
+    const [aggregatedStats, setAggregatedStats] = useState<any>(null);
+    const [isStatsLoading, setIsStatsLoading] = useState(false);
+    const [selectedLinkStats, setSelectedLinkStats] = useState<any>(null);
+    const [showLinkModal, setShowLinkModal] = useState(false);
 
     useEffect(() => {
         if (user?.id) {
             fetchSubmissions();
             fetchLinks();
+            if (activeTab === 'links') fetchAggregatedStats();
             if (activeTab === 'activity') fetchLogs();
         }
-    }, [user, activeTab]);
+    }, [user, activeTab, statsDate]);
+
+    const fetchAggregatedStats = async () => {
+        if (!user?.id) return;
+        setIsStatsLoading(true);
+        try {
+            const data = await dbService.getAllLinkStats(user.id, statsDate.start, statsDate.end);
+            setAggregatedStats(data);
+        } catch (error) {
+            console.error("Error fetching aggregated stats:", error);
+        } finally {
+            setIsStatsLoading(false);
+        }
+    };
 
     const fetchLogs = async () => {
         if (!user?.id) return;
@@ -140,6 +165,20 @@ const ClientDashboard = () => {
         }
     };
 
+    const handleViewLinkStats = async (id: number) => {
+        setIsStatsLoading(true);
+        try {
+            const data = await dbService.getLinkStats(id);
+            setSelectedLinkStats(data);
+            setShowLinkModal(true);
+        } catch (error) {
+            console.error("Error fetching link stats:", error);
+            alert("Erro ao buscar estatísticas do link.");
+        } finally {
+            setIsStatsLoading(false);
+        }
+    };
+
     const statusCfg = (status: string) => {
         switch (status) {
             case 'PENDENTE': return { label: 'Pendente', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' };
@@ -218,6 +257,18 @@ const ClientDashboard = () => {
                     .header-content { flex-direction: column; align-items: flex-start !important; gap: 20px !important; }
                     .header-actions { width: 100%; justify-content: space-between; }
                 }
+
+                .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
+                .stat-card { background: rgba(255,255,255,0.03); border: 1px solid var(--surface-border-subtle); border-radius: 20px; padding: 24px; }
+                .stat-card h5 { margin: 0 0 8px 0; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; }
+                .stat-card .value { font-size: 28px; font-weight: 900; color: var(--text-primary); }
+                
+                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; display: flex; items-center: center; justify-content: center; padding: 20px; }
+                .modal-content { background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; }
+                .close-modal { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.05); border: none; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+                
+                .chart-bar { height: 8px; background: rgba(172,248,0,0.1); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+                .chart-fill { height: 100%; background: var(--primary-gradient); transition: width 1s ease-out; }
             `}</style>
 
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
@@ -476,6 +527,80 @@ const ClientDashboard = () => {
                         </div>
                     ) : activeTab === 'links' ? (
                         <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                            {/* Analytics Overview Section */}
+                            <div style={{ marginBottom: '40px', padding: '32px', background: 'rgba(172,248,0,0.02)', borderRadius: '24px', border: '1px solid rgba(172,248,0,0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-1px' }}>Analytics dos <span className="text-primary-color">Seus Links</span></h3>
+                                        <p style={{ margin: '8px 0 0 0', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>DESEMPENHO AGREGADO NO PERÍODO SELECIONADO</p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>DE:</span>
+                                            <input type="date" className="nav-tab" style={{ padding: '8px 12px' }} value={statsDate.start} onChange={e => setStatsDate(p => ({ ...p, start: e.target.value }))} />
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>ATÉ:</span>
+                                            <input type="date" className="nav-tab" style={{ padding: '8px 12px' }} value={statsDate.end} onChange={e => setStatsDate(p => ({ ...p, end: e.target.value }))} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="analytics-grid">
+                                    <div className="stat-card">
+                                        <h5>CLIQUES TOTAIS</h5>
+                                        <div className="value">{aggregatedStats?.summary?.total_clicks || 0}</div>
+                                        {aggregatedStats?.timeline?.length > 0 && <p style={{ fontSize: '9px', fontWeight: 700, color: '#22c55e', marginTop: '8px' }}>ATIVIDADE DETECTADA</p>}
+                                    </div>
+                                    <div className="stat-card">
+                                        <h5>LINKS ATIVOS</h5>
+                                        <div className="value">{aggregatedStats?.summary?.total_links || 0}</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <h5>TOP DISPOSITIVO</h5>
+                                        <div className="value" style={{ fontSize: '20px' }}>
+                                            {aggregatedStats?.devices?.sort((a:any, b:any) => b.count - a.count)[0]?.device_type || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <h5>TOP PAÍS</h5>
+                                        <div className="value" style={{ fontSize: '20px' }}>
+                                            {aggregatedStats?.geo?.sort((a:any, b:any) => b.count - a.count)[0]?.country || 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {aggregatedStats?.timeline?.length > 0 && (
+                                    <div style={{ marginTop: '24px' }}>
+                                        <h5 style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '16px' }}>Tendência de Cliques (Timeline)</h5>
+                                        <div style={{ display: 'flex', gap: '4px', height: '100px', alignItems: 'flex-end', paddingBottom: '20px' }}>
+                                            {aggregatedStats.timeline.map((day: any, i: number) => {
+                                                const maxClicks = Math.max(...aggregatedStats.timeline.map((d: any) => parseInt(d.count)));
+                                                const height = (parseInt(day.count) / maxClicks) * 100;
+                                                return (
+                                                    <div key={i} style={{ flex: 1, background: 'var(--primary-gradient)', height: `${height}%`, borderRadius: '4px 4px 0 0', position: 'relative' }} title={`${new Date(day.date).toLocaleDateString()}: ${day.count} cliques`}>
+                                                        <div style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '8px', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                                                            {new Date(day.date).getDate()}/{new Date(day.date).getMonth() + 1}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                                {isStatsLoading && (
+                                    <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ width: 12, height: 12, border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                        <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>ATUALIZANDO DADOS...</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Lista de Links</h3>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>{links.length} LINKS ENCONTRADOS</div>
+                            </div>
+
                             {isLinksLoading ? (
                                 <div style={{ padding: '60px', textAlign: 'center' }}>
                                     <div style={{ width: 24, height: 24, margin: '0 auto 12px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -487,37 +612,53 @@ const ClientDashboard = () => {
                                     <p style={{ color: 'var(--text-muted)', fontWeight: 800 }}>Nenhum link vinculado à sua conta.</p>
                                 </div>
                             ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
                                     {links.map((link) => (
-                                        <div key={link.id} className="control-card" style={{ padding: '20px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                                <div style={{ background: 'rgba(172,248,0,0.1)', padding: '8px', borderRadius: '10px' }}>
-                                                    <LinkIcon size={18} className="text-primary-color" />
+                                        <div key={link.id} className="control-card" style={{ padding: '24px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                                                <div style={{ background: 'rgba(172,248,0,0.1)', padding: '10px', borderRadius: '12px' }}>
+                                                    <LinkIcon size={20} className="text-primary-color" />
                                                 </div>
                                                 <div style={{ textAlign: 'right', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                                                     <div>
-                                                        <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
+                                                        <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
                                                         <div style={{ fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
                                                     </div>
                                                     {user?.role !== 'CLIENT' && (
                                                         <button 
-                                                            onClick={() => handleDeleteLink(link.id)}
-                                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteLink(link.id); }}
+                                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', opacity: 0.5 }}
+                                                            onMouseOver={e => e.currentTarget.style.opacity = '1'}
+                                                            onMouseOut={e => e.currentTarget.style.opacity = '0.5'}
                                                             title="Excluir Link"
                                                         >
-                                                            <Trash2 size={14} />
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     )}
                                                 </div>
                                             </div>
-                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
+                                            <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
                                                 {link.title}
                                             </h4>
-                                            <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: 'var(--primary-color)', wordBreak: 'break-all' }}>
+                                            <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'var(--primary-color)', wordBreak: 'break-all' }}>
                                                 {window.location.host}/l/{link.short_code}
                                             </p>
-                                            <div style={{ marginTop: '16px', opacity: 0.3, fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
-                                                {link.original_url}
+                                            
+                                            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                                                <button 
+                                                    onClick={() => handleViewLinkStats(link.id)}
+                                                    className="action-btn ghost-btn" 
+                                                    style={{ flex: 1, height: 40, fontSize: '9px' }}
+                                                >
+                                                    VER MÉTRICAS
+                                                </button>
+                                                <button 
+                                                    onClick={() => window.open(`https://${window.location.host}/l/${link.short_code}`, '_blank')}
+                                                    className="action-btn ghost-btn" 
+                                                    style={{ width: 40, height: 40, padding: 0 }}
+                                                >
+                                                    <ExternalLink size={14} />
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -587,6 +728,76 @@ const ClientDashboard = () => {
                     <h2 style={{ fontSize: '12px', fontWeight: 900, letterSpacing: '4px' }}>PLUG & SALES • PRO</h2>
                 </div>
             </div>
+
+            {/* ── LINK STATS MODAL ── */}
+            {showLinkModal && selectedLinkStats && (
+                <div className="modal-overlay" onClick={() => setShowLinkModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="close-modal" onClick={() => setShowLinkModal(false)}>
+                            <X size={20} />
+                        </button>
+                        
+                        {isStatsLoading && (
+                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '32px', zIndex: 10 }}>
+                                <div style={{ width: 40, height: 40, border: '4px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                            </div>
+                        )}
+                        
+                        <div style={{ marginBottom: '32px' }}>
+                            <div style={{ display: 'inline-flex', background: 'rgba(172,248,0,0.1)', padding: '12px', borderRadius: '16px', marginBottom: '16px' }}>
+                                <LinkIcon className="text-primary-color" size={24} />
+                            </div>
+                            <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 940, letterSpacing: '-1.5px' }}>{selectedLinkStats.link.title}</h2>
+                            <p style={{ color: 'var(--primary-color)', fontWeight: 700, margin: '8px 0' }}>{window.location.host}/l/{selectedLinkStats.link.short_code}</p>
+                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', wordBreak: 'break-all' }}>{selectedLinkStats.link.original_url}</p>
+                        </div>
+
+                        <div className="analytics-grid">
+                            <div className="stat-card">
+                                <h5>CLIQUES TOTALS</h5>
+                                <div className="value">{selectedLinkStats.timeline.reduce((acc: any, curr: any) => acc + parseInt(curr.count), 0)}</div>
+                            </div>
+                            <div className="stat-card">
+                                <h5>CRIADO EM</h5>
+                                <div className="value" style={{ fontSize: '18px' }}>{new Date(selectedLinkStats.link.created_at).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
+                            <div>
+                                <h4 style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px' }}>Localização Geográfica</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {selectedLinkStats.geo.length === 0 ? (
+                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Sem dados geográficos ainda.</p>
+                                    ) : selectedLinkStats.geo.map((g: any, i: number) => (
+                                        <div key={i}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                                                <span>{g.city}, {g.country}</span>
+                                                <span>{g.count}</span>
+                                            </div>
+                                            <div className="chart-bar"><div className="chart-fill" style={{ width: `${(g.count / selectedLinkStats.timeline.reduce((acc:any, curr:any) => acc + parseInt(curr.count), 0)) * 100}%` }}></div></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px' }}>Referenciadores</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {selectedLinkStats.referrers.length === 0 ? (
+                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Acesso direto ou sem rastreio.</p>
+                                    ) : selectedLinkStats.referrers.map((r: any, i: number) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 700 }}>
+                                            <span style={{ opacity: 0.6 }}>{r.referrer || 'Direto'}</span>
+                                            <span>{r.count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

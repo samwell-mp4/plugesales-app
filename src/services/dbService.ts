@@ -527,6 +527,20 @@ export const dbService = {
             return null;
         }
     },
+    getAllLinkStats: async (userId: number, startDate?: string, endDate?: string) => {
+        try {
+            const params = new URLSearchParams({ user_id: userId.toString() });
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            
+            const res = await fetch(`${API_BASE}/shortener/stats/all?${params.toString()}`);
+            if (!res.ok) throw new Error("Erro ao buscar estatísticas agregadas");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching aggregated link stats:", err);
+            return null;
+        }
+    },
     deleteShortLink: async (id: number) => {
         try {
             await fetch(`${API_BASE}/shortener/${id}`, { method: 'DELETE' });
