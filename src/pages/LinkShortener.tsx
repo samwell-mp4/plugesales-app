@@ -272,144 +272,145 @@ const LinkShortener = () => {
                             </div>
                             <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cliques Totais</div>
                         </div>
-                    </div>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '32px' }}>
-                    {/* ── CREATE SECTION ── */}
-                    <div className="glass-card" style={{ height: 'fit-content', position: 'sticky', top: '24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                            <Plus size={20} className="text-primary-color" />
-                            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900 }}>Criar Novo Link</h2>
-                        </div>
-
-                        <form onSubmit={handleCreateLink} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            {/* --- CLIENT SELECTOR --- */}
-                            <div>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                                    <Users size={12} /> Vincular a Cliente (Opcional)
-                                </label>
-                                <select 
-                                    className="input-field"
-                                    style={{ appearance: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
-                                    value={selectedClientId}
-                                    onChange={e => setSelectedClientId(e.target.value)}
-                                >
-                                    <option value="">Nenhum cliente selecionado</option>
-                                    {Array.isArray(clients) && clients.map(c => (
-                                        <option key={c.id} value={c.id.toString()} style={{ color: 'var(--text-primary)', background: 'var(--card-bg-subtle)' }}>
-                                            {c.profile_name} {c.ddd && `(${c.ddd})`}
-                                        </option>
-                                    ))}
-                                </select>
+ 
+                 <div style={{ display: 'grid', gridTemplateColumns: user?.role === 'CLIENT' ? '1fr' : '1fr 2fr', gap: '32px' }}>
+                     {/* ── CREATE SECTION ── */}
+                     {user?.role !== 'CLIENT' && (
+                        <div className="glass-card" style={{ height: 'fit-content', position: 'sticky', top: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                <Plus size={20} className="text-primary-color" />
+                                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900 }}>Criar Novo Link</h2>
                             </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 900 }}>Gerar em massa?</span>
-                                <div 
-                                    onClick={() => setIsBulk(!isBulk)}
-                                    style={{ 
-                                        width: '44px', height: '24px', background: isBulk ? 'var(--primary-color)' : 'var(--surface-border-subtle)', 
-                                        borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'all 0.3s' 
-                                    }}
-                                >
-                                    <div style={{ 
-                                        width: '18px', height: '18px', background: 'white', borderRadius: '50%', position: 'absolute', 
-                                        top: '3px', left: isBulk ? '23px' : '3px', transition: 'all 0.3s' 
-                                    }} />
-                                </div>
-                            </div>
-
-                            {!isBulk ? (
-                                <>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                                            Título do Link (Opcional)
-                                        </label>
-                                        <input 
-                                            className="input-field"
-                                            placeholder="Ex: Campanha de Outono"
-                                            value={title}
-                                            onChange={e => setTitle(e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                                            URL Original
-                                        </label>
-                                        <input 
-                                            className="input-field"
-                                            placeholder="https://seu-link-longo.com/qualquer-coisa"
-                                            required={!isBulk}
-                                            value={originalUrl}
-                                            onChange={e => setOriginalUrl(e.target.value)}
-                                        />
-                                    </div>
-                                </>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                                        Lista de Links
+ 
+                            <form onSubmit={handleCreateLink} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                {/* --- CLIENT SELECTOR --- */}
+                                <div>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                        <Users size={12} /> Vincular a Cliente (Opcional)
                                     </label>
-                                    {bulkLinks.map((link, idx) => (
-                                        <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <input 
-                                                    className="input-field"
-                                                    style={{ padding: '8px 12px', fontSize: '12px' }}
-                                                    placeholder="Título"
-                                                    value={link.title}
-                                                    onChange={e => {
-                                                        const newLinks = [...bulkLinks];
-                                                        newLinks[idx].title = e.target.value;
-                                                        setBulkLinks(newLinks);
-                                                    }}
-                                                />
-                                                <input 
-                                                    className="input-field"
-                                                    style={{ padding: '8px 12px', fontSize: '12px' }}
-                                                    placeholder="https://URL-Original..."
-                                                    value={link.url}
-                                                    onChange={e => {
-                                                        const newLinks = [...bulkLinks];
-                                                        newLinks[idx].url = e.target.value;
-                                                        setBulkLinks(newLinks);
-                                                    }}
-                                                />
-                                            </div>
-                                            {bulkLinks.length > 1 && (
-                                                <button 
-                                                    type="button"
-                                                    className="icon-button delete"
-                                                    style={{ marginTop: '8px' }}
-                                                    onClick={() => setBulkLinks(bulkLinks.filter((_, i) => i !== idx))}
-                                                >
-                                                    <Trash size={14} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                    <button 
-                                        type="button"
-                                        onClick={() => setBulkLinks([...bulkLinks, { title: '', url: '' }])}
+                                    <select 
+                                        className="input-field"
+                                        style={{ appearance: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
+                                        value={selectedClientId}
+                                        onChange={e => setSelectedClientId(e.target.value)}
+                                    >
+                                        <option value="">Nenhum cliente selecionado</option>
+                                        {Array.isArray(clients) && clients.map(c => (
+                                            <option key={c.id} value={c.id.toString()} style={{ color: 'var(--text-primary)', background: 'var(--card-bg-subtle)' }}>
+                                                {c.profile_name} {c.ddd && `(${c.ddd})`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+ 
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 900 }}>Gerar em massa?</span>
+                                    <div 
+                                        onClick={() => setIsBulk(!isBulk)}
                                         style={{ 
-                                            padding: '10px', borderRadius: '12px', background: 'var(--card-bg-subtle)', 
-                                            border: '1px dashed var(--surface-border-subtle)', color: 'var(--text-muted)',
-                                            fontSize: '11px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                            width: '44px', height: '24px', background: isBulk ? 'var(--primary-color)' : 'var(--surface-border-subtle)', 
+                                            borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'all 0.3s' 
                                         }}
                                     >
-                                        <Plus size={14} /> Adicionar outro link
-                                    </button>
+                                        <div style={{ 
+                                            width: '18px', height: '18px', background: 'white', borderRadius: '50%', position: 'absolute', 
+                                            top: '3px', left: isBulk ? '23px' : '3px', transition: 'all 0.3s' 
+                                        }} />
+                                    </div>
                                 </div>
-                            )}
-
-                            <button type="submit" disabled={isCreating} className="action-btn primary-btn" style={{ marginTop: '10px', width: '100%' }}>
-                                <Zap size={16} />
-                                {isCreating ? 'Encurtando...' : isBulk ? `Gerar ${bulkLinks.length} Links` : 'Encurtar Link'}
-                            </button>
-                        </form>
-                    </div>
+ 
+                                {!isBulk ? (
+                                    <>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                                Título do Link (Opcional)
+                                            </label>
+                                            <input 
+                                                className="input-field"
+                                                placeholder="Ex: Campanha de Outono"
+                                                value={title}
+                                                onChange={e => setTitle(e.target.value)}
+                                            />
+                                        </div>
+ 
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                                URL Original
+                                            </label>
+                                            <input 
+                                                className="input-field"
+                                                placeholder="https://seu-link-longo.com/qualquer-coisa"
+                                                required={!isBulk}
+                                                value={originalUrl}
+                                                onChange={e => setOriginalUrl(e.target.value)}
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                            Lista de Links
+                                        </label>
+                                        {bulkLinks.map((link, idx) => (
+                                            <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <input 
+                                                        className="input-field"
+                                                        style={{ padding: '8px 12px', fontSize: '12px' }}
+                                                        placeholder="Título"
+                                                        value={link.title}
+                                                        onChange={e => {
+                                                            const newLinks = [...bulkLinks];
+                                                            newLinks[idx].title = e.target.value;
+                                                            setBulkLinks(newLinks);
+                                                        }}
+                                                    />
+                                                    <input 
+                                                        className="input-field"
+                                                        style={{ padding: '8px 12px', fontSize: '12px' }}
+                                                        placeholder="https://URL-Original..."
+                                                        value={link.url}
+                                                        onChange={e => {
+                                                            const newLinks = [...bulkLinks];
+                                                            newLinks[idx].url = e.target.value;
+                                                            setBulkLinks(newLinks);
+                                                        }}
+                                                    />
+                                                </div>
+                                                {bulkLinks.length > 1 && (
+                                                    <button 
+                                                        type="button"
+                                                        className="icon-button delete"
+                                                        style={{ marginTop: '8px' }}
+                                                        onClick={() => setBulkLinks(bulkLinks.filter((_, i) => i !== idx))}
+                                                    >
+                                                        <Trash size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <button 
+                                            type="button"
+                                            onClick={() => setBulkLinks([...bulkLinks, { title: '', url: '' }])}
+                                            style={{ 
+                                                padding: '10px', borderRadius: '12px', background: 'var(--card-bg-subtle)', 
+                                                border: '1px dashed var(--surface-border-subtle)', color: 'var(--text-muted)',
+                                                fontSize: '11px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                            }}
+                                        >
+                                            <Plus size={14} /> Adicionar outro link
+                                        </button>
+                                    </div>
+                                )}
+ 
+                                <button type="submit" disabled={isCreating} className="action-btn primary-btn" style={{ marginTop: '10px', width: '100%' }}>
+                                    <Zap size={16} />
+                                    {isCreating ? 'Encurtando...' : isBulk ? `Gerar ${bulkLinks.length} Links` : 'Encurtar Link'}
+                                </button>
+                            </form>
+                        </div>
+                     )}
 
                     {/* ── LIST SECTION ── */}
                     <div>
@@ -460,17 +461,25 @@ const LinkShortener = () => {
                                                 </span>
                                                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.5 }}>•</span>
                                                 <div style={{ 
-                                                    maxWidth: '200px', 
-                                                    overflow: 'hidden', 
-                                                    textOverflow: 'ellipsis', 
-                                                    whiteSpace: 'nowrap',
-                                                    fontSize: '11px',
-                                                    color: 'var(--text-muted)'
-                                                }}>
-                                                    {l.original_url}
-                                                </div>
-                                            </div>
-                                        </div>
+                                                     maxWidth: '200px', 
+                                                     overflow: 'hidden', 
+                                                     textOverflow: 'ellipsis', 
+                                                     whiteSpace: 'nowrap',
+                                                     fontSize: '11px',
+                                                     color: 'var(--text-muted)'
+                                                 }}>
+                                                     {l.original_url}
+                                                 </div>
+                                             </div>
+                                             {l.client_name && (
+                                                 <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                     <Users size={10} className="text-primary-color" />
+                                                     <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                                         Vínculo: <span className="text-primary-color">{l.client_name}</span>
+                                                     </span>
+                                                 </div>
+                                             )}
+                                         </div>
 
                                         <div style={{ textAlign: 'center', padding: '0 20px' }}>
                                             <div className="click-count">{l.clicks || 0}</div>
@@ -492,13 +501,15 @@ const LinkShortener = () => {
                                             >
                                                 <BarChart3 size={18} />
                                             </button>
-                                            <button 
-                                                className="icon-button delete" 
-                                                title="Excluir Link"
-                                                onClick={() => handleDeleteLink(l.id)}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                            {user?.role !== 'CLIENT' && (
+                                                <button 
+                                                    className="icon-button delete" 
+                                                    title="Excluir Link"
+                                                    onClick={() => handleDeleteLink(l.id)}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
                                         </div>
 
                                         <div style={{ paddingLeft: '10px' }}>
@@ -512,7 +523,8 @@ const LinkShortener = () => {
                 </div>
             </div>
         </div>
-    );
+    </div>
+);
 };
 
 export default LinkShortener;

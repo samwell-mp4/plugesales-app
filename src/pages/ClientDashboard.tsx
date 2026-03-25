@@ -499,13 +499,15 @@ const ClientDashboard = () => {
                                                         <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
                                                         <div style={{ fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
                                                     </div>
-                                                    <button 
-                                                        onClick={() => handleDeleteLink(link.id)}
-                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
-                                                        title="Excluir Link"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
+                                                    {user?.role !== 'CLIENT' && (
+                                                        <button 
+                                                            onClick={() => handleDeleteLink(link.id)}
+                                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                                                            title="Excluir Link"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                             <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>

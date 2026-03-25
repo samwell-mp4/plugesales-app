@@ -901,21 +901,32 @@ app.post('/api/shortener/create', async (req, res) => {
 app.get('/api/shortener/links', async (req, res) => {
     const { user_id, client_id, role } = req.query;
     try {
-        let query = 'SELECT l.*, (SELECT COUNT(*) FROM link_clicks WHERE link_id = l.id) as clicks FROM shortened_links l';
+        let query = `
+            SELECT l.*, 
+                   (SELECT COUNT(*) FROM link_clicks WHERE link_id = l.id) as clicks,
+                   c.profile_name as client_name
+            FROM shortened_links l
+            LEFT JOIN client_submissions c ON l.client_id = c.id
+        `;
         const params = [];
+        let whereClauses = [];
 
         if (client_id) {
-            query += ' WHERE client_id = $1';
+            whereClauses.push(`l.client_id = $${params.length + 1}`);
             params.push(client_id);
         } else if (role === 'CLIENT' && user_id) {
-            query += ' WHERE client_id IN (SELECT id FROM client_submissions WHERE user_id = $1)';
+            whereClauses.push(`l.client_id IN (SELECT id FROM client_submissions WHERE user_id = $${params.length + 1})`);
             params.push(user_id);
         } else if (user_id) {
-            query += ' WHERE user_id = $1';
+            whereClauses.push(`l.user_id = $${params.length + 1}`);
             params.push(user_id);
         }
 
-        query += ' ORDER BY created_at DESC';
+        if (whereClauses.length > 0) {
+            query += ' WHERE ' + whereClauses.join(' AND ');
+        }
+
+        query += ' ORDER BY l.created_at DESC';
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (err) {
