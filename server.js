@@ -87,6 +87,8 @@ const initDB = async () => {
         client = await pool.connect();
         const tables = [
             `ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS submission_id INTEGER`,
+            `ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS summary JSONB`,
+            `ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`,
             `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`,
             `CREATE TABLE IF NOT EXISTS media_library (
                 id SERIAL PRIMARY KEY, name TEXT, type TEXT, url TEXT, short_url TEXT, 

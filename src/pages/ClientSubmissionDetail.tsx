@@ -136,9 +136,12 @@ const ClientSubmissionDetail = () => {
                 }
 
                 // Check for attached report
-                const reports = await dbService.getReports(undefined);
-                const subReport = reports.find((r: any) => Number(r.submission_id) === Number(id));
-                if (subReport) setAttachedReport(subReport);
+                const subReports = await dbService.getReports(undefined, Number(id));
+                if (subReports.length > 0) {
+                    setAttachedReport(subReports[0]);
+                } else {
+                    setAttachedReport(null);
+                }
             } else {
                 setSub(null);
             }
