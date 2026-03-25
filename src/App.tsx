@@ -17,11 +17,11 @@ import LinkShortener from './pages/LinkShortener';
 import LinkStats from './pages/LinkStats';
 import ClientReports from './pages/ClientReports';
 import LandingPage from './pages/LandingPage';
+import Profile from './pages/Profile';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
-
 import Control from './pages/Control';
 
 
@@ -101,6 +101,7 @@ function AppContent() {
           <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
         </Routes>
       </main>

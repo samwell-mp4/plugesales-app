@@ -756,13 +756,25 @@ const TemplateCreator = () => {
 
                 @media (max-width: 768px) {
                     .creator-layout { grid-template-columns: 1fr !important; gap: 16px !important; width: 100% !important; margin: 0 !important; }
-                    .glass-card { padding: 12px !important; border-radius: 12px !important; }
+                    .glass-card { padding: 16px !important; border-radius: 12px !important; }
                     .button-editor { flex-direction: column !important; align-items: stretch !important; }
-                    .bulk-table-container { padding: 2px !important; border-radius: 6px !important; overflow-x: auto !important; width: 100% !important; border: 1px solid var(--surface-border-subtle) !important; }
-                    .bulk-table { min-width: 600px !important; }
-                    .bulk-table th { font-size: 0.65rem !important; padding: 8px 4px !important; }
-                    .bulk-row-input { font-size: 0.75rem !important; padding: 6px 8px !important; }
-                    .wp-bubble { padding: 8px !important; border-radius: 14px !important; }
+                    .bulk-table-container { 
+                        padding: 0 !important; 
+                        border-radius: 12px !important; 
+                        overflow-x: auto !important; 
+                        width: 100% !important; 
+                        background: rgba(255,255,255,0.02);
+                        border: 1px solid var(--surface-border-subtle) !important; 
+                    }
+                    .bulk-table { 
+                        min-width: 700px !important; 
+                        margin-top: 0 !important;
+                    }
+                    .bulk-table th { font-size: 0.65rem !important; padding: 12px 8px !important; }
+                    .bulk-table td { padding: 8px 4px !important; }
+                    .bulk-row-input { font-size: 0.85rem !important; padding: 8px 10px !important; height: 38px !important; }
+                    .wp-bubble { padding: 12px !important; border-radius: 16px !important; }
+                    .var-grid { grid-template-columns: 1fr !important; }
                 }
 
                 .loading-overlay {

@@ -15,7 +15,6 @@ import {
     XCircle,
     Check,
     Users,
-    Trash,
     MousePointer2,
     Link as LinkIcon,
     Smartphone
@@ -447,7 +446,7 @@ const LinkShortener = () => {
                                                         style={{ marginTop: '8px' }}
                                                         onClick={() => setBulkLinks(bulkLinks.filter((_, i) => i !== idx))}
                                                     >
-                                                        <Trash size={14} />
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 )}
                                             </div>
@@ -850,6 +849,42 @@ const LinkShortener = () => {
                     </div>
                 </div>
             )}
+            <style>{`
+                @media (max-width: 768px) {
+                    .stats-overview {
+                        flex-direction: column !important;
+                        gap: 12px !important;
+                    }
+                    .stats-overview > div {
+                        width: 100% !important;
+                    }
+                    .filter-bar {
+                        flex-direction: column !important;
+                        align-items: stretch !important;
+                        gap: 12px !important;
+                    }
+                    .filter-bar > div, .filter-bar input, .filter-bar select {
+                        width: 100% !important;
+                    }
+                    .link-item {
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                        gap: 16px !important;
+                        padding: 20px !important;
+                    }
+                    .link-item > div:last-child {
+                        width: 100% !important;
+                        justify-content: flex-start !important;
+                        border-top: 1px solid var(--surface-border-subtle);
+                        padding-top: 16px !important;
+                    }
+                    .click-count-container {
+                        text-align: left !important;
+                        padding: 0 !important;
+                        margin-bottom: 8px !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 };

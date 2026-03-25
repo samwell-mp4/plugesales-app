@@ -1002,43 +1002,50 @@ app.get('/api/shortener/stats/:id', async (req, res) => {
 
 app.get('/api/shortener/stats/all', async (req, res) => {
     const { user_id, startDate, endDate } = req.query;
-    if (!user_id) return res.status(400).json({ error: 'user_id é obrigatório.' });
+    // Allow user_id=0 for global stats
+    const targetUserId = (user_id === '0' || !user_id) ? null : parseInt(user_id);
 
     try {
         const start = startDate ? new Date(startDate) : new Date(0);
         const end = endDate ? new Date(endDate) : new Date();
-        
-        // Ensure end date includes the full day
         if (endDate) end.setHours(23, 59, 59, 999);
 
+        const params = [start, end];
+        let userFilter = "";
+        if (targetUserId) {
+            params.push(targetUserId);
+            userFilter = `AND sl.target_user_id = $3`;
+        }
+
         // 1. Aggregated Total Clicks & Link Count
+        // total_links counts all links created (matching user_id filter if any)
         const totals = await pool.query(`
             SELECT 
-                COUNT(lc.id) as total_clicks,
-                COUNT(DISTINCT sl.id) as total_links
-            FROM link_clicks lc
-            JOIN shortened_links sl ON lc.link_id = sl.id
-            WHERE sl.target_user_id = $1 AND lc.timestamp BETWEEN $2 AND $3
-        `, [user_id, start, end]);
+                (SELECT COUNT(*) FROM link_clicks lc 
+                 JOIN shortened_links sl ON lc.link_id = sl.id 
+                 WHERE lc.timestamp BETWEEN $1 AND $2 ${userFilter}) as total_clicks,
+                (SELECT COUNT(*) FROM shortened_links sl 
+                 WHERE 1=1 ${userFilter.replace('sl.', '')}) as total_links
+        `, params);
 
         // 2. Timeline (Aggregated)
         const timeline = await pool.query(`
             SELECT lc.timestamp::DATE as date, COUNT(*) as count
             FROM link_clicks lc
             JOIN shortened_links sl ON lc.link_id = sl.id
-            WHERE sl.target_user_id = $1 AND lc.timestamp BETWEEN $2 AND $3
+            WHERE lc.timestamp BETWEEN $1 AND $2 ${userFilter}
             GROUP BY date ORDER BY date ASC
-        `, [user_id, start, end]);
+        `, params);
 
         // 3. Top Locations (Aggregated)
         const geo = await pool.query(`
             SELECT lc.country, lc.city, COUNT(*) as count
             FROM link_clicks lc
             JOIN shortened_links sl ON lc.link_id = sl.id
-            WHERE sl.target_user_id = $1 AND lc.timestamp BETWEEN $2 AND $3
+            WHERE lc.timestamp BETWEEN $1 AND $2 ${userFilter}
             GROUP BY lc.country, lc.city
             ORDER BY count DESC LIMIT 10
-        `, [user_id, start, end]);
+        `, params);
 
         // 4. Top Devices (Aggregated - Rough parsing)
         const devices = await pool.query(`
@@ -1052,9 +1059,9 @@ app.get('/api/shortener/stats/all', async (req, res) => {
                 COUNT(*) as count
             FROM link_clicks lc
             JOIN shortened_links sl ON lc.link_id = sl.id
-            WHERE sl.target_user_id = $1 AND lc.timestamp BETWEEN $2 AND $3
-            GROUP BY device_type
-        `, [user_id, start, end]);
+            WHERE lc.timestamp BETWEEN $1 AND $2 ${userFilter}
+            GROUP BY device_type ORDER BY count DESC
+        `, params);
 
         res.json({
             summary: totals.rows[0],

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     User,
     FileText,
@@ -9,7 +9,6 @@ import {
     Layers,
     Smartphone,
     ExternalLink,
-    Zap,
     Link as LinkIcon,
     Trash2,
     X
@@ -19,9 +18,9 @@ import { dbService } from '../services/dbService';
 import { useNavigate } from 'react-router-dom';
 
 const ClientDashboard = () => {
-    const { user, logout, setUser } = useAuth() as any;
+    const { user, logout } = useAuth() as any;
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'submissions' | 'agency_lots' | 'links' | 'profile' | 'activity'>('submissions');
+    const [activeTab, setActiveTab] = useState<'submissions' | 'agency_lots' | 'links' | 'activity'>('submissions');
     const [submissions, setSubmissions] = useState<any[]>([]);
     const [links, setLinks] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -29,16 +28,6 @@ const ClientDashboard = () => {
     const [isLinksLoading, setIsLinksLoading] = useState(false);
     const [isLogsLoading, setIsLogsLoading] = useState(false);
 
-    // Profile State
-    const [profileData, setProfileData] = useState({
-        name: user?.name || '',
-        email: user?.email || '',
-        phone: user?.phone || '',
-        password: '',
-        confirmPassword: ''
-    });
-    const [isSavingProfile, setIsSavingProfile] = useState(false);
-    const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
     
     // Analytics State
     const [statsDate, setStatsDate] = useState({
@@ -111,59 +100,17 @@ const ClientDashboard = () => {
         }
     };
 
-    const handleProfileUpdate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setProfileMessage({ type: '', text: '' });
-
-        if (profileData.password && profileData.password !== profileData.confirmPassword) {
-            setProfileMessage({ type: 'error', text: 'As senhas não coincidem.' });
-            return;
-        }
-
-        setIsSavingProfile(true);
-        try {
-            const result = await dbService.updateProfile({
-                id: user!.id,
-                name: profileData.name,
-                email: profileData.email,
-                phone: profileData.phone,
-                password: profileData.password || undefined
-            });
-
-            if (result.error) {
-                setProfileMessage({ type: 'error', text: result.error });
-            } else {
-                setProfileMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
-                // Update local context
-                setUser(result);
-            }
-        } catch (error: any) {
-            setProfileMessage({ type: 'error', text: 'Erro ao salvar perfil.' });
-        } finally {
-            setIsSavingProfile(false);
-        }
-    };
     const handleDeleteSubmission = async (id: number) => {
         if (!window.confirm("Tem certeza que deseja excluir esta submissão?")) return;
         try {
             await dbService.deleteClientSubmission(id);
-            setSubmissions(prev => prev.filter(s => s.id !== id));
+            setSubmissions((prev: any[]) => prev.filter((s: any) => s.id !== id));
         } catch (error) {
             console.error("Error deleting submission:", error);
             alert("Erro ao excluir submissão.");
         }
     };
 
-    const handleDeleteLink = async (id: number) => {
-        if (!window.confirm("Tem certeza que deseja excluir este link?")) return;
-        try {
-            await dbService.deleteShortLink(id);
-            setLinks(prev => prev.filter(l => l.id !== id));
-        } catch (error) {
-            console.error("Error deleting link:", error);
-            alert("Erro ao excluir link.");
-        }
-    };
 
     const handleViewLinkStats = async (id: number) => {
         setIsStatsLoading(true);
@@ -375,16 +322,10 @@ const ClientDashboard = () => {
                     >
                         REGISTRO DE ATIVIDADE
                     </button>
-                    <button
-                        className={`nav-tab ${activeTab === 'profile' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('profile')}
-                    >
-                        MEU PERFIL
-                    </button>
                 </div>
 
                 {/* ── CONTENT ── */}
-                <div className="control-card" style={{ animationDelay: '0.4s', padding: activeTab === 'profile' ? '40px' : '24px' }}>
+                <div className="control-card" style={{ animationDelay: '0.4s', padding: '24px' }}>
                     {activeTab === 'submissions' ? (
                         <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
                             {isLoading ? (
@@ -537,11 +478,11 @@ const ClientDashboard = () => {
                                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                             <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>DE:</span>
-                                            <input type="date" className="nav-tab" style={{ padding: '8px 12px' }} value={statsDate.start} onChange={e => setStatsDate(p => ({ ...p, start: e.target.value }))} />
+                                            <input type="date" className="nav-tab" style={{ padding: '8px 12px' }} value={statsDate.start} onChange={e => setStatsDate((p: any) => ({ ...p, start: e.target.value }))} />
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                             <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>ATÉ:</span>
-                                            <input type="date" className="nav-tab" style={{ padding: '8px 12px' }} value={statsDate.end} onChange={e => setStatsDate(p => ({ ...p, end: e.target.value }))} />
+                                            <input type="date" className="nav-tab" style={{ padding: '8px 12px' }} value={statsDate.end} onChange={e => setStatsDate((p: any) => ({ ...p, end: e.target.value }))} />
                                         </div>
                                     </div>
                                 </div>
@@ -588,12 +529,6 @@ const ClientDashboard = () => {
                                         </div>
                                     </div>
                                 )}
-                                {isStatsLoading && (
-                                    <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={{ width: 12, height: 12, border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                                        <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>ATUALIZANDO DADOS...</span>
-                                    </div>
-                                )}
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -624,17 +559,6 @@ const ClientDashboard = () => {
                                                         <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
                                                         <div style={{ fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
                                                     </div>
-                                                    {user?.role !== 'CLIENT' && (
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteLink(link.id); }}
-                                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', opacity: 0.5 }}
-                                                            onMouseOver={e => e.currentTarget.style.opacity = '1'}
-                                                            onMouseOut={e => e.currentTarget.style.opacity = '0.5'}
-                                                            title="Excluir Link"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    )}
                                                 </div>
                                             </div>
                                             <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
@@ -665,62 +589,7 @@ const ClientDashboard = () => {
                                 </div>
                             )}
                         </div>
-                    ) : (
-                        <div style={{ maxWidth: '600px', margin: '0 auto', animation: 'fadeInUp 0.4s ease-out' }}>
-                            <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div>
-                                    <label className="field-label"><User size={14} /> Dados Básicos</label>
-                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-                                        <div>
-                                            <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>NOME COMPLETO</label>
-                                            <input className="field-input" value={profileData.name} onChange={e => setProfileData({ ...profileData, name: e.target.value })} required />
-                                        </div>
-                                        <div>
-                                            <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>E-MAIL</label>
-                                            <input type="email" className="field-input" value={profileData.email} onChange={e => setProfileData({ ...profileData, email: e.target.value })} required />
-                                        </div>
-                                    </div>
-                                    <div style={{ marginTop: '16px' }}>
-                                        <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>WHATSAPP DE CONTATO</label>
-                                        <input className="field-input" value={profileData.phone} onChange={e => setProfileData({ ...profileData, phone: e.target.value })} placeholder="Ex: 11999998888" />
-                                    </div>
-                                </div>
-
-                                <div style={{ height: '1px', background: 'var(--surface-border-subtle)', margin: '8px 0' }} />
-
-                                <div>
-                                    <label className="field-label"><Zap size={14} /> Segurança</label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-                                        <div>
-                                            <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>NOVA SENHA</label>
-                                            <input type="password" className="field-input" value={profileData.password} onChange={e => setProfileData({ ...profileData, password: e.target.value })} placeholder="••••••••" />
-                                        </div>
-                                        <div>
-                                            <label style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>CONFIRMAR SENHA</label>
-                                            <input type="password" className="field-input" value={profileData.confirmPassword} onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })} placeholder="••••••••" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {profileMessage.text && (
-                                    <div style={{ 
-                                        padding: '16px', 
-                                        borderRadius: '16px', 
-                                        background: profileMessage.type === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
-                                        border: `1px solid ${profileMessage.type === 'error' ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
-                                        color: profileMessage.type === 'error' ? '#ef4444' : '#22c55e',
-                                        fontSize: '11px', fontWeight: 900, letterSpacing: '1px', textAlign: 'center'
-                                    }}>
-                                        {profileMessage.text.toUpperCase()}
-                                    </div>
-                                )}
-
-                                <button type="submit" className="action-btn primary-btn" disabled={isSavingProfile} style={{ width: '100%', height: 52 }}>
-                                    {isSavingProfile ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
-                                </button>
-                            </form>
-                        </div>
-                    )}
+                    ) : null}
                 </div>
 
                 {/* ── FOOTER LOGO ── */}
@@ -798,6 +667,24 @@ const ClientDashboard = () => {
                     </div>
                 </div>
             )}
+            <style>{`
+                @media (max-width: 768px) {
+                    .dashboard-header { flex-direction: column; align-items: flex-start !important; gap: 16px; }
+                    .nav-tabs { 
+                        overflow-x: auto; 
+                        width: 100%; 
+                        padding-bottom: 8px;
+                        display: flex !important;
+                        flex-wrap: nowrap !important;
+                        border-bottom: 1px solid var(--surface-border-subtle);
+                    }
+                    .nav-tab { white-space: nowrap; flex-shrink: 0; }
+                    .grid-3 { grid-template-columns: 1fr !important; }
+                    .submission-card { padding: 20px !important; }
+                    .modal-content { width: 95% !important; padding: 24px !important; margin: 10px !important; }
+                    .analytics-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+                }
+            `}</style>
         </div>
     );
 };

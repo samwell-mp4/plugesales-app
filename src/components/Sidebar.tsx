@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -10,57 +9,23 @@ import {
     Home,
     ShieldCheck,
     UserCircle,
+    User,
     FileUp,
     Layers,
-    Smartphone,
     Sun,
     Moon
 } from 'lucide-react';
-import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 
 
 const Sidebar = () => {
-    const { user, setUser, logout, theme, toggleTheme } = useAuth();
-    const [isEditingNotify, setIsEditingNotify] = useState(false);
-    const [notifyNum, setNotifyNum] = useState(user?.notification_number || '');
-
-    useEffect(() => {
-        setNotifyNum(user?.notification_number || '');
-    }, [user]);
-
-    const handleSaveNotify = async () => {
-        if (!user?.id) {
-            alert("Erro: Usuário sem ID interno. Por favor, faça LogOut e LogIn novamente para sincronizar seu perfil.");
-            return;
-        }
-
-        // Clean the number: keep only digits
-        const cleaned = notifyNum.replace(/\D/g, '');
-        if (!cleaned || cleaned.length < 10) {
-            alert("Por favor, insira um número válido com DDD (ex: 31988887777).");
-            return;
-        }
-
-        try {
-            const updated = await dbService.updateProfile({ id: user.id, notification_number: cleaned });
-            if (updated && !updated.error) {
-                setUser(updated);
-                setIsEditingNotify(false);
-                alert("✅ Número de notificação atualizado com sucesso!");
-            } else {
-                alert("❌ Erro ao salvar: " + (updated?.error || "Resposta inválida do servidor"));
-            }
-        } catch (err) {
-            console.error(err);
-            alert("❌ Erro de conexão ao salvar perfil. Verifique sua internet ou tente novamente.");
-        }
-    };
+    const { user, logout, theme, toggleTheme } = useAuth();
 
     const menuItems = user?.role === 'CLIENT' ? [
         { name: 'Meu Painel', path: '/client-dashboard', icon: <Home size={20} /> },
         { name: 'Meus Links', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet size={20} /> },
+        { name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> },
     ] : user?.role === 'EMPLOYEE' ? [
         { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Minhas Tarefas', path: '/client-submissions', icon: <FileUp size={20} /> },
@@ -76,6 +41,7 @@ const Sidebar = () => {
         { name: 'Preparar Planilha', path: '/upload', icon: <FileSpreadsheet size={20} /> },
         { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
+        { name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> },
         { name: 'Criar Transmissão', path: '/dispatch', icon: <Send size={20} />, special: true },
     ];
 
@@ -280,42 +246,6 @@ const Sidebar = () => {
                     </button>
                 </div>
 
-                {/* Individual Notification Number Section at the TOP */}
-                <div className="mx-2 mb-4 p-3 rounded-xl" style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(172, 248, 0, 0.1)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
-                }}>
-                    <div className="flex items-center justify-between">
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Notificações</span>
-                        {!isEditingNotify ? (
-                            <button onClick={() => setIsEditingNotify(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 700 }}>EDITAR</button>
-                        ) : (
-                            <div className="flex gap-2">
-                                <button onClick={handleSaveNotify} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 800 }}>SALVAR</button>
-                                <button onClick={() => setIsEditingNotify(false)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '0.65rem', fontWeight: 800 }}>X</button>
-                            </div>
-                        )}
-                    </div>
-                    {!isEditingNotify ? (
-                        <div className="flex items-center gap-2">
-                            <Smartphone size={14} color="var(--primary-color)" />
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: user?.notification_number ? 'var(--text-primary)' : 'var(--text-muted)' }}>{user?.notification_number || 'Não configurado'}</span>
-                        </div>
-
-                    ) : (
-                        <input
-                            value={notifyNum}
-                            onChange={(e) => setNotifyNum(e.target.value)}
-                            className="input-field"
-                            style={{ height: '28px', fontSize: '0.8rem', padding: '0 8px', borderRadius: '6px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--surface-border)' }}
-                            placeholder="Ex: 551199..."
-
-                        />
-                    )}
-                </div>
 
                 <nav className="flex flex-col gap-1 mt-6">
                     {menuItems.map((item: any) => (

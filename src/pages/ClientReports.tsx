@@ -157,6 +157,16 @@ const ClientReports = () => {
                 .upload-zone { border: 2px dashed var(--surface-border-subtle); border-radius: 24px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 32px; background: rgba(255,255,255,0.02); }
                 .upload-zone:hover { border-color: var(--primary-color); background: rgba(172,248,0,0.05); }
                 .text-primary-color { color: var(--primary-color); }
+                @media (max-width: 768px) {
+                    .stats-grid { grid-template-columns: 1fr; }
+                    .flex.items-center.justify-between.mb-8 { flex-direction: column; align-items: flex-start !important; gap: 20px; }
+                    .flex.gap-4.items-center { flex-direction: column; width: 100%; align-items: stretch !important; }
+                    .relative { width: 100%; }
+                    .input-field { width: 100% !important; }
+                    .report-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+                    .report-header > div:last-child { width: 100%; justify-content: space-between; }
+                    .data-table { display: block; overflow-x: auto; white-space: nowrap; }
+                }
             `}</style>
 
             <div className="flex items-center justify-between mb-8">
