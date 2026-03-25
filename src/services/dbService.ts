@@ -534,6 +534,20 @@ export const dbService = {
             console.error("Error deleting short link:", err);
         }
     },
+    updateShortLink: async (id: number, data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/shortener/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error("Erro ao atualizar link");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error updating short link:", err);
+            return { error: err.message };
+        }
+    },
     trackTemplate: async (name: string, userId: number) => {
         try {
             await fetch(`${API_BASE}/templates/track`, {

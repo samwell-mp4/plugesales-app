@@ -899,6 +899,25 @@ app.post('/api/shortener/create', async (req, res) => {
     }
 });
 
+app.put('/api/shortener/:id', async (req, res) => {
+    const { id } = req.params;
+    const { target_user_id, client_id, title, original_url } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE shortened_links 
+             SET target_user_id = COALESCE($1, target_user_id),
+                 client_id = COALESCE($2, client_id),
+                 title = COALESCE($3, title),
+                 original_url = COALESCE($4, original_url)
+             WHERE id = $5 RETURNING *`,
+            [target_user_id || null, client_id || null, title || null, original_url || null, id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Link não encontrado' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 app.get('/api/shortener/links', async (req, res) => {
     const { user_id, client_id, role } = req.query;
     try {

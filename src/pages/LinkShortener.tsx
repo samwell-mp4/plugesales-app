@@ -133,7 +133,7 @@ const LinkShortener = () => {
     );
 
     return (
-        <div className="container-root" style={{ minHeight: '100vh', padding: '28px 24px' }}>
+        <div className="container-root" style={{ minHeight: '100vh', padding: '28px 24px', overflowX: 'hidden' }}>
             <style>{`
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 
@@ -189,16 +189,15 @@ const LinkShortener = () => {
                 }
 
                 .link-item {
-                    display: grid;
-                    grid-template-columns: 1fr auto auto auto;
+                    display: flex;
                     align-items: center;
-                    gap: 20px;
-                    padding: 20px;
+                    gap: 24px;
+                    padding: 24px;
                     background: var(--card-bg-subtle);
                     border: 1px solid var(--surface-border-subtle);
-                    border-radius: 20px;
+                    border-radius: 24px;
                     transition: all 0.3s;
-                    margin-bottom: 12px;
+                    margin-bottom: 20px;
                 }
                 .link-item:hover {
                     background: var(--card-bg-subtle);
@@ -238,8 +237,8 @@ const LinkShortener = () => {
                     border-color: rgba(239, 68, 68, 0.2);
                 }
 
-                @media (max-width: 768px) {
-                    .link-item { grid-template-columns: 1fr; gap: 12px; }
+                @media (max-width: 992px) {
+                    .link-item { flex-direction: column; align-items: stretch; gap: 16px; }
                 }
             `}</style>
 
@@ -275,8 +274,8 @@ const LinkShortener = () => {
                             <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cliques Totais</div>
                         </div>
                 </div>
- 
-                 <div style={{ display: 'grid', gridTemplateColumns: user?.role === 'CLIENT' ? '1fr' : '1fr 2fr', gap: '32px' }}>
+  
+                 <div style={{ display: 'grid', gridTemplateColumns: user?.role === 'CLIENT' ? '1fr' : 'minmax(320px, 360px) 1fr', gap: '32px' }}>
                      {/* ── CREATE SECTION ── */}
                      {user?.role !== 'CLIENT' && (
                         <div className="glass-card" style={{ height: 'fit-content', position: 'sticky', top: '24px' }}>
@@ -415,7 +414,7 @@ const LinkShortener = () => {
                      )}
 
                     {/* ── LIST SECTION ── */}
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
                             <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Seus Links</h2>
                             
@@ -455,15 +454,15 @@ const LinkShortener = () => {
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 {filteredLinks.map((l) => (
                                     <div key={l.id} className="link-item">
-                                        <div>
-                                            <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 900 }}>{l.title}</h3>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary-color)' }}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.title}</h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary-color)', whiteSpace: 'nowrap' }}>
                                                     {window.location.host}/l/{l.short_code}
                                                 </span>
                                                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.5 }}>•</span>
                                                 <div style={{ 
-                                                     maxWidth: '200px', 
+                                                     maxWidth: '100%', 
                                                      overflow: 'hidden', 
                                                      textOverflow: 'ellipsis', 
                                                      whiteSpace: 'nowrap',
@@ -472,18 +471,52 @@ const LinkShortener = () => {
                                                  }}>
                                                      {l.original_url}
                                                  </div>
-                                             </div>
-                                             {l.client_name && (
-                                                 <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                     <Users size={10} className="text-primary-color" />
-                                                     <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                                                         Vínculo: <span className="text-primary-color">{l.client_name}</span>
-                                                     </span>
-                                                 </div>
-                                             )}
-                                         </div>
+                                            </div>
+                                            
+                                            <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                                {l.client_name && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <Users size={12} className="text-primary-color" />
+                                                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                                            Vínculo: <span className="text-primary-color">{l.client_name}</span>
+                                                        </span>
+                                                    </div>
+                                                 )}
+                                                 
+                                                 {user?.role !== 'CLIENT' && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <select 
+                                                            value={l.target_user_id || ''} 
+                                                            onChange={async (e) => {
+                                                                const val = e.target.value;
+                                                                await dbService.updateShortLink(l.id, { target_user_id: val ? parseInt(val) : null });
+                                                                fetchLinks();
+                                                            }}
+                                                            style={{ 
+                                                                fontSize: '10px', 
+                                                                background: 'var(--card-bg-subtle)', 
+                                                                border: '1px solid var(--surface-border-subtle)', 
+                                                                color: 'var(--text-primary)',
+                                                                borderRadius: '6px',
+                                                                padding: '4px 8px',
+                                                                cursor: 'pointer',
+                                                                outline: 'none',
+                                                                fontWeight: 700
+                                                            }}
+                                                        >
+                                                            <option value="" style={{ background: 'var(--card-bg-subtle)' }}>{l.target_user_id ? 'Alterar Vínculo' : 'Vincular a Cliente'}</option>
+                                                            {clients.map(u => (
+                                                                <option key={u.id} value={u.id} style={{ background: 'var(--card-bg-subtle)', color: 'var(--text-primary)' }}>
+                                                                    {u.name}
+                                                                 </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                 )}
+                                            </div>
+                                        </div>
 
-                                        <div style={{ textAlign: 'center', padding: '0 20px' }}>
+                                        <div style={{ textAlign: 'center', padding: '0 20px', minWidth: '80px' }}>
                                             <div className="click-count">{l.clicks || 0}</div>
                                             <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
                                         </div>
