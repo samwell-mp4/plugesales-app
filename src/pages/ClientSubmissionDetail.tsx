@@ -238,12 +238,6 @@ const ClientSubmissionDetail = () => {
         if (!sub) return;
         setIsGeneratingLink(true);
         try {
-            const ensureProtocol = (url: string) => {
-                if (!url) return '';
-                const trimmed = url.trim();
-                return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-            };
-            
             const dashboardUrl = ensureProtocol(`${window.location.origin}/client-submissions/${sub.id}`);
             const res = await fetch('/api/shortener/create', {
                 method: 'POST',
@@ -265,6 +259,12 @@ const ClientSubmissionDetail = () => {
         } finally {
             setIsGeneratingLink(false);
         }
+    };
+
+    const ensureProtocol = (url: string) => {
+        if (!url) return '';
+        const trimmed = url.trim();
+        return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
     };
 
     const handleUpdateAd = async (index: number, field: keyof Ad, val: any) => {
@@ -912,6 +912,7 @@ const ClientSubmissionDetail = () => {
                                                 style={{ padding: '10px', fontSize: '13px', borderStyle: 'dashed' }}
                                                 value={currentAd.button_link || ''}
                                                 onChange={e => handleUpdateAd(activeAdIdx, 'button_link', e.target.value)}
+                                                onBlur={e => handleUpdateAd(activeAdIdx, 'button_link', ensureProtocol(e.target.value))}
                                                 placeholder="https://..."
                                             />
                                         ) : (

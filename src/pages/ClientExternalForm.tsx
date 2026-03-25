@@ -116,6 +116,14 @@ const ClientExternalForm = () => {
         }
     };
 
+    const ensureProtocol = (url: string) => {
+        if (!url) return '';
+        const trimmed = url.trim();
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        if (trimmed.length > 0) return `https://${trimmed}`;
+        return trimmed;
+    };
+
     const getValidationErrors = () => {
         const errors: string[] = [];
         
@@ -907,11 +915,18 @@ const ClientExternalForm = () => {
 
                                                 <div className="space-y-3 mt-4">
                                                     <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40">Link do Botão</label>
-                                                    <input className="input-premium py-4" placeholder="https://wa.me/..." value={formData.ads[formData.currentAdIndex].button_link} onChange={e => {
-                                                        const newAds = [...formData.ads];
-                                                        newAds[formData.currentAdIndex].button_link = e.target.value;
-                                                        setFormData(p => ({ ...p, ads: newAds }));
-                                                    }} />
+                                                    <input className="input-premium py-4" placeholder="https://wa.me/..." value={formData.ads[formData.currentAdIndex].button_link} 
+                                                        onChange={e => {
+                                                            const newAds = [...formData.ads];
+                                                            newAds[formData.currentAdIndex].button_link = e.target.value;
+                                                            setFormData(p => ({ ...p, ads: newAds }));
+                                                        }} 
+                                                        onBlur={e => {
+                                                            const newAds = [...formData.ads];
+                                                            newAds[formData.currentAdIndex].button_link = ensureProtocol(e.target.value);
+                                                            setFormData(p => ({ ...p, ads: newAds }));
+                                                        }}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
