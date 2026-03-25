@@ -18,6 +18,8 @@ const LandingPage = () => {
 
     const query = new URLSearchParams(window.location.search);
     const refId = query.get('ref') || query.get('affiliate');
+    const parsedRef = refId ? parseInt(refId) : null;
+    const finalAffiliateId = isNaN(parsedRef as number) ? null : parsedRef;
 
     const toggleFaq = (index: number) => {
         setActiveFaq(activeFaq === index ? null : index);
@@ -185,7 +187,7 @@ const LandingPage = () => {
                     <p>Personalize cada detalhe da sua campanha abaixo e veja o resultado instantâneo no preview à direita.</p>
                 </div>
 
-                <DemoQuiz affiliateId={refId ? parseInt(refId) : null} />
+                <DemoQuiz affiliateId={finalAffiliateId} />
             </section>
 
             {/* ── FAQ ── */}

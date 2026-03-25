@@ -18,6 +18,7 @@ const mediaOptions = [
 
 const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
     const [step, setStep] = useState(1);
+    const [leadId, setLeadId] = useState<number | null>(null);
     const [formData, setFormData] = useState({
         leadName: '',
         leadPhone: '',
@@ -37,7 +38,7 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
         
         if (step === 1) {
             try {
-                await dbService.addLead({
+                const res = await dbService.addLead({
                     affiliate_id: affiliateId,
                     name: formData.leadName,
                     phone: formData.leadPhone,
@@ -45,6 +46,7 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                     company_name: formData.companyName,
                     offer_text: formData.offer
                 });
+                if (res && res.id) setLeadId(res.id);
             } catch (err) {
                 console.error("Erro ao salvar lead:", err);
             }
@@ -52,7 +54,22 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
 
         setStep(prev => Math.min(prev + 1, 5));
     };
+
     const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+
+    const finishCapture = async () => {
+        if (leadId) {
+            try {
+                await dbService.updateLead(leadId, {
+                    company_name: formData.companyName,
+                    offer_text: formData.offer
+                });
+            } catch (err) {
+                console.error("Erro ao finalizar lead:", err);
+            }
+        }
+        window.location.href = '/obrigado';
+    };
 
     return (
         <div className="sim-container-full">
@@ -75,22 +92,6 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                     width: 100%;
                 }
 
-                .sim-container-full::before {
-                    content: '';
-                    position: absolute;
-                    top: -100px;
-                    right: -100px;
-                    width: 400px;
-                    height: 400px;
-                    background: radial-gradient(circle, rgba(172, 248, 0, 0.1) 0%, transparent 70%);
-                    z-index: 0;
-                }
-
-                @media (max-width: 1280px) {
-                    .sim-container-full { gap: 40px; padding: 60px; }
-                    .sim-container-full { grid-template-columns: 1fr 380px; }
-                }
-
                 @media (max-width: 1100px) {
                     .sim-container-full { 
                         grid-template-columns: 1fr; 
@@ -100,66 +101,28 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                         margin: 20px 10px;
                         width: auto;
                     }
-                    .sim-preview-sticky { 
-                        position: static !important; 
-                        display: flex; 
-                        justify-content: center; 
-                        width: 100%;
-                    }
-                    .phone-mockup {
-                        width: 100%;
-                        max-width: 340px;
-                        margin: 0 auto;
-                    }
-                    .wp-screen {
-                        height: 540px;
-                    }
-                    .sim-title { font-size: 1.8rem; }
+                    .sim-preview-sticky { position: static !important; display: flex; justify-content: center; width: 100%; }
+                    .phone-mockup { width: 100%; max-width: 340px; margin: 0 auto; }
+                    .wp-screen { height: 540px; }
                 }
 
                 @media (max-width: 480px) {
-                    .sim-container-full { padding: 32px 16px; border-radius: 20px; margin: 10px 5px; }
+                    .sim-container-full { padding: 32px 16px; border-radius: 20px; }
                     .sim-title { font-size: 1.6rem; }
-                    .btn-premium { width: 100%; justify-content: center; padding: 18px 20px; font-size: 0.85rem; }
-                    .sim-actions { flex-direction: column-reverse; gap: 12px; }
-                    .sim-media-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-                    .phone-mockup { max-width: 290px; padding: 8px; border-radius: 40px; }
-                    .wp-screen { height: 460px; border-radius: 32px; }
-                    .wp-nav-bar { padding: 30px 15px 10px; }
+                    .btn-premium { width: 100%; justify-content: center; }
+                    .sim-actions { flex-direction: column-reverse; }
                 }
 
-                /* Left Side: Logic */
-                .sim-logic { position: relative; z-index: 1; }
-                
-                .sim-step-indicator {
-                    display: flex;
-                    gap: 12px;
-                    margin-bottom: 40px;
-                }
-                .step-dot {
-                    height: 4px;
-                    flex: 1;
-                    background: rgba(255,255,255,0.1);
-                    border-radius: 10px;
-                    transition: all 0.5s;
-                }
+                .sim-step-indicator { display: flex; gap: 12px; margin-bottom: 40px; }
+                .step-dot { height: 4px; flex: 1; background: rgba(255,255,255,0.1); border-radius: 10px; transition: all 0.5s; }
                 .step-dot.active { background: #acf800; box-shadow: 0 0 10px rgba(172,248,0,0.4); }
-
-                .sim-content-wrapper { min-height: 400px; display: flex; flex-direction: column; justify-content: center; }
 
                 .sim-title { font-size: 2.5rem; font-weight: 950; margin-bottom: 16px; letter-spacing: -2px; line-height: 1.1; }
                 .sim-desc { color: rgba(255,255,255,0.5); margin-bottom: 40px; font-size: 1.1rem; }
 
-                /* Inputs */
-                .sim-field { margin-bottom: 24px; animation: slideIn 0.4s ease-out; }
-                @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-
+                .sim-field { margin-bottom: 24px; }
                 .sim-label { font-size: 0.7rem; font-weight: 900; color: #acf800; letter-spacing: 2px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
-                .sim-input-box {
-                    position: relative;
-                    display: flex;
-                    align-items: center;
-                }
+                .sim-input-box { position: relative; display: flex; align-items: center; }
                 .sim-input-box svg { position: absolute; left: 20px; color: rgba(255,255,255,0.3); }
                 .sim-input-field {
                     width: 100%;
@@ -171,103 +134,29 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                     font-size: 1.1rem;
                     font-weight: 600;
                     outline: none;
-                    transition: all 0.3s;
                 }
-                .sim-input-field:focus { border-color: #acf800; background: rgba(172, 248, 0, 0.03); box-shadow: 0 0 20px rgba(172, 248, 0, 0.05); }
+                .sim-input-field:focus { border-color: #acf800; background: rgba(172, 248, 0, 0.03); }
 
-                /* Media Selection Grid */
                 .sim-media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-                .sim-media-card {
-                    border-radius: 16px;
-                    overflow: hidden;
-                    cursor: pointer;
-                    border: 2px solid transparent;
-                    transition: all 0.3s;
-                    aspect-ratio: 1/1;
-                }
+                .sim-media-card { border-radius: 16px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.3s; aspect-ratio: 1/1; }
                 .sim-media-card img { width: 100%; height: 100%; object-fit: cover; }
-                .sim-media-card.active { border-color: #acf800; transform: scale(1.05); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+                .sim-media-card.active { border-color: #acf800; transform: scale(1.05); }
 
-                /* Right Side: Preview */
-                .sim-preview-sticky { position: sticky; top: 120px; z-index: 2; height: fit-content; }
-                .phone-mockup {
-                    width: 380px;
-                    background: #1a1c1e;
-                    border-radius: 64px;
-                    padding: 12px;
-                    border: 4px solid #333;
-                    box-shadow: 0 60px 100px rgba(0,0,0,0.8);
-                    position: relative;
-                }
-                .phone-mockup::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 150px;
-                    height: 30px;
-                    background: #111;
-                    border-radius: 0 0 20px 20px;
-                    z-index: 10;
-                }
-
-                .wp-screen {
-                    background: #0b141a;
-                    border-radius: 52px;
-                    height: 620px;
-                    overflow: hidden;
-                    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-                    background-size: cover;
-                }
-
+                .sim-preview-sticky { position: sticky; top: 120px; z-index: 2; }
+                .phone-mockup { width: 380px; background: #1a1c1e; border-radius: 64px; padding: 12px; border: 4px solid #333; position: relative; }
+                .wp-screen { background: #0b141a; border-radius: 52px; height: 620px; overflow: hidden; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; }
                 .wp-nav-bar { background: #202c33; padding: 40px 20px 12px; display: flex; align-items: center; gap: 12px; }
                 .wp-profile { width: 36px; height: 36px; border-radius: 50%; background: #acf800; display: flex; align-items: center; justify-content: center; }
-                
                 .wp-msg-list { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-                .wp-msg-bubble { 
-                    background: #202c33; 
-                    border-radius: 0 16px 16px 16px; 
-                    overflow: hidden; 
-                    max-width: 90%; 
-                    color: #e9edef;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                    animation: popUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                }
-                @keyframes popUp { from { transform: translateY(20px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
-
+                .wp-msg-bubble { background: #202c33; border-radius: 0 16px 16px 16px; overflow: hidden; max-width: 90%; color: #e9edef; }
                 .wp-msg-media { width: 100%; height: 200px; object-fit: cover; }
-                .wp-msg-text { padding: 12px 16px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
-                
-                .wp-msg-btn {
-                    background: #202c33;
-                    border-top: 1px solid rgba(255,255,255,0.05);
-                    padding: 14px;
-                    color: #53bdeb;
-                    font-size: 14px;
-                    font-weight: 700;
-                    text-align: center;
-                }
+                .wp-msg-text { padding: 12px 16px; font-size: 14px; line-height: 1.5; }
+                .wp-msg-btn { background: #202c33; border-top: 1px solid rgba(255,255,255,0.05); padding: 14px; color: #53bdeb; font-size: 14px; font-weight: 700; text-align: center; }
 
-                /* Actions */
                 .sim-actions { display: flex; gap: 16px; margin-top: 48px; }
-
-                .btn-premium {
-                    padding: 20px 40px;
-                    border-radius: 20px;
-                    font-size: 1rem;
-                    font-weight: 900;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    border: none;
-                }
-                .btn-premium-p { background: #acf800; color: #000; box-shadow: 0 20px 40px rgba(172,248,0,0.2); }
-                .btn-premium-p:hover { transform: translateY(-3px); box-shadow: 0 25px 50px rgba(172,248,0,0.4); background: #c3ff33; }
+                .btn-premium { padding: 20px 40px; border-radius: 20px; font-size: 1rem; font-weight: 900; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 12px; border: none; }
+                .btn-premium-p { background: #acf800; color: #000; }
                 .btn-premium-s { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-                .btn-premium-s:hover { background: rgba(255,255,255,0.1); }
             `}</style>
 
             <div className="sim-logic">
@@ -280,7 +169,6 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                         <div className="sim-step animate-fade-in">
                             <h2 className="sim-title">Vamos começar o seu <span style={{ color: '#acf800' }}>Teste Grátis</span></h2>
                             <p className="sim-desc">Preencha seus dados para habilitar o simulador profissional.</p>
-
                             <div className="sim-field">
                                 <div className="sim-label"><User size={14} /> SEU NOME</div>
                                 <div className="sim-input-box">
@@ -360,10 +248,10 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                 </div>
 
                 <div className="sim-actions">
-                    <button className="btn-premium btn-premium-s" onClick={prevStep} style={{ visibility: step === 1 ? 'hidden' : 'visible' }}>Voltar</button>
+                    <button className="btn-premium btn-premium-s" onClick={prevStep} style={{ opacity: step === 1 ? 0 : 1, pointerEvents: step === 1 ? 'none' : 'auto' }}>Voltar</button>
 
                     {step === 5 ? (
-                        <button className="btn-premium btn-premium-p" onClick={() => window.location.href = '/obrigado'}>
+                        <button className="btn-premium btn-premium-p" onClick={finishCapture}>
                             Finalizar e Falar com Especialista <ArrowRight size={20} />
                         </button>
                     ) : (
@@ -376,9 +264,7 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                 <div className="phone-mockup">
                     <div className="wp-screen">
                         <div className="wp-nav-bar">
-                            <div className="wp-profile">
-                                <Zap size={18} fill="black" stroke="black" />
-                            </div>
+                            <div className="wp-profile"><Zap size={18} fill="black" stroke="black" /></div>
                             <div className="wp-info-txt">
                                 <div className="wp-name" style={{ color: 'white', fontWeight: 700, fontSize: '14px' }}>{formData.companyName}</div>
                                 <div className="wp-status" style={{ color: '#8696a0', fontSize: '11px' }}>Visto por último às 14:20</div>
@@ -387,10 +273,7 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                         <div className="wp-msg-list">
                             <div className="wp-msg-bubble">
                                 <img src={formData.selectedMedia} alt="Media" className="wp-msg-media" />
-                                <div className="wp-msg-text">
-                                    {formData.offer}
-                                    <div style={{ fontSize: '10px', color: '#8696a0', textAlign: 'right', marginTop: '4px' }}>14:20 ✓✓</div>
-                                </div>
+                                <div className="wp-msg-text">{formData.offer}</div>
                             </div>
                             <div className="wp-msg-btn">{formData.btnText}</div>
                         </div>

@@ -650,7 +650,7 @@ export const dbService = {
             return await res.json();
         } catch (err) { return []; }
     },
-    updateLead: async (id: number, data: { status?: string, notes?: string }) => {
+    updateLead: async (id: number, data: Partial<{ status: string, notes: string, company_name: string, offer_text: string }>) => {
         try {
             const res = await fetch(`${API_BASE}/leads/${id}`, {
                 method: 'PATCH',

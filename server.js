@@ -1795,11 +1795,16 @@ app.get('/api/leads', async (req, res) => {
 
 app.patch('/api/leads/:id', async (req, res) => {
     const { id } = req.params;
-    const { status, notes } = req.body;
+    const { status, notes, company_name, offer_text } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE affiliate_leads SET status = COALESCE($1, status), notes = COALESCE($2, notes) WHERE id = $3 RETURNING *',
-            [status, notes, id]
+            `UPDATE affiliate_leads 
+             SET status = COALESCE($1, status), 
+                 notes = COALESCE($2, notes),
+                 company_name = COALESCE($3, company_name),
+                 offer_text = COALESCE($4, offer_text)
+             WHERE id = $5 RETURNING *`,
+            [status || null, notes || null, company_name || null, offer_text || null, id]
         );
         res.json(result.rows[0]);
     } catch (err) {
