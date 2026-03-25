@@ -409,6 +409,20 @@ const ClientSubmissionDetail = () => {
         reader.readAsBinaryString(file);
     };
 
+    const handleDeleteReport = async () => {
+        if (!attachedReport || !window.confirm("Deseja realmente excluir o relatório anexado?")) return;
+        try {
+            const res = await dbService.deleteReport(attachedReport.id);
+            if (res.success) {
+                setAttachedReport(null);
+                alert("✅ Relatório removido com sucesso.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("❌ Erro ao excluir relatório.");
+        }
+    };
+
     const handleAddVariable = (index: number, variable: string) => {
         if (!variable.trim() || !sub || !sub.ads) return;
         const currentVars = sub.ads[index].variables || [];
@@ -735,6 +749,14 @@ const ClientSubmissionDetail = () => {
                                             <span style={{ fontSize: '10px', fontWeight: 900, color: '#22c55e' }}>{attachedReport.summary?.delivered || 0}</span>
                                             <span style={{ fontSize: '7px', fontWeight: 800, opacity: 0.5 }}>OK</span>
                                         </div>
+                                        {user?.role !== 'CLIENT' && (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteReport(); }} 
+                                                style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', padding: '6px', borderRadius: '8px', cursor: 'pointer', display: 'flex' }}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
                                     </div>
                                 </button>
                             )}

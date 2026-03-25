@@ -23,6 +23,9 @@ const ClientReports = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
 
     useEffect(() => {
         if (user?.id) fetchReports();
@@ -122,10 +125,20 @@ const ClientReports = () => {
         expired: acc.expired + (curr.summary?.expired || 0)
     }), { total: 0, delivered: 0, expired: 0 });
 
-    const filteredReports = reports.filter(r => 
-        r.report_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.filename.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredReports = reports.filter(r => {
+        const matchesSearch = String(r.report_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            String(r.filename || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const reportDate = new Date(r.timestamp);
+        const matchesStart = !startDate || reportDate >= new Date(startDate);
+        const matchesEnd = !endDate || reportDate <= new Date(endDate + 'T23:59:59');
+        
+        const matchesStatus = statusFilter === 'ALL' || 
+                             (statusFilter === 'DELIVERED' && (r.summary?.delivered || 0) > 0) ||
+                             (statusFilter === 'EXPIRED' && (r.summary?.expired || 0) > 0);
+
+        return matchesSearch && matchesStart && matchesEnd && matchesStatus;
+    });
 
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '100px' }}>
@@ -148,14 +161,32 @@ const ClientReports = () => {
                     <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>Relatórios Clínicos</h1>
                     <p className="subtitle">Gestão e visualização de resultados em massa por Excel</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-4 items-center">
+                    <div className="flex items-center gap-2">
+                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>DE:</span>
+                        <input type="date" className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '12px' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ:</span>
+                        <input type="date" className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '12px' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                    </div>
+                    <select 
+                        className="input-field" 
+                        style={{ padding: '8px', borderRadius: '10px', fontSize: '12px', width: '150px' }}
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                    >
+                        <option value="ALL">TODOS STATUS</option>
+                        <option value="DELIVERED">COM ENTREGA</option>
+                        <option value="EXPIRED">COM EXPIRADOS</option>
+                    </select>
                     <div className="relative">
                         <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} size={16} />
                         <input 
                             type="text" 
-                            placeholder="Buscar relatórios..." 
+                            placeholder="Buscar..." 
                             className="input-field" 
-                            style={{ paddingLeft: '40px', width: '250px', borderRadius: '12px' }}
+                            style={{ paddingLeft: '40px', width: '180px', borderRadius: '12px' }}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -228,7 +259,14 @@ const ClientReports = () => {
                                         <FileSpreadsheet size={20} className="text-primary-color" />
                                     </div>
                                     <div className="flex-col">
-                                        <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px' }}>{report.report_name}</h4>
+                                        <div className="flex items-center gap-2">
+                                            <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px' }}>{report.report_name}</h4>
+                                            {report.submission_id && (
+                                                <span style={{ fontSize: '9px', fontWeight: 900, background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(172, 248, 0, 0.2)' }}>
+                                                    SUB #{report.submission_id}
+                                                </span>
+                                            )}
+                                        </div>
                                         <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(report.timestamp).toLocaleString()} • {report.filename}</span>
                                     </div>
                                 </div>
@@ -252,14 +290,16 @@ const ClientReports = () => {
                                         >
                                             <Download size={14} />
                                         </button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(report.id); }} 
-                                            className="action-btn ghost-btn" 
-                                            style={{ height: 36, width: 36, padding: 0, color: '#ef4444' }}
-                                            title="Excluir"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                        {user?.role !== 'CLIENT' && (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(report.id); }} 
+                                                className="action-btn ghost-btn" 
+                                                style={{ height: 36, width: 36, padding: 0, color: '#ef4444' }}
+                                                title="Excluir"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
                                         {expandedReportId === report.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                     </div>
                                 </div>
