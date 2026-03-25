@@ -79,7 +79,7 @@ export const dbService = {
             return await res.json();
         } catch (err) { return null; }
     },
-    addReport: async (reportData: { userId: number; reportName: string; filename: string; data: any[]; summary: any }) => {
+    addReport: async (reportData: { userId: number; submissionId?: number; reportName: string; filename: string; data: any[]; summary: any }) => {
         try {
             const res = await fetch(`${API_BASE}/reports`, {
                 method: 'POST',

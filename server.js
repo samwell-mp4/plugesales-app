@@ -97,7 +97,7 @@ const initDB = async () => {
                 campaign_name TEXT, step_index INTEGER, user_id INTEGER, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `CREATE TABLE IF NOT EXISTS client_reports (
-                id SERIAL PRIMARY KEY, user_id INTEGER, report_name TEXT, filename TEXT, 
+                id SERIAL PRIMARY KEY, user_id INTEGER, submission_id INTEGER, report_name TEXT, filename TEXT, 
                 data JSONB, summary JSONB, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `CREATE TABLE IF NOT EXISTS contacts_list (
@@ -416,12 +416,15 @@ app.post('/api/logs', async (req, res) => {
 // --- Client Reports ---
 app.get('/api/reports', async (req, res) => {
     try {
-        const { userId } = req.query;
-        let query = 'SELECT id, user_id, report_name, filename, summary, timestamp FROM client_reports';
+        const { userId, submissionId } = req.query;
+        let query = 'SELECT id, user_id, submission_id, report_name, filename, summary, timestamp FROM client_reports';
         const params = [];
         if (userId) {
             query += ' WHERE user_id = $1';
             params.push(userId);
+        } else if (submissionId) {
+            query += ' WHERE submission_id = $1';
+            params.push(submissionId);
         }
         query += ' ORDER BY timestamp DESC';
         const result = await pool.query(query, params);
@@ -442,11 +445,11 @@ app.get('/api/reports/:id', async (req, res) => {
 });
 
 app.post('/api/reports', async (req, res) => {
-    const { userId, reportName, filename, data, summary } = req.body;
+    const { userId, submissionId, reportName, filename, data, summary } = req.body;
     try {
         const result = await pool.query(
-            'INSERT INTO client_reports (user_id, report_name, filename, data, summary) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [userId, reportName, filename, JSON.stringify(data), JSON.stringify(summary)]
+            'INSERT INTO client_reports (user_id, submission_id, report_name, filename, data, summary) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+            [userId, submissionId, reportName, filename, JSON.stringify(data), JSON.stringify(summary)]
         );
         res.json({ success: true, id: result.rows[0].id });
     } catch (err) {

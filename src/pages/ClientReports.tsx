@@ -195,16 +195,18 @@ const ClientReports = () => {
                 </div>
             </div>
 
-            <label className="upload-zone flex-col items-center justify-center gap-4">
-                <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
-                <div style={{ background: 'var(--primary-gradient)', padding: '16px', borderRadius: '20px', color: 'black' }}>
-                    <Upload size={32} />
-                </div>
-                <div>
-                    <h3 style={{ margin: '0 0 4px 0', fontWeight: 900 }}>{isUploading ? 'PROCESSANDO...' : 'SUBIR NOVO RELATÓRIO EXCEL'}</h3>
-                    <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.5 }}>Suporta colunas: Name, Status, Done At, etc.</p>
-                </div>
-            </label>
+            {user?.role !== 'CLIENT' && (
+                <label className="upload-zone flex-col items-center justify-center gap-4">
+                    <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
+                    <div style={{ background: 'var(--primary-gradient)', padding: '16px', borderRadius: '20px', color: 'black' }}>
+                        <Upload size={32} />
+                    </div>
+                    <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontWeight: 900 }}>{isUploading ? 'PROCESSANDO...' : 'SUBIR NOVO RELATÓRIO EXCEL'}</h3>
+                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.5 }}>Suporta colunas: Name, Status, Done At, etc.</p>
+                    </div>
+                </label>
+            )}
 
             <div className="flex-col gap-4">
                 {isLoading ? (

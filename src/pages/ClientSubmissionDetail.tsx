@@ -27,10 +27,12 @@ import {
     TrendingDown,
     TrendingUp,
     Printer,
-    Link2
+    Link2,
+    BarChart3
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
+import * as XLSX from 'xlsx';
 
 interface Ad {
     ad_name?: string;
@@ -107,6 +109,8 @@ const ClientSubmissionDetail = () => {
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
     const [titleVal, setTitleVal] = useState('');
     const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [isUploadingReport, setIsUploadingReport] = useState(false);
+    const [attachedReport, setAttachedReport] = useState<any>(null);
 
     const load = useCallback(async () => {
         if (!id) return;
@@ -130,6 +134,11 @@ const ClientSubmissionDetail = () => {
                     const empData = await dbService.getEmployees();
                     setEmployees(empData);
                 }
+
+                // Check for attached report
+                const reports = await dbService.getReports(undefined);
+                const subReport = reports.find((r: any) => Number(r.submission_id) === Number(id));
+                if (subReport) setAttachedReport(subReport);
             } else {
                 setSub(null);
             }
@@ -347,6 +356,59 @@ const ClientSubmissionDetail = () => {
         }
     };
 
+    const handleReportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !sub || !user?.id) return;
+
+        setIsUploadingReport(true);
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const rawData = XLSX.utils.sheet_to_json(ws);
+
+                if (rawData.length === 0) {
+                    alert("O arquivo está vazio.");
+                    setIsUploadingReport(false);
+                    return;
+                }
+
+                const summary = {
+                    total: rawData.length,
+                    delivered: rawData.filter((r: any) => String(r.Status || r.status || '').toLowerCase().includes('delivered')).length,
+                    expired: rawData.filter((r: any) => String(r.Status || r.status || '').toLowerCase().includes('expired')).length,
+                    others: 0
+                };
+                summary.others = summary.total - summary.delivered - summary.expired;
+
+                const res = await dbService.addReport({
+                    userId: Number(sub.user_id),
+                    submissionId: sub.id,
+                    reportName: `Relatório: ${sub.profile_name}`,
+                    filename: file.name,
+                    data: rawData,
+                    summary: summary
+                });
+
+                if (res.success) {
+                    await load();
+                    alert("✅ Relatório de entrega anexado com sucesso!");
+                } else {
+                    alert("❌ Erro ao salvar relatório: " + res.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("❌ Erro ao ler o arquivo Excel.");
+            } finally {
+                setIsUploadingReport(false);
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
     const handleAddVariable = (index: number, variable: string) => {
         if (!variable.trim() || !sub || !sub.ads) return;
         const currentVars = sub.ads[index].variables || [];
@@ -544,7 +606,7 @@ const ClientSubmissionDetail = () => {
                     </div>
 
                     <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        {sub.status === 'CONCLUIDO' && (
+                        {(sub.status === 'CONCLUIDO' || sub.status === 'CONCLUÍDO') && (
                             <>
                                 <button onClick={handleGenerateShortlink} disabled={isGeneratingLink} className="action-btn ghost-btn" style={{ padding: '0 20px', height: 44, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {isGeneratingLink ? <RefreshCw size={16} className="animate-spin" /> : <Link2 size={16} />} 
@@ -659,6 +721,37 @@ const ClientSubmissionDetail = () => {
                                 </a>
                             )}
 
+                            {attachedReport && (
+                                <button onClick={() => navigate('/client-reports')} className="asset-link" style={{ width: '100%', textAlign: 'left', border: '1px solid var(--primary-color)' }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(172,248,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <BarChart3 size={20} color="var(--primary-color)" />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 900 }}>RELATÓRIO DE ENTREGA</p>
+                                        <p style={{ margin: 0, fontSize: '10px', color: 'var(--primary-color)', fontWeight: 700 }}>VISUALIZAR DASHBOARD</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex-col items-end">
+                                            <span style={{ fontSize: '10px', fontWeight: 900, color: '#22c55e' }}>{attachedReport.summary?.delivered || 0}</span>
+                                            <span style={{ fontSize: '7px', fontWeight: 800, opacity: 0.5 }}>OK</span>
+                                        </div>
+                                    </div>
+                                </button>
+                            )}
+
+                            {(sub.status === 'CONCLUIDO' || sub.status === 'CONCLUÍDO') && user?.role !== 'CLIENT' && !attachedReport && (
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: 'rgba(172,248,0,0.05)', border: '1px dashed var(--primary-color)', borderRadius: '18px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleReportUpload} disabled={isUploadingReport} />
+                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
+                                        {isUploadingReport ? <RefreshCw size={20} className="animate-spin" /> : <Upload size={20} />}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: 0, fontSize: '11px', fontWeight: 900, color: 'var(--primary-color)' }}>{isUploadingReport ? 'PROCESSANDO...' : 'ANEXAR RELATÓRIO EXCEL'}</p>
+                                        <p style={{ margin: 0, fontSize: '9px', opacity: 0.6, fontWeight: 700 }}>Upload de resultados do disparo</p>
+                                    </div>
+                                </label>
+                            )}
+
                             {sub.media_url && (
                                 <a href={sub.media_url} target="_blank" rel="noreferrer" className="asset-link">
                                     <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -672,7 +765,7 @@ const ClientSubmissionDetail = () => {
                                 </a>
                             )}
 
-                            {sub.status === 'CONCLUIDO' && user?.role !== 'CLIENT' && (
+                            {(sub.status === 'CONCLUIDO' || sub.status === 'CONCLUÍDO') && user?.role !== 'CLIENT' && (
                                 <button
                                     onClick={handleNotifyWebhook}
                                     disabled={isNotifying}
