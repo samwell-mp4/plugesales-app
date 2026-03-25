@@ -189,6 +189,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS accepted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS assigned_to TEXT`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS target_user_id INTEGER REFERENCES users(id)`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES client_submissions(id)`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS is_bulk BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
@@ -847,8 +848,8 @@ app.delete('/api/client-submissions/:id', async (req, res) => {
 
 // --- Link Shortener ---
 app.post('/api/shortener/create', async (req, res) => {
-    const { user_id, client_id, links, original_url, title, short_code: custom_code } = req.body;
-    console.log(`[SHORTENER_CREATE] Request: user=${user_id}, client=${client_id}, url=${original_url}, custom=${custom_code}`);
+    const { user_id, target_user_id, client_id, links, original_url, title, short_code: custom_code } = req.body;
+    console.log(`[SHORTENER_CREATE] Request: user=${user_id}, target=${target_user_id}, client=${client_id}, url=${original_url}, custom=${custom_code}`);
     
     const linksToCreate = Array.isArray(links) ? links : [{ original_url, title, short_code: custom_code }];
 
@@ -873,9 +874,9 @@ app.post('/api/shortener/create', async (req, res) => {
             }
 
             const result = await clientDB.query(
-                `INSERT INTO shortened_links (user_id, client_id, title, original_url, short_code) 
-                 VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-                [user_id || null, client_id || null, l.title || 'Link sem título', l.original_url, short_code]
+                `INSERT INTO shortened_links (user_id, target_user_id, client_id, title, original_url, short_code) 
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+                [user_id || null, target_user_id || null, client_id || null, l.title || 'Link sem título', l.original_url, short_code]
             );
 
             // Robust Host/Protocol detection for Easypanel/Proxies
@@ -904,23 +905,21 @@ app.get('/api/shortener/links', async (req, res) => {
         let query = `
             SELECT l.*, 
                    (SELECT COUNT(*) FROM link_clicks WHERE link_id = l.id) as clicks,
-                   c.profile_name as client_name
+                   u.name as client_name
             FROM shortened_links l
-            LEFT JOIN client_submissions c ON l.client_id = c.id
+            LEFT JOIN users u ON l.target_user_id = u.id
         `;
         const params = [];
         let whereClauses = [];
 
-        if (client_id) {
+        if (role === 'CLIENT' && user_id) {
+            whereClauses.push(`l.target_user_id = $${params.length + 1}`);
+            params.push(user_id);
+        } else if (client_id) {
             whereClauses.push(`l.client_id = $${params.length + 1}`);
             params.push(client_id);
-        } else if (role === 'CLIENT' && user_id) {
-            whereClauses.push(`l.client_id IN (SELECT id FROM client_submissions WHERE user_id = $${params.length + 1})`);
-            params.push(user_id);
-        } else if (user_id) {
-            whereClauses.push(`l.user_id = $${params.length + 1}`);
-            params.push(user_id);
         }
+        // Admins and Employees see all links (no additional filter unless client_id is provided)
 
         if (whereClauses.length > 0) {
             query += ' WHERE ' + whereClauses.join(' AND ');

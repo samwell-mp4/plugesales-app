@@ -48,8 +48,10 @@ const LinkShortener = () => {
 
     const fetchClients = async () => {
         try {
-            const data = await dbService.getClientSubmissions();
-            setClients(data);
+            const data = await dbService.getAllUsers();
+            // Filter only for users with role CLIENT
+            const clientUsers = Array.isArray(data) ? data.filter((u: any) => u.role === 'CLIENT') : [];
+            setClients(clientUsers);
         } catch (error) {
             console.error("Error fetching clients:", error);
         }
@@ -74,7 +76,7 @@ const LinkShortener = () => {
         try {
             const payload: any = {
                 user_id: user?.id,
-                client_id: selectedClientId ? parseInt(selectedClientId) : undefined
+                target_user_id: selectedClientId ? parseInt(selectedClientId) : undefined
             };
 
             if (isBulk) {
@@ -296,9 +298,9 @@ const LinkShortener = () => {
                                         onChange={e => setSelectedClientId(e.target.value)}
                                     >
                                         <option value="">Nenhum cliente selecionado</option>
-                                        {Array.isArray(clients) && clients.map(c => (
-                                            <option key={c.id} value={c.id.toString()} style={{ color: 'var(--text-primary)', background: 'var(--card-bg-subtle)' }}>
-                                                {c.profile_name} {c.ddd && `(${c.ddd})`}
+                                        {Array.isArray(clients) && clients.map(u => (
+                                            <option key={u.id} value={u.id.toString()} style={{ color: 'var(--text-primary)', background: 'var(--card-bg-subtle)' }}>
+                                                {u.name} ({u.email})
                                             </option>
                                         ))}
                                     </select>
