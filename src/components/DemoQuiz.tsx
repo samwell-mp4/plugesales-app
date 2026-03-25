@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { 
-    ArrowRight, 
-    MessageSquare, 
+import {
+    ArrowRight,
+    MessageSquare,
     Send,
     User,
     Mail,
     Phone,
     Zap
 } from 'lucide-react';
+import { dbService } from '../services/dbService';
 
 const mediaOptions = [
     { id: 'img1', type: 'IMAGE', url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=400&q=80', label: 'Estratégia' },
@@ -15,7 +16,7 @@ const mediaOptions = [
     { id: 'img3', type: 'VIDEO', url: 'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=400&q=80', label: 'Meeting' },
 ];
 
-const DemoQuiz = () => {
+const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         leadName: '',
@@ -28,11 +29,27 @@ const DemoQuiz = () => {
         btnText: 'Quero Saber Mais'
     });
 
-    const nextStep = () => {
+    const nextStep = async () => {
         if (step === 1 && (!formData.leadName || !formData.leadPhone || !formData.leadEmail)) {
-             alert("Por favor, preencha seus dados para continuar o teste.");
-             return;
+            alert("Por favor, preencha seus dados para continuar o teste.");
+            return;
         }
+        
+        if (step === 1) {
+            try {
+                await dbService.addLead({
+                    affiliate_id: affiliateId,
+                    name: formData.leadName,
+                    phone: formData.leadPhone,
+                    email: formData.leadEmail,
+                    company_name: formData.companyName,
+                    offer_text: formData.offer
+                });
+            } catch (err) {
+                console.error("Erro ao salvar lead:", err);
+            }
+        }
+
         setStep(prev => Math.min(prev + 1, 5));
     };
     const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
@@ -80,7 +97,8 @@ const DemoQuiz = () => {
                         padding: 40px 24px; 
                         gap: 60px; 
                         border-radius: 40px; 
-                        margin: 20px auto;
+                        margin: 20px 10px;
+                        width: auto;
                     }
                     .sim-preview-sticky { 
                         position: static !important; 
@@ -90,20 +108,24 @@ const DemoQuiz = () => {
                     }
                     .phone-mockup {
                         width: 100%;
-                        max-width: 360px;
+                        max-width: 340px;
+                        margin: 0 auto;
                     }
                     .wp-screen {
-                        height: 580px;
+                        height: 540px;
                     }
-                    .sim-title { font-size: 2rem; }
+                    .sim-title { font-size: 1.8rem; }
                 }
 
                 @media (max-width: 480px) {
-                    .sim-container-full { padding: 32px 16px; border-radius: 24px; }
-                    .sim-title { font-size: 1.75rem; }
-                    .btn-premium { width: 100%; justify-content: center; padding: 18px 24px; font-size: 0.9rem; }
-                    .sim-actions { flex-direction: column-reverse; }
-                    .sim-media-grid { grid-template-columns: repeat(2, 1fr); }
+                    .sim-container-full { padding: 32px 16px; border-radius: 20px; margin: 10px 5px; }
+                    .sim-title { font-size: 1.6rem; }
+                    .btn-premium { width: 100%; justify-content: center; padding: 18px 20px; font-size: 0.85rem; }
+                    .sim-actions { flex-direction: column-reverse; gap: 12px; }
+                    .sim-media-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+                    .phone-mockup { max-width: 290px; padding: 8px; border-radius: 40px; }
+                    .wp-screen { height: 460px; border-radius: 32px; }
+                    .wp-nav-bar { padding: 30px 15px 10px; }
                 }
 
                 /* Left Side: Logic */
@@ -250,7 +272,7 @@ const DemoQuiz = () => {
 
             <div className="sim-logic">
                 <div className="sim-step-indicator">
-                    {[1,2,3,4,5].map(s => <div key={s} className={`step-dot ${step === s ? 'active' : ''}`} />)}
+                    {[1, 2, 3, 4, 5].map(s => <div key={s} className={`step-dot ${step === s ? 'active' : ''}`} />)}
                 </div>
 
                 <div className="sim-content-wrapper">
@@ -258,26 +280,26 @@ const DemoQuiz = () => {
                         <div className="sim-step animate-fade-in">
                             <h2 className="sim-title">Vamos começar o seu <span style={{ color: '#acf800' }}>Teste Grátis</span></h2>
                             <p className="sim-desc">Preencha seus dados para habilitar o simulador profissional.</p>
-                            
+
                             <div className="sim-field">
-                                <div className="sim-label"><User size={14}/> SEU NOME</div>
+                                <div className="sim-label"><User size={14} /> SEU NOME</div>
                                 <div className="sim-input-box">
-                                    <User size={18}/>
-                                    <input className="sim-input-field" placeholder="Como te chamamos?" value={formData.leadName} onChange={e => setFormData({...formData, leadName: e.target.value})} />
+                                    <User size={18} />
+                                    <input className="sim-input-field" placeholder="Como te chamamos?" value={formData.leadName} onChange={e => setFormData({ ...formData, leadName: e.target.value })} />
                                 </div>
                             </div>
                             <div className="sim-field">
-                                <div className="sim-label"><Phone size={14}/> WHATSAPP</div>
+                                <div className="sim-label"><Phone size={14} /> WHATSAPP</div>
                                 <div className="sim-input-box">
-                                    <Phone size={18}/>
-                                    <input className="sim-input-field" placeholder="(00) 00000-0000" value={formData.leadPhone} onChange={e => setFormData({...formData, leadPhone: e.target.value})} />
+                                    <Phone size={18} />
+                                    <input className="sim-input-field" placeholder="(00) 00000-0000" value={formData.leadPhone} onChange={e => setFormData({ ...formData, leadPhone: e.target.value })} />
                                 </div>
                             </div>
                             <div className="sim-field">
-                                <div className="sim-label"><Mail size={14}/> E-MAIL</div>
+                                <div className="sim-label"><Mail size={14} /> E-MAIL</div>
                                 <div className="sim-input-box">
-                                    <Mail size={18}/>
-                                    <input className="sim-input-field" placeholder="contato@empresa.com" value={formData.leadEmail} onChange={e => setFormData({...formData, leadEmail: e.target.value})} />
+                                    <Mail size={18} />
+                                    <input className="sim-input-field" placeholder="contato@empresa.com" value={formData.leadEmail} onChange={e => setFormData({ ...formData, leadEmail: e.target.value })} />
                                 </div>
                             </div>
                         </div>
@@ -288,10 +310,10 @@ const DemoQuiz = () => {
                             <h2 className="sim-title">Sua <span style={{ color: '#acf800' }}>Identidade</span></h2>
                             <p className="sim-desc">Defina como sua marca vai aparecer no topo da mensagem.</p>
                             <div className="sim-field">
-                                <div className="sim-label"><Zap size={14}/> NOME DA EMPRESA</div>
+                                <div className="sim-label"><Zap size={14} /> NOME DA EMPRESA</div>
                                 <div className="sim-input-box">
-                                    <Zap size={18}/>
-                                    <input className="sim-input-field" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
+                                    <Zap size={18} />
+                                    <input className="sim-input-field" value={formData.companyName} onChange={e => setFormData({ ...formData, companyName: e.target.value })} />
                                 </div>
                             </div>
                         </div>
@@ -302,8 +324,8 @@ const DemoQuiz = () => {
                             <h2 className="sim-title">Sua <span style={{ color: '#acf800' }}>Oferta Irresistível</span></h2>
                             <p className="sim-desc">O texto que fará seu cliente clicar no botão.</p>
                             <div className="sim-field">
-                                <div className="sim-label"><MessageSquare size={14}/> MENSAGEM PRINCIPAL</div>
-                                <textarea className="sim-input-field" style={{ paddingLeft: '24px', height: '140px' }} value={formData.offer} onChange={e => setFormData({...formData, offer: e.target.value})} />
+                                <div className="sim-label"><MessageSquare size={14} /> MENSAGEM PRINCIPAL</div>
+                                <textarea className="sim-input-field" style={{ paddingLeft: '24px', height: '140px' }} value={formData.offer} onChange={e => setFormData({ ...formData, offer: e.target.value })} />
                             </div>
                         </div>
                     )}
@@ -311,10 +333,10 @@ const DemoQuiz = () => {
                     {step === 4 && (
                         <div className="sim-step animate-fade-in">
                             <h2 className="sim-title">O <span style={{ color: '#acf800' }}>Impacto Visual</span></h2>
-                            <p className="sim-desc">Escolha uma imagem de alta conversão para o cabeçalho.</p>
+                            <p className="sim-desc">Escolha uma imagem de teste.</p>
                             <div className="sim-media-grid">
                                 {mediaOptions.map(m => (
-                                    <div key={m.id} className={`sim-media-card ${formData.selectedMedia === m.url ? 'active' : ''}`} onClick={() => setFormData({...formData, selectedMedia: m.url})}>
+                                    <div key={m.id} className={`sim-media-card ${formData.selectedMedia === m.url ? 'active' : ''}`} onClick={() => setFormData({ ...formData, selectedMedia: m.url })}>
                                         <img src={m.url} alt="Option" />
                                     </div>
                                 ))}
@@ -327,10 +349,10 @@ const DemoQuiz = () => {
                             <h2 className="sim-title">O <span style={{ color: '#acf800' }}>Toque Final</span></h2>
                             <p className="sim-desc">Qual será o texto do botão de ação?</p>
                             <div className="sim-field">
-                                <div className="sim-label"><Send size={14}/> TEXTO DO BOTÃO</div>
+                                <div className="sim-label"><Send size={14} /> TEXTO DO BOTÃO</div>
                                 <div className="sim-input-box">
-                                    <Send size={18}/>
-                                    <input className="sim-input-field" value={formData.btnText} onChange={e => setFormData({...formData, btnText: e.target.value})} />
+                                    <Send size={18} />
+                                    <input className="sim-input-field" value={formData.btnText} onChange={e => setFormData({ ...formData, btnText: e.target.value })} />
                                 </div>
                             </div>
                         </div>
@@ -339,13 +361,13 @@ const DemoQuiz = () => {
 
                 <div className="sim-actions">
                     <button className="btn-premium btn-premium-s" onClick={prevStep} style={{ visibility: step === 1 ? 'hidden' : 'visible' }}>Voltar</button>
-                    
+
                     {step === 5 ? (
                         <button className="btn-premium btn-premium-p" onClick={() => window.open('https://wa.me/5511999999999?text=Oi, meu nome é ' + formData.leadName + ' e quero escalar com a Plug e Sales!', '_blank')}>
-                            Falar com um de nossos Especialistas <ArrowRight size={20}/>
+                            Falar com um de nossos Especialistas <ArrowRight size={20} />
                         </button>
                     ) : (
-                        <button className="btn-premium btn-premium-p" onClick={nextStep}>Próximo Passo <ArrowRight size={20}/></button>
+                        <button className="btn-premium btn-premium-p" onClick={nextStep}>Próximo Passo <ArrowRight size={20} /></button>
                     )}
                 </div>
             </div>

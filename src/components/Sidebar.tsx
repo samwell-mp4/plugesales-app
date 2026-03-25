@@ -13,7 +13,8 @@ import {
     FileUp,
     Layers,
     Sun,
-    Moon
+    Moon,
+    Users
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -33,6 +34,7 @@ const Sidebar = () => {
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
         { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
+        { name: 'Afiliados', path: '/affiliates', icon: <Users size={20} color="var(--primary-color)" /> },
     ] : [
         { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
@@ -47,6 +49,7 @@ const Sidebar = () => {
 
     // Add Admin Control only if user is Admin
     if (user?.role === 'ADMIN') {
+        menuItems.push({ name: 'Afiliados', path: '/affiliates', icon: <Users size={20} color="var(--primary-color)" /> });
         menuItems.push({ name: 'Controle', path: '/control', icon: <ShieldCheck size={20} color="var(--primary-color)" /> });
     }
 

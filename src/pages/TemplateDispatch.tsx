@@ -159,6 +159,11 @@ const TemplateDispatch = () => {
             }));
             setDrafts(mapped);
         });
+
+        if (location.state?.lead) {
+            setToNumber(location.state.lead.phone);
+            setStep(2); // Jump to recipient step
+        }
     }, [location.state]);
 
     // Manual sender numbers

@@ -628,4 +628,36 @@ export const dbService = {
             return { error: err.message };
         }
     },
+
+    // --- Affiliate Leads ---
+    addLead: async (leadData: { affiliate_id?: number | null, name: string, phone: string, email: string, company_name?: string, offer_text?: string }) => {
+        try {
+            const res = await fetch(`${API_BASE}/leads`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(leadData)
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
+    getLeads: async (userId?: number, role?: string) => {
+        try {
+            const params = new URLSearchParams();
+            if (userId) params.append('affiliate_id', userId.toString());
+            if (role) params.append('role', role);
+            const res = await fetch(`${API_BASE}/leads?${params.toString()}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) { return []; }
+    },
+    updateLead: async (id: number, data: { status?: string, notes?: string }) => {
+        try {
+            const res = await fetch(`${API_BASE}/leads/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    }
 };

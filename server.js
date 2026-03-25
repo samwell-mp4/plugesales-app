@@ -183,6 +183,22 @@ const initDB = async () => {
         `);
         console.log('✅ Table client_submissions verified/created.');
 
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS affiliate_leads (
+                id SERIAL PRIMARY KEY,
+                affiliate_id INTEGER REFERENCES users(id),
+                name TEXT,
+                phone TEXT,
+                email TEXT,
+                company_name TEXT,
+                offer_text TEXT,
+                status TEXT DEFAULT 'NOVO',
+                notes TEXT,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✅ Table affiliate_leads verified/created.');
+
         // Backward-compat: add new columns if the table already existed without them
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'CLIENT'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS ads JSONB DEFAULT '[]'`);
@@ -1741,6 +1757,57 @@ const startTemplateMonitoring = () => {
 };
 
 // Start monitoring session
+// --- AFFILIATE LEADS API ---
+app.post('/api/leads', async (req, res) => {
+    const { affiliate_id, name, phone, email, company_name, offer_text } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO affiliate_leads (affiliate_id, name, phone, email, company_name, offer_text) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [affiliate_id || null, name, phone, email, company_name, offer_text]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Error creating lead:', err);
+        res.status(500).json({ error: 'Erro ao salvar Lead' });
+    }
+});
+
+app.get('/api/leads', async (req, res) => {
+    const { affiliate_id, role } = req.query;
+    try {
+        let query = 'SELECT * FROM affiliate_leads';
+        let params = [];
+        
+        if (role !== 'ADMIN' && affiliate_id) {
+            query += ' WHERE affiliate_id = $1';
+            params.push(affiliate_id);
+        }
+        
+        query += ' ORDER BY created_at DESC';
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching leads:', err);
+        res.status(500).json({ error: 'Erro ao buscar Leads' });
+    }
+});
+
+app.patch('/api/leads/:id', async (req, res) => {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE affiliate_leads SET status = COALESCE($1, status), notes = COALESCE($2, notes) WHERE id = $3 RETURNING *',
+            [status, notes, id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Error updating lead:', err);
+        res.status(500).json({ error: 'Erro ao atualizar Lead' });
+    }
+});
+
 startTemplateMonitoring();
 
 app.listen(port, '0.0.0.0', () => {

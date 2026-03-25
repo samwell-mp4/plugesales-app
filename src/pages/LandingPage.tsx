@@ -16,6 +16,9 @@ import DemoQuiz from '../components/DemoQuiz';
 const LandingPage = () => {
     const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
+    const query = new URLSearchParams(window.location.search);
+    const refId = query.get('ref') || query.get('affiliate');
+
     const toggleFaq = (index: number) => {
         setActiveFaq(activeFaq === index ? null : index);
     };
@@ -182,7 +185,7 @@ const LandingPage = () => {
                     <p>Personalize cada detalhe da sua campanha abaixo e veja o resultado instantâneo no preview à direita.</p>
                 </div>
 
-                <DemoQuiz />
+                <DemoQuiz affiliateId={refId ? parseInt(refId) : null} />
             </section>
 
             {/* ── FAQ ── */}
