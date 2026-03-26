@@ -122,7 +122,7 @@ const LandingPage = () => {
 
                 <div className="lp-hero-mockup">
                     <img
-                        src="https://iili.io/qLZLRgs.jpg"
+                        src="https://iili.io/qshz9nt.jpg"
                         alt="Dashboard Mockup"
                         className="lp-mockup-frame"
                     />
