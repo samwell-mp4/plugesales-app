@@ -255,7 +255,7 @@ const ClientExternalForm = () => {
     }
 
     return (
-        <div className="min-h-screen container-root" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        <div className="min-h-screen form-container-wrapper" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <style>{`
                 .glass-card {
                     margin-top: 20px;
@@ -268,43 +268,76 @@ const ClientExternalForm = () => {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    padding: 60px 24px;
+                    padding: 80px 40px;
                     width: 100%;
                     box-sizing: border-box;
                 }
                 .whatsapp-grid { 
                     display: grid; 
                     grid-template-columns: 1fr 380px;
-                    gap: 64px; 
+                    gap: 80px; 
                     max-width: 1200px; 
                     width: 100%;
                     margin: 0 auto;
                 }
+                .header-title { 
+                    font-size: 3.5rem; 
+                    font-weight: 900; 
+                    margin-bottom: 12px; 
+                    letter-spacing: -3px; 
+                    line-height: 1;
+                }
+                .header-subtitle { 
+                    font-size: 1rem; 
+                    opacity: 0.5; 
+                    font-weight: 600; 
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                }
+                .section-title {
+                    font-size: 1.2rem;
+                    font-weight: 900;
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                    margin-bottom: 8px;
+                }
+                .section-subtitle {
+                    font-size: 0.9rem;
+                    opacity: 0.5;
+                    font-weight: 500;
+                    margin-bottom: 32px;
+                }
+
                 @media (max-width: 1024px) {
-                    .form-container-wrapper { padding: 40px 24px; }
+                    .form-container-wrapper { padding: 40px 32px; }
                     .whatsapp-grid { grid-template-columns: 1fr; gap: 40px; justify-items: center; }
                     .preview-side { 
                         display: ${hasSubmissions ? 'flex' : 'none'}; 
                         position: relative;
                         top: 0;
                         order: 2;
-                        margin-top: 40px;
+                        margin-top: 60px;
                         width: 100%;
                         justify-content: center;
                     }
                     .form-side { width: 100%; max-width: 650px; }
                 }
+
                 @media (max-width: 640px) {
-                    .form-container-wrapper { padding: 32px 20px; }
-                    .header-title { font-size: 1.7rem !important; letter-spacing: -1.5px !important; text-align: center; line-height: 1.2; }
-                    .header-subtitle { font-size: 0.8rem !important; text-align: center; display: block; margin-top: 8px; opacity: 0.5; }
-                    .nav-btn { width: 100%; justify-content: center; height: 56px; font-size: 14px; border-radius: 16px !important; }
-                    .variable-col { width: 100% !important; margin-bottom: 20px !important; padding: 0 !important; }
-                    .glass-card { padding: 32px 24px !important; border-radius: 24px !important; margin-bottom: 24px; }
-                    .form-section-subtitle { margin-bottom: 24px !important; text-align: center; font-size: 11px; }
-                    .iphone-mockup { transform: scale(0.85); transform-origin: top center; margin: 0 auto; }
-                    .creative-card { width: 100% !important; margin-top: 12px !important; }
+                    .form-container-wrapper { padding: 40px 32px; }
+                    .header-title { font-size: 2.2rem !important; letter-spacing: -2px !important; text-align: center; }
+                    .header-subtitle { font-size: 0.75rem !important; text-align: center; display: block; margin-top: 12px; }
+                    .section-title { font-size: 1rem !important; text-align: center; }
+                    .section-subtitle { font-size: 0.8rem !important; text-align: center; }
+                    .nav-btn { width: 100%; justify-content: center; height: 60px; font-size: 14px; border-radius: 20px !important; }
+                    .variable-col { width: 100% !important; margin-bottom: 24px !important; padding: 0 !important; }
+                    .glass-card { padding: 40px 32px !important; border-radius: 32px !important; margin-bottom: 32px; }
+                    .form-section-subtitle { margin-bottom: 32px !important; text-align: center; font-size: 11px; }
+                    .iphone-mockup { transform: scale(0.8); transform-origin: top center; margin: 0 auto; }
+                    .creative-card { width: 100% !important; margin-top: 16px !important; border-radius: 24px !important; }
                     .flex.flex-row.gap-6.w-full { flex-direction: column !important; gap: 0 !important; }
+                    .step-indicator-wrapper { scale: 0.9; margin-bottom: 40px !important; }
+                    .profile-photo-wrapper { margin: 0 auto !important; }
                 }
                 
                 .preview-side {
@@ -579,31 +612,41 @@ const ClientExternalForm = () => {
                 }
             `}</style>
 
-            <div className="form-container-wrapper">
-                <div className="max-w-7xl w-full">
+            <div className="max-w-7xl w-full">
                 {step < 4 && (
                     <div className="whatsapp-grid">
                         {/* FORM SIDE */}
                         <div className="animate-slide-up w-full form-side">
-                            <div className="mb-12 flex items-center justify-between">
+                            <div className="mb-16 flex items-center justify-center text-center header-section">
                                 <div>
-                                    <h1 className="header-title" style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-2px' }}>
+                                    <h1 className="header-title">
                                         Configure sua <span style={{ color: 'var(--primary-color)' }}>Marca</span>
                                     </h1>
-                                    <p className="header-subtitle" style={{ opacity: 0.6, fontWeight: 600 }}>PREENCHA OS DETALHES PARA ENVIAR AOS SEUS CLIENTES</p>
+                                    <p className="header-subtitle">PREENCHA OS DETALHES PARA ENVIAR AOS SEUS CLIENTES</p>
                                 </div>
                             </div>
 
                             {/* STEPS INDICATOR */}
-                            <div className="flex items-center gap-4 mb-12">
-                                {(user?.role === 'ADMIN' ? [0, 1, 2, 3] : [1, 2, 3]).map((i, index) => (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <div className={`step-pill ${step === i ? 'active' : step > i ? 'completed' : ''}`}>
-                                            {step > i ? <CheckCircle size={20} /> : index + 1}
-                                        </div>
-                                        {i < 3 && <div style={{ width: '40px', height: '2px', background: step > i ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)' }} />}
-                                    </div>
-                                ))}
+                            <div className="flex justify-center mb-16 step-indicator-wrapper">
+                                <div className="flex items-center gap-6">
+                                    {(user?.role === 'ADMIN' ? [0, 1, 2, 3] : [1, 2, 3]).map((i, index) => (
+                                        <React.Fragment key={i}>
+                                            <div
+                                                onClick={() => i < step && setStep(i)}
+                                                className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-sm transition-all cursor-pointer border-2 ${
+                                                    step === i
+                                                        ? 'bg-primary border-primary text-black shadow-[0_0_30px_rgba(172,248,0,0.4)] scale-110'
+                                                        : step > i
+                                                        ? 'bg-primary/20 border-primary/40 text-primary'
+                                                        : 'bg-white/5 border-white/10 text-white/30'
+                                                }`}
+                                            >
+                                                {step > i ? <CheckCircle size={20} /> : index + 1}
+                                            </div>
+                                            {i < 3 && <div className={`h-[2px] w-12 transition-all duration-500 ${step > i ? 'bg-primary/40' : 'bg-white/5'}`} />}
+                                        </React.Fragment>
+                                    ))}
+                                </div>
                             </div>
 
                                 {step === 0 && user?.role === 'ADMIN' && (
@@ -678,20 +721,21 @@ const ClientExternalForm = () => {
                                 )}
 
                                 {step === 1 && (
-                                    <div className="space-y-6 animate-fade-in">
-                                        <div>
-                                            <h2 className="form-section-title">IDENTIDADE DA MARCA</h2>
-                                            <p className="form-section-subtitle">Como sua marca aparecerá no WhatsApp dos clientes.</p>
+                                    <div className="space-y-12 animate-fade-in glass-card">
+                                        <div className="text-center sm:text-left mb-10">
+                                            <h2 className="section-title">IDENTIDADE DA MARCA</h2>
+                                            <p className="section-subtitle">Como sua marca aparecerá no WhatsApp dos clientes.</p>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                            <div className="space-y-6">
                                                 <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40">Foto do Perfil</label>
-                                                <div className="upload-zone group" style={{ padding: '8px', width: '140px', height: '140px', borderRadius: '100%', margin: '0 auto' }} onClick={() => document.getElementById('photo-upload')?.click()}>
-                                                    <input id="photo-upload" type="file" hidden accept="image/*" onChange={e => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) handleFileUpload(file, 'profile_photo');
-                                                    }} />
+                                                <div className="flex items-center justify-center profile-photo-wrapper">
+                                                    <div className="upload-zone group" style={{ padding: '8px', width: '160px', height: '160px', borderRadius: '100%' }} onClick={() => document.getElementById('photo-upload')?.click()}>
+                                                        <input id="photo-upload" type="file" hidden accept="image/*" onChange={e => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) handleFileUpload(file, 'profile_photo');
+                                                        }} />
                                                     {formData.profile_photo ? (
                                                         <div className="w-full h-full relative group-hover:scale-105 transition-transform duration-300 overflow-hidden rounded-full">
                                                             <img 
@@ -725,31 +769,22 @@ const ClientExternalForm = () => {
                                                     <input className="input-premium py-4" placeholder="Ex: 11" maxLength={2} value={formData.ddd} onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))} />
                                                 </div>
                                             </div>
+                                            </div>
                                         </div>
 
                                         <div className="mt-4 flex items-center justify-between pt-10 border-t border-white/5">
-                                            <button
-                                                onClick={prevStep}
-                                                className="nav-btn nav-btn-secondary"
-                                            >
-                                                VOLTAR
-                                            </button>
-                                            <button
-                                                onClick={nextStep}
-                                                className="nav-btn nav-btn-primary"
-                                            >
-                                                PRÓXIMA ETAPA <ChevronRight size={18} />
-                                            </button>
+                                            <button onClick={prevStep} className="nav-btn nav-btn-secondary">VOLTAR</button>
+                                            <button onClick={nextStep} className="nav-btn nav-btn-primary">PRÓXIMA ETAPA <ChevronRight size={18} /></button>
                                         </div>
                                     </div>
                                 )}
 
                                 {step === 2 && (
-                                    <div className="space-y-8 animate-fade-in">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h2 className="form-section-title">CONTEÚDO DA MENSAGEM</h2>
-                                                <p className="form-section-subtitle">O que o cliente receberá no celular.</p>
+                                    <div className="space-y-12 animate-fade-in glass-card">
+                                        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
+                                            <div className="text-center sm:text-left">
+                                                <h2 className="section-title">CONTEÚDO DA MENSAGEM</h2>
+                                                <p className="section-subtitle">O que o cliente receberá no celular.</p>
                                             </div>
                                             <div className="relative" style={{ position: 'relative' }}>
                                                 <div
@@ -1090,18 +1125,8 @@ const ClientExternalForm = () => {
                                         </div>
 
                                         <div className="mt-4 flex items-center justify-between pt-10 border-t border-white/5">
-                                            <button
-                                                onClick={prevStep}
-                                                className="nav-btn nav-btn-secondary"
-                                            >
-                                                VOLTAR
-                                            </button>
-                                            <button
-                                                onClick={nextStep}
-                                                className="nav-btn nav-btn-primary"
-                                            >
-                                                PRÓXIMA ETAPA <ChevronRight size={18} />
-                                            </button>
+                                            <button onClick={prevStep} className="nav-btn nav-btn-secondary">VOLTAR</button>
+                                            <button onClick={nextStep} className="nav-btn nav-btn-primary">PRÓXIMA ETAPA <ChevronRight size={18} /></button>
                                         </div>
                                     </div>
                                 )}
@@ -1193,44 +1218,33 @@ const ClientExternalForm = () => {
                                                     <p className="m-0 whitespace-pre-wrap leading-snug text-[13px]">
                                                         {ad.ad_copy.replace(/{{(\d+)}}/g, (match, n) => ad.variables[parseInt(n)-1] || match)}
                                                     </p>
-                                                    {ad.button_link && (
-                                                        <div className="chat-button">
-                                                            Abrir Link
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
+                                        {ad.button_link && <div className="chat-button">Abrir Link</div>}
                                     </div>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase opacity-30 tracking-[3px]">Visualização Real-Time</p>
-                                </div>
+                                ))}
                             </div>
                         </div>
-                    )}
-
-                    {step === 4 && (
-                        <div className="max-w-xl mx-auto py-24 text-center animate-slide-up">
-                            <div className="w-32 h-32 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-12 shadow-[0_0_80px_rgba(172,248,0,0.1)]">
-                                <CheckCircle size={64} className="text-primary" />
-                            </div>
-                            <h1 style={{ fontSize: '4rem', fontWeight: 900, marginBottom: '24px', letterSpacing: '-3px' }}>Tudo <span className="text-primary">Pronto!</span></h1>
-                            <p className="text-xl font-bold opacity-60 mb-12">Seus dados e campanha foram enviados com sucesso. Agora nossa equipe processará sua lista.</p>
-                            <div className="flex flex-wrap gap-4 justify-center">
-                                <button onClick={() => setStep(1)} className="nav-btn nav-btn-secondary px-8 py-4 rounded-[20px] font-black">
-                                    ENVIAR OUTRO FORMULÁRIO
-                                </button>
-                                <button onClick={() => navigate('/client-dashboard')} className="nav-btn nav-btn-primary px-8 py-4 rounded-[20px] font-black">
-                                    IR PARA MEU PAINEL
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    </div>
+                    <div className="text-center">
+                        <p className="text-[10px] font-black uppercase opacity-30 tracking-[3px]">Visualização Real-Time</p>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        )}
+
+        {step === 4 && (
+            <div className="max-w-xl mx-auto py-24 text-center animate-slide-up">
+                <div className="w-32 h-32 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-12 shadow-[0_0_80px_rgba(172,248,0,0.1)]"><CheckCircle size={64} className="text-primary" /></div>
+                <h1 style={{ fontSize: '4rem', fontWeight: 900, marginBottom: '24px', letterSpacing: '-3px' }}>Tudo <span className="text-primary">Pronto!</span></h1>
+                <p className="text-xl font-bold opacity-60 mb-12">Seus dados e campanha foram enviados com sucesso. Agora nossa equipe processará sua lista.</p>
+                <div className="flex flex-wrap gap-4 justify-center">
+                    <button onClick={() => setStep(1)} className="nav-btn nav-btn-secondary px-8 py-4 rounded-[20px] font-black">ENVIAR OUTRO FORMULÁRIO</button>
+                    <button onClick={() => navigate('/client-dashboard')} className="nav-btn nav-btn-primary px-8 py-4 rounded-[20px] font-black">IR PARA MEU PAINEL</button>
+                </div>
+            </div>
+        )}
+    </div>
+</div>
+);
 };
 
 export default ClientExternalForm;
