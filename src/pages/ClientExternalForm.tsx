@@ -264,31 +264,47 @@ const ClientExternalForm = () => {
                     backdrop-filter: blur(24px);
                     box-shadow: 0 8px 32px rgba(0,0,0,0.1);
                 }
+                .form-container-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 60px 24px;
+                    width: 100%;
+                    box-sizing: border-box;
+                }
                 .whatsapp-grid { 
                     display: grid; 
                     grid-template-columns: 1fr 380px;
-                    gap: 32px; 
+                    gap: 64px; 
                     max-width: 1200px; 
-                    margin: 0 auto; 
-                    align-items: start;
+                    width: 100%;
+                    margin: 0 auto;
                 }
                 @media (max-width: 1024px) {
-                    .whatsapp-grid { grid-template-columns: 1fr; gap: 24px; }
+                    .form-container-wrapper { padding: 40px 24px; }
+                    .whatsapp-grid { grid-template-columns: 1fr; gap: 40px; justify-items: center; }
                     .preview-side { 
                         display: ${hasSubmissions ? 'flex' : 'none'}; 
                         position: relative;
                         top: 0;
                         order: 2;
                         margin-top: 40px;
+                        width: 100%;
+                        justify-content: center;
                     }
+                    .form-side { width: 100%; max-width: 650px; }
                 }
                 @media (max-width: 640px) {
-                    .header-title { font-size: 1.8rem !important; letter-spacing: -1px !important; }
-                    .header-subtitle { font-size: 0.75rem !important; }
-                    .nav-btn { width: 100%; justify-content: center; }
-                    .variable-col { width: 100% !important; margin-bottom: 24px !important; }
-                    .glass-card { padding: 20px !important; }
-                    .form-section-subtitle { margin-bottom: 20px !important; }
+                    .form-container-wrapper { padding: 32px 20px; }
+                    .header-title { font-size: 1.7rem !important; letter-spacing: -1.5px !important; text-align: center; line-height: 1.2; }
+                    .header-subtitle { font-size: 0.8rem !important; text-align: center; display: block; margin-top: 8px; opacity: 0.5; }
+                    .nav-btn { width: 100%; justify-content: center; height: 56px; font-size: 14px; border-radius: 16px !important; }
+                    .variable-col { width: 100% !important; margin-bottom: 20px !important; padding: 0 !important; }
+                    .glass-card { padding: 32px 24px !important; border-radius: 24px !important; margin-bottom: 24px; }
+                    .form-section-subtitle { margin-bottom: 24px !important; text-align: center; font-size: 11px; }
+                    .iphone-mockup { transform: scale(0.85); transform-origin: top center; margin: 0 auto; }
+                    .creative-card { width: 100% !important; margin-top: 12px !important; }
+                    .flex.flex-row.gap-6.w-full { flex-direction: column !important; gap: 0 !important; }
                 }
                 
                 .preview-side {
@@ -563,11 +579,12 @@ const ClientExternalForm = () => {
                 }
             `}</style>
 
-            <div className="max-w-7xl mx-auto px-4 py-8 lg:py-16">
+            <div className="form-container-wrapper">
+                <div className="max-w-7xl w-full">
                 {step < 4 && (
                     <div className="whatsapp-grid">
                         {/* FORM SIDE */}
-                        <div className="animate-slide-up w-full">
+                        <div className="animate-slide-up w-full form-side">
                             <div className="mb-12 flex items-center justify-between">
                                 <div>
                                     <h1 className="header-title" style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-2px' }}>
@@ -1006,10 +1023,10 @@ const ClientExternalForm = () => {
                                                         <div className="flex flex-wrap -mx-6 pt-6">
                                                             {[1, 2, 3, 4].map(vNum => (
                                                                 <div key={vNum} className="variable-col w-1/2 px-6 mb-16">
-                                                                    <div className="space-y-6 mt-4">
-                                                                        <label className="text-[12px] font-black uppercase tracking-[4px] opacity-70 text-primary-color">Variável {vNum}</label>
+                                                                    <div className="space-y-4">
+                                                                        <label className="text-[10px] font-black uppercase tracking-[2px] opacity-70 text-primary-color">Variável {vNum}</label>
                                                                         <input
-                                                                            className="input-premium py-10 px-12 text-xl w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/20 focus:border-primary/50"
+                                                                            className="input-premium py-4 w-full border-white/10 focus:border-primary/50"
                                                                             placeholder={`Valor de {{${vNum}}}`}
                                                                             value={formData.ads[formData.currentAdIndex].variables?.[vNum - 1] || ''}
                                                                             onChange={e => {
@@ -1210,6 +1227,7 @@ const ClientExternalForm = () => {
                             </div>
                         </div>
                     )}
+                </div>
             </div>
         </div>
     );
