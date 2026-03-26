@@ -76,23 +76,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     role: foundStatic.role
                 });
 
-                // If already exists, result will have error or user. DB register returns {user, token} usually or just user.
-                // Our current register returns the user object directly if success.
-                const finalUser = dbRes.error ? (await dbService.login({ email: `${foundStatic.name.toLowerCase()}@internal.system`, password: foundStatic.password })) : dbRes;
+                // If already exists, result will have error or user. DB register returns the user object directly.
+                // If register failed (likely user exists), we try to login
+                const finalUser = dbRes && !dbRes.error ? dbRes : (await dbService.login({ email: `${foundStatic.name.toLowerCase()}@internal.system`, password: foundStatic.password }));
 
-                // Note: dbRes/finalUser from login endpoint is usually { token, user }
-                const userObj = finalUser.user || finalUser;
+                // In current dbService, login returns the user object directly, not wrapped in {user: ...}
+                const userObj = finalUser?.user || finalUser;
 
                 if (userObj && userObj.id) {
+                    console.log(`Sync success for ${foundStatic.name}, ID: ${userObj.id}`);
                     setUser(userObj);
                     localStorage.setItem('auth_user', JSON.stringify(userObj));
                     return true;
+                } else {
+                    console.warn(`Sync failed for ${foundStatic.name}: No ID returned from DB. DB Res:`, finalUser);
                 }
             } catch (err) {
                 console.error("Static sync error:", err);
             }
 
-            const userData: User = { name: foundStatic.name, role: foundStatic.role as Role };
+            // Absolute Fallback: This might lack an ID, causing profile update issues
+            const userData: User = { 
+                name: foundStatic.name, 
+                role: foundStatic.role as Role,
+                email: `${foundStatic.name.toLowerCase()}@internal.system`
+            };
             setUser(userData);
             localStorage.setItem('auth_user', JSON.stringify(userData));
             return true;

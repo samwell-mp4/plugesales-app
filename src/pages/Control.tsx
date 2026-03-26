@@ -54,7 +54,7 @@ const AdminControl = () => {
     const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
     const [allLinks, setAllLinks] = useState<any[]>([]);
     const [employees, setEmployees] = useState<string[]>([]);
-    
+
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<'ALL' | 'TEMPLATE' | 'DISPATCH'>('ALL');
     const [activeTab, setActiveTab] = useState<'MONITOR' | 'USUARIOS'>('MONITOR');
@@ -108,15 +108,15 @@ const AdminControl = () => {
         const transmissions = dispatchLogs.filter(d => d.author?.trim().toLowerCase() === nameLower).length;
         const linksCount = allLinks.filter(l => l.author?.trim().toLowerCase() === nameLower).length;
         const submissions = (allSubmissions || []).filter(s => s.assigned_to?.trim().toLowerCase() === nameLower).length;
-        const pendingSubmissions = (allSubmissions || []).filter(s => 
-            s.assigned_to?.trim().toLowerCase() === nameLower && 
+        const pendingSubmissions = (allSubmissions || []).filter(s =>
+            s.assigned_to?.trim().toLowerCase() === nameLower &&
             (s.status === 'PENDENTE' || s.status === 'EM_ANALISE')
         ).length;
-        
+
         const employeeLogs = [...templateLogs, ...dispatchLogs]
             .filter(l => l.author?.trim().toLowerCase() === nameLower)
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        
+
         const lastActivity = employeeLogs.length > 0 ? new Date(employeeLogs[0].timestamp) : null;
         const total = templates + transmissions + linksCount + submissions;
 
@@ -240,8 +240,8 @@ const AdminControl = () => {
                                         const stats = getStats(employee);
                                         const isSelected = selectedEmployee === employee;
                                         return (
-                                            <div 
-                                                key={employee} 
+                                            <div
+                                                key={employee}
                                                 onClick={() => setSelectedEmployee(isSelected ? null : employee)}
                                                 className={`p-6 rounded-[28px] border transition-all duration-300 cursor-pointer hover-lift shadow-glass ${isSelected ? 'selected-employee-card-v2' : 'normal-employee-card-v2'}`}
                                                 style={{ marginBottom: '4px' }}
@@ -261,7 +261,7 @@ const AdminControl = () => {
                                                         <span style={{ fontSize: '0.6rem', opacity: 0.5, fontWeight: 800 }}>TOTAL AÇÕES</span>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="flex items-center gap-4 mb-6">
                                                     {[
                                                         { label: 'TMPL', val: stats.templates, c: '#4ade80' },
@@ -311,8 +311,8 @@ const AdminControl = () => {
                                     </div>
                                     <div className="flex gap-3 p-1.5 bg-surface-subtle rounded-[20px]" style={{ background: 'rgba(255,255,255,0.03)' }}>
                                         {['ALL', 'TEMPLATE', 'DISPATCH'].map(f => (
-                                            <button 
-                                                key={f} 
+                                            <button
+                                                key={f}
                                                 onClick={() => setActiveFilter(f as any)}
                                                 className={`px-8 py-3 rounded-[16px] text-[0.75rem] font-black transition-all duration-300 ${activeFilter === f ? 'selected-audit-tab' : 'unselected-audit-tab'}`}
                                             >
@@ -324,15 +324,15 @@ const AdminControl = () => {
 
                                 <div className="mb-10 relative group">
                                     <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity" />
-                                    <input 
-                                        className="input-field w-full pl-14 pr-8" 
-                                        placeholder="Pesquisar registros..." 
+                                    <input
+                                        className="input-field w-full pl-14 pr-8"
+                                        placeholder="Pesquisar registros..."
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
-                                        style={{ 
-                                            borderRadius: '20px', 
-                                            background: 'rgba(255,255,255,0.03)', 
-                                            border: '1px solid rgba(255,255,255,0.08)', 
+                                        style={{
+                                            borderRadius: '20px',
+                                            background: 'rgba(255,255,255,0.03)',
+                                            border: '1px solid rgba(255,255,255,0.08)',
                                             height: '60px',
                                             fontSize: '1rem',
                                             fontWeight: 600
@@ -374,8 +374,8 @@ const AdminControl = () => {
 
                                     {totalPages > 1 && (
                                         <div className="flex items-center justify-between mt-auto pt-10" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <button 
-                                                className="btn btn-secondary px-10 py-4 flex items-center justify-center gap-2" 
+                                            <button
+                                                className="btn btn-secondary px-10 py-4 flex items-center justify-center gap-2"
                                                 disabled={currentPage === 1}
                                                 onClick={() => setCurrentPage(p => p - 1)}
                                                 style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '18px', fontSize: '0.85rem', fontWeight: 950, letterSpacing: '1px' }}
@@ -387,8 +387,8 @@ const AdminControl = () => {
                                                 <div className="px-4 py-2 rounded-xl bg-primary text-black font-black text-xl" style={{ background: 'var(--primary-color)' }}>{currentPage}</div>
                                                 <span style={{ fontSize: '1.1rem', fontWeight: 950, color: 'var(--text-muted)' }}>DE {totalPages}</span>
                                             </div>
-                                            <button 
-                                                className="btn btn-secondary px-10 py-4 flex items-center justify-center gap-2" 
+                                            <button
+                                                className="btn btn-secondary px-10 py-4 flex items-center justify-center gap-2"
                                                 disabled={currentPage === totalPages}
                                                 onClick={() => setCurrentPage(p => p + 1)}
                                                 style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '18px', fontSize: '0.85rem', fontWeight: 950, letterSpacing: '1px' }}
@@ -414,16 +414,16 @@ const AdminControl = () => {
 
                     <div className="mb-14 relative group">
                         <Search size={28} className="absolute left-7 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity" />
-                        <input 
-                            className="input-field w-full pl-20 pr-10" 
-                            placeholder="Buscar colaboradores por nome ou email..." 
+                        <input
+                            className="input-field w-full pl-20 pr-10"
+                            placeholder="Buscar colaboradores por nome ou email..."
                             value={userSearchTerm}
                             onChange={e => setUserSearchTerm(e.target.value)}
-                            style={{ 
-                                borderRadius: '24px', 
-                                background: 'rgba(255,255,255,0.03)', 
-                                border: '1px solid rgba(255,255,255,0.08)', 
-                                height: '72px', 
+                            style={{
+                                borderRadius: '24px',
+                                background: 'rgba(255,255,255,0.03)',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                height: '72px',
                                 fontSize: '1.2rem',
                                 fontWeight: 600
                             }}
@@ -451,12 +451,16 @@ const AdminControl = () => {
                                             <span style={{ fontSize: '1rem', opacity: 0.5, fontWeight: 600, letterSpacing: '0.5px' }}>{u.email}</span>
                                         </div>
                                     </div>
-                                    <button 
+                                    <button
                                         className="btn btn-secondary px-12 py-4"
                                         style={{ borderRadius: '18px', fontWeight: 950, fontSize: '0.85rem', height: '54px', background: 'rgba(255,255,255,0.05)', letterSpacing: '1px' }}
                                         onClick={async () => {
                                             const pass = window.prompt(`Definir nova chave mestra para ${u.name}:`);
                                             if (pass) {
+                                                if (!u.id) {
+                                                    alert("Erro: ID do usuário ausente. Sincronize a base de dados.");
+                                                    return;
+                                                }
                                                 const res = await dbService.adminUpdatePassword(u.id, pass);
                                                 alert(res.error ? `Erro: ${res.error}` : 'Credenciais de segurança atualizadas!');
                                             }

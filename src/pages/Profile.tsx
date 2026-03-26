@@ -54,10 +54,20 @@ const Profile = () => {
             return;
         }
 
+        if (!user || !user.id) {
+            console.error("Tentativa de atualizar perfil sem ID de usuário.", { user });
+            setMessage({ 
+                type: 'error', 
+                text: 'Sua sessão está incompleta (ID ausente). Por favor, saia e entre novamente para sincronizar.' 
+            });
+            return;
+        }
+
         setIsSaving(true);
         try {
+            console.log("Enviando atualização de perfil:", { id: user.id, name: profileData.name });
             const result = await dbService.updateProfile({
-                id: user!.id,
+                id: user.id as number,
                 name: profileData.name,
                 email: profileData.email,
                 phone: profileData.phone,
@@ -66,6 +76,7 @@ const Profile = () => {
             });
 
             if (result.error) {
+                console.error("Erro no dbService.updateProfile:", result.error);
                 setMessage({ type: 'error', text: result.error });
             } else {
                 setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
@@ -73,6 +84,7 @@ const Profile = () => {
                 setProfileData(prev => ({ ...prev, password: '', confirmPassword: '' }));
             }
         } catch (error: any) {
+            console.error("Erro catch no Profile handleSubmit:", error);
             setMessage({ type: 'error', text: 'Erro ao salvar perfil.' });
         } finally {
             setIsSaving(false);
