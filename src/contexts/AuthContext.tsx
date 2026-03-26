@@ -28,14 +28,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Lista de usuários pré-definida conforme solicitado
 const VALID_USERS = [
     { name: 'Admin', role: 'ADMIN' as Role, password: 'admin123' },
+    { name: 'geraldo', role: 'ADMIN' as Role, password: 'geraldo876' },
     { name: 'Italo', role: 'EMPLOYEE' as Role, password: 'italo982' },
     { name: 'Augusto', role: 'EMPLOYEE' as Role, password: 'augusto451' },
     { name: 'Otavio', role: 'EMPLOYEE' as Role, password: 'otavio319' },
     { name: 'Lucas', role: 'EMPLOYEE' as Role, password: 'lucas762' },
-    { name: 'Geraldo', role: 'EMPLOYEE' as Role, password: 'geraldo104' },
+    { name: 'luis', role: 'ADMIN' as Role, password: 'luis762' },
     { name: 'Ricardo', role: 'EMPLOYEE' as Role, password: 'ricardo883' },
     { name: 'gabriel', role: 'EMPLOYEE' as Role, password: 'gabriel123' },
     { name: 'lucas2', role: 'EMPLOYEE' as Role, password: 'lucas762' },
+    { name: 'sidao', role: 'EMPLOYEE' as Role, password: 'charlesbravo@123' },
 
 ];
 
