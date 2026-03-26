@@ -1804,23 +1804,30 @@ app.get('/api/debug/db', async (req, res) => {
 
 app.get('/api/leads', async (req, res) => {
     const { affiliate_id, role } = req.query;
-    console.log('Fetching leads for:', { affiliate_id, role });
+    console.log('--- GET Leads Request ---');
+    console.log('Query Params:', { affiliate_id, role });
     try {
         let query = 'SELECT * FROM affiliate_leads';
         let params = [];
         
-        if (role !== 'ADMIN' && affiliate_id) {
+        // Se não for ADMIN, filtra pelo affiliate_id (se fornecido)
+        // Isso garante que afiliados vejam apenas o que é deles, mas ADMIN vê tudo.
+        if (role !== 'ADMIN' && affiliate_id && affiliate_id !== 'null' && affiliate_id !== 'undefined') {
             query += ' WHERE affiliate_id = $1';
-            params.push(affiliate_id);
+            params.push(parseInt(affiliate_id));
+        } else if (role !== 'ADMIN') {
+            // Se não é admin e não passou affiliate_id, retorna nada por segurança (ou apenas o que for publico)
+            return res.json([]);
         }
         
         query += ' ORDER BY created_at DESC';
+        console.log('Final SQL:', query, 'Params:', params);
         const result = await pool.query(query, params);
-        console.log(`Found ${result.rows.length} leads`);
+        console.log(`✅ Leads found: ${result.rows.length}`);
         res.json(result.rows);
     } catch (err) {
-        console.error('Error fetching leads:', err);
-        res.status(500).json({ error: 'Erro ao buscar Leads' });
+        console.error('❌ Error fetching leads:', err.message);
+        res.status(500).json({ error: 'Erro ao buscar Leads', details: err.message });
     }
 });
 

@@ -41,8 +41,7 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
         }
         
         if (step === 1) {
-            console.log("Attempting to save lead...", { affiliateId, formData });
-            alert("Iniciando captura de Lead para o Afiliado ID: " + (affiliateId || 'Nenhum'));
+            // Silently capture lead in background
             try {
                 const res = await dbService.addLead({
                     affiliate_id: affiliateId,
@@ -52,17 +51,11 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                     company_name: formData.companyName,
                     offer_text: formData.offer
                 });
-                console.log("AddLead response:", res);
                 if (res && res.id) {
                     setLeadId(res.id);
-                    alert("Lead salvo com sucesso! ID: " + res.id);
-                } else if (res && res.error) {
-                    console.error("Server returned error:", res.error);
-                    alert("Erro ao salvar: " + JSON.stringify(res.error));
                 }
             } catch (err) {
                 console.error("Erro ao salvar lead:", err);
-                alert("Erro de rede: " + (err as any).message);
             }
         }
 
