@@ -144,13 +144,18 @@ const ClientSubmissions = () => {
         const matchesStatus = !selectedStatusFilter || s.status === selectedStatusFilter;
         const currentType = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'TEXT';
         const matchesType = !selectedTypeFilter || currentType === selectedTypeFilter;
-        const matchesEmployee = !selectedEmployeeFilter || s.assigned_to === selectedEmployeeFilter;
+        const matchesEmployee = !selectedEmployeeFilter || 
+            (s.assigned_to || '').trim().toLowerCase() === selectedEmployeeFilter.trim().toLowerCase();
 
         return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming && matchesStatus && matchesType && matchesEmployee;
     });
 
     const filteredSubmissions = activeTab === 'available' ? allFiltered.filter(s => !s.assigned_to)
-        : activeTab === 'mine' ? allFiltered.filter(s => s.assigned_to === user?.name)
+        : activeTab === 'mine' ? allFiltered.filter(s => {
+            const assigned = (s.assigned_to || '').trim().toLowerCase();
+            const current = (user?.name || '').trim().toLowerCase();
+            return assigned !== '' && current !== '' && assigned === current;
+        })
         : allFiltered;
 
     const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);

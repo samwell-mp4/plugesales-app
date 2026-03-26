@@ -170,7 +170,7 @@ const LinkShortener = () => {
     });
 
     // --- REACIVE SUMMARIES ---
-    const totalClicks = filteredLinks.reduce((acc, l) => acc + (l.clicks || 0), 0);
+    const totalClicks = filteredLinks.reduce((acc, l) => acc + (Number(l.clicks) || 0), 0);
     const totalLinksCount = filteredLinks.length;
 
     const toggleSelectAll = () => {
