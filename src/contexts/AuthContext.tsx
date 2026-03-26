@@ -35,6 +35,7 @@ const VALID_USERS = [
     { name: 'Geraldo', role: 'EMPLOYEE' as Role, password: 'geraldo104' },
     { name: 'Ricardo', role: 'EMPLOYEE' as Role, password: 'ricardo883' },
     { name: 'gabriel', role: 'EMPLOYEE' as Role, password: 'gabriel123' },
+    { name: 'lucas2', role: 'EMPLOYEE' as Role, password: 'lucas762' },
 
 ];
 
