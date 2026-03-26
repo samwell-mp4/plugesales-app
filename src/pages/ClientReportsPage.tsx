@@ -11,9 +11,6 @@ import {
     BarChart3, 
     CheckCircle, 
     XCircle, 
-    Info,
-    ChevronDown,
-    ChevronUp,
     Search
 } from 'lucide-react';
 
@@ -23,7 +20,6 @@ const ClientReports = () => {
     const [reports, setReports] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
-    const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -103,15 +99,8 @@ const ClientReports = () => {
         if (res.success) fetchReports();
     };
 
-    const toggleExpand = async (reportId: number) => {
-        if (expandedReportId === reportId) {
-            setExpandedReportId(null);
-        } else {
-            // Fetch full data for the report
-            const fullReport = await dbService.getReportById(reportId);
-            setReports(prev => prev.map(r => r.id === reportId ? fullReport : r));
-            setExpandedReportId(reportId);
-        }
+    const openDetail = (reportId: number) => {
+        window.open(`/client-report-detail/${reportId}`, '_blank');
     };
 
     const downloadXLS = (report: any) => {
@@ -265,8 +254,8 @@ const ClientReports = () => {
                     </div>
                 ) : (
                     filteredReports.map((report) => (
-                        <div key={report.id} className="report-card">
-                            <div className="report-header" onClick={() => toggleExpand(report.id)}>
+                        <div key={report.id} className="report-card" onClick={() => openDetail(report.id)}>
+                            <div className="report-header">
                                 <div className="flex items-center gap-4">
                                     <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', padding: '12px', borderRadius: '14px' }}>
                                         <FileSpreadsheet size={20} className="text-primary-color" />
@@ -300,6 +289,13 @@ const ClientReports = () => {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); openDetail(report.id); }} 
+                                            className="action-btn ghost-btn" 
+                                            style={{ height: 36, padding: '0 16px', fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)' }}
+                                        >
+                                            VER DETALHES
+                                        </button>
                                         {user?.role !== 'CLIENT' && (
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); downloadXLS(report); }} 
@@ -320,54 +316,9 @@ const ClientReports = () => {
                                                 <Trash2 size={14} />
                                             </button>
                                         )}
-                                        {expandedReportId === report.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                     </div>
                                 </div>
                             </div>
-
-                            {expandedReportId === report.id && report.data && (
-                                <div className="animate-fade-in" style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px dashed var(--surface-border-subtle)' }}>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h5 style={{ margin: 0, fontWeight: 800, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>LISTA COMPLETA DE REGISTROS ({report.data.length})</h5>
-                                        <div className="flex items-center gap-2" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                            <Info size={12} /> Exibindo todos os registros do arquivo original
-                                        </div>
-                                    </div>
-                                    <div style={{ maxHeight: '400px', overflowY: 'auto', borderRadius: '12px', border: '1px solid var(--surface-border-subtle)' }}>
-                                        <table className="data-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Comunicação</th>
-                                                    <th>De</th>
-                                                    <th>Para</th>
-                                                    <th>País</th>
-                                                    <th>Status</th>
-                                                    <th>Data Conclusão</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {report.data.map((row: any, idx: number) => (
-                                                    <tr key={idx}>
-                                                        <td>{row['Communication Name'] || row.communication_name || '-'}</td>
-                                                        <td>{row['From'] || row.from || '-'}</td>
-                                                        <td>{row['To'] || row.to || '-'}</td>
-                                                        <td>{row['Country Name'] || row.country_name || '-'}</td>
-                                                        <td>
-                                                            <span style={{ 
-                                                                color: String(row.Status || row.status || '').toLowerCase().includes('delivered') ? '#22c55e' : (String(row.Status || row.status || '').toLowerCase().includes('expired') ? '#ef4444' : 'inherit'),
-                                                                fontWeight: 700 
-                                                            }}>
-                                                                {row.Status || row.status || '-'}
-                                                            </span>
-                                                        </td>
-                                                        <td>{row['Done At'] || row.done_at || '-'}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     ))
                 )}
