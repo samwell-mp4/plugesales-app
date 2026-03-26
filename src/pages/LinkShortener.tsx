@@ -473,17 +473,15 @@ const LinkShortener = () => {
                         </div>
                      )}
 
-                    {/* ── LIST SECTION ── */}
                     <div style={{ minWidth: 0 }}>
                         {/* Quick Stats Overview */}
-                        {(stats || isStatsLoading) && (
-                            <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                                gap: '20px', 
-                                marginBottom: '32px',
-                                animation: 'fadeInUp 0.6s ease-out'
-                            }}>
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                            gap: '20px', 
+                            marginBottom: '32px',
+                            animation: 'fadeInUp 0.6s ease-out'
+                        }}>
                                 {/* Total Clicks Card */}
                                 <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                                     <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
@@ -539,8 +537,8 @@ const LinkShortener = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) /* Quick Stats Overview */}
+                        </div>
+
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Seus Links</h2>
