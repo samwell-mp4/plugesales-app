@@ -396,8 +396,7 @@ const TemplateCreator = () => {
                             ad_copy: bodyText,
                             button_link: buttons.find(b => b.type === 'url')?.url || '',
                             variables: [...variablesExample],
-                            delivered_leads: 0,
-                            price_per_msg: 0.04
+                            delivered_leads: 0
                         }]
                     });
                 } else {
@@ -495,8 +494,7 @@ const TemplateCreator = () => {
                         button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                         original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
                         variables: (row.variables && row.variables.length > 0) ? row.variables : [...variablesExample],
-                        delivered_leads: 0,
-                        price_per_msg: 0.04
+                        delivered_leads: 0
                     });
                 } else {
                     errors.push(`${name}: ${res.error}`);

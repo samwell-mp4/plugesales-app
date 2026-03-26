@@ -964,9 +964,9 @@ const ClientSubmissionDetail = () => {
                                         {user?.role === 'ADMIN' && (
                                             <div className="no-print" style={{ background: 'var(--card-bg-subtle)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
                                                 <TrendingDown size={20} color="#ef4444" />
-                                                <span style={{ fontSize: '10px', fontWeight: 900, color: '#ef4444', letterSpacing: '1px' }}>CUSTO AGÊNCIA (0,04/msg)</span>
+                                                <span style={{ fontSize: '10px', fontWeight: 900, color: '#ef4444', letterSpacing: '1px' }}>CUSTO AGÊNCIA</span>
                                                 <span style={{ fontSize: '24px', fontWeight: 900, color: '#ef4444', lineHeight: 1 }}>
-                                                    <span style={{ fontSize: '14px' }}>R$</span> {((currentAd.delivered_leads || 0) * 0.04).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    <span style={{ fontSize: '14px' }}>R$</span> {((currentAd.delivered_leads || 0) * 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </span>
                                             </div>
                                         )}
