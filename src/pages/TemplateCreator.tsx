@@ -122,12 +122,12 @@ const TemplateCreator = () => {
     const [language, setLanguage] = useState('pt_BR');
 
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
-    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/qv5OXja.jpg');
+    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/qLZLRgs.jpg');
 
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
 
-    const defaultVars = ['Leandro', 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025', 'O comprovante digital já se encontra disponível para conferência', 'acessar o comprovante digital #54333 e verificar a entrega'];
+    const defaultVars = ['Leandro', 'recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025', 'O comprovante digital já se encontra disponível para conferência', 'acessar o comprovante digital #54333 e verificar a entrega'];
     const [variablesExample, _setVariablesExample] = useState(defaultVars);
 
     const [buttons, setButtons] = useState<ButtonDef[]>([
@@ -170,7 +170,7 @@ const TemplateCreator = () => {
         const varCount = varMatches.length;
         const examples = [
             "Leandro",
-            "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025",
+            "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025",
             "O comprovante digital já se encontra disponível para conferência",
             "acessar o comprovante digital #54333 e verificar a entrega"
         ].slice(0, varCount);
@@ -191,7 +191,7 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
-            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qv5OXja.jpg";
+            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qLZLRgs.jpg";
             structure.header = {
                 format: format,
                 example: mediaUrlValue
@@ -481,7 +481,7 @@ const TemplateCreator = () => {
                         ad_name: name,
                         template_type: row.headerType,
                         message_mode: 'manual',
-                        media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/qv5OXja.jpg") : '',
+                        media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/qLZLRgs.jpg") : '',
                         ad_copy: bodyText,
                         button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                         original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
