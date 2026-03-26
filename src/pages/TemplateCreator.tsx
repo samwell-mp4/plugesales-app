@@ -129,6 +129,7 @@ const TemplateCreator = () => {
 
     const defaultVars = ['Leandro', 'recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025', 'O comprovante digital já se encontra disponível para conferência', 'acessar o comprovante digital #54333 e verificar a entrega'];
     const [variablesExample, _setVariablesExample] = useState(defaultVars);
+    const [isFiveVars, setIsFiveVars] = useState(false);
 
     const [buttons, setButtons] = useState<ButtonDef[]>([
         { type: 'url', text: 'Clique Aqui', url: 'https://site.com' }
@@ -168,15 +169,27 @@ const TemplateCreator = () => {
     const buildInfobipPayload = (name: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
         const varMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
         const varCount = varMatches.length;
-        const examples = [
-            "Leandro",
-            "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025",
-            "O comprovante digital já se encontra disponível para conferência",
-            "acessar o comprovante digital #54333 e verificar a entrega"
-        ].slice(0, varCount);
+        
+        let examples = [];
+        if (isFiveVars && varCount === 5) {
+            examples = [
+                "Leandro",
+                "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025",
+                "Seu pedido foi processado com sucesso",
+                "acessar o comprovante digital #54333 e verificar a entrega",
+                "ver o comprovante digital #76632353 e verificar a entrega"
+            ];
+        } else {
+            examples = [
+                "Leandro",
+                "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025",
+                "O comprovante digital já se encontra disponível para conferência",
+                "acessar o comprovante digital #54333 e verificar a entrega"
+            ].slice(0, varCount);
 
-        while (examples.length < varCount) {
-            examples.push("Exemplo");
+            while (examples.length < varCount) {
+                examples.push("Exemplo");
+            }
         }
 
         const structure: any = {
@@ -898,6 +911,40 @@ const TemplateCreator = () => {
                                 <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}><Plus size={24} color="var(--primary-color)" /></div>
                                 <h3 style={{ margin: 0, fontWeight: 900 }}>Estrutura Básica</h3>
                             </div>
+                            
+                            <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <div className="flex flex-col">
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Modo 5 Variáveis</span>
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Ativar template estendido</span>
+                                </div>
+                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
+                                    <input 
+                                        type="checkbox" 
+                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                        checked={isFiveVars}
+                                        onChange={(e) => {
+                                            const active = e.target.checked;
+                                            setIsFiveVars(active);
+                                            if (active) {
+                                                _setBodyText('Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇');
+                                            } else {
+                                                _setBodyText('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
+                                            }
+                                        }}
+                                    />
+                                    <span style={{ 
+                                        position: 'absolute', cursor: 'pointer', inset: 0, 
+                                        backgroundColor: isFiveVars ? 'var(--primary-color)' : '#333',
+                                        transition: '.4s', borderRadius: '34px'
+                                    }}>
+                                        <span style={{
+                                            position: 'absolute', content: '""', height: '16px', width: '16px', left: isFiveVars ? '24px' : '4px', bottom: '3px',
+                                            backgroundColor: isFiveVars ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                                        }}></span>
+                                    </span>
+                                </label>
+                            </div>
+
                             <div className="flex flex-col gap-2">
                                 <label>Selecionar Cliente</label>
                                 <select className="input-field" value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)}>
