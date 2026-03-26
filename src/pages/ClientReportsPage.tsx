@@ -10,8 +10,7 @@ import {
     Trash2, 
     BarChart3, 
     CheckCircle, 
-    XCircle, 
-    Search
+    XCircle
 } from 'lucide-react';
 
 const ClientReports = () => {
@@ -20,7 +19,6 @@ const ClientReports = () => {
     const [reports, setReports] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -99,16 +97,27 @@ const ClientReports = () => {
         if (res.success) fetchReports();
     };
 
-    const openDetail = (reportId: number) => {
-        window.open(`/client-report-detail/${reportId}`, '_blank');
-    };
 
-    const downloadXLS = (report: any) => {
-        if (!report.data) return alert("Dados do relatório não carregados. Recarregue a página.");
-        const ws = XLSX.utils.json_to_sheet(report.data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Dados");
-        XLSX.writeFile(wb, `${report.report_name}_export.xlsx`);
+
+    const downloadXLS = async (report: any) => {
+        let fullReportData = null;
+        try {
+            const data = await dbService.getReportDetails(report.id);
+            fullReportData = data;
+        } catch (err) {
+            alert("Erro ao baixar dados do relatório.");
+            return;
+        }
+        
+        if (!fullReportData || !fullReportData.data) {
+            alert("Erro ao buscar dados do relatório.");
+            return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(fullReportData.data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
+        XLSX.writeFile(workbook, `${report.filename || 'relatorio'}.xlsx`);
     };
 
     const totalStats = reports.reduce((acc, curr) => ({
@@ -118,9 +127,6 @@ const ClientReports = () => {
     }), { total: 0, delivered: 0, expired: 0 });
 
     const filteredReports = reports.filter(r => {
-        const matchesSearch = String(r.report_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            String(r.filename || '').toLowerCase().includes(searchTerm.toLowerCase());
-        
         const reportDate = new Date(r.timestamp);
         const matchesStart = !startDate || reportDate >= new Date(startDate);
         const matchesEnd = !endDate || reportDate <= new Date(endDate + 'T23:59:59');
@@ -129,7 +135,7 @@ const ClientReports = () => {
                              (statusFilter === 'DELIVERED' && (r.summary?.delivered || 0) > 0) ||
                              (statusFilter === 'EXPIRED' && (r.summary?.expired || 0) > 0);
 
-        return matchesSearch && matchesStart && matchesEnd && matchesStatus;
+        return matchesStart && matchesEnd && matchesStatus;
     });
 
     return (
@@ -182,17 +188,6 @@ const ClientReports = () => {
                         <option value="DELIVERED">COM ENTREGA</option>
                         <option value="EXPIRED">COM EXPIRADOS</option>
                     </select>
-                    <div className="relative">
-                        <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} size={16} />
-                        <input 
-                            type="text" 
-                            placeholder="Buscar..." 
-                            className="input-field" 
-                            style={{ paddingLeft: '40px', width: '180px', borderRadius: '12px' }}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
                 </div>
             </div>
 
@@ -254,7 +249,7 @@ const ClientReports = () => {
                     </div>
                 ) : (
                     filteredReports.map((report) => (
-                        <div key={report.id} className="report-card" onClick={() => openDetail(report.id)}>
+                        <div key={report.id} className="report-card">
                             <div className="report-header">
                                 <div className="flex items-center gap-4">
                                     <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', padding: '12px', borderRadius: '14px' }}>
@@ -290,22 +285,12 @@ const ClientReports = () => {
                                     </div>
                                     <div className="flex gap-2">
                                         <button 
-                                            onClick={(e) => { e.stopPropagation(); openDetail(report.id); }} 
-                                            className="action-btn ghost-btn" 
-                                            style={{ height: 36, padding: '0 16px', fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)' }}
+                                            onClick={(e) => { e.stopPropagation(); downloadXLS(report); }} 
+                                            className="action-btn primary-btn" 
+                                            style={{ height: 36, padding: '0 16px', fontSize: '10px', fontWeight: 900, color: '#000' }}
                                         >
-                                            VER DETALHES
+                                            <Download size={14} /> BAIXAR RELATÓRIO
                                         </button>
-                                        {user?.role !== 'CLIENT' && (
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); downloadXLS(report); }} 
-                                                className="action-btn ghost-btn" 
-                                                style={{ height: 36, width: 36, padding: 0 }}
-                                                title="Download Excel"
-                                            >
-                                                <Download size={14} />
-                                            </button>
-                                        )}
                                         {user?.role !== 'CLIENT' && (
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(report.id); }} 

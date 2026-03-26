@@ -81,6 +81,13 @@ export const dbService = {
             return await res.json();
         } catch (err) { return null; }
     },
+    getReportDetails: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/reports/${id}/details`);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (err) { return null; }
+    },
     addReport: async (reportData: { userId: number; submissionId?: number; reportName: string; filename: string; data: any[]; summary: any }) => {
         try {
             const res = await fetch(`${API_BASE}/reports`, {

@@ -16,7 +16,6 @@ import ClientDashboard from './pages/ClientDashboard';
 import LinkShortener from './pages/LinkShortener';
 import LinkStats from './pages/LinkStats';
 import ClientReports from './pages/ClientReportsPage';
-import ClientReportDetail from './pages/ClientReportDetail';
 import LandingPage from './pages/LandingPage';
 import AffiliateDashboard from './pages/AffiliateDashboard';
 import ThankYou from './pages/ThankYou';
@@ -103,7 +102,6 @@ function AppContent() {
           <Route path="/dispatch" element={<TemplateDispatch />} />
           <Route path="/link-shortener" element={<LinkShortener />} />
           <Route path="/client-reports" element={<ClientReports />} />
-          <Route path="/client-report-detail/:id" element={<ClientReportDetail />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/obrigado" element={<ThankYou />} />
