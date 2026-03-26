@@ -165,7 +165,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload = (name: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean) => {
+    const buildInfobipPayload = (name: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
         const varMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
         const varCount = varMatches.length;
         const examples = [
@@ -205,14 +205,16 @@ const TemplateCreator = () => {
         const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
 
         if (effectiveHasButtons && buttons.length > 0) {
-            structure.buttons = buttons.map((btn: any, idx: number) => {
+            let urlIdxCount = 0;
+            structure.buttons = buttons.map((btn: any) => {
                 const bPayload: any = {
                     type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
-                    text: btn.text,
+                    text: (btn.type === 'url' && buttonTextOverrides && buttonTextOverrides[urlIdxCount]) ? buttonTextOverrides[urlIdxCount] : btn.text,
                 };
                 if (btn.type === 'url') {
-                    const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[idx]) || btn.url;
+                    const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
                     bPayload.url = finalUrl || 'https://site.com';
+                    urlIdxCount++;
                 }
                 return bPayload;
             });
@@ -456,13 +458,7 @@ const TemplateCreator = () => {
                     }
                 }
 
-                const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons);
-                if (payload.structure?.buttons && finalButtonTexts.length > 0) {
-                    payload.structure.buttons = payload.structure.buttons.map((btn: any, idx: number) => {
-                        if (finalButtonTexts[idx]) return { ...btn, text: finalButtonTexts[idx] };
-                        return btn;
-                    });
-                }
+                const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
 
                 const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
                 const extendedPayload = { 
