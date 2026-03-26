@@ -16,10 +16,10 @@ type BulkRow = {
     headerType: 'TEXT' | 'IMAGE' | 'VIDEO';
     mediaUrl: string;
     hasButtons: boolean;
-    buttonUrl?: string; // Legacy field, kept for safety
     buttonUrls: string[];
     buttonTexts: string[];
     originalButtonUrls?: string[];
+    variables?: string[];
 };
 
 interface CampaignBatch {
@@ -96,12 +96,12 @@ const TemplateCreator = () => {
                         setButtons([{ type: 'url', text: 'Clique Aqui', url: firstRow.buttonUrl }]);
                     }
                 }
-            } else if (data.rows && data.rows.length > 0) {
                 const initializedRows = data.rows.map((row: any) => ({
                     ...row,
                     headerType: row.headerType || data.templateType || 'TEXT',
                     buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
-                    buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : [])
+                    buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : []),
+                    variables: [row.var1, row.var2, row.var3, row.var4, row.var5].filter(v => v !== undefined)
                 }));
                 setCampaigns([{
                     id: Date.now().toString(),
@@ -112,6 +112,11 @@ const TemplateCreator = () => {
                 if (initializedRows[0].mediaUrl) setHeaderMediaUrl(initializedRows[0].mediaUrl);
                 if (initializedRows[0].buttonUrl) {
                     setButtons([{ type: 'url', text: 'Clique Aqui', url: initializedRows[0].buttonUrl }]);
+                }
+                
+                // Set global variables from the first row for preview/MODEL mode
+                if (initializedRows[0].variables && initializedRows[0].variables.length > 0) {
+                    _setVariablesExample(initializedRows[0].variables);
                 }
             }
         }
@@ -395,7 +400,7 @@ const TemplateCreator = () => {
                             media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
                             ad_copy: bodyText,
                             button_link: buttons.find(b => b.type === 'url')?.url || '',
-                            variables: variablesExample,
+                            variables: [...variablesExample],
                             delivered_leads: 0,
                             price_per_msg: 0.04
                         }]
@@ -494,7 +499,7 @@ const TemplateCreator = () => {
                         ad_copy: bodyText,
                         button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                         original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
-                        variables: variablesExample || [],
+                        variables: (row.variables && row.variables.length > 0) ? row.variables : [...variablesExample],
                         delivered_leads: 0,
                         price_per_msg: 0.04
                     });
@@ -584,7 +589,8 @@ const TemplateCreator = () => {
                     mediaUrl: headerType !== 'TEXT' ? headerMediaUrl : '',
                     hasButtons: buttons.length > 0,
                     buttonUrls: urlButtons.map(b => b.url || ''),
-                    buttonTexts: urlButtons.map(b => b.text || '')
+                    buttonTexts: urlButtons.map(b => b.text || ''),
+                    variables: [...variablesExample]
                 });
             }
             return { ...c, rows: [...c.rows, ...newRows] };
@@ -927,8 +933,14 @@ const TemplateCreator = () => {
                                             setIsFiveVars(active);
                                             if (active) {
                                                 _setBodyText('Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇');
+                                                if (variablesExample.length < 5) {
+                                                    _setVariablesExample([...variablesExample, 'ver o comprovante digital #76632353 e verificar a entrega']);
+                                                }
                                             } else {
                                                 _setBodyText('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
+                                                if (variablesExample.length > 4) {
+                                                    _setVariablesExample(variablesExample.slice(0, 4));
+                                                }
                                             }
                                         }}
                                     />
@@ -1005,7 +1017,32 @@ const TemplateCreator = () => {
                                         </div>
                                     )}
                                     <div className="mt-4 flex flex-col gap-2"><label>Corpo da Mensagem (Body)</label><textarea className="input-field" style={{ minHeight: '120px' }} value={bodyText} onChange={e => _setBodyText(e.target.value)} /></div>
-                                    <div className="mt-2 flex flex-col gap-2"><label>Rodapé (Footer)</label><input className="input-field" value={footerText} onChange={e => _setFooterText(e.target.value)} /></div>
+                                    
+                                    <div className="mt-4 flex flex-col gap-4">
+                                        <div className="flex items-center justify-between">
+                                            <label>Configuração de Variáveis (Visualização no Card)</label>
+                                            <span style={{ fontSize: '10px', opacity: 0.5, fontWeight: 700 }}>{variablesExample.length} ATIVAS</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => (
+                                                <div key={i} className="flex flex-col gap-1">
+                                                    <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', opacity: 0.6 }}>VAR {i + 1}</span>
+                                                    <input 
+                                                        className="input-field" 
+                                                        value={variablesExample[i] || ''} 
+                                                        onChange={e => {
+                                                            const newVars = [...variablesExample];
+                                                            newVars[i] = e.target.value;
+                                                            _setVariablesExample(newVars);
+                                                        }}
+                                                        placeholder={`Valor para {{${i+1}}}`}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6 flex flex-col gap-2"><label>Rodapé (Footer)</label><input className="input-field" value={footerText} onChange={e => _setFooterText(e.target.value)} /></div>
                                 </div>
 
                                 <div className="glass-card flex flex-col gap-6">
@@ -1096,7 +1133,7 @@ const TemplateCreator = () => {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => {
+                                                        <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => <th key={i}>VAR {i+1}</th>)}{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => {
                                                             const fullName = `${camp.prefix}${row.suffix}`.toLowerCase().trim();
                                                             const allNames: string[] = [];
                                                             campaigns.forEach(c => c.rows.forEach(r => allNames.push(`${c.prefix}${r.suffix}`.toLowerCase().trim())));
@@ -1104,7 +1141,23 @@ const TemplateCreator = () => {
                                                             const isSuffixDuplicateInCamp = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim().toLowerCase() === row.suffix.trim().toLowerCase() && row.suffix.trim() !== "");
                                                             const isError = isFullDuplicate || isSuffixDuplicateInCamp;
 
-                                                            return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>{buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-3" style={{ position: 'relative', zIndex: 100, minWidth: '120px', justifyContent: 'center' }}><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={28} color="#FFFFFF" strokeWidth={3} /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={28} color="#FFFFFF" strokeWidth={3} /></button></div></td></tr>);
+                                                            return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
+                                                                {Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, varIdx) => (
+                                                                    <td key={`var-${varIdx}`}>
+                                                                        <input 
+                                                                            className="bulk-row-input" 
+                                                                            value={(row.variables && row.variables[varIdx]) || ''} 
+                                                                            placeholder={`V${varIdx+1}`}
+                                                                            onChange={e => {
+                                                                                const n = [...camp.rows];
+                                                                                if (!n[rIdx].variables) n[rIdx].variables = [];
+                                                                                n[rIdx].variables[varIdx] = e.target.value;
+                                                                                setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c));
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                ))}
+                                                                {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-3" style={{ position: 'relative', zIndex: 100, minWidth: '120px', justifyContent: 'center' }}><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={28} color="#FFFFFF" strokeWidth={3} /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={28} color="#FFFFFF" strokeWidth={3} /></button></div></td></tr>);
                                                         })}</tbody></table></div>
                                                     </div>
                                                 )}
