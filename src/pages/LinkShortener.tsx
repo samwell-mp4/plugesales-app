@@ -57,9 +57,9 @@ const LinkShortener = () => {
     }, [user, filterClientId, startDate, endDate]);
 
     const fetchStats = async () => {
-        const targetUserId = user?.role === 'CLIENT' ? user.id : (filterClientId ? parseInt(filterClientId) : null);
-        if (!targetUserId && user?.role === 'CLIENT') return;
-
+        // Para CLIENte, usa o ID dele. Para ADMIN/EMPLOYEE, usa o filtro ou 0 (Global)
+        const targetUserId = user?.role === 'CLIENT' ? user.id : (filterClientId ? parseInt(filterClientId) : 0);
+        
         setIsStatsLoading(true);
         try {
             const data = await dbService.getAllLinkStats(targetUserId || 0, startDate, endDate);
@@ -476,7 +476,7 @@ const LinkShortener = () => {
                     {/* ── LIST SECTION ── */}
                     <div style={{ minWidth: 0 }}>
                         {/* Quick Stats Overview */}
-                        {(user?.role === 'CLIENT' || filterClientId) && (
+                        {(stats || isStatsLoading) && (
                             <div style={{ 
                                 display: 'grid', 
                                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
@@ -490,7 +490,9 @@ const LinkShortener = () => {
                                         <MousePointer2 size={24} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Cliques Totais</div>
+                                        <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                            {(!filterClientId && user?.role !== 'CLIENT') ? 'Cliques Globais' : 'Cliques Totais'}
+                                        </div>
                                         <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
                                             {isStatsLoading ? '...' : (stats?.summary?.total_clicks || 0)}
                                         </div>
@@ -503,7 +505,9 @@ const LinkShortener = () => {
                                         <LinkIcon size={24} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Links Encurtados</div>
+                                        <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                            {(!filterClientId && user?.role !== 'CLIENT') ? 'Links (Sistema)' : 'Links Encurtados'}
+                                        </div>
                                         <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
                                             {isStatsLoading ? '...' : (stats?.summary?.total_links || 0)}
                                         </div>
