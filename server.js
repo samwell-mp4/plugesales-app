@@ -237,6 +237,15 @@ const initDB = async () => {
         await client.query(`ALTER TABLE infobip_templates ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
 
         console.log('✅ All columns and infobip_templates table verified/migrated.');
+        
+        // --- AFFILIATE LEADS ROBUST MIGRATIONS ---
+        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS affiliate_id INTEGER REFERENCES users(id)`);
+        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS company_name TEXT`);
+        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS offer_text TEXT`);
+        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'NOVO'`);
+        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS notes TEXT`);
+        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS email TEXT`);
+        console.log('✅ Table affiliate_leads columns verified/migrated.');
 
         // Patch: Restore roles for static team members if they were incorrectly registered as CLIENT
         await client.query("UPDATE users SET role = 'ADMIN' WHERE name = 'Admin'");
@@ -1759,7 +1768,8 @@ const startTemplateMonitoring = () => {
 // Start monitoring session
 // --- AFFILIATE LEADS API ---
 app.post('/api/leads', async (req, res) => {
-    console.log('Incoming lead capture request:', req.body);
+    console.log('--- Incoming LEAD Capture ---');
+    console.log('Payload:', JSON.stringify(req.body, null, 2));
     const { affiliate_id, name, phone, email, company_name, offer_text } = req.body;
     try {
         const result = await pool.query(
@@ -1767,11 +1777,12 @@ app.post('/api/leads', async (req, res) => {
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
             [affiliate_id || null, name, phone, email, company_name || 'Minha Empresa Pro', offer_text || '']
         );
-        console.log('Lead saved successfully:', result.rows[0]);
+        console.log('✅ Lead saved successfully:', result.rows[0].id);
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error('Error saving lead:', err);
-        res.status(500).json({ error: 'Erro ao salvar lead' });
+        console.error('❌ DATABASE ERROR saving lead:', err.message);
+        console.error('Stack:', err.stack);
+        res.status(500).json({ error: 'Erro ao salvar lead', details: err.message });
     }
 });
 
