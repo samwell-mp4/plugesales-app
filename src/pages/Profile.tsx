@@ -203,7 +203,7 @@ const Profile = () => {
 
                         <div>
                             <h3 style={{ margin: '0 0 24px 0', fontSize: '1.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <Lock size={20} color="var(--primary-color)" /> Alterar Senha
+                                <Lock size={20} color="var(--primary-color)" /> Alterar Senha <span style={{ fontSize: '12px', fontWeight: 500, opacity: 0.5, marginLeft: '8px' }}>(Opcional)</span>
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
@@ -213,7 +213,8 @@ const Profile = () => {
                                         className="input-field" 
                                         value={profileData.password} 
                                         onChange={e => setProfileData({ ...profileData, password: e.target.value })} 
-                                        placeholder="••••••••" 
+                                        placeholder="Manter atual" 
+                                        autoComplete="new-password"
                                         style={{ background: 'var(--card-bg-subtle)' }}
                                     />
                                 </div>
@@ -224,7 +225,8 @@ const Profile = () => {
                                         className="input-field" 
                                         value={profileData.confirmPassword} 
                                         onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })} 
-                                        placeholder="••••••••" 
+                                        placeholder="Confirmar" 
+                                        autoComplete="new-password"
                                         style={{ background: 'var(--card-bg-subtle)' }}
                                     />
                                 </div>
