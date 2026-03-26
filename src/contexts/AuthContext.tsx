@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 type Role = 'ADMIN' | 'EMPLOYEE' | 'CLIENT';
 
@@ -57,6 +57,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTheme(next);
         localStorage.setItem('app_theme', next);
     };
+
+    const reSyncStaticUser = async (userName: string) => {
+        const foundStatic = VALID_USERS.find(u => u.name.toLowerCase() === userName.toLowerCase());
+        if (!foundStatic) return;
+
+        try {
+            const dbRes = await dbService.register({
+                name: foundStatic.name,
+                email: `${foundStatic.name.toLowerCase()}@internal.system`,
+                phone: '0000000000',
+                password: foundStatic.password,
+                role: foundStatic.role
+            });
+            const finalUser = dbRes && !dbRes.error ? dbRes : (await dbService.login({ email: `${foundStatic.name.toLowerCase()}@internal.system`, password: foundStatic.password }));
+            const userObj = finalUser?.user || finalUser;
+
+            if (userObj && userObj.id) {
+                console.log(`Auto-repair success for ${userName}, ID: ${userObj.id}`);
+                setUser(userObj);
+                localStorage.setItem('auth_user', JSON.stringify(userObj));
+            }
+        } catch (err) {
+            console.error("Auto-repair error:", err);
+        }
+    };
+
+    // Use an effect to auto-repair sessions missing an ID
+    useEffect(() => {
+        if (user && !user.id) {
+            console.log(`Auto-repairing session for ${user.name}...`);
+            reSyncStaticUser(user.name);
+        }
+    }, [user?.id]);
 
     const login = async (username: string, password: string): Promise<boolean> => {
         // Try static login first (Internal Team)
