@@ -169,6 +169,10 @@ const LinkShortener = () => {
         return matchesClient && matchesSearch;
     });
 
+    // --- REACIVE SUMMARIES ---
+    const totalClicks = filteredLinks.reduce((acc, l) => acc + (l.clicks || 0), 0);
+    const totalLinksCount = filteredLinks.length;
+
     const toggleSelectAll = () => {
         if (selectedLinkIds.length === filteredLinks.length && filteredLinks.length > 0) {
             setSelectedLinkIds([]);
@@ -492,7 +496,7 @@ const LinkShortener = () => {
                                             {(!filterClientId && user?.role !== 'CLIENT') ? 'Cliques Globais' : 'Cliques Totais'}
                                         </div>
                                         <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
-                                            {isStatsLoading ? '...' : (stats?.summary?.total_clicks || 0)}
+                                            {isLoading ? '...' : totalClicks}
                                         </div>
                                     </div>
                                 </div>
@@ -507,7 +511,7 @@ const LinkShortener = () => {
                                             {(!filterClientId && user?.role !== 'CLIENT') ? 'Links (Sistema)' : 'Links Encurtados'}
                                         </div>
                                         <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
-                                            {isStatsLoading ? '...' : (stats?.summary?.total_links || 0)}
+                                            {isLoading ? '...' : totalLinksCount}
                                         </div>
                                     </div>
                                 </div>

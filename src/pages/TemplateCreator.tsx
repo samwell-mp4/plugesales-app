@@ -172,30 +172,22 @@ const TemplateCreator = () => {
     };
 
     const buildInfobipPayload = (name: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
-        const varMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
-        const varCount = varMatches.length;
+        // --- UNIQUE VARIABLE COUNTING ---
+        // Meta/Infobip require exactly ONE example for each unique variable tag index.
+        const uniqueTags = [...new Set(bodyText.match(/\{\{(\d+)\}\}/g) || [])];
+        const varCount = uniqueTags.length;
         
-        let examples = [];
-        if (isFiveVars && varCount === 5) {
-            examples = [
-                "Leandro",
-                "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025",
-                "Seu pedido foi processado com sucesso",
-                "acessar o comprovante digital #54333 e verificar a entrega",
-                "ver o comprovante digital #76632353 e verificar a entrega"
-            ];
-        } else {
-            examples = [
-                "Leandro",
-                "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025",
-                "O comprovante digital já se encontra disponível para conferência",
-                "acessar o comprovante digital #54333 e verificar a entrega"
-            ].slice(0, varCount);
+        // --- STANDARD UTILITY EXAMPLES ---
+        // These proven examples ensure the template is categorized as UTILITY (Payment/Transaction).
+        const standardExamples = [
+            "Leandro", // {{1}}
+            "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025", // {{2}}
+            "O comprovante digital já se encontra disponível para conferência", // {{3}}
+            "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
+            "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
+        ];
 
-            while (examples.length < varCount) {
-                examples.push("Exemplo");
-            }
-        }
+        const examples = standardExamples.slice(0, varCount);
 
         const structure: any = {
             body: { text: bodyText }
@@ -209,6 +201,7 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
+            // User specifically asked to verify this URL: https://iili.io/qLZLRgs.jpg
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qLZLRgs.jpg";
             structure.header = {
                 format: format,
