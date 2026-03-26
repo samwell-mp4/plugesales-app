@@ -385,6 +385,8 @@ const TemplateCreator = () => {
                         spreadsheet_url: '',
                         status: 'GERADO',
                         submitted_by: user?.name,
+                        assigned_to: user?.name,
+                        accepted_by: user?.name,
                         timestamp: new Date().toISOString(),
                         ads: [{
                             ad_name: currentName,
@@ -528,6 +530,8 @@ const TemplateCreator = () => {
                     await dbService.updateClientSubmission(Number(subId), {
                         ads: campaignAds,
                         status: 'GERADO',
+                        assigned_to: user?.name,
+                        accepted_by: user?.name,
                         logs: [...currentLogs, newLog]
                     });
                 } catch (err) {
@@ -548,6 +552,8 @@ const TemplateCreator = () => {
                     spreadsheet_url: '',
                     status: 'GERADO',
                     submitted_by: user?.name,
+                    assigned_to: user?.name,
+                    accepted_by: user?.name,
                     timestamp: new Date().toISOString(),
                     ads: campaignAds,
                     logs: [{

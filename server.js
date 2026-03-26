@@ -776,18 +776,18 @@ app.get('/api/client-submissions/:id', async (req, res) => {
 });
 
 app.post('/api/client-submissions', async (req, res) => {
-    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to } = req.body;
+    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by } = req.body;
     try {
         const result = await pool.query(
             `INSERT INTO client_submissions 
-            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
             [
                 profile_photo, profile_name, ddd,
                 template_type || 'none', media_url || '', ad_copy || '', button_link || '', original_button_link || button_link || '',
                 ads ? JSON.stringify(ads) : '[]',
                 spreadsheet_url, status || 'PENDENTE',
-                user_id, submitted_by, assigned_to
+                user_id, submitted_by, assigned_to, accepted_by
             ]
         );
         res.json(result.rows[0]);
@@ -809,13 +809,14 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
         for (const s of submissions) {
             const result = await client.query(
                 `INSERT INTO client_submissions 
-                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
                 [
                     s.profile_photo, s.profile_name, s.ddd,
                     s.template_type, s.media_url, s.ad_copy, s.button_link, s.original_button_link || s.button_link || '',
                     s.ads ? JSON.stringify(s.ads) : '[]',
-                    s.spreadsheet_url, s.status || 'PENDENTE'
+                    s.spreadsheet_url, s.status || 'PENDENTE',
+                    s.user_id, s.submitted_by, s.assigned_to, s.accepted_by
                 ]
             );
             results.push(result.rows[0]);
