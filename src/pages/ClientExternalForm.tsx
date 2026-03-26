@@ -29,9 +29,16 @@ const ClientExternalForm = () => {
     const [isCreatingClient, setIsCreatingClient] = useState(false);
     const [newClientData, setNewClientData] = useState({ name: '', email: '', phone: '', password: '' });
 
+    const [hasSubmissions, setHasSubmissions] = useState(false);
+
     React.useEffect(() => {
         if (user?.role === 'ADMIN') {
             dbService.getClients().then(setClients);
+        } else if (user?.id) {
+            dbService.getClientSubmissions().then(subs => {
+                const userSubs = subs.filter((s: any) => String(s.user_id) === String(user.id));
+                setHasSubmissions(userSubs.length > 0);
+            });
         }
     }, [user]);
 
@@ -266,8 +273,22 @@ const ClientExternalForm = () => {
                     align-items: start;
                 }
                 @media (max-width: 1024px) {
-                    .whatsapp-grid { grid-template-columns: 1fr; }
-                    .preview-side { display: none; }
+                    .whatsapp-grid { grid-template-columns: 1fr; gap: 24px; }
+                    .preview-side { 
+                        display: ${hasSubmissions ? 'flex' : 'none'}; 
+                        position: relative;
+                        top: 0;
+                        order: 2;
+                        margin-top: 40px;
+                    }
+                }
+                @media (max-width: 640px) {
+                    .header-title { font-size: 1.8rem !important; letter-spacing: -1px !important; }
+                    .header-subtitle { font-size: 0.75rem !important; }
+                    .nav-btn { width: 100%; justify-content: center; }
+                    .variable-col { width: 100% !important; margin-bottom: 24px !important; }
+                    .glass-card { padding: 20px !important; }
+                    .form-section-subtitle { margin-bottom: 20px !important; }
                 }
                 
                 .preview-side {
@@ -549,10 +570,10 @@ const ClientExternalForm = () => {
                         <div className="animate-slide-up w-full">
                             <div className="mb-12 flex items-center justify-between">
                                 <div>
-                                    <h1 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-2px' }}>
+                                    <h1 className="header-title" style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-2px' }}>
                                         Configure sua <span style={{ color: 'var(--primary-color)' }}>Marca</span>
                                     </h1>
-                                    <p style={{ opacity: 0.6, fontWeight: 600 }}>PREENCHA OS DETALHES PARA ENVIAR AOS SEUS CLIENTES</p>
+                                    <p className="header-subtitle" style={{ opacity: 0.6, fontWeight: 600 }}>PREENCHA OS DETALHES PARA ENVIAR AOS SEUS CLIENTES</p>
                                 </div>
                             </div>
 
@@ -984,7 +1005,7 @@ const ClientExternalForm = () => {
                                                         </p>
                                                         <div className="flex flex-wrap -mx-6 pt-6">
                                                             {[1, 2, 3, 4].map(vNum => (
-                                                                <div key={vNum} className="w-1/2 px-6 mb-16">
+                                                                <div key={vNum} className="variable-col w-1/2 px-6 mb-16">
                                                                     <div className="space-y-6 mt-4">
                                                                         <label className="text-[12px] font-black uppercase tracking-[4px] opacity-70 text-primary-color">Variável {vNum}</label>
                                                                         <input
