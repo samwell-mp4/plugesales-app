@@ -452,7 +452,7 @@ const TemplateCreator = () => {
             for (let i = 0; i < campaign.rows.length; i++) {
                 currentOpTotal++;
                 const row = campaign.rows[i];
-                const name = `${campaign.prefix}${row.suffix}`.replace(/[\s-@]/g, '_').replace(/__+/g, '_').toLowerCase();
+                const name = `${campaign.prefix}${row.suffix}`.replace(/[\s-@.]/g, '_').replace(/__+/g, '_').toLowerCase();
                 setGeneratingProgress({ current: currentOpTotal, total: totalTotal, msg: `Processando Campanha ${cIdx + 1}/${campaigns.length}: ${name}...` });
 
                 let finalButtonUrls = row.buttonUrls && row.buttonUrls.length > 0 ? [...row.buttonUrls] : [];
@@ -985,7 +985,7 @@ const TemplateCreator = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px' }}>
                                         <div className="flex flex-col gap-2">
                                             <label>Nome Técnico</label>
-                                            <input className="input-field" value={modelName} onChange={e => setModelName(e.target.value.toLowerCase().replace(/[\s-@]/g, '_'))} />
+                                            <input className="input-field" value={modelName} onChange={e => setModelName(e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'))} />
                                         </div>
                                         <div className="flex flex-col gap-2">
                                             <label>Idioma</label>
@@ -1094,7 +1094,7 @@ const TemplateCreator = () => {
                                                     {camp.collapsed ? <ChevronRight size={20} /> : <ChevronDown size={20} />}
                                                 </button>
                                                 <div style={{ background: 'var(--primary-color)', color: 'black', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem' }}>{cIdx + 1}</div>
-                                                <input className={`bulk-prefix-input ${campaigns.filter(c => c.prefix.trim() !== "" && c.prefix.trim().toLowerCase() === camp.prefix.trim().toLowerCase()).length > 1 ? 'error-border' : ''}`} value={camp.prefix} onChange={e => { const val = e.target.value.toLowerCase().replace(/[\s-@]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} />
+                                                <input className={`bulk-prefix-input ${campaigns.filter(c => c.prefix.trim() !== "" && c.prefix.trim().toLowerCase() === camp.prefix.trim().toLowerCase()).length > 1 ? 'error-border' : ''}`} value={camp.prefix} onChange={e => { const val = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} />
                                                 <span style={{ fontSize: '12px', opacity: 0.5, fontWeight: 700 }}>{camp.rows.length} ANÚNCIOS</span>
                                             </div>
                                             <div className="flex items-center gap-4">
@@ -1141,7 +1141,7 @@ const TemplateCreator = () => {
                                                             const isSuffixDuplicateInCamp = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim().toLowerCase() === row.suffix.trim().toLowerCase() && row.suffix.trim() !== "");
                                                             const isError = isFullDuplicate || isSuffixDuplicateInCamp;
 
-                                                            return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
+                                                            return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
                                                                 {Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, varIdx) => (
                                                                     <td key={`var-${varIdx}`}>
                                                                         <input 
