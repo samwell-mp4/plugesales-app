@@ -615,7 +615,12 @@ const TemplateCreator = () => {
                     hasButtons: buttons.length > 0,
                     buttonUrls: urlButtons.map(b => b.url || ''),
                     buttonTexts: urlButtons.map(b => b.text || ''),
-                    variables: [...variablesExample]
+                    variables: [
+                        'Leandro',
+                        'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
+                        'O comprovante digital já se encontra disponível para conferência',
+                        'acessar o comprovante digital #54333 e verificar a entrega'
+                    ]
                 });
             }
             return { ...c, rows: [...c.rows, ...newRows] };
@@ -1158,7 +1163,7 @@ const TemplateCreator = () => {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => <th key={i}>VAR {i+1}</th>)}{(buttons || []).filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{(camp.rows || []).map((row, rIdx) => {
+                                                        <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{(buttons || []).filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{(camp.rows || []).map((row, rIdx) => {
                                                             const fullName = `${camp.prefix}${row.suffix}`.toLowerCase().trim();
                                                             const allNames: string[] = [];
                                                             (campaigns || []).forEach(c => (c.rows || []).forEach(r => allNames.push(`${c.prefix}${r.suffix}`.toLowerCase().trim())));
@@ -1167,21 +1172,6 @@ const TemplateCreator = () => {
                                                             const isError = isFullDuplicate || isSuffixDuplicateInCamp;
 
                                                             return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
-                                                                {Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, varIdx) => (
-                                                                    <td key={`var-${varIdx}`}>
-                                                                        <input 
-                                                                            className="bulk-row-input" 
-                                                                            value={(row.variables && row.variables[varIdx]) || ''} 
-                                                                            placeholder={`V${varIdx+1}`}
-                                                                            onChange={e => {
-                                                                                const n = [...camp.rows];
-                                                                                if (!n[rIdx].variables) n[rIdx].variables = [];
-                                                                                n[rIdx].variables[varIdx] = e.target.value;
-                                                                                setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c));
-                                                                            }}
-                                                                        />
-                                                                    </td>
-                                                                ))}
                                                                 {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-3" style={{ position: 'relative', zIndex: 100, minWidth: '120px', justifyContent: 'center' }}><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={28} color="#FFFFFF" strokeWidth={3} /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={28} color="#FFFFFF" strokeWidth={3} /></button></div></td></tr>);
                                                         })}</tbody></table></div>
                                                     </div>
