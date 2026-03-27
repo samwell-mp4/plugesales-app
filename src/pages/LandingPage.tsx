@@ -3,12 +3,20 @@ import {
     MessageSquare,
     Zap,
     ShieldCheck,
-    Layers,
     Smartphone,
-    BarChart3,
-    ArrowRight,
     Plus,
-    X
+    X,
+    CheckCircle2,
+    Lock,
+    Users,
+    TrendingUp,
+    FileText,
+    Image,
+    Video,
+    MousePointer2,
+    ShieldAlert,
+    AlertTriangle,
+    Check
 } from 'lucide-react';
 import './LandingPage.css';
 import DemoQuiz from '../components/DemoQuiz';
@@ -25,55 +33,22 @@ const LandingPage = () => {
         setActiveFaq(activeFaq === index ? null : index);
     };
 
-    const features = [
-        {
-            icon: <MessageSquare size={24} />,
-            title: "Disparo Inteligente",
-            description: "Envie milhares de mensagens com tecnologia anti-bloqueio e personalização dinâmica."
-        },
-        {
-            icon: <BarChart3 size={24} />,
-            title: "Analytics em Tempo Real",
-            description: "Acompanhe cliques, conversões e engajamento com dashboards detalhados."
-        },
-        {
-            icon: <ShieldCheck size={24} />,
-            title: "Segurança Avançada",
-            description: "Conexões criptografadas e conformidade total com as diretrizes da Meta."
-        },
-        {
-            icon: <Layers size={24} />,
-            title: "Multiatendimento",
-            description: "Gerencie múltiplas contas e campanhas em uma única interface intuitiva."
-        },
-        {
-            icon: <Smartphone size={24} />,
-            title: "Mobile First",
-            description: "Controle sua operação de qualquer lugar, com interface 100% responsiva."
-        },
-        {
-            icon: <Zap size={24} />,
-            title: "Automações Rápidas",
-            description: "Crie fluxos de trabalho que economizam horas do seu time todos os dias."
-        }
-    ];
-
     const faqs = [
         {
-            q: "Como funciona o sistema de disparos?",
-            a: "Nosso sistema utiliza a API oficial da Meta para garantir segurança e entrega. Você importa seus contatos, cria o template e nós cuidamos de toda a fila de processamento."
+            q: "Meu número pode ser bloqueado?",
+            a: "Não. A operação é feita dentro da API Oficial, seguindo as diretrizes da Meta, o que garante a segurança da sua conta."
         },
         {
-            q: "É possível integrar com meu CRM?",
-            a: "Sim, oferecemos webhooks e APIs para integração direta com as principais ferramentas do mercado."
+            q: "Preciso de CNPJ?",
+            a: "Sim, a API Oficial exige uma estrutura validada para garantir que sua empresa opere profissionalmente."
         },
         {
-            q: "Existe risco de bloqueio de conta?",
-            a: "Ao utilizar a API oficial seguindo nossas melhores práticas recomendadas, o risco de bloqueio é praticamente nulo se comparado a automações piratas."
+            q: "Quanto tempo leva para começar?",
+            a: "A ativação é rápida e você já consegue iniciar os envios em pouco tempo após a aprovação da sua conta pela Meta."
         },
         {
-            q: "Como é feito o suporte?",
-            a: "Temos um time de especialistas disponível via WhatsApp e e-mail para ajudar em cada etapa da sua operação."
+            q: "Posso usar qualquer base de contatos?",
+            a: "Sim, desde que seja uma base válida e dentro das boas práticas de envio, você pode importar qualquer volume de leads."
         }
     ];
 
@@ -90,9 +65,8 @@ const LandingPage = () => {
 
                 <nav className="lp-nav">
                     <a href="#funciona" className="lp-nav-link">Como Funciona</a>
-                    <a href="#features" className="lp-nav-link">Recursos</a>
-                    <a href="#testar" className="lp-btn lp-btn-primary" style={{ padding: '10px 20px', fontSize: '0.8rem' }}>
-                        TESTAR AGORA
+                    <a href="#testar" className="lp-btn lp-btn-primary" style={{ padding: '8px 16px', fontSize: '0.75rem' }}>
+                        QUERO MINHA ESTRUTURA
                     </a>
                 </nav>
             </header>
@@ -101,21 +75,17 @@ const LandingPage = () => {
             <section className="lp-hero">
                 <div className="lp-hero-content">
                     <div className="lp-hero-tag">
-                        <Zap size={14} /> NOVIDADE: DASHBOARD ANALYTICS 2.0
+                        <Zap size={14} /> API OFICIAL WHATSAPP
                     </div>
                     <h1 className="lp-hero-title">
-                        Escalone Suas Vendas No <span style={{ color: '#acf800' }}>WhatsApp</span>
+                        Ative sua base de leads no WhatsApp com a <span style={{ color: '#acf800' }}>API Oficial</span>
                     </h1>
                     <p className="lp-hero-subtitle">
-                        A plataforma definitiva para agências e empresas que buscam automação profissional,
-                        disparos em massa com API oficial e gestão completa de campanhas.
+                        Sem bloqueios e sem limite de escala. Para empresas com bases acima de 10 mil contatos que querem estrutura profissional, estabilidade e alta entrega.
                     </p>
                     <div className="lp-cta-group">
-                        <a href="#testar" className="lp-btn lp-btn-primary">
-                            TESTAR AGORA GRATUITAMENTE <ArrowRight size={18} />
-                        </a>
-                        <a href="#testar" className="lp-btn lp-btn-secondary">
-                            FALAR COM AGENTE
+                        <a href="#testar" className="lp-btn lp-btn-primary ripple">
+                            👉 Quero ativar minha estrutura oficial
                         </a>
                     </div>
                 </div>
@@ -126,68 +96,200 @@ const LandingPage = () => {
                         alt="Dashboard Mockup"
                         className="lp-mockup-frame"
                     />
-                    <div style={{ position: 'absolute', top: '20%', right: '-40px', background: 'rgba(5,7,10,0.8)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#acf800', marginBottom: '8px' }}>ENTREGAS HOJE</div>
-                        <div style={{ fontSize: '24px', fontWeight: 900 }}>12.540</div>
-                        <div style={{ fontSize: '9px', color: '#22c55e', marginTop: '4px' }}>+12% que ontem</div>
+                    <div className="lp-floating-stat">
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#acf800', marginBottom: '8px' }}>ENTREGAS GARANTIDAS</div>
+                        <div style={{ fontSize: '24px', fontWeight: 900 }}>100.000+</div>
+                        <div style={{ fontSize: '9px', color: '#22c55e', marginTop: '4px' }}>por número/dia</div>
                     </div>
                 </div>
             </section>
 
-            {/* ── PROCESS ── */}
+            {/* ── IDENTIFICAÇÃO (PAIN POINTS) ── */}
+            <section className="lp-section lp-pain-section">
+                <div className="lp-section-header">
+                    <h2 className="lp-section-title">Isso parece familiar?</h2>
+                </div>
+                <div className="lp-pain-grid">
+                    <div className="lp-pain-card">
+                        <AlertTriangle className="lp-pain-icon" />
+                        <p>WhatsApp travando na hora de enviar?</p>
+                    </div>
+                    <div className="lp-pain-card">
+                        <ShieldAlert className="lp-pain-icon" />
+                        <p>Números sendo bloqueados com frequência?</p>
+                    </div>
+                    <div className="lp-pain-card">
+                        <TrendingUp className="lp-pain-icon" style={{ transform: 'rotate(90deg)' }} />
+                        <p>Limitado a poucos envios por dia?</p>
+                    </div>
+                    <div className="lp-pain-card">
+                        <Lock className="lp-pain-icon" />
+                        <p>Sua operação trava justamente quando precisa escalar?</p>
+                    </div>
+                </div>
+                <div className="lp-pain-footer">
+                    Se você trabalha com base de leads grande, isso não é um detalhe… <strong>é um gargalo.</strong>
+                </div>
+            </section>
+
+            {/* ── MUDANÇA DE JOGO ── */}
+            <section className="lp-section lp-alt-section">
+                <div className="lp-game-changer">
+                    <div className="lp-game-content">
+                        <h2>Operações profissionais não usam WhatsApp comum.</h2>
+                        <p>
+                            Elas usam a <strong>API Oficial do WhatsApp</strong> para escalar envios com estabilidade, 
+                            segurança e controle total da operação.
+                        </p>
+                        <div className="lp-highlight-box">
+                            👉 O próximo nível não é tentar mais… é estruturar certo.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── COMO FUNCIONA (4 STEPS) ── */}
             <section id="funciona" className="lp-section">
                 <div className="lp-section-header">
-                    <span className="lp-section-tag">SIMPLICIDADE</span>
-                    <h2 className="lp-section-title">Três Passos Para O Sucesso</h2>
-                    <p>Dominamos a complexidade para que você foque no que importa: vender.</p>
+                    <span className="lp-section-tag">PROCESSO SIMPLIFICADO</span>
+                    <h2 className="lp-section-title">Como Funciona</h2>
                 </div>
 
-                <div className="lp-steps-grid">
-                    <div className="lp-step-card">
-                        <div className="lp-step-number">01</div>
-                        <h3>Conecte Sua Conta</h3>
-                        <p>Integre seu número oficial via API em segundos e comece a operar com total segurança.</p>
+                <div className="lp-steps-grid-4">
+                    <div className="lp-step-card-v2">
+                        <div className="lp-step-tag">Passo 1</div>
+                        <h3>Ativação</h3>
+                        <p>Ativamos seu número na API Oficial (você escolhe DDD, nome e foto de perfil).</p>
                     </div>
-                    <div className="lp-step-card">
-                        <div className="lp-step-number">02</div>
-                        <h3>Crie Sua Campanha</h3>
-                        <p>Use nosso editor de templates intuitivo para criar mensagens que convertem de verdade.</p>
+                    <div className="lp-step-card-v2">
+                        <div className="lp-step-tag">Passo 2</div>
+                        <h3>Aprovação</h3>
+                        <p>Criamos e aprovamos sua mensagem (template) diretamente na Meta.</p>
                     </div>
-                    <div className="lp-step-card">
-                        <div className="lp-step-number">03</div>
-                        <h3>Escalone o Envio</h3>
-                        <p>Dispare para milhares de contatos com um clique e acompanhe métricas em tempo real.</p>
+                    <div className="lp-step-card-v2">
+                        <div className="lp-step-tag">Passo 3</div>
+                        <h3>Prévia</h3>
+                        <p>Você envia sua base de contatos e recebe uma prévia para aprovação.</p>
+                    </div>
+                    <div className="lp-step-card-v2">
+                        <div className="lp-step-tag">Passo 4</div>
+                        <h3>Disparo</h3>
+                        <p>Disparamos para toda sua base com relatório completo de entregas.</p>
                     </div>
                 </div>
             </section>
 
-            {/* ── FEATURES ── */}
-            <section id="features" className="lp-section" style={{ background: 'rgba(255,255,255,0.01)' }}>
-                <div className="lp-section-header">
-                    <span className="lp-section-tag">RECURSOS</span>
-                    <h2 className="lp-section-title">Tudo O Que Você Precisa</h2>
-                </div>
-
-                <div className="lp-features-grid">
-                    {features.map((f, i) => (
-                        <div key={i} className="lp-feature-card">
-                            <div className="lp-feature-icon">{f.icon}</div>
-                            <h3>{f.title}</h3>
-                            <p>{f.description}</p>
+            {/* ── PROVA + AUTORIDADE ── */}
+            <section className="lp-section lp-dark-section">
+                <div className="lp-authority-grid">
+                    <div className="lp-auth-item">
+                        <CheckCircle2 color="#acf800" size={32} />
+                        <div>
+                            <h4>Números ilimitados</h4>
+                            <p>Adicione quantos números precisar para sua operação.</p>
                         </div>
-                    ))}
+                    </div>
+                    <div className="lp-auth-item">
+                        <TrendingUp color="#acf800" size={32} />
+                        <div>
+                            <h4>100k envios/dia</h4>
+                            <p>Escala liberada por número para grandes volumes.</p>
+                        </div>
+                    </div>
+                    <div className="lp-auth-item">
+                        <Smartphone color="#acf800" size={32} />
+                        <div>
+                            <h4>Estrutura Própria</h4>
+                            <p>Infraestrutura preparada para alto volume sem lentidão.</p>
+                        </div>
+                    </div>
+                    <div className="lp-auth-item">
+                        <ShieldCheck color="#acf800" size={32} />
+                        <div>
+                            <h4>API Oficial</h4>
+                            <p>Aprovada pela Meta, operando dentro das normas.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── O QUE VOCÊ PODE ENVIAR ── */}
+            <section className="lp-section">
+                <div className="lp-section-header">
+                    <span className="lp-section-tag">POSSIBILIDADES</span>
+                    <h2 className="lp-section-title">O que você pode enviar</h2>
+                </div>
+                <div className="lp-content-types">
+                    <div className="lp-type-card"><FileText /> Texto</div>
+                    <div className="lp-type-card"><Image /> Imagens</div>
+                    <div className="lp-type-card"><Video /> Vídeos</div>
+                    <div className="lp-type-card"><MousePointer2 /> Botões com Link</div>
+                    <div className="lp-type-card"><Users /> Personalização</div>
+                </div>
+                <p style={{ textAlign: 'center', marginTop: '40px', opacity: 0.8 }}>
+                    Tudo pronto para gerar ação imediata na sua base.
+                </p>
+            </section>
+
+            {/* ── DIFERENCIAÇÃO ── */}
+            <section className="lp-section lp-diff-section">
+                <div className="lp-diff-content">
+                    <h3>Bloqueios não acontecem por acaso.</h3>
+                    <p>
+                        Eles acontecem quando você usa ferramentas não oficiais, números sem preparo ou tenta escalar sem estrutura.
+                    </p>
+                    <p>
+                        Aqui, você opera <strong>dentro da API Oficial</strong>, com uma estrutura feita exatamente para grandes volumes.
+                    </p>
+                    <a href="#testar" className="lp-btn lp-btn-primary" style={{ marginTop: '32px' }}>
+                        👉 Quero escalar meus disparos com segurança
+                    </a>
                 </div>
             </section>
 
             {/* ── INTERACTIVE DEMO ── */}
-            <section id="testar" className="lp-section" style={{ paddingLeft: '4%', paddingRight: '4%' }}>
-                <div className="lp-section-header" style={{ maxWidth: '1000px' }}>
-                    <span className="lp-section-tag">SIMULADOR OFICIAL</span>
-                    <h2 className="lp-section-title">Experimente O Poder Do <span style={{ color: '#acf800' }}>WhatsApp Marketing</span></h2>
-                    <p>Personalize cada detalhe da sua campanha abaixo e veja o resultado instantâneo no preview à direita.</p>
+            <section id="testar" className="lp-section">
+                <div className="lp-section-header">
+                    <span className="lp-section-tag">SIMULADOR</span>
+                    <h2 className="lp-section-title">Experimente a ferramenta</h2>
                 </div>
-
                 <DemoQuiz affiliateId={finalAffiliateId} />
+            </section>
+
+            {/* ── PARA QUEM É / NÃO É ── */}
+            <section className="lp-section">
+                <div className="lp-audience-grid">
+                    <div className="lp-audience-card is-for">
+                        <h3>Para quem é:</h3>
+                        <ul>
+                            <li><Check size={16} /> Empresas com base de leads ativa</li>
+                            <li><Check size={16} /> Operações com mais de 10 mil contatos</li>
+                            <li><Check size={16} /> Quem quer escalar envios com consistência</li>
+                            <li><Check size={16} /> Quem já tentou e enfrentou bloqueios</li>
+                        </ul>
+                    </div>
+                    <div className="lp-audience-card isnt-for">
+                        <h3>Para quem não é:</h3>
+                        <ul>
+                            <li><X size={16} /> Quem ainda não tem base de leads</li>
+                            <li><X size={16} /> Quem busca soluções improvisadas</li>
+                            <li><X size={16} /> Operações pequenas que não precisam escalar</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── URGÊNCIA ── */}
+            <section className="lp-section lp-urgency-section">
+                <div className="lp-urgency-content">
+                    <p>
+                        Se sua operação já passou dos 10 mil contatos, continuar usando WhatsApp comum está limitando diretamente seu crescimento.
+                    </p>
+                    <h3>Quanto mais você demora para estruturar isso, mais dinheiro deixa na mesa.</h3>
+                    <a href="#testar" className="lp-btn lp-btn-primary lp-btn-large">
+                        👉 Quero ativar minha estrutura agora
+                    </a>
+                </div>
             </section>
 
             {/* ── FAQ ── */}
@@ -217,13 +319,13 @@ const LandingPage = () => {
                 <div className="lp-logo" style={{ justifyContent: 'center', marginBottom: '32px' }}>
                     Plug & Sales
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginBottom: '48px' }}>
+                <div className="lp-footer-links">
                     <a href="#" className="lp-nav-link">Termos de Uso</a>
                     <a href="#" className="lp-nav-link">Privacidade</a>
                     <a href="#" className="lp-nav-link">Diretrizes da Meta</a>
                 </div>
                 <p className="lp-copyright">
-                    © 2026 Plug & Sales Pro. Todos os direitos reservados.
+                    © 2026 Plug & Sales Pro. Operação Profissional de WhatsApp API.
                 </p>
             </footer>
         </div>

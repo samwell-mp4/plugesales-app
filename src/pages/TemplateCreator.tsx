@@ -153,7 +153,7 @@ const TemplateCreator = () => {
     const [isFiveVars, setIsFiveVars] = useState(false);
 
     const [buttons, setButtons] = useState<ButtonDef[]>([
-        { type: 'url', text: 'Clique Aqui', url: 'https://site.com' }
+        { type: 'url', text: 'Clique Aqui', url: '' }
     ]);
 
     const [copyCount] = useState(1);
@@ -241,7 +241,7 @@ const TemplateCreator = () => {
                 };
                 if (btn.type === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
-                    bPayload.url = finalUrl || 'https://site.com';
+                    bPayload.url = finalUrl || '';
                     urlIdxCount++;
                 }
                 return bPayload;
