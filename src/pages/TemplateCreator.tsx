@@ -217,11 +217,11 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
-            // User specifically asked to verify this URL: https://iili.io/qLZLRgs.jpg
+            // Using 'examples' as an array which is the more robust parameter for UTILITY classification
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qLZLRgs.jpg";
             structure.header = {
                 format: format,
-                example: mediaUrlValue
+                examples: [mediaUrlValue]
             };
         }
 
