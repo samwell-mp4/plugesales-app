@@ -184,9 +184,8 @@ const initDB = async () => {
         console.log('✅ Table client_submissions verified/created.');
 
         await client.query(`
-            CREATE TABLE IF NOT EXISTS affiliate_leads (
+            CREATE TABLE IF NOT EXISTS crm_leads (
                 id SERIAL PRIMARY KEY,
-                affiliate_id INTEGER REFERENCES users(id),
                 name TEXT,
                 phone TEXT,
                 email TEXT,
@@ -194,10 +193,11 @@ const initDB = async () => {
                 offer_text TEXT,
                 status TEXT DEFAULT 'NOVO',
                 notes TEXT,
+                assigned_to INTEGER REFERENCES users(id),
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log('✅ Table affiliate_leads verified/created.');
+        console.log('✅ Table crm_leads verified/created.');
 
         // Backward-compat: add new columns if the table already existed without them
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'CLIENT'`);
@@ -1821,14 +1821,14 @@ app.post('/api/leads', async (req, res) => {
     const { name, phone, email, company_name, offer_text } = req.body;
     try {
         const result = await pool.query(
-            `INSERT INTO affiliate_leads (name, phone, email, company_name, offer_text, status) 
+            `INSERT INTO crm_leads (name, phone, email, company_name, offer_text, status) 
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
             [name, phone, email, company_name || 'Plug & Sales Enterprise', offer_text || 'Lead Global (Landing Page)', 'NOVO']
         );
-        console.log('✅ Global Lead saved:', result.rows[0].id);
+        console.log('✅ CRM Lead saved:', result.rows[0].id);
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error('❌ Error saving global lead:', err.message);
+        console.error('❌ Error saving CRM lead:', err.message);
         res.status(500).json({ error: 'Erro ao salvar lead' });
     }
 });
@@ -1837,13 +1837,13 @@ app.get('/api/leads', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT l.*, u.name as assigned_user_name 
-            FROM affiliate_leads l
+            FROM crm_leads l
             LEFT JOIN users u ON l.assigned_to = u.id
             ORDER BY l.created_at DESC
         `);
         res.json(result.rows);
     } catch (err) {
-        console.error('❌ Error fetching leads:', err.message);
+        console.error('❌ Error fetching CRM leads:', err.message);
         res.status(500).json({ error: 'Erro ao buscar Leads' });
     }
 });
@@ -1862,7 +1862,7 @@ app.patch('/api/leads/:id', async (req, res) => {
     const { status, notes, company_name, offer_text, assigned_to } = req.body;
     try {
         const result = await pool.query(
-            `UPDATE affiliate_leads 
+            `UPDATE crm_leads 
              SET status = COALESCE($1, status), 
                  notes = COALESCE($2, notes),
                  company_name = COALESCE($3, company_name),
@@ -1873,8 +1873,8 @@ app.patch('/api/leads/:id', async (req, res) => {
         );
         res.json(result.rows[0]);
     } catch (err) {
-        console.error('Error updating lead:', err);
-        res.status(500).json({ error: 'Erro ao atualizar Lead' });
+        console.error('Error updating crm lead:', err);
+        res.status(500).json({ error: 'Erro ao atualizar CRM Lead' });
     }
 });
 

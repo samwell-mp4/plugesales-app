@@ -12,7 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { useNavigate } from 'react-router-dom';
 
-const LeadCRM = () => {
+const ClienteCRM = () => {
     const navigate = useNavigate();
     const { user } = useAuth() as any;
     const [leads, setLeads] = useState<any[]>([]);
@@ -30,10 +30,10 @@ const LeadCRM = () => {
 
     const fetchLeads = async () => {
         setIsLoading(true);
-        console.log("Fetching leads for user:", user?.id, "Role:", user?.role);
+        console.log("Fetching clientes for user:", user?.id, "Role:", user?.role);
         try {
-            const data = await dbService.getLeads();
-            console.log("Leads received from server:", data);
+            const data = await dbService.getClientes();
+            console.log("Clientes received from server:", data);
             setLeads(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Error fetching leads:", err);
@@ -53,7 +53,7 @@ const LeadCRM = () => {
 
     const updateLeadField = async (id: number, field: string, value: any) => {
         try {
-            await dbService.updateLead(id, { [field]: value });
+            await dbService.updateCliente(id, { [field]: value });
             // Local update for snappiness
             setLeads(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
             // Re-fetch to get names (e.g. assigned_user_name)
@@ -93,8 +93,8 @@ const LeadCRM = () => {
         <div className="animate-fade-in" style={{ paddingBottom: '100px' }}>
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>Lead Management CRM</h1>
-                    <p className="subtitle">Centralize sua operação, gerencie leads e escale seu atendimento</p>
+                    <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>CRM de Clientes</h1>
+                    <p className="subtitle">Centralize sua operação, gerencie clientes e escale seu atendimento</p>
                 </div>
                 <div className="flex gap-3">
                     <button className="btn btn-secondary" onClick={() => fetchLeads()} style={{ borderRadius: '16px', padding: '12px 24px', opacity: 0.8 }}>
@@ -106,7 +106,7 @@ const LeadCRM = () => {
             <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
                 <div className="glass-card" style={{ borderLeft: '4px solid #acf800' }}>
                     <div className="flex items-center justify-between mb-2">
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)' }}>LEADS TOTAIS</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)' }}>CLIENTES TOTAIS</span>
                         <Users size={20} color="#acf800" opacity={0.5} />
                     </div>
                     <div style={{ fontSize: '2.2rem', fontWeight: 900 }}>{stats.total}</div>
@@ -137,7 +137,7 @@ const LeadCRM = () => {
             <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
                 <div style={{ padding: '24px', borderBottom: '1px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
                     <div className="flex items-center gap-4">
-                        <h3 style={{ margin: 0, fontWeight: 800 }}>Pipeline de Leads</h3>
+                        <h3 style={{ margin: 0, fontWeight: 800 }}>Pipeline de Clientes</h3>
                         <div style={{ background: 'var(--card-bg-subtle)', borderRadius: '10px', padding: '4px', display: 'flex', gap: '4px' }}>
                             {['ALL', 'NOVO', 'CONTATADO', 'CONVERTIDO', 'PERDIDO'].map(s => (
                                 <button 
@@ -163,7 +163,7 @@ const LeadCRM = () => {
                         <div style={{ position: 'relative', width: '300px' }}>
                             <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
                             <input 
-                                placeholder="Buscar lead..." 
+                                placeholder="Buscar cliente..." 
                                 className="input-field" 
                                 style={{ paddingLeft: '44px', background: 'var(--card-bg-subtle)', borderRadius: '14px' }}
                                 value={searchTerm}
@@ -288,4 +288,4 @@ const LeadCRM = () => {
     );
 };
 
-export default LeadCRM;
+export default ClienteCRM;

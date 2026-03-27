@@ -263,7 +263,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 32px;
   padding: 48px;
-  box-shadow: 0 40px 80px -20px rgba(0,0,0,0.5);
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.5);
 }
 
 .lp-basic-form {
@@ -441,6 +441,19 @@
   text-align: center;
 }
 
+.lp-urgency-section2 {
+  background-color: rgba(red, green, blue, alpha);
+  color: #000;
+  text-align: center;
+  font-size: 25px;
+
+}
+
+.lp-urgency-content2 p {
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
 .lp-urgency-content p {
   font-weight: 700;
   margin-bottom: 16px;
@@ -508,6 +521,12 @@
   position: relative;
 }
 
+.lp-section2 {
+  padding: clamp(60px, 12vh, 120px) 8%;
+  width: 100%;
+  position: relative;
+}
+
 #faq.lp-section {
   background: radial-gradient(circle at 50% 100%, rgba(172, 248, 0, 0.03) 0%, transparent 60%);
 }
@@ -568,6 +587,11 @@
   top: 10px;
   right: 32px;
   line-height: 1;
+}
+
+.test {
+  color: #fff;
+
 }
 
 .lp-step-card h3 {
@@ -670,6 +694,17 @@
   background: #acf800;
   color: #000;
   box-shadow: 0 10px 30px -5px rgba(172, 248, 0, 0.4);
+}
+
+.lp-btn-dois {
+  background: #ffffff;
+  color: #000;
+  box-shadow: 0 10px 30px -5px rgba(172, 248, 0, 0.4);
+}
+
+.lp-btn-dois:hover {
+  background: rgb(46, 255, 18);
+  transform: translateY(-3px);
 }
 
 .lp-btn-primary:hover {

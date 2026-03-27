@@ -636,25 +636,25 @@ export const dbService = {
         }
     },
 
-    // --- Affiliate Leads ---
-    addLead: async (leadData: { affiliate_id?: number | null, name: string, phone: string, email: string, company_name?: string, offer_text?: string }) => {
+    // --- CRM Clientes ---
+    addCliente: async (clienteData: { name: string, phone: string, email: string, company_name?: string, offer_text?: string }) => {
         try {
             const res = await fetch(`${API_BASE}/leads`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(leadData)
+                body: JSON.stringify(clienteData)
             });
             return await res.json();
         } catch (err) { return { error: err }; }
     },
-    getLeads: async () => {
+    getClientes: async () => {
         try {
             const res = await fetch(`${API_BASE}/leads`);
             if (!res.ok) return [];
             return await res.json();
         } catch (err) { return []; }
     },
-    updateLead: async (id: number, data: Partial<{ status: string, notes: string, company_name: string, offer_text: string, assigned_to: number }>) => {
+    updateCliente: async (id: number, data: Partial<{ status: string, notes: string, company_name: string, offer_text: string, assigned_to: number }>) => {
         try {
             const res = await fetch(`${API_BASE}/leads/${id}`, {
                 method: 'PATCH',

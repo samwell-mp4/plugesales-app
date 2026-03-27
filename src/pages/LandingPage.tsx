@@ -41,11 +41,11 @@ const LandingPage = () => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const result = await dbService.addLead({
+            const result = await dbService.addCliente({
                 ...formData,
                 offer_text: "Lead Global (Landing Page)"
             });
-            
+
             if (result && result.error) {
                 console.error("Server-side error saving lead:", result.error);
                 alert("Erro no servidor: Não foi possível salvar os dados. Verifique a conexão com o banco de dados.");
@@ -169,9 +169,7 @@ const LandingPage = () => {
                             Elas usam a <strong>API Oficial do WhatsApp</strong> para escalar envios com estabilidade,
                             segurança e controle total da operação.
                         </p>
-                        <div className="lp-highlight-box2">
-                            👉 O próximo nível não é tentar mais… é estruturar certo.
-                        </div>
+
                     </div>
                 </div>
             </section>
@@ -275,53 +273,6 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* ── BASIC CONTACT FORM ── */}
-            <section id="testar" className="lp-section">
-                <div className="lp-section-header">
-                    <span className="lp-section-tag">CONTATO</span>
-                    <h2 className="lp-section-title">Ative sua Operação</h2>
-                    <p style={{ opacity: 0.7, maxWidth: '600px', margin: '0 auto' }}>Preencha os dados abaixo para receber um contato da nossa equipe.</p>
-                </div>
-
-                <div className="lp-contact-container">
-                    <form className="lp-basic-form" onSubmit={handleFormSubmit}>
-                        <div className="lp-form-group">
-                            <label>Seu Nome</label>
-                            <input
-                                type="text"
-                                required
-                                placeholder="Como deseja ser chamado?"
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            />
-                        </div>
-                        <div className="lp-form-group">
-                            <label>WhatsApp (com DDD)</label>
-                            <input
-                                type="tel"
-                                required
-                                placeholder="Ex: 11999999999"
-                                value={formData.phone}
-                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                            />
-                        </div>
-                        <div className="lp-form-group">
-                            <label>E-mail Corporativo</label>
-                            <input
-                                type="email"
-                                required
-                                placeholder="Ex: contato@empresa.com"
-                                value={formData.email}
-                                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                            />
-                        </div>
-                        <button type="submit" className="lp-btn lp-btn-primary lp-btn-full" disabled={isSubmitting}>
-                            {isSubmitting ? 'ENVIANDO...' : '👉 QUERO ATIVAR MINHA ESTRUTURA AGORA'}
-                        </button>
-                    </form>
-                </div>
-            </section>
-
             {/* ── PARA QUEM É / NÃO É ── */}
             <section className="lp-section">
                 <div className="lp-audience-grid">
@@ -346,13 +297,13 @@ const LandingPage = () => {
             </section>
 
             {/* ── URGÊNCIA ── */}
-            <section className="lp-section lp-urgency-section">
-                <div className="lp-urgency-content">
-                    <p>
+            <section className="lp-section2 lp-urgency-section2 lp-diff-section">
+                <div className="lp-urgency-section2">
+                    <p className='test'>
                         Se sua operação já passou dos 10 mil contatos, continuar usando WhatsApp comum está limitando diretamente seu crescimento.
                     </p>
-                    <h3>Quanto mais você demora para estruturar isso, mais dinheiro deixa na mesa.</h3>
-                    <a href="#testar" className="lp-btn lp-btn-primary lp-btn-large">
+                    <h3 className='test'>Quanto mais você demora para estruturar isso, mais dinheiro deixa na mesa.</h3>
+                    <a href="#testar" className="lp-btn lp-btn-dois lp-btn-large mt-6">
                         👉 Quero ativar minha estrutura agora
                     </a>
                 </div>
