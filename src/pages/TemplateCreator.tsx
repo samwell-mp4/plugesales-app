@@ -188,63 +188,53 @@ const TemplateCreator = () => {
     };
 
     const buildInfobipPayload = (name: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
-        // --- UNIQUE VARIABLE COUNTING ---
-        const uniqueTags = [...new Set(bodyText.match(/\{\{(\d+)\}\}/g) || [])];
-        const varCount = uniqueTags.length;
+        // --- UNIQUE VARIABLE TAG DETECTION ---
+        // Match numbers between double curly braces: {{1}}, {{2}}, etc.
+        const tagMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
+        const uniqueIndices = [...new Set(tagMatches.map(m => m.match(/\d+/)![0]))]
+            .map(Number)
+            .sort((a, b) => a - b);
+        
+        const varCount = uniqueIndices.length;
         
         // --- STANDARD UTILITY EXAMPLES ---
         const standardExamples = [
             "Leandro", // {{1}}
-            "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025", // {{2}}
+            "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
             "O comprovante digital já se encontra disponível para conferência", // {{3}}
             "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
             "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
         ];
 
-        const bodyExamplesArr = standardExamples.slice(0, varCount);
+        const examples = standardExamples.slice(0, varCount);
 
-        // --- UNIVERSAL COMPONENTS STRUCTURE ---
-        const components: any[] = [];
+        const structure: any = {
+            body: { 
+                text: bodyText,
+                examples: examples // Plural 'examples' as array of strings (matches user's base structure)
+            }
+        };
 
-        // 1. Header Component
         const effectiveHeaderType = overrideHeaderType || headerType;
+
         if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qLZLRgs.jpg";
-            components.push({
-                type: "HEADER",
+            structure.header = {
                 format: format,
-                example: {
-                    url: mediaUrlValue
-                }
-            });
-        }
-
-        // 2. Body Component
-        const bodyComp: any = {
-            type: "BODY",
-            text: bodyText
-        };
-        if (bodyExamplesArr.length > 0) {
-            bodyComp.example = {
-                text: [bodyExamplesArr] // Infobip V3 expects array of arrays for text examples
+                example: mediaUrlValue // Singular 'example' as string (matches user's base structure)
             };
         }
-        components.push(bodyComp);
 
-        // 3. Footer Component
         if (footerText && footerText.trim()) {
-            components.push({
-                type: "FOOTER",
-                text: footerText.trim()
-            });
+            structure.footer = { text: footerText.trim() };
         }
 
-        // 4. Buttons Component
         const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
+
         if (effectiveHasButtons && buttons.length > 0) {
             let urlIdxCount = 0;
-            const bList = buttons.map((btn: any) => {
+            structure.buttons = buttons.map((btn: any) => {
                 const bPayload: any = {
                     type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
                     text: (btn.type === 'url' && buttonTextOverrides && buttonTextOverrides[urlIdxCount]) ? buttonTextOverrides[urlIdxCount] : btn.text,
@@ -252,18 +242,9 @@ const TemplateCreator = () => {
                 if (btn.type === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
                     bPayload.url = finalUrl || 'https://site.com';
-                    // Optional: add example for dynamic URL if detected
-                    if (bPayload.url.includes('{{')) {
-                        bPayload.example = 'https://site.com/exemplo';
-                    }
                     urlIdxCount++;
                 }
                 return bPayload;
-            });
-
-            components.push({
-                type: "BUTTONS",
-                buttons: bList
             });
         }
 
@@ -271,9 +252,7 @@ const TemplateCreator = () => {
             name: name,
             language: language,
             category: 'UTILITY',
-            structure: {
-                components: components
-            }
+            structure: structure
         };
     };
 
@@ -490,7 +469,7 @@ const TemplateCreator = () => {
                 for (let i = 0; i < campaign.rows.length; i++) {
                     currentOpTotal++;
                     const row = campaign.rows[i];
-                    const name = `${campaign.prefix}${row.suffix}`.replace(/[\s-@.]/g, '_').replace(/__+/g, '_').toLowerCase();
+                    const name = `${campaign.prefix}${row.suffix}`.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').replace(/__+/g, '_');
                     setGeneratingProgress({ current: currentOpTotal, total: totalTotal, msg: `Processando Campanha ${cIdx + 1}/${campaigns.length}: ${name}...` });
 
                     let finalButtonUrls = row.buttonUrls && row.buttonUrls.length > 0 ? [...row.buttonUrls] : [];
