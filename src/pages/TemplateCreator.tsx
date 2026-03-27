@@ -84,7 +84,8 @@ const TemplateCreator = () => {
                         ...row,
                         headerType: row.headerType || data.templateType || 'TEXT',
                         buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
-                        buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : [])
+                        buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : []),
+                        variables: row.variables || [row.var1, row.var2, row.var3, row.var4, row.var5].filter(v => v !== undefined)
                     }))
                 }));
                 setCampaigns(initializedCampaigns);
@@ -92,11 +93,13 @@ const TemplateCreator = () => {
                 if (initializedCampaigns[0]?.rows?.[0]) {
                     const firstRow = initializedCampaigns[0].rows[0];
                     if (firstRow.mediaUrl) setHeaderMediaUrl(firstRow.mediaUrl);
-                    if (firstRow.buttonUrl) {
-                        setButtons([{ type: 'url', text: 'Clique Aqui', url: firstRow.buttonUrl }]);
+                    const firstUrl = firstRow.buttonUrl || (firstRow.buttonUrls && firstRow.buttonUrls[0]);
+                    if (firstUrl) {
+                        setButtons([{ type: 'url', text: 'Clique Aqui', url: firstUrl }]);
                     }
                 }
-                const initializedRows = (data.rows || []).map((row: any) => ({
+            } else if (data.rows && Array.isArray(data.rows) && data.rows.length > 0) {
+                const initializedRows = data.rows.map((row: any) => ({
                     ...row,
                     headerType: row.headerType || data.templateType || 'TEXT',
                     buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
