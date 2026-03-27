@@ -353,66 +353,67 @@ const TemplateCreator = () => {
         if (targetNumbers.length === 0) return alert("Por favor, insira pelo menos um remetente oficial.");
 
         setIsGenerating(true);
-        let totalSuccess = 0;
-        let lastError = '';
-        const totalOps = targetNumbers.length * copyCount;
-        let currentOp = 0;
+        try {
+            for (const sender of targetNumbers) {
+                for (let i = 1; i <= copyCount; i++) {
+                    currentOp++;
+                    const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
+                    setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
 
-        for (const sender of targetNumbers) {
-            for (let i = 1; i <= copyCount; i++) {
-                currentOp++;
-                const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
-                setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
+                    const payload = buildInfobipPayload(currentName);
+                    const res = await callInfobipAPI(payload, sender);
+                    if (res.success) {
+                        totalSuccess++;
+                        if (user?.id) await dbService.trackTemplate(currentName, user.id);
+                        dbService.addLog({ logType: 'TEMPLATE', name: currentName, author: user?.name, mode: 'SINGLE', userId: Number(selectedClientId) });
+                        await sendToWebhook(payload);
 
-                const payload = buildInfobipPayload(currentName);
-                const res = await callInfobipAPI(payload, sender);
-                if (res.success) {
-                    totalSuccess++;
-                    if (user?.id) await dbService.trackTemplate(currentName, user.id);
-                    dbService.addLog({ logType: 'TEMPLATE', name: currentName, author: user?.name, mode: 'SINGLE', userId: Number(selectedClientId) });
-                    await sendToWebhook(payload);
-
-                    const client = clients.find(c => String(c.id) === String(selectedClientId));
-                    await dbService.addClientSubmission({
-                        user_id: selectedClientId,
-                        client_name: client?.name || '',
-                        profile_name: currentName,
-                        ddd: client?.phone?.substring(0, 2) || '11',
-                        template_type: headerType,
-                        media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
-                        ad_copy: bodyText,
-                        button_link: buttons.find(b => b.type === 'url')?.url || '',
-                        spreadsheet_url: '',
-                        status: 'GERADO',
-                        submitted_by: user?.name,
-                        assigned_to: user?.name,
-                        accepted_by: user?.name,
-                        timestamp: new Date().toISOString(),
-                        ads: [{
-                            ad_name: currentName,
+                        const client = clients.find(c => String(c.id) === String(selectedClientId));
+                        await dbService.addClientSubmission({
+                            user_id: selectedClientId,
+                            client_name: client?.name || '',
+                            profile_name: currentName,
+                            ddd: client?.phone?.substring(0, 2) || '11',
                             template_type: headerType,
-                            message_mode: 'manual',
                             media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
                             ad_copy: bodyText,
                             button_link: buttons.find(b => b.type === 'url')?.url || '',
-                            variables: [...variablesExample],
-                            delivered_leads: 0
-                        }]
-                    });
-                } else {
-                    lastError = res.error || 'Erro desconhecido';
+                            spreadsheet_url: '',
+                            status: 'GERADO',
+                            submitted_by: user?.name,
+                            assigned_to: user?.name,
+                            accepted_by: user?.name,
+                            timestamp: new Date().toISOString(),
+                            ads: [{
+                                ad_name: currentName,
+                                template_type: headerType,
+                                message_mode: 'manual',
+                                media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
+                                ad_copy: bodyText,
+                                button_link: buttons.find(b => b.type === 'url')?.url || '',
+                                variables: [...variablesExample],
+                                delivered_leads: 0,
+                                price_per_msg: null
+                            }]
+                        });
+                    } else {
+                        lastError = res.error || 'Erro desconhecido';
+                    }
+
+                    if (currentOp < totalOps) await new Promise(r => setTimeout(r, 2000));
                 }
-
-                if (currentOp < totalOps) await new Promise(r => setTimeout(r, 2000));
             }
-        }
-
-        setIsGenerating(false);
-        if (totalSuccess > 0) {
-            alert(`✅ ${totalSuccess} template(s) criado(s) com sucesso!`);
-            navigate('/accounts');
-        } else {
-            alert(`❌ Erro: ${lastError}`);
+        } catch (err: any) {
+            console.error(err);
+            lastError = err.message;
+        } finally {
+            setIsGenerating(false);
+            if (totalSuccess > 0) {
+                alert(`✅ ${totalSuccess} template(s) criado(s) com sucesso!`);
+                navigate('/accounts');
+            } else if (lastError) {
+                alert(`❌ Erro: ${lastError}`);
+            }
         }
     };
 
@@ -441,67 +442,75 @@ const TemplateCreator = () => {
         campaigns.forEach(c => adsByCampaignId[c.id] = []);
 
         let currentOpTotal = 0;
-        for (let cIdx = 0; cIdx < campaigns.length; cIdx++) {
-            const campaign = campaigns[cIdx];
-            for (let i = 0; i < campaign.rows.length; i++) {
-                currentOpTotal++;
-                const row = campaign.rows[i];
-                const name = `${campaign.prefix}${row.suffix}`.replace(/[\s-@.]/g, '_').replace(/__+/g, '_').toLowerCase();
-                setGeneratingProgress({ current: currentOpTotal, total: totalTotal, msg: `Processando Campanha ${cIdx + 1}/${campaigns.length}: ${name}...` });
+        try {
+            for (let cIdx = 0; cIdx < campaigns.length; cIdx++) {
+                const campaign = campaigns[cIdx];
+                for (let i = 0; i < campaign.rows.length; i++) {
+                    currentOpTotal++;
+                    const row = campaign.rows[i];
+                    const name = `${campaign.prefix}${row.suffix}`.replace(/[\s-@.]/g, '_').replace(/__+/g, '_').toLowerCase();
+                    setGeneratingProgress({ current: currentOpTotal, total: totalTotal, msg: `Processando Campanha ${cIdx + 1}/${campaigns.length}: ${name}...` });
 
-                let finalButtonUrls = row.buttonUrls && row.buttonUrls.length > 0 ? [...row.buttonUrls] : [];
-                const finalButtonTexts = row.buttonTexts && row.buttonTexts.length > 0 ? [...row.buttonTexts] : [];
+                    let finalButtonUrls = row.buttonUrls && row.buttonUrls.length > 0 ? [...row.buttonUrls] : [];
+                    const finalButtonTexts = row.buttonTexts && row.buttonTexts.length > 0 ? [...row.buttonTexts] : [];
 
-                if (row.hasButtons !== false && finalButtonUrls.length > 0) {
-                    row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
-                    for (let urlIdx = 0; urlIdx < finalButtonUrls.length; urlIdx++) {
-                        const originalUrl = finalButtonUrls[urlIdx];
-                        if (originalUrl && (originalUrl.startsWith('http') || originalUrl.includes('.'))) {
-                            try {
-                                const shortRes = await dbService.createShortLink({
-                                    user_id: user?.id,
-                                    target_user_id: Number(selectedClientId),
-                                    original_url: originalUrl,
-                                    title: `Bulk: ${name} - B${urlIdx + 1}`
-                                });
-                                if (shortRes.shortUrl) finalButtonUrls[urlIdx] = shortRes.shortUrl;
-                            } catch (err) { console.error(`Shortener error for ${name}:`, err); }
+                    if (row.hasButtons !== false && finalButtonUrls.length > 0) {
+                        row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
+                        for (let urlIdx = 0; urlIdx < finalButtonUrls.length; urlIdx++) {
+                            const originalUrl = finalButtonUrls[urlIdx];
+                            if (originalUrl && (originalUrl.startsWith('http') || originalUrl.includes('.'))) {
+                                try {
+                                    const shortRes = await dbService.createShortLink({
+                                        user_id: user?.id,
+                                        target_user_id: Number(selectedClientId),
+                                        original_url: originalUrl,
+                                        title: `Bulk: ${name} - B${urlIdx + 1}`
+                                    });
+                                    if (shortRes.shortUrl) finalButtonUrls[urlIdx] = shortRes.shortUrl;
+                                } catch (err) { console.error(`Shortener error for ${name}:`, err); }
+                            }
                         }
                     }
+
+                    const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
+
+                    const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
+                    const extendedPayload = { 
+                        ...payload, 
+                        sender: rowSender,
+                        original_button_link: (row.originalButtonUrls && row.originalButtonUrls.length > 0) ? row.originalButtonUrls[0] : ''
+                    };
+                    const res = await callInfobipAPI(payload, rowSender);
+                    if (res.success) {
+                        successCount++;
+                        if (user?.id) await dbService.trackTemplate(name, user.id);
+                        dbService.addLog({ logType: 'TEMPLATE', name, author: user?.name, mode: 'BULK', userId: Number(selectedClientId) });
+                        await sendToWebhook(extendedPayload);
+
+                        adsByCampaignId[campaign.id].push({
+                            ad_name: name,
+                            template_type: row.headerType,
+                            message_mode: 'manual',
+                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/qLZLRgs.jpg") : '',
+                            ad_copy: bodyText,
+                            button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
+                            original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
+                            variables: (row.variables && row.variables.length > 0) ? row.variables : [...variablesExample],
+                            delivered_leads: 0,
+                            price_per_msg: null
+                        });
+                    } else {
+                        errors.push(`${name}: ${res.error}`);
+                    }
+
+                    if (currentOpTotal < totalTotal) await new Promise(r => setTimeout(r, 2500));
                 }
-
-                const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
-
-                const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
-                const extendedPayload = { 
-                    ...payload, 
-                    sender: rowSender,
-                    original_button_link: (row.originalButtonUrls && row.originalButtonUrls.length > 0) ? row.originalButtonUrls[0] : ''
-                };
-                const res = await callInfobipAPI(payload, rowSender);
-                if (res.success) {
-                    successCount++;
-                    if (user?.id) await dbService.trackTemplate(name, user.id);
-                    dbService.addLog({ logType: 'TEMPLATE', name, author: user?.name, mode: 'BULK', userId: Number(selectedClientId) });
-                    await sendToWebhook(extendedPayload);
-
-                    adsByCampaignId[campaign.id].push({
-                        ad_name: name,
-                        template_type: row.headerType,
-                        message_mode: 'manual',
-                        media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/qLZLRgs.jpg") : '',
-                        ad_copy: bodyText,
-                        button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
-                        original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
-                        variables: (row.variables && row.variables.length > 0) ? row.variables : [...variablesExample],
-                        delivered_leads: 0
-                    });
-                } else {
-                    errors.push(`${name}: ${res.error}`);
-                }
-
-                if (currentOpTotal < totalTotal) await new Promise(r => setTimeout(r, 2500));
             }
+        } catch (err: any) {
+            console.error(err);
+            errors.push(`Erro geral: ${err.message}`);
+        } finally {
+            setIsGenerating(false);
         }
 
         // Finalize: Reconcile with existing submissions or create new ones
@@ -565,7 +574,6 @@ const TemplateCreator = () => {
             }
         }
 
-        setIsGenerating(false);
         alert(`Finalizado!\nSucesso: ${successCount}\nErros: ${errors.length}`);
         if (successCount > 0) navigate('/client-submissions');
     };
