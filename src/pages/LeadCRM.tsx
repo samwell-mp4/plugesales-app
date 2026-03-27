@@ -4,7 +4,6 @@ import {
     TrendingUp, 
     MessageCircle, 
     Search,
-    Copy,
     Zap,
     Clock,
     UserCheck
@@ -64,12 +63,6 @@ const LeadCRM = () => {
         }
     };
 
-    const copyLink = () => {
-        const link = `${window.location.origin}/landing?ref=${user?.id}`;
-        navigator.clipboard.writeText(link);
-        alert("Link de Afiliado copiado com sucesso!");
-    };
-
     const filteredLeads = leads.filter(l => {
         const matchesSearch = (l.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                              (l.phone || '').includes(searchTerm);
@@ -105,11 +98,6 @@ const LeadCRM = () => {
                     <button className="btn btn-secondary" onClick={() => fetchLeads()} style={{ borderRadius: '16px', padding: '12px 24px', opacity: 0.8 }}>
                         ATUALIZAR
                     </button>
-                    {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
-                         <button className="btn btn-primary" onClick={copyLink} style={{ borderRadius: '16px', padding: '12px 24px' }}>
-                            <Copy size={18} /> MEU LINK
-                        </button>
-                    )}
                 </div>
             </div>
 

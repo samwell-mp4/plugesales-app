@@ -19,34 +19,45 @@ import {
     Check
 } from 'lucide-react';
 import './LandingPage.css';
-import DemoQuiz from '../components/DemoQuiz';
+import { dbService } from '../services/dbService';
+import { useNavigate } from 'react-router-dom';
 
 const LandingPage = () => {
+    const navigate = useNavigate();
     const [activeFaq, setActiveFaq] = useState<number | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '',
+        phone: '',
+        email: '',
+        company_name: 'Plug & Sales Enterprise'
+    });
 
     const toggleFaq = (index: number) => {
         setActiveFaq(activeFaq === index ? null : index);
     };
 
     useEffect(() => {
-        const query = new URLSearchParams(window.location.search);
-        const refId = query.get('ref') || query.get('affiliate');
-        if (refId && refId !== 'null' && refId !== 'undefined') {
-            sessionStorage.setItem('affiliate_id', refId);
-            console.log("Affiliate ID stored in sessionStorage:", refId);
-        }
+        // Affiliate logic removed per user request for global lead capture
     }, []);
 
-    const getAffiliateId = () => {
-        const fromSession = sessionStorage.getItem('affiliate_id');
-        const query = new URLSearchParams(window.location.search);
-        const refId = query.get('ref') || query.get('affiliate') || fromSession;
-
-        const parsedRef = refId ? parseInt(refId) : null;
-        return isNaN(parsedRef as number) ? null : parsedRef;
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            await dbService.addLead({
+                ...formData,
+                affiliate_id: null,
+                offer_text: "Lead Global (Landing Page)"
+            });
+            navigate('/obrigado');
+        } catch (err) {
+            console.error("Error submitting lead:", err);
+            alert("Erro ao enviar. Tente novamente.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
-
-    const finalAffiliateId = getAffiliateId();
 
     const faqs = [
         {
@@ -156,7 +167,7 @@ const LandingPage = () => {
                             Elas usam a <strong>API Oficial do WhatsApp</strong> para escalar envios com estabilidade,
                             segurança e controle total da operação.
                         </p>
-                        <div className="lp-highlight-box">
+                        <div className="lp-highlight-box2">
                             👉 O próximo nível não é tentar mais… é estruturar certo.
                         </div>
                     </div>
@@ -179,17 +190,17 @@ const LandingPage = () => {
                     <div className="lp-step-card-v2">
                         <div className="lp-step-tag">Passo 2</div>
                         <h3>Aprovação</h3>
-                        <p>Criamos e aprovamos sua mensagem (template) diretamente na Meta.</p>
+                        <p>Aprovamos seu template oficial na Meta para garantir zero bloqueios.</p>
                     </div>
                     <div className="lp-step-card-v2">
                         <div className="lp-step-tag">Passo 3</div>
                         <h3>Prévia</h3>
-                        <p>Você envia sua base de contatos e recebe uma prévia para aprovação.</p>
+                        <p>Você envia sua base de contatos e recebe uma prévia detalhada para aprovação.</p>
                     </div>
                     <div className="lp-step-card-v2">
                         <div className="lp-step-tag">Passo 4</div>
                         <h3>Disparo</h3>
-                        <p>Disparamos para toda sua base com relatório completo de entregas.</p>
+                        <p>Disparamos para toda sua base com relatório em tempo real de entregas.</p>
                     </div>
                 </div>
             </section>
@@ -262,13 +273,51 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* ── INTERACTIVE DEMO ── */}
+            {/* ── BASIC CONTACT FORM ── */}
             <section id="testar" className="lp-section">
                 <div className="lp-section-header">
-                    <span className="lp-section-tag">SIMULADOR</span>
-                    <h2 className="lp-section-title">Experimente a ferramenta</h2>
+                    <span className="lp-section-tag">CONTATO</span>
+                    <h2 className="lp-section-title">Ative sua Operação</h2>
+                    <p style={{ opacity: 0.7, maxWidth: '600px', margin: '0 auto' }}>Preencha os dados abaixo para receber um contato da nossa equipe.</p>
                 </div>
-                <DemoQuiz affiliateId={finalAffiliateId} />
+                
+                <div className="lp-contact-container">
+                    <form className="lp-basic-form" onSubmit={handleFormSubmit}>
+                        <div className="lp-form-group">
+                            <label>Seu Nome</label>
+                            <input 
+                                type="text" 
+                                required 
+                                placeholder="Como deseja ser chamado?" 
+                                value={formData.name}
+                                onChange={e => setFormData({...formData, name: e.target.value})}
+                            />
+                        </div>
+                        <div className="lp-form-group">
+                            <label>WhatsApp (com DDD)</label>
+                            <input 
+                                type="tel" 
+                                required 
+                                placeholder="Ex: 11999999999" 
+                                value={formData.phone}
+                                onChange={e => setFormData({...formData, phone: e.target.value})}
+                            />
+                        </div>
+                        <div className="lp-form-group">
+                            <label>E-mail Corporativo</label>
+                            <input 
+                                type="email" 
+                                required 
+                                placeholder="Ex: contato@empresa.com"
+                                value={formData.email}
+                                onChange={e => setFormData({...formData, email: e.target.value})}
+                            />
+                        </div>
+                        <button type="submit" className="lp-btn lp-btn-primary lp-btn-full" disabled={isSubmitting}>
+                            {isSubmitting ? 'ENVIANDO...' : '👉 QUERO ATIVAR MINHA ESTRUTURA AGORA'}
+                        </button>
+                    </form>
+                </div>
             </section>
 
             {/* ── PARA QUEM É / NÃO É ── */}
