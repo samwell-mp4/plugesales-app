@@ -352,6 +352,11 @@ const TemplateCreator = () => {
         const targetNumbers = senderNumbers.split(/[\n,]/).map(n => n.trim()).filter(n => n.length > 5);
         if (targetNumbers.length === 0) return alert("Por favor, insira pelo menos um remetente oficial.");
 
+        let totalSuccess = 0;
+        let lastError = '';
+        const totalOps = targetNumbers.length * copyCount;
+        let currentOp = 0;
+
         setIsGenerating(true);
         try {
             for (const sender of targetNumbers) {
@@ -392,8 +397,7 @@ const TemplateCreator = () => {
                                 ad_copy: bodyText,
                                 button_link: buttons.find(b => b.type === 'url')?.url || '',
                                 variables: [...variablesExample],
-                                delivered_leads: 0,
-                                price_per_msg: null
+                                delivered_leads: 0
                             }]
                         });
                     } else {
@@ -497,7 +501,7 @@ const TemplateCreator = () => {
                             original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
                             variables: (row.variables && row.variables.length > 0) ? row.variables : [...variablesExample],
                             delivered_leads: 0,
-                            price_per_msg: null
+                            price_per_msg: undefined
                         });
                     } else {
                         errors.push(`${name}: ${res.error}`);
@@ -506,72 +510,72 @@ const TemplateCreator = () => {
                     if (currentOpTotal < totalTotal) await new Promise(r => setTimeout(r, 2500));
                 }
             }
+
+            // Finalize: Reconcile with existing submissions or create new ones
+            const client = clients.find(c => String(c.id) === String(selectedClientId));
+
+            for (const campaign of campaigns) {
+                const campaignAds = adsByCampaignId[campaign.id];
+                if (campaignAds.length === 0) continue;
+
+                if (campaign.id.startsWith('sub_')) {
+                    // Reconcile with original card
+                    const subId = campaign.id.split('_')[1];
+                    try {
+                        const existingSub = await dbService.getClientSubmissionById(Number(subId));
+                        const currentLogs = existingSub?.logs || [];
+                        const newLog = {
+                            id: Date.now(),
+                            type: 'info',
+                            message: `🚀 Templates gerados com sucesso (${campaignAds.length} variações)`,
+                            timestamp: new Date().toISOString(),
+                            author: user?.name
+                        };
+
+                        await dbService.updateClientSubmission(Number(subId), {
+                            ads: campaignAds,
+                            status: 'GERADO',
+                            assigned_to: user?.name,
+                            accepted_by: user?.name,
+                            logs: [...currentLogs, newLog]
+                        });
+                    } catch (err) {
+                        console.error(`Error updating submission ${subId}:`, err);
+                    }
+                } else {
+                    // Creating a NEW submission Card
+                    await dbService.addClientSubmission({
+                        user_id: String(selectedClientId),
+                        client_name: client?.name || '',
+                        profile_name: campaign.prefix.endsWith('_') ? campaign.prefix.slice(0, -1) : campaign.prefix,
+                        ddd: client?.phone?.substring(0, 2) || '11',
+                        template_type: 'TEXT',
+                        media_url: '',
+                        ad_copy: bodyText,
+                        button_link: campaignAds.length > 0 ? (campaignAds[0].button_link || '') : '',
+                        original_button_link: campaignAds.length > 0 ? (campaignAds[0].original_button_link || '') : '',
+                        spreadsheet_url: '',
+                        status: 'GERADO',
+                        submitted_by: user?.name,
+                        assigned_to: user?.name,
+                        accepted_by: user?.name,
+                        timestamp: new Date().toISOString(),
+                        ads: campaignAds,
+                        logs: [{
+                            id: Date.now(),
+                            type: 'info',
+                            message: '🎉 Campanha criada via CREADOR',
+                            timestamp: new Date().toISOString(),
+                            author: user?.name
+                        }]
+                    });
+                }
+            }
         } catch (err: any) {
             console.error(err);
             errors.push(`Erro geral: ${err.message}`);
         } finally {
             setIsGenerating(false);
-        }
-
-        // Finalize: Reconcile with existing submissions or create new ones
-        const client = clients.find(c => String(c.id) === String(selectedClientId));
-        
-        for (const campaign of campaigns) {
-            const campaignAds = adsByCampaignId[campaign.id];
-            if (campaignAds.length === 0) continue;
-
-            if (campaign.id.startsWith('sub_')) {
-                // Reconcile with original card
-                const subId = campaign.id.split('_')[1];
-                try {
-                    const existingSub = await dbService.getClientSubmissionById(Number(subId));
-                    const currentLogs = existingSub?.logs || [];
-                    const newLog = {
-                        id: Date.now(),
-                        type: 'info',
-                        message: `🚀 Templates gerados com sucesso (${campaignAds.length} variações)`,
-                        timestamp: new Date().toISOString(),
-                        author: user?.name
-                    };
-
-                    await dbService.updateClientSubmission(Number(subId), {
-                        ads: campaignAds,
-                        status: 'GERADO',
-                        assigned_to: user?.name,
-                        accepted_by: user?.name,
-                        logs: [...currentLogs, newLog]
-                    });
-                } catch (err) {
-                    console.error(`Error updating submission ${subId}:`, err);
-                }
-            } else {
-                // Creating a NEW submission Card
-                await dbService.addClientSubmission({
-                    user_id: String(selectedClientId),
-                    client_name: client?.name || '',
-                    profile_name: campaign.prefix.endsWith('_') ? campaign.prefix.slice(0, -1) : campaign.prefix,
-                    ddd: client?.phone?.substring(0, 2) || '11',
-                    template_type: 'TEXT',
-                    media_url: '',
-                    ad_copy: bodyText,
-                    button_link: campaignAds.length > 0 ? (campaignAds[0].button_link || '') : '',
-                    original_button_link: campaignAds.length > 0 ? (campaignAds[0].original_button_link || '') : '',
-                    spreadsheet_url: '',
-                    status: 'GERADO',
-                    submitted_by: user?.name,
-                    assigned_to: user?.name,
-                    accepted_by: user?.name,
-                    timestamp: new Date().toISOString(),
-                    ads: campaignAds,
-                    logs: [{
-                        id: Date.now(),
-                        type: 'info',
-                        message: '🎉 Campanha criada via CREADOR',
-                        timestamp: new Date().toISOString(),
-                        author: user?.name
-                    }]
-                });
-            }
         }
 
         alert(`Finalizado!\nSucesso: ${successCount}\nErros: ${errors.length}`);
