@@ -43,8 +43,11 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
         if (step === 1) {
             // Silently capture lead in background
             try {
+                const sessId = sessionStorage.getItem('affiliate_id');
+                const finalAffID = affiliateId || (sessId && sessId !== 'null' && sessId !== 'undefined' ? parseInt(sessId) : null);
+                
                 const res = await dbService.addLead({
-                    affiliate_id: affiliateId,
+                    affiliate_id: finalAffID,
                     name: formData.leadName,
                     phone: formData.leadPhone,
                     email: formData.leadEmail,

@@ -651,7 +651,7 @@ export const dbService = {
         try {
             const params = new URLSearchParams();
             if (userId) params.append('affiliate_id', userId.toString());
-            if (role) params.append('role', role);
+            if (role) params.append('role', role.toUpperCase());
             const res = await fetch(`${API_BASE}/leads?${params.toString()}`);
             if (!res.ok) return [];
             return await res.json();

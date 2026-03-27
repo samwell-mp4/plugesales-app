@@ -1813,11 +1813,14 @@ app.post('/api/leads', async (req, res) => {
     console.log('--- Incoming LEAD Capture ---');
     console.log('Payload:', JSON.stringify(req.body, null, 2));
     const { affiliate_id, name, phone, email, company_name, offer_text } = req.body;
+    const parsedAffId = (affiliate_id === 'null' || affiliate_id === 'undefined' || !affiliate_id) ? null : parseInt(affiliate_id);
+    const safeAffId = isNaN(parsedAffId) ? null : parsedAffId;
+
     try {
         const result = await pool.query(
             `INSERT INTO affiliate_leads (affiliate_id, name, phone, email, company_name, offer_text) 
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [affiliate_id || null, name, phone, email, company_name || 'Minha Empresa Pro', offer_text || '']
+            [safeAffId, name, phone, email, company_name || 'Minha Empresa Pro', offer_text || '']
         );
         console.log('✅ Lead saved successfully:', result.rows[0].id);
         res.status(201).json(result.rows[0]);
@@ -1852,13 +1855,13 @@ app.get('/api/leads', async (req, res) => {
         let query = 'SELECT * FROM affiliate_leads';
         let params = [];
         
-        // Se não for ADMIN, filtra pelo affiliate_id (se fornecido)
-        // Isso garante que afiliados vejam apenas o que é deles, mas ADMIN vê tudo.
-        if (role !== 'ADMIN' && affiliate_id && affiliate_id !== 'null' && affiliate_id !== 'undefined') {
+        // Se não for ADMIN ou EMPLOYEE, filtra pelo affiliate_id (se fornecido)
+        // Isso garante que afiliados vejam apenas o que é deles, mas ADMIN e EQUIPE veem tudo.
+        if (role !== 'ADMIN' && role !== 'EMPLOYEE' && affiliate_id && affiliate_id !== 'null' && affiliate_id !== 'undefined') {
             query += ' WHERE affiliate_id = $1';
             params.push(parseInt(affiliate_id));
-        } else if (role !== 'ADMIN') {
-            // Se não é admin e não passou affiliate_id, retorna nada por segurança (ou apenas o que for publico)
+        } else if (role !== 'ADMIN' && role !== 'EMPLOYEE') {
+            // Se não é admin/equipe e não passou affiliate_id, retorna nada por segurança (ou apenas o que for publico)
             return res.json([]);
         }
         

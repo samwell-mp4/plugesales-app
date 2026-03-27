@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     MessageSquare,
     Zap,
@@ -24,14 +24,29 @@ import DemoQuiz from '../components/DemoQuiz';
 const LandingPage = () => {
     const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
-    const query = new URLSearchParams(window.location.search);
-    const refId = query.get('ref') || query.get('affiliate');
-    const parsedRef = refId ? parseInt(refId) : null;
-    const finalAffiliateId = isNaN(parsedRef as number) ? null : parsedRef;
-
     const toggleFaq = (index: number) => {
         setActiveFaq(activeFaq === index ? null : index);
     };
+
+    useEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+        const refId = query.get('ref') || query.get('affiliate');
+        if (refId && refId !== 'null' && refId !== 'undefined') {
+            sessionStorage.setItem('affiliate_id', refId);
+            console.log("Affiliate ID stored in sessionStorage:", refId);
+        }
+    }, []);
+
+    const getAffiliateId = () => {
+        const fromSession = sessionStorage.getItem('affiliate_id');
+        const query = new URLSearchParams(window.location.search);
+        const refId = query.get('ref') || query.get('affiliate') || fromSession;
+        
+        const parsedRef = refId ? parseInt(refId) : null;
+        return isNaN(parsedRef as number) ? null : parsedRef;
+    };
+
+    const finalAffiliateId = getAffiliateId();
 
     const faqs = [
         {
