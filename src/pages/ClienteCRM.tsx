@@ -51,7 +51,7 @@ const ClienteCRM = () => {
         }
     };
 
-    const updateLeadField = async (id: number, field: string, value: any) => {
+    const updateClienteField = async (id: number, field: string, value: any) => {
         try {
             await dbService.updateCliente(id, { [field]: value });
             // Local update for snappiness
@@ -208,7 +208,7 @@ const ClienteCRM = () => {
                                             <td style={{ padding: '20px 24px' }}>
                                                 <select 
                                                     value={lead.status} 
-                                                    onChange={(e) => updateLeadField(lead.id, 'status', e.target.value)}
+                                                    onChange={(e) => updateClienteField(lead.id, 'status', e.target.value)}
                                                     style={{ 
                                                         background: statusStyle.bg, 
                                                         color: statusStyle.color, 
@@ -232,7 +232,7 @@ const ClienteCRM = () => {
                                                     <UserCheck size={14} opacity={0.5} />
                                                     <select 
                                                         value={lead.assigned_to || ''} 
-                                                        onChange={(e) => updateLeadField(lead.id, 'assigned_to', e.target.value ? parseInt(e.target.value) : null)}
+                                                        onChange={(e) => updateClienteField(lead.id, 'assigned_to', e.target.value ? parseInt(e.target.value) : null)}
                                                         style={{ 
                                                             background: 'transparent', 
                                                             color: lead.assigned_to ? 'white' : 'var(--text-secondary)', 

@@ -186,7 +186,7 @@ const CampaignPlanner = () => {
                             </div>
                             <div className="flex flex-col p-4" style={{ background: 'rgba(172, 248, 0, 0.05)', borderRadius: '14px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
                                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Volume Total Estimado</span>
-                                <b style={{ fontSize: '1.8rem', color: 'var(--text-primary)', marginTop: '4px' }}>{totalVolume.toLocaleString()} <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>Leads</span></b>
+                                <b style={{ fontSize: '1.8rem', color: 'var(--text-primary)', marginTop: '4px' }}>{totalVolume.toLocaleString()} <span style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>Contatos</span></b>
                             </div>
                         </div>
                     </div>

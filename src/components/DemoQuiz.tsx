@@ -16,13 +16,13 @@ const mediaOptions = [
     { id: 'img3', type: 'VIDEO', url: 'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=400&q=80', label: 'Meeting' },
 ];
 
-const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
+const DemoQuiz = () => {
     const [step, setStep] = useState(1);
-    const [leadId, setLeadId] = useState<number | null>(null);
+    const [clienteId, setClienteId] = useState<number | null>(null);
     const [formData, setFormData] = useState({
-        leadName: '',
-        leadPhone: '',
-        leadEmail: '',
+        clienteName: '',
+        clientePhone: '',
+        clienteEmail: '',
         companyName: 'Minha Empresa Pro',
         offer: '🔥 Conheça a nossa Inteligência Artificial que escala seus disparos de WhatsApp com 0% de bloqueio!',
         headerType: 'IMAGE' as 'IMAGE' | 'VIDEO' | 'DOC',
@@ -31,34 +31,30 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
     });
 
     useEffect(() => {
-        console.log("DemoQuiz mounted. affiliateId prop:", affiliateId);
-    }, [affiliateId]);
+        console.log("DemoQuiz mounted.");
+    }, []);
 
     const nextStep = async () => {
-        if (step === 1 && (!formData.leadName || !formData.leadPhone || !formData.leadEmail)) {
+        if (step === 1 && (!formData.clienteName || !formData.clientePhone || !formData.clienteEmail)) {
             alert("Por favor, preencha seus dados para continuar o teste.");
             return;
         }
         
         if (step === 1) {
-            // Silently capture lead in background
+            // Silently capture cliente in background
             try {
-                const sessId = sessionStorage.getItem('affiliate_id');
-                const finalAffID = affiliateId || (sessId && sessId !== 'null' && sessId !== 'undefined' ? parseInt(sessId) : null);
-                
-                const res = await dbService.addLead({
-                    affiliate_id: finalAffID,
-                    name: formData.leadName,
-                    phone: formData.leadPhone,
-                    email: formData.leadEmail,
+                const res = await dbService.addCliente({
+                    name: formData.clienteName,
+                    phone: formData.clientePhone,
+                    email: formData.clienteEmail,
                     company_name: formData.companyName,
                     offer_text: formData.offer
                 });
                 if (res && res.id) {
-                    setLeadId(res.id);
+                    setClienteId(res.id);
                 }
             } catch (err) {
-                console.error("Erro ao salvar lead:", err);
+                console.error("Erro ao salvar cliente:", err);
             }
         }
 
@@ -68,14 +64,14 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
     const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
     const finishCapture = async () => {
-        if (leadId) {
+        if (clienteId) {
             try {
-                await dbService.updateLead(leadId, {
+                await dbService.updateCliente(clienteId, {
                     company_name: formData.companyName,
                     offer_text: formData.offer
                 });
             } catch (err) {
-                console.error("Erro ao finalizar lead:", err);
+                console.error("Erro ao finalizar cliente:", err);
             }
         }
         window.location.href = '/obrigado';
@@ -183,21 +179,21 @@ const DemoQuiz = ({ affiliateId }: { affiliateId?: number | null }) => {
                                 <div className="sim-label"><User size={14} /> SEU NOME</div>
                                 <div className="sim-input-box">
                                     <User size={18} />
-                                    <input className="sim-input-field" placeholder="Como te chamamos?" value={formData.leadName} onChange={e => setFormData({ ...formData, leadName: e.target.value })} />
+                                    <input className="sim-input-field" placeholder="Como te chamamos?" value={formData.clienteName} onChange={e => setFormData({ ...formData, clienteName: e.target.value })} />
                                 </div>
                             </div>
                             <div className="sim-field">
                                 <div className="sim-label"><Phone size={14} /> WHATSAPP</div>
                                 <div className="sim-input-box">
                                     <Phone size={18} />
-                                    <input className="sim-input-field" placeholder="(00) 00000-0000" value={formData.leadPhone} onChange={e => setFormData({ ...formData, leadPhone: e.target.value })} />
+                                    <input className="sim-input-field" placeholder="(00) 00000-0000" value={formData.clientePhone} onChange={e => setFormData({ ...formData, clientePhone: e.target.value })} />
                                 </div>
                             </div>
                             <div className="sim-field">
                                 <div className="sim-label"><Mail size={14} /> E-MAIL</div>
                                 <div className="sim-input-box">
                                     <Mail size={18} />
-                                    <input className="sim-input-field" placeholder="contato@empresa.com" value={formData.leadEmail} onChange={e => setFormData({ ...formData, leadEmail: e.target.value })} />
+                                    <input className="sim-input-field" placeholder="contato@empresa.com" value={formData.clienteEmail} onChange={e => setFormData({ ...formData, clienteEmail: e.target.value })} />
                                 </div>
                             </div>
                         </div>

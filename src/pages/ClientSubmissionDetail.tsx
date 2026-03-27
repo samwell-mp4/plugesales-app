@@ -925,7 +925,7 @@ const ClientSubmissionDetail = () => {
                                                 <input type="datetime-local" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.scheduled_at || ''} onChange={e => handleUpdateAd(activeAdIdx, 'scheduled_at', e.target.value)} />
                                             </div>
                                             <div style={{ padding: '16px', background: 'rgba(172,248,0,0.03)', borderRadius: '16px', border: '1px solid rgba(172,248,0,0.1)' }}>
-                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Leads Entregues (Sucesso)</p>
+                                                <p style={{ margin: '0 0 8px 0', fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase' }}>Mensagens Entregues (Sucesso)</p>
                                                 <input type="number" className="field-input" style={{ padding: '10px', fontSize: '13px' }} value={currentAd.delivered_leads || ''} onChange={e => handleUpdateAd(activeAdIdx, 'delivered_leads', Number(e.target.value))} />
                                             </div>
                                             <div style={{ padding: '16px', background: 'rgba(59,130,246,0.05)', borderRadius: '16px', border: '1px solid rgba(59,130,246,0.1)' }}>
@@ -945,7 +945,7 @@ const ClientSubmissionDetail = () => {
                                         <div style={{ background: 'var(--card-bg-subtle)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--surface-border-subtle)' }}>
                                             <Users size={20} color="var(--text-muted)" />
                                             <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>BASE QUANTIDADE</span>
-                                            <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>{currentAd.total_leads ? currentAd.total_leads.toLocaleString('pt-BR') : 0} LEADS</span>
+                                            <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>{currentAd.total_leads ? currentAd.total_leads.toLocaleString('pt-BR') : 0} CLIENTES</span>
                                         </div>
 
                                         <div style={{ background: 'rgba(34,197,94,0.08)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(34,197,94,0.2)' }}>

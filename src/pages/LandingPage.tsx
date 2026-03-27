@@ -37,67 +37,41 @@ const LandingPage = () => {
         setActiveFaq(activeFaq === index ? null : index);
     };
 
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        try {
-            const result = await dbService.addCliente({
-                ...formData,
-                offer_text: "Lead Global (Landing Page)"
-            });
-
-            if (result && result.error) {
-                console.error("Server-side error saving lead:", result.error);
-                alert("Erro no servidor: Não foi possível salvar os dados. Verifique a conexão com o banco de dados.");
-            } else {
-                console.log("Lead saved successfully:", result);
-                navigate('/obrigado');
-            }
-        } catch (err) {
-            console.error("Error submitting lead:", err);
-            alert("Erro de conexão. Verifique se o servidor está rodando.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const faqs = [
         {
             q: "Meu número pode ser bloqueado?",
-            a: "Não. A operação é feita dentro da API Oficial, seguindo as diretrizes da Meta, o que garante a segurança da sua conta."
+            a: "Não. Os disparos são feitos através da nossa estrutura com números próprios, sob nossa responsabilidade."
         },
         {
-            q: "Preciso de CNPJ?",
-            a: "Sim, a API Oficial exige uma estrutura validada para garantir que sua empresa opere profissionalmente."
+            q: "Existe limite mínimo para o disparo em massa?",
+            a: "Sim, o mínimo é de 10 mil contatos por disparo."
         },
         {
-            q: "Quanto tempo leva para começar?",
-            a: "A ativação é rápida e você já consegue iniciar os envios em pouco tempo após a aprovação da sua conta pela Meta."
+            q: "Como é realizada a cobrança?",
+            a: "A cobrança é feita apenas por mensagem entregue, com uma pequena taxa que varia de acordo com o volume de leads."
         },
         {
-            q: "Posso usar qualquer base de contatos?",
-            a: "Sim, desde que seja uma base válida e dentro das boas práticas de envio, você pode importar qualquer volume de leads."
+            q: "Em quanto tempo as mensagens são entregues?",
+            a: "As mensagens são disparadas em poucos minutos. Recomendamos aguardar até 1 hora para a consolidação total das entregas."
+        },
+        {
+            q: "Vocês enviam relatório?",
+            a: "Sim, fornecemos um relatório direto da plataforma com a quantidade exata de mensagens disparadas e entregues."
+        },
+        {
+            q: "Posso ter mensagens não entregues?",
+            a: "Sim, isso pode ocorrer caso a lista contenha números inválidos, inativos ou sem acesso ao WhatsApp."
+        },
+        {
+            q: "Preciso ter uma lista de contatos própria?",
+            a: "Sim, é necessário possuir uma lista própria. Não fornecemos listas e não compartilhamos sua base com terceiros."
         }
     ];
 
     return (
         <div className="lp-container">
-            {/* ── HEADER ── */}
-            <header className="lp-header">
-                <div className="lp-logo">
-                    <div style={{ background: '#000', padding: '6px', borderRadius: '10px', display: 'flex', alignItems: 'center' }}>
-                        <MessageSquare size={20} color="#acf800" fill="#acf800" />
-                    </div>
-                    Plug & Sales
-                </div>
 
-                <nav className="lp-nav">
-                    <a href="#funciona" className="lp-nav-link">Como Funciona</a>
-                    <a href="#testar" className="lp-btn lp-btn-primary" style={{ padding: '8px 16px', fontSize: '0.75rem' }}>
-                        QUERO MINHA ESTRUTURA
-                    </a>
-                </nav>
-            </header>
 
             {/* ── HERO ── */}
             <section className="lp-hero">
@@ -303,9 +277,79 @@ const LandingPage = () => {
                         Se sua operação já passou dos 10 mil contatos, continuar usando WhatsApp comum está limitando diretamente seu crescimento.
                     </p>
                     <h3 className='test'>Quanto mais você demora para estruturar isso, mais dinheiro deixa na mesa.</h3>
-                    <a href="#testar" className="lp-btn lp-btn-dois lp-btn-large mt-6">
+                    <a href="#testar" className="lp-btn lp-btn-primary lp-btn-large mt-6">
                         👉 Quero ativar minha estrutura agora
                     </a>
+                </div>
+            </section>
+
+            {/* ── SEÇÃO DE CAPTURA ── */}
+            <section id="testar" className="lp-section lp-form-section">
+                <div className="lp-section-header">
+                    <span className="lp-section-tag">AGORA É COM VOCÊ</span>
+                    <h2 className="lp-section-title">Inicie sua escala hoje</h2>
+                </div>
+                <div className="lp-form-container">
+                    <form 
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            setIsSubmitting(true);
+                            try {
+                                const result = await dbService.addCliente({
+                                    ...formData,
+                                    offer_text: "Lead Global (Landing Page)"
+                                });
+
+                                if (result && result.error) {
+                                    console.error("Server-side error saving cliente:", result.error);
+                                    alert("Erro no servidor: Não foi possível salvar os dados. Verifique a conexão com o banco de dados.");
+                                } else {
+                                    console.log("CRM Cliente saved successfully:", result);
+                                    navigate('/obrigado');
+                                }
+                            } catch (err) {
+                                console.error("Error submitting cliente:", err);
+                                alert("Erro de conexão. Verifique se o servidor está rodando.");
+                            } finally {
+                                setIsSubmitting(false);
+                            }
+                        }} 
+                        className="lp-capture-form"
+                    >
+                        <div className="lp-form-group">
+                            <label>Seu Nome</label>
+                            <input
+                                type="text"
+                                required
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="Como podemos te chamar?"
+                            />
+                        </div>
+                        <div className="lp-form-group">
+                            <label>WhatsApp (com DDD)</label>
+                            <input
+                                type="tel"
+                                required
+                                value={formData.phone}
+                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                placeholder="5511999999999"
+                            />
+                        </div>
+                        <div className="lp-form-group">
+                            <label>Seu Melhor E-mail</label>
+                            <input
+                                type="email"
+                                required
+                                value={formData.email}
+                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                placeholder="voce@empresa.com"
+                            />
+                        </div>
+                        <button type="submit" disabled={isSubmitting} className="lp-btn lp-btn-primary lp-btn-block">
+                            {isSubmitting ? 'ENVIANDO...' : 'ENVIAR E AGENDAR DISPARO'}
+                        </button>
+                    </form>
                 </div>
             </section>
 
