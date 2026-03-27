@@ -40,7 +40,7 @@ const Sidebar = () => {
 
     // Add common Admin/Employee tools
     if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
-        menuItems.push({ name: 'Afiliados', path: '/affiliates', icon: <Users size={20} color="var(--primary-color)" /> });
+        menuItems.push({ name: 'CRM de Leads', path: '/crm-leads', icon: <Users size={20} color="var(--primary-color)" /> });
     }
 
     // Add SuperAdmin Control

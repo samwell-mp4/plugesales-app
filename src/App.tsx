@@ -17,7 +17,7 @@ import LinkShortener from './pages/LinkShortener';
 import LinkStats from './pages/LinkStats';
 import ClientReports from './pages/ClientReportsPage';
 import LandingPage from './pages/LandingPage';
-import AffiliateDashboard from './pages/AffiliateDashboard';
+import LeadCRM from './pages/LeadCRM';
 import ThankYou from './pages/ThankYou';
 import Profile from './pages/Profile';
 import './index.css';
@@ -105,7 +105,8 @@ function AppContent() {
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/obrigado" element={<ThankYou />} />
-          <Route path="/affiliates" element={isAdmin || isEmployee ? <AffiliateDashboard /> : <Navigate to="/dashboard" />} />
+          <Route path="/crm-leads" element={isAdmin || isEmployee ? <LeadCRM /> : <Navigate to="/dashboard" />} />
+          <Route path="/affiliates" element={<Navigate to="/crm-leads" replace />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
         </Routes>

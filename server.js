@@ -245,6 +245,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'NOVO'`);
         await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS notes TEXT`);
         await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS email TEXT`);
+        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS assigned_to INTEGER REFERENCES users(id)`);
         console.log('✅ Table affiliate_leads columns verified/migrated.');
 
         // Patch: Restore roles for static team members if they were incorrectly registered as CLIENT
@@ -1848,46 +1849,63 @@ app.get('/api/debug/db', async (req, res) => {
 });
 
 app.get('/api/leads', async (req, res) => {
-    const { affiliate_id, role } = req.query;
+    const { affiliate_id, role, user_id } = req.query;
     console.log('--- GET Leads Request ---');
-    console.log('Query Params:', { affiliate_id, role });
+    console.log('Query Params:', { affiliate_id, role, user_id });
     try {
-        let query = 'SELECT * FROM affiliate_leads';
+        let query = `
+            SELECT l.*, u.name as assigned_user_name 
+            FROM affiliate_leads l
+            LEFT JOIN users u ON l.assigned_to = u.id
+        `;
         let params = [];
         
-        // Se não for ADMIN ou EMPLOYEE, filtra pelo affiliate_id (se fornecido)
-        // Isso garante que afiliados vejam apenas o que é deles, mas ADMIN e EQUIPE veem tudo.
-        if (role !== 'ADMIN' && role !== 'EMPLOYEE' && affiliate_id && affiliate_id !== 'null' && affiliate_id !== 'undefined') {
-            query += ' WHERE affiliate_id = $1';
+        // Se for EMPLOYEE, pode ver os dele (assigned_to) OU se não tiver nenhum assigned_to (leads novos)
+        // Se for ADMIN, vê tudo.
+        // Se for CLIENT (afiliado), vê apenas os que tem seu affiliate_id.
+        if (role === 'ADMIN') {
+            // No filter for admin
+        } else if (role === 'EMPLOYEE') {
+            // Empregados veem tudo por enquanto conforme solicitado "pelo CRM dos funcionarios e admin"
+            // Mas se quiser restringir futuramente: query += ' WHERE l.assigned_to = $1 OR l.assigned_to IS NULL';
+        } else if (affiliate_id && affiliate_id !== 'null') {
+            query += ' WHERE l.affiliate_id = $1';
             params.push(parseInt(affiliate_id));
-        } else if (role !== 'ADMIN' && role !== 'EMPLOYEE') {
-            // Se não é admin/equipe e não passou affiliate_id, retorna nada por segurança (ou apenas o que for publico)
+        } else {
             return res.json([]);
         }
         
-        query += ' ORDER BY created_at DESC';
-        console.log('Final SQL:', query, 'Params:', params);
+        query += ' ORDER BY l.created_at DESC';
         const result = await pool.query(query, params);
-        console.log(`✅ Leads found: ${result.rows.length}`);
         res.json(result.rows);
     } catch (err) {
         console.error('❌ Error fetching leads:', err.message);
-        res.status(500).json({ error: 'Erro ao buscar Leads', details: err.message });
+        res.status(500).json({ error: 'Erro ao buscar Leads' });
+    }
+});
+
+app.get('/api/users/team', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT id, name, role FROM users WHERE role IN ('ADMIN', 'EMPLOYEE') ORDER BY name");
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar equipe' });
     }
 });
 
 app.patch('/api/leads/:id', async (req, res) => {
     const { id } = req.params;
-    const { status, notes, company_name, offer_text } = req.body;
+    const { status, notes, company_name, offer_text, assigned_to } = req.body;
     try {
         const result = await pool.query(
             `UPDATE affiliate_leads 
              SET status = COALESCE($1, status), 
                  notes = COALESCE($2, notes),
                  company_name = COALESCE($3, company_name),
-                 offer_text = COALESCE($4, offer_text)
-             WHERE id = $5 RETURNING *`,
-            [status || null, notes || null, company_name || null, offer_text || null, id]
+                 offer_text = COALESCE($4, offer_text),
+                 assigned_to = COALESCE($5, assigned_to)
+             WHERE id = $6 RETURNING *`,
+            [status || null, notes || null, company_name || null, offer_text || null, assigned_to || null, id]
         );
         res.json(result.rows[0]);
     } catch (err) {

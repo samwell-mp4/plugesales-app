@@ -652,12 +652,13 @@ export const dbService = {
             const params = new URLSearchParams();
             if (userId) params.append('affiliate_id', userId.toString());
             if (role) params.append('role', role.toUpperCase());
+            if (userId) params.append('user_id', userId.toString());
             const res = await fetch(`${API_BASE}/leads?${params.toString()}`);
             if (!res.ok) return [];
             return await res.json();
         } catch (err) { return []; }
     },
-    updateLead: async (id: number, data: Partial<{ status: string, notes: string, company_name: string, offer_text: string }>) => {
+    updateLead: async (id: number, data: Partial<{ status: string, notes: string, company_name: string, offer_text: string, assigned_to: number }>) => {
         try {
             const res = await fetch(`${API_BASE}/leads/${id}`, {
                 method: 'PATCH',
@@ -666,6 +667,13 @@ export const dbService = {
             });
             return await res.json();
         } catch (err) { return { error: err }; }
+    },
+    getTeam: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/users/team`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) { return []; }
     },
     debugDb: async () => {
         try {

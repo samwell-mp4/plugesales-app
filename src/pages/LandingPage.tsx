@@ -41,7 +41,7 @@ const LandingPage = () => {
         const fromSession = sessionStorage.getItem('affiliate_id');
         const query = new URLSearchParams(window.location.search);
         const refId = query.get('ref') || query.get('affiliate') || fromSession;
-        
+
         const parsedRef = refId ? parseInt(refId) : null;
         return isNaN(parsedRef as number) ? null : parsedRef;
     };
@@ -100,7 +100,7 @@ const LandingPage = () => {
                     </p>
                     <div className="lp-cta-group">
                         <a href="#testar" className="lp-btn lp-btn-primary ripple">
-                            👉 Quero ativar minha estrutura oficial
+                            👉 Quero Agendar Um Disparo em Massa
                         </a>
                     </div>
                 </div>
@@ -153,7 +153,7 @@ const LandingPage = () => {
                     <div className="lp-game-content">
                         <h2>Operações profissionais não usam WhatsApp comum.</h2>
                         <p>
-                            Elas usam a <strong>API Oficial do WhatsApp</strong> para escalar envios com estabilidade, 
+                            Elas usam a <strong>API Oficial do WhatsApp</strong> para escalar envios com estabilidade,
                             segurança e controle total da operação.
                         </p>
                         <div className="lp-highlight-box">
