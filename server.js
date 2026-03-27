@@ -1867,22 +1867,24 @@ app.get('/api/leads', async (req, res) => {
         `;
         let params = [];
         
-        // Se for EMPLOYEE, pode ver os dele (assigned_to) OU se não tiver nenhum assigned_to (leads novos)
-        // Se for ADMIN, vê tudo.
-        // Se for CLIENT (afiliado), vê apenas os que tem seu affiliate_id.
+        // Role-based access control
+        console.log(`[ACL] Role: ${role || 'NONE'}, AffID: ${affiliate_id || 'NONE'}`);
+        
         if (role === 'ADMIN') {
-            // No filter for admin
+            console.log('[ACL] ADMIN access granted - showing all leads');
         } else if (role === 'EMPLOYEE') {
-            // Empregados veem tudo por enquanto conforme solicitado "pelo CRM dos funcionarios e admin"
-            // Mas se quiser restringir futuramente: query += ' WHERE l.assigned_to = $1 OR l.assigned_to IS NULL';
-        } else if (affiliate_id && affiliate_id !== 'null') {
+            console.log('[ACL] EMPLOYEE access granted - showing all leads');
+        } else if (affiliate_id && affiliate_id !== 'null' && affiliate_id !== 'undefined') {
+            console.log(`[ACL] AFFILIATE access - filtering by affiliate_id: ${affiliate_id}`);
             query += ' WHERE l.affiliate_id = $1';
             params.push(parseInt(affiliate_id));
         } else {
+            console.warn('[ACL] ACCESS DENIED or missing parameters. Returning empty.');
             return res.json([]);
         }
         
         query += ' ORDER BY l.created_at DESC';
+        console.log('[DB] Executing query:', query);
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (err) {

@@ -30,9 +30,11 @@ const LeadCRM = () => {
 
     const fetchLeads = async () => {
         setIsLoading(true);
+        console.log("Fetching leads for user:", user?.id, "Role:", user?.role);
         try {
             const data = await dbService.getLeads(user.id, user.role);
-            setLeads(data);
+            console.log("Leads received from server:", data);
+            setLeads(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Error fetching leads:", err);
         } finally {
