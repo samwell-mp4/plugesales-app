@@ -1831,14 +1831,37 @@ app.get('/api/step-leads', async (req, res) => {
 
 app.post('/api/step-leads', async (req, res) => {
     const { name, phone, email, niche, method, volume } = req.body;
+    console.log('📬 [STEP_LEAD] New submission received:', { name, phone, email });
     try {
         const result = await pool.query(
             'INSERT INTO step_leads (name, phone, email, niche, method, volume) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
             [name, phone, email, niche, method, volume]
         );
-        res.status(201).json(result.rows[0]);
+        
+        const newLead = result.rows[0];
+        console.log('✅ [STEP_LEAD] Saved to database with ID:', newLead.id);
+
+        // --- WEBHOOK N8N ---
+        const webhookUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/8b096b73-408c-456e-8d27-282b8da62084';
+        try {
+            // Using global fetch (Node 18+)
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: 'new_lead',
+                    ...newLead,
+                    timestamp_br: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+                })
+            }).then(r => console.log('📡 [WEBHOOK] Sent to n8n:', r.status))
+              .catch(e => console.error('❌ [WEBHOOK] Error sending to n8n:', e.message));
+        } catch (webhookErr) {
+            console.error('❌ [WEBHOOK] Sync error:', webhookErr.message);
+        }
+
+        res.status(201).json(newLead);
     } catch (err) {
-        console.error('Error saving step lead:', err);
+        console.error('❌ [STEP_LEAD] Error saving step lead:', err);
         res.status(500).json({ error: 'Erro interno' });
     }
 });

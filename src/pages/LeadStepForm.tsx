@@ -55,13 +55,43 @@ const LeadStepForm = () => {
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
+        let success = false;
+        
         try {
-            await dbService.addStepLead(formData);
-            setDirection(1);
-            setCurrentStep(totalSteps); // Jump to success step
+            // 1. Enviar para o Backend (Local - Se falhar, não impede o fluxo)
+            try {
+                const res = await dbService.addStepLead(formData);
+                if (res) success = true;
+            } catch (err) {
+                console.error("Local backend error:", err);
+            }
+
+            // 2. Enviar para n8n WEBHOOK (Crítico - Direto do Cliente)
+            const n8nUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/8b096b73-408c-456e-8d27-282b8da62084';
+            try {
+                const n8nRes = await fetch(n8nUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source: 'LeadStepForm (Direct)',
+                        ...formData,
+                        captured_at: new Date().toISOString()
+                    })
+                });
+                if (n8nRes.ok) success = true;
+            } catch (wErr) {
+                console.error("Webhook error:", wErr);
+            }
+
+            if (success) {
+                setDirection(1);
+                setCurrentStep(totalSteps); // Jump to success step
+            } else {
+                alert("Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.");
+            }
         } catch (err) {
-            console.error("Error submitting lead:", err);
-            alert("Erro ao enviar seus dados. Por favor, tente novamente.");
+            console.error("General submission error:", err);
+            alert("Erro crítico ao enviar formulário.");
         } finally {
             setIsSubmitting(false);
         }
