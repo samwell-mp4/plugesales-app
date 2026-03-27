@@ -636,34 +636,6 @@ export const dbService = {
         }
     },
 
-    // --- CRM Clientes ---
-    addCliente: async (clienteData: { name: string, phone: string, email: string, company_name?: string, offer_text?: string }) => {
-        try {
-            const res = await fetch(`${API_BASE}/leads`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(clienteData)
-            });
-            return await res.json();
-        } catch (err) { return { error: err }; }
-    },
-    getClientes: async () => {
-        try {
-            const res = await fetch(`${API_BASE}/leads`);
-            if (!res.ok) return [];
-            return await res.json();
-        } catch (err) { return []; }
-    },
-    updateCliente: async (id: number, data: Partial<{ status: string, notes: string, company_name: string, offer_text: string, assigned_to: number }>) => {
-        try {
-            const res = await fetch(`${API_BASE}/leads/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            return await res.json();
-        } catch (err) { return { error: err }; }
-    },
     getTeam: async () => {
         try {
             const res = await fetch(`${API_BASE}/users/team`);
@@ -676,5 +648,36 @@ export const dbService = {
             const res = await fetch(`${API_BASE}/debug/db`);
             return await res.json();
         } catch (err) { return { error: err }; }
+    },
+    // --- Step Leads ---
+    addStepLead: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/step-leads`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error adding step lead:", err);
+            return null;
+        }
+    },
+    getStepLeads: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/step-leads`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching step leads:", err);
+            return [];
+        }
+    },
+    deleteStepLead: async (id: number) => {
+        try {
+            await fetch(`${API_BASE}/step-leads/${id}`, { method: 'DELETE' });
+        } catch (err) {
+            console.error("Error deleting step lead:", err);
+        }
     }
 };

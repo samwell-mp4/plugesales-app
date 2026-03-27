@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
     MessageSquare,
     Zap,
@@ -19,19 +20,9 @@ import {
     Check
 } from 'lucide-react';
 import './LandingPage.css';
-import { dbService } from '../services/dbService';
-import { useNavigate } from 'react-router-dom';
 
 const LandingPage = () => {
-    const navigate = useNavigate();
     const [activeFaq, setActiveFaq] = useState<number | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        phone: '',
-        email: '',
-        company_name: 'Plug & Sales Enterprise'
-    });
 
     const toggleFaq = (index: number) => {
         setActiveFaq(activeFaq === index ? null : index);
@@ -86,9 +77,9 @@ const LandingPage = () => {
                         Sem bloqueios e sem limite de escala. Para empresas com bases acima de 10 mil contatos que querem estrutura profissional, estabilidade e alta entrega.
                     </p>
                     <div className="lp-cta-group">
-                        <a href="#testar" className="lp-btn lp-btn-primary ripple">
-                            👉 Quero Agendar Um Disparo em Massa
-                        </a>
+                        <Link to="/lead-flow" className="lp-btn lp-btn-primary ripple">
+                             👉 Quero Agendar Um Disparo em Massa
+                        </Link>
                     </div>
                 </div>
 
@@ -241,9 +232,9 @@ const LandingPage = () => {
                     <p>
                         Aqui, você opera <strong>dentro da API Oficial</strong>, com uma estrutura feita exatamente para grandes volumes.
                     </p>
-                    <a href="#testar" className="lp-btn lp-btn-primary" style={{ marginTop: '32px' }}>
+                    <Link to="/lead-flow" className="lp-btn lp-btn-primary" style={{ marginTop: '32px' }}>
                         👉 Quero escalar meus disparos com segurança
-                    </a>
+                    </Link>
                 </div>
             </section>
 
@@ -277,79 +268,9 @@ const LandingPage = () => {
                         Se sua operação já passou dos 10 mil contatos, continuar usando WhatsApp comum está limitando diretamente seu crescimento.
                     </p>
                     <h3 className='test'>Quanto mais você demora para estruturar isso, mais dinheiro deixa na mesa.</h3>
-                    <a href="#testar" className="lp-btn lp-btn-primary lp-btn-large mt-6">
+                    <Link to="/lead-flow" className="lp-btn lp-btn-primary lp-btn-large mt-6">
                         👉 Quero ativar minha estrutura agora
-                    </a>
-                </div>
-            </section>
-
-            {/* ── SEÇÃO DE CAPTURA ── */}
-            <section id="testar" className="lp-section lp-form-section">
-                <div className="lp-section-header">
-                    <span className="lp-section-tag">AGORA É COM VOCÊ</span>
-                    <h2 className="lp-section-title">Inicie sua escala hoje</h2>
-                </div>
-                <div className="lp-form-container">
-                    <form 
-                        onSubmit={async (e) => {
-                            e.preventDefault();
-                            setIsSubmitting(true);
-                            try {
-                                const result = await dbService.addCliente({
-                                    ...formData,
-                                    offer_text: "Lead Global (Landing Page)"
-                                });
-
-                                if (result && result.error) {
-                                    console.error("Server-side error saving cliente:", result.error);
-                                    alert("Erro no servidor: Não foi possível salvar os dados. Verifique a conexão com o banco de dados.");
-                                } else {
-                                    console.log("CRM Cliente saved successfully:", result);
-                                    navigate('/obrigado');
-                                }
-                            } catch (err) {
-                                console.error("Error submitting cliente:", err);
-                                alert("Erro de conexão. Verifique se o servidor está rodando.");
-                            } finally {
-                                setIsSubmitting(false);
-                            }
-                        }} 
-                        className="lp-capture-form"
-                    >
-                        <div className="lp-form-group">
-                            <label>Seu Nome</label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="Como podemos te chamar?"
-                            />
-                        </div>
-                        <div className="lp-form-group">
-                            <label>WhatsApp (com DDD)</label>
-                            <input
-                                type="tel"
-                                required
-                                value={formData.phone}
-                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                placeholder="5511999999999"
-                            />
-                        </div>
-                        <div className="lp-form-group">
-                            <label>Seu Melhor E-mail</label>
-                            <input
-                                type="email"
-                                required
-                                value={formData.email}
-                                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                placeholder="voce@empresa.com"
-                            />
-                        </div>
-                        <button type="submit" disabled={isSubmitting} className="lp-btn lp-btn-primary lp-btn-block">
-                            {isSubmitting ? 'ENVIANDO...' : 'ENVIAR E AGENDAR DISPARO'}
-                        </button>
-                    </form>
+                    </Link>
                 </div>
             </section>
 

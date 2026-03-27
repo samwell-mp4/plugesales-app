@@ -17,9 +17,10 @@ import LinkShortener from './pages/LinkShortener';
 import LinkStats from './pages/LinkStats';
 import ClientReports from './pages/ClientReportsPage';
 import LandingPage from './pages/LandingPage';
-import ClienteCRM from './pages/ClienteCRM';
 import ThankYou from './pages/ThankYou';
 import Profile from './pages/Profile';
+import LeadStepForm from './pages/LeadStepForm';
+import LeadAdminView from './pages/LeadAdminView';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -32,7 +33,7 @@ function AppContent() {
   const { user, theme } = useAuth();
   const location = useLocation();
 
-  const isPublicRoute = location.pathname === '/landing' || location.pathname === '/obrigado' || location.pathname === '/client-form' || location.pathname === '/client' || location.pathname.startsWith('/l/');
+  const isPublicRoute = location.pathname === '/landing' || location.pathname === '/obrigado' || location.pathname === '/client-form' || location.pathname === '/client' || location.pathname === '/lead-flow' || location.pathname.startsWith('/l/');
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -104,12 +105,11 @@ function AppContent() {
           <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />
+          <Route path="/lead-flow" element={<LeadStepForm />} />
           <Route path="/obrigado" element={<ThankYou />} />
-          <Route path="/crm-clientes" element={isAdmin || isEmployee ? <ClienteCRM /> : <Navigate to="/dashboard" />} />
-          <Route path="/crm-leads" element={<Navigate to="/crm-clientes" replace />} />
-          <Route path="/affiliates" element={<Navigate to="/crm-clientes" replace />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
+          <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/dashboard" />} />
         </Routes>
       </main>
     </div>

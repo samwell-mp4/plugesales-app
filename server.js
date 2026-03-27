@@ -181,23 +181,22 @@ const initDB = async () => {
                 timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log('✅ Table client_submissions verified/created.');
-
         await client.query(`
-            CREATE TABLE IF NOT EXISTS crm_leads (
+            CREATE TABLE IF NOT EXISTS step_leads (
                 id SERIAL PRIMARY KEY,
-                name TEXT,
-                phone TEXT,
-                email TEXT,
-                company_name TEXT,
-                offer_text TEXT,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                email TEXT NOT NULL,
+                niche TEXT,
+                method TEXT,
+                volume TEXT,
                 status TEXT DEFAULT 'NOVO',
-                notes TEXT,
-                assigned_to INTEGER REFERENCES users(id),
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log('✅ Table crm_leads verified/created.');
+        console.log('✅ Table step_leads verified/created.');
+        console.log('✅ Table client_submissions verified/created.');
+
 
         // Backward-compat: add new columns if the table already existed without them
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'CLIENT'`);
@@ -1816,69 +1815,44 @@ const startTemplateMonitoring = () => {
 };
 
 // Start monitoring session
-// --- AFFILIATE LEADS API ---
-app.post('/api/leads', async (req, res) => {
-    const { name, phone, email, company_name, offer_text } = req.body;
-    try {
-        const result = await pool.query(
-            `INSERT INTO crm_leads (name, phone, email, company_name, offer_text, status) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [name, phone, email, company_name || 'Plug & Sales Enterprise', offer_text || 'Lead Global (Landing Page)', 'NOVO']
-        );
-        console.log('✅ CRM Lead saved:', result.rows[0].id);
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        console.error('❌ Error saving CRM lead:', err.message);
-        res.status(500).json({ error: 'Erro ao salvar lead' });
-    }
-});
-
-app.get('/api/leads', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT l.*, u.name as assigned_user_name 
-            FROM crm_leads l
-            LEFT JOIN users u ON l.assigned_to = u.id
-            ORDER BY l.created_at DESC
-        `);
-        res.json(result.rows);
-    } catch (err) {
-        console.error('❌ Error fetching CRM leads:', err.message);
-        res.status(500).json({ error: 'Erro ao buscar Leads' });
-    }
-});
-
-app.get('/api/users/team', async (req, res) => {
-    try {
-        const result = await pool.query("SELECT id, name, role FROM users WHERE role IN ('ADMIN', 'EMPLOYEE') ORDER BY name");
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Erro ao buscar equipe' });
-    }
-});
-
-app.patch('/api/leads/:id', async (req, res) => {
-    const { id } = req.params;
-    const { status, notes, company_name, offer_text, assigned_to } = req.body;
-    try {
-        const result = await pool.query(
-            `UPDATE crm_leads 
-             SET status = COALESCE($1, status), 
-                 notes = COALESCE($2, notes),
-                 company_name = COALESCE($3, company_name),
-                 offer_text = COALESCE($4, offer_text),
-                 assigned_to = COALESCE($5, assigned_to)
-             WHERE id = $6 RETURNING *`,
-            [status || null, notes || null, company_name || null, offer_text || null, assigned_to || null, id]
-        );
-        res.json(result.rows[0]);
-    } catch (err) {
-        console.error('Error updating crm lead:', err);
-        res.status(500).json({ error: 'Erro ao atualizar CRM Lead' });
-    }
-});
 
 startTemplateMonitoring();
+
+// --- Step Leads ---
+app.get('/api/step-leads', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM step_leads ORDER BY timestamp DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching step leads:', err);
+        res.status(500).json({ error: 'Erro interno' });
+    }
+});
+
+app.post('/api/step-leads', async (req, res) => {
+    const { name, phone, email, niche, method, volume } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO step_leads (name, phone, email, niche, method, volume) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [name, phone, email, niche, method, volume]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('Error saving step lead:', err);
+        res.status(500).json({ error: 'Erro interno' });
+    }
+});
+
+app.delete('/api/step-leads/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM step_leads WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error deleting step lead:', err);
+        res.status(500).json({ error: 'Erro interno' });
+    }
+});
 
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${port}`);

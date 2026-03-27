@@ -195,20 +195,6 @@ const AdminControl = () => {
                     {/* StatCards Row with more gap */}
                     <div className="flex gap-6 mb-4 overflow-x-auto pb-8" style={{ flexWrap: 'nowrap' }}>
                         <StatCard
-                            title="Volume CRM"
-                            value={isStatsLoading ? '...' : allSubmissions.length.toString()}
-                            subtitle="Total de registros"
-                            icon={<LayoutDashboard size={26} />}
-                            color="var(--primary-color)"
-                        />
-                        <StatCard
-                            title="Pendências"
-                            value={isStatsLoading ? '...' : allSubmissions.filter(s => s.status === 'PENDENTE' || s.status === 'EM_ANALISE').length.toString()}
-                            subtitle="Aguardando ação"
-                            icon={<Clock size={26} />}
-                            color="#facc15"
-                        />
-                        <StatCard
                             title="Links Ativos"
                             value={isStatsLoading ? '...' : allLinks.length.toString()}
                             subtitle="Total encurtado"
@@ -267,7 +253,6 @@ const AdminControl = () => {
                                                         { label: 'TMPL', val: stats.templates, c: '#4ade80' },
                                                         { label: 'DISP', val: stats.transmissions, c: '#60a5fa' },
                                                         { label: 'LINK', val: stats.linksCount, c: '#f87171' },
-                                                        { label: 'CRM', val: stats.submissions, c: '#facc15' }
                                                     ].map(it => (
                                                         <div key={it.label} className="flex-1 flex flex-col items-center p-4 rounded-2xl bg-surface-subtle" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}>
                                                             <span style={{ fontSize: '0.55rem', fontWeight: 950, opacity: 0.5, marginBottom: '6px' }}>{it.label}</span>
@@ -278,15 +263,9 @@ const AdminControl = () => {
 
                                                 <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                                                     <div className="flex items-center gap-2">
-                                                        {stats.pendingSubmissions > 0 ? (
-                                                            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(250, 204, 21, 0.1)', color: '#facc15', fontSize: '0.75rem', fontWeight: 950 }}>
-                                                                <AlertCircle size={16} /> {stats.pendingSubmissions} PENDENTE
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80', fontSize: '0.75rem', fontWeight: 950 }}>
-                                                                <CheckCircle2 size={16} /> STATUS EM DIA
-                                                            </div>
-                                                        )}
+                                                        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80', fontSize: '0.75rem', fontWeight: 950 }}>
+                                                            <CheckCircle2 size={16} /> STATUS EM DIA
+                                                        </div>
                                                     </div>
                                                     {stats.lastActivity && (
                                                         <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.5 }}>

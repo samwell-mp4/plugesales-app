@@ -38,10 +38,6 @@ const Sidebar = () => {
         { name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> },
     ];
 
-    // Add common Admin/Employee tools
-    if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
-        menuItems.push({ name: 'CRM de Clientes', path: '/crm-clientes', icon: <Users size={20} color="var(--primary-color)" /> });
-    }
 
     // Add SuperAdmin Control
     if (user?.role === 'ADMIN') {
