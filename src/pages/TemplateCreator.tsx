@@ -189,12 +189,10 @@ const TemplateCreator = () => {
 
     const buildInfobipPayload = (name: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
         // --- UNIQUE VARIABLE COUNTING ---
-        // Meta/Infobip require exactly ONE example for each unique variable tag index.
         const uniqueTags = [...new Set(bodyText.match(/\{\{(\d+)\}\}/g) || [])];
         const varCount = uniqueTags.length;
         
         // --- STANDARD UTILITY EXAMPLES ---
-        // These proven examples ensure the template is categorized as UTILITY (Payment/Transaction).
         const standardExamples = [
             "Leandro", // {{1}}
             "recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025", // {{2}}
@@ -203,37 +201,50 @@ const TemplateCreator = () => {
             "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
         ];
 
-        const examples = standardExamples.slice(0, varCount);
+        const bodyExamplesArr = standardExamples.slice(0, varCount);
 
-        const structure: any = {
-            body: { text: bodyText }
-        };
+        // --- UNIVERSAL COMPONENTS STRUCTURE ---
+        const components: any[] = [];
 
-        if (examples.length > 0) {
-            structure.body.examples = examples;
-        }
-
+        // 1. Header Component
         const effectiveHeaderType = overrideHeaderType || headerType;
-
         if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
-            // Using 'examples' as an array which is the more robust parameter for UTILITY classification
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qLZLRgs.jpg";
-            structure.header = {
+            components.push({
+                type: "HEADER",
                 format: format,
-                examples: [mediaUrlValue]
+                example: {
+                    url: mediaUrlValue
+                }
+            });
+        }
+
+        // 2. Body Component
+        const bodyComp: any = {
+            type: "BODY",
+            text: bodyText
+        };
+        if (bodyExamplesArr.length > 0) {
+            bodyComp.example = {
+                text: [bodyExamplesArr] // Infobip V3 expects array of arrays for text examples
             };
         }
+        components.push(bodyComp);
 
+        // 3. Footer Component
         if (footerText && footerText.trim()) {
-            structure.footer = { text: footerText.trim() };
+            components.push({
+                type: "FOOTER",
+                text: footerText.trim()
+            });
         }
 
+        // 4. Buttons Component
         const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
-
         if (effectiveHasButtons && buttons.length > 0) {
             let urlIdxCount = 0;
-            structure.buttons = buttons.map((btn: any) => {
+            const bList = buttons.map((btn: any) => {
                 const bPayload: any = {
                     type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
                     text: (btn.type === 'url' && buttonTextOverrides && buttonTextOverrides[urlIdxCount]) ? buttonTextOverrides[urlIdxCount] : btn.text,
@@ -241,9 +252,18 @@ const TemplateCreator = () => {
                 if (btn.type === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
                     bPayload.url = finalUrl || 'https://site.com';
+                    // Optional: add example for dynamic URL if detected
+                    if (bPayload.url.includes('{{')) {
+                        bPayload.example = 'https://site.com/exemplo';
+                    }
                     urlIdxCount++;
                 }
                 return bPayload;
+            });
+
+            components.push({
+                type: "BUTTONS",
+                buttons: bList
             });
         }
 
@@ -251,7 +271,9 @@ const TemplateCreator = () => {
             name: name,
             language: language,
             category: 'UTILITY',
-            structure: structure
+            structure: {
+                components: components
+            }
         };
     };
 
