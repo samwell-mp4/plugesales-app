@@ -85,7 +85,12 @@ const TemplateCreator = () => {
                         headerType: row.headerType || data.templateType || 'TEXT',
                         buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
                         buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : []),
-                        variables: row.variables || [row.var1, row.var2, row.var3, row.var4, row.var5].filter(v => v !== undefined)
+                        variables: [
+                            'Leandro',
+                            'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
+                            'O comprovante digital já se encontra disponível para conferência',
+                            'acessar o comprovante digital #54333 e verificar a entrega'
+                        ]
                     }))
                 }));
                 setCampaigns(initializedCampaigns);
@@ -97,6 +102,9 @@ const TemplateCreator = () => {
                     if (firstUrl) {
                         setButtons([{ type: 'url', text: 'Clique Aqui', url: firstUrl }]);
                     }
+                    if (firstRow.variables && firstRow.variables.length > 0) {
+                        _setVariablesExample(firstRow.variables);
+                    }
                 }
             } else if (data.rows && Array.isArray(data.rows) && data.rows.length > 0) {
                 const initializedRows = data.rows.map((row: any) => ({
@@ -104,7 +112,12 @@ const TemplateCreator = () => {
                     headerType: row.headerType || data.templateType || 'TEXT',
                     buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
                     buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : []),
-                    variables: [row.var1, row.var2, row.var3, row.var4, row.var5].filter(v => v !== undefined)
+                    variables: [
+                        'Leandro',
+                        'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
+                        'O comprovante digital já se encontra disponível para conferência',
+                        'acessar o comprovante digital #54333 e verificar a entrega'
+                    ]
                 }));
                 setCampaigns([{
                     id: Date.now().toString(),
