@@ -45,15 +45,22 @@ const LandingPage = () => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await dbService.addLead({
+            const result = await dbService.addLead({
                 ...formData,
                 affiliate_id: null,
                 offer_text: "Lead Global (Landing Page)"
             });
-            navigate('/obrigado');
+            
+            if (result && result.error) {
+                console.error("Server-side error saving lead:", result.error);
+                alert("Erro no servidor: Não foi possível salvar os dados. Verifique a conexão com o banco de dados.");
+            } else {
+                console.log("Lead saved successfully:", result);
+                navigate('/obrigado');
+            }
         } catch (err) {
             console.error("Error submitting lead:", err);
-            alert("Erro ao enviar. Tente novamente.");
+            alert("Erro de conexão. Verifique se o servidor está rodando.");
         } finally {
             setIsSubmitting(false);
         }
@@ -190,7 +197,7 @@ const LandingPage = () => {
                     <div className="lp-step-card-v2">
                         <div className="lp-step-tag">Passo 2</div>
                         <h3>Aprovação</h3>
-                        <p>Aprovamos seu template oficial na Meta para garantir zero bloqueios.</p>
+                        <p>Você envia a mensagem e nós cuidamos da aprovação do template na Meta.</p>
                     </div>
                     <div className="lp-step-card-v2">
                         <div className="lp-step-tag">Passo 3</div>

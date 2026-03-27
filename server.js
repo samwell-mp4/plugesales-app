@@ -262,6 +262,13 @@ const initDB = async () => {
 
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
+        console.error('--- DB CONNECTION DIAGNOSTIC ---');
+        console.error('Target URL:', pgUrl.replace(/:[^:@]+@/, ':****@'));
+        if (err.message.includes('ECONNREFUSED')) {
+            console.error('HINT: The database server is unreachable. If you are running locally, ensure Postgres is installed and running.');
+        } else if (err.message.includes('authentication failed')) {
+            console.error('HINT: Check your database credentials (user and password) in the connection string.');
+        }
     } finally {
         if (client) client.release();
     }
@@ -1819,16 +1826,16 @@ app.post('/api/leads', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `INSERT INTO affiliate_leads (affiliate_id, name, phone, email, company_name, offer_text) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [safeAffId, name, phone, email, company_name || 'Minha Empresa Pro', offer_text || '']
+            `INSERT INTO affiliate_leads (affiliate_id, name, phone, email, company_name, offer_text, status) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [safeAffId, name, phone, email, company_name || 'Plug & Sales Enterprise', offer_text || '', 'NOVO']
         );
         console.log('✅ Lead saved successfully:', result.rows[0].id);
         res.status(201).json(result.rows[0]);
     } catch (err) {
         console.error('❌ DATABASE ERROR saving lead:', err.message);
-        console.error('Stack:', err.stack);
-        res.status(500).json({ error: 'Erro ao salvar lead', details: err.message });
+        console.error('Payload attempted:', JSON.stringify(req.body));
+        res.status(500).json({ error: 'Erro ao salvar lead no banco de dados', details: err.message });
     }
 });
 
