@@ -1818,74 +1818,29 @@ const startTemplateMonitoring = () => {
 // Start monitoring session
 // --- AFFILIATE LEADS API ---
 app.post('/api/leads', async (req, res) => {
-    console.log('--- Incoming LEAD Capture ---');
-    console.log('Payload:', JSON.stringify(req.body, null, 2));
-    const { affiliate_id, name, phone, email, company_name, offer_text } = req.body;
-    const parsedAffId = (affiliate_id === 'null' || affiliate_id === 'undefined' || !affiliate_id) ? null : parseInt(affiliate_id);
-    const safeAffId = isNaN(parsedAffId) ? null : parsedAffId;
-
+    const { name, phone, email, company_name, offer_text } = req.body;
     try {
         const result = await pool.query(
-            `INSERT INTO affiliate_leads (affiliate_id, name, phone, email, company_name, offer_text, status) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            [safeAffId, name, phone, email, company_name || 'Plug & Sales Enterprise', offer_text || '', 'NOVO']
+            `INSERT INTO affiliate_leads (name, phone, email, company_name, offer_text, status) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [name, phone, email, company_name || 'Plug & Sales Enterprise', offer_text || 'Lead Global (Landing Page)', 'NOVO']
         );
-        console.log('✅ Lead saved successfully:', result.rows[0].id);
+        console.log('✅ Global Lead saved:', result.rows[0].id);
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error('❌ DATABASE ERROR saving lead:', err.message);
-        console.error('Payload attempted:', JSON.stringify(req.body));
-        res.status(500).json({ error: 'Erro ao salvar lead no banco de dados', details: err.message });
-    }
-});
-
-app.get('/api/debug/db', async (req, res) => {
-    try {
-        const leadCount = await pool.query('SELECT COUNT(*) FROM affiliate_leads');
-        const userCount = await pool.query('SELECT COUNT(*) FROM users');
-        const latestLeads = await pool.query('SELECT * FROM affiliate_leads ORDER BY created_at DESC LIMIT 5');
-        res.json({
-            status: 'ok',
-            leads: leadCount.rows[0].count,
-            users: userCount.rows[0].count,
-            latest: latestLeads.rows
-        });
-    } catch (err) {
-        res.status(500).json({ status: 'error', error: err.message });
+        console.error('❌ Error saving global lead:', err.message);
+        res.status(500).json({ error: 'Erro ao salvar lead' });
     }
 });
 
 app.get('/api/leads', async (req, res) => {
-    const { affiliate_id, role, user_id } = req.query;
-    console.log('--- GET Leads Request ---');
-    console.log('Query Params:', { affiliate_id, role, user_id });
     try {
-        let query = `
+        const result = await pool.query(`
             SELECT l.*, u.name as assigned_user_name 
             FROM affiliate_leads l
             LEFT JOIN users u ON l.assigned_to = u.id
-        `;
-        let params = [];
-        
-        // Role-based access control
-        console.log(`[ACL] Role: ${role || 'NONE'}, AffID: ${affiliate_id || 'NONE'}`);
-        
-        if (role === 'ADMIN') {
-            console.log('[ACL] ADMIN access granted - showing all leads');
-        } else if (role === 'EMPLOYEE') {
-            console.log('[ACL] EMPLOYEE access granted - showing all leads');
-        } else if (affiliate_id && affiliate_id !== 'null' && affiliate_id !== 'undefined') {
-            console.log(`[ACL] AFFILIATE access - filtering by affiliate_id: ${affiliate_id}`);
-            query += ' WHERE l.affiliate_id = $1';
-            params.push(parseInt(affiliate_id));
-        } else {
-            console.warn('[ACL] ACCESS DENIED or missing parameters. Returning empty.');
-            return res.json([]);
-        }
-        
-        query += ' ORDER BY l.created_at DESC';
-        console.log('[DB] Executing query:', query);
-        const result = await pool.query(query, params);
+            ORDER BY l.created_at DESC
+        `);
         res.json(result.rows);
     } catch (err) {
         console.error('❌ Error fetching leads:', err.message);

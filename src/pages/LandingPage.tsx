@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     MessageSquare,
     Zap,
@@ -37,17 +37,12 @@ const LandingPage = () => {
         setActiveFaq(activeFaq === index ? null : index);
     };
 
-    useEffect(() => {
-        // Affiliate logic removed per user request for global lead capture
-    }, []);
-
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
             const result = await dbService.addLead({
                 ...formData,
-                affiliate_id: null,
                 offer_text: "Lead Global (Landing Page)"
             });
             

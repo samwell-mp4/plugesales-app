@@ -647,13 +647,9 @@ export const dbService = {
             return await res.json();
         } catch (err) { return { error: err }; }
     },
-    getLeads: async (userId?: number, role?: string) => {
+    getLeads: async () => {
         try {
-            const params = new URLSearchParams();
-            if (userId) params.append('affiliate_id', userId.toString());
-            if (role) params.append('role', role.toUpperCase());
-            if (userId) params.append('user_id', userId.toString());
-            const res = await fetch(`${API_BASE}/leads?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/leads`);
             if (!res.ok) return [];
             return await res.json();
         } catch (err) { return []; }

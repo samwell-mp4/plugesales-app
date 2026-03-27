@@ -32,7 +32,7 @@ const LeadCRM = () => {
         setIsLoading(true);
         console.log("Fetching leads for user:", user?.id, "Role:", user?.role);
         try {
-            const data = await dbService.getLeads(user.id, user.role);
+            const data = await dbService.getLeads();
             console.log("Leads received from server:", data);
             setLeads(Array.isArray(data) ? data : []);
         } catch (err) {
@@ -180,7 +180,7 @@ const LeadCRM = () => {
                                 <th style={{ padding: '16px 24px', fontSize: '0.75rem', opacity: 0.5 }}>IDENTIFICAÇÃO</th>
                                 <th style={{ padding: '16px 24px', fontSize: '0.75rem', opacity: 0.5 }}>STATUS</th>
                                 <th style={{ padding: '16px 24px', fontSize: '0.75rem', opacity: 0.5 }}>RESPONSÁVEL</th>
-                                <th style={{ padding: '16px 24px', fontSize: '0.75rem', opacity: 0.5 }}>ORIGEM</th>
+                                <th style={{ padding: '16px 24px', fontSize: '0.75rem', opacity: 0.5 }}>DATA</th>
                                 <th style={{ padding: '16px 24px', fontSize: '0.75rem', opacity: 0.5, textAlign: 'right' }}>AÇÕES</th>
                             </tr>
                         </thead>
@@ -252,9 +252,9 @@ const LeadCRM = () => {
                                             </td>
                                             <td style={{ padding: '20px 24px' }}>
                                                 <div style={{ fontSize: '0.8rem', opacity: 0.5 }}>
-                                                    {lead.affiliate_id ? `Afiliado #${lead.affiliate_id}` : 'Direto'}
+                                                    {new Date(lead.created_at).toLocaleDateString()}
                                                 </div>
-                                                <div style={{ fontSize: '0.7rem', fontWeight: 600 }}>{new Date(lead.created_at).toLocaleDateString()}</div>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: 600 }}>{new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                             </td>
                                             <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                                                 <div className="flex justify-end gap-2">
