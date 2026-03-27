@@ -76,11 +76,11 @@ const TemplateCreator = () => {
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
             if (data.clientId) setSelectedClientId(data.clientId);
 
-            if (data.campaigns && data.campaigns.length > 0) {
+            if (data.campaigns && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
                 const initializedCampaigns = data.campaigns.map((camp: any) => ({
                     ...camp,
                     id: camp.id || Date.now().toString() + Math.random(),
-                    rows: camp.rows.map((row: any) => ({
+                    rows: (camp.rows || []).map((row: any) => ({
                         ...row,
                         headerType: row.headerType || data.templateType || 'TEXT',
                         buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
@@ -89,14 +89,14 @@ const TemplateCreator = () => {
                 }));
                 setCampaigns(initializedCampaigns);
 
-                if (initializedCampaigns[0].rows[0]) {
+                if (initializedCampaigns[0]?.rows?.[0]) {
                     const firstRow = initializedCampaigns[0].rows[0];
                     if (firstRow.mediaUrl) setHeaderMediaUrl(firstRow.mediaUrl);
                     if (firstRow.buttonUrl) {
                         setButtons([{ type: 'url', text: 'Clique Aqui', url: firstRow.buttonUrl }]);
                     }
                 }
-                const initializedRows = data.rows.map((row: any) => ({
+                const initializedRows = (data.rows || []).map((row: any) => ({
                     ...row,
                     headerType: row.headerType || data.templateType || 'TEXT',
                     buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
@@ -109,13 +109,13 @@ const TemplateCreator = () => {
                     rows: initializedRows
                 }]);
 
-                if (initializedRows[0].mediaUrl) setHeaderMediaUrl(initializedRows[0].mediaUrl);
-                if (initializedRows[0].buttonUrl) {
+                if (initializedRows[0]?.mediaUrl) setHeaderMediaUrl(initializedRows[0].mediaUrl);
+                if (initializedRows[0]?.buttonUrl) {
                     setButtons([{ type: 'url', text: 'Clique Aqui', url: initializedRows[0].buttonUrl }]);
                 }
                 
                 // Set global variables from the first row for preview/MODEL mode
-                if (initializedRows[0].variables && initializedRows[0].variables.length > 0) {
+                if (initializedRows[0]?.variables && initializedRows[0].variables.length > 0) {
                     _setVariablesExample(initializedRows[0].variables);
                 }
             }
@@ -1142,10 +1142,10 @@ const TemplateCreator = () => {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => <th key={i}>VAR {i+1}</th>)}{buttons.filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{camp.rows.map((row, rIdx) => {
+                                                        <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => <th key={i}>VAR {i+1}</th>)}{(buttons || []).filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{(camp.rows || []).map((row, rIdx) => {
                                                             const fullName = `${camp.prefix}${row.suffix}`.toLowerCase().trim();
                                                             const allNames: string[] = [];
-                                                            campaigns.forEach(c => c.rows.forEach(r => allNames.push(`${c.prefix}${r.suffix}`.toLowerCase().trim())));
+                                                            (campaigns || []).forEach(c => (c.rows || []).forEach(r => allNames.push(`${c.prefix}${r.suffix}`.toLowerCase().trim())));
                                                             const isFullDuplicate = fullName !== "" && allNames.filter(n => n === fullName).length > 1;
                                                             const isSuffixDuplicateInCamp = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim().toLowerCase() === row.suffix.trim().toLowerCase() && row.suffix.trim() !== "");
                                                             const isError = isFullDuplicate || isSuffixDuplicateInCamp;

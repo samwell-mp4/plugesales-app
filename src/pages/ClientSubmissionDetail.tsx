@@ -863,7 +863,7 @@ const ClientSubmissionDetail = () => {
                                             <p style={{ margin: 0, fontSize: '10px', opacity: 0.4 }}>Nenhum histórico registrado.</p>
                                         </div>
                                     ) : (
-                                        [...sub.logs].reverse().map((log: any) => (
+                                        ([...(sub.logs || [])].reverse()).map((log: any) => (
                                             <div key={log.id} style={{ padding: '12px 16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                                                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: log.type === 'error' ? '#ef4444' : (log.type === 'success' ? '#22c55e' : 'var(--primary-color)'), marginTop: '4px' }} />
                                                 <div style={{ flex: 1 }}>
@@ -886,9 +886,9 @@ const ClientSubmissionDetail = () => {
                 {/* ── ADS ANALYZER ── */}
                 <div className="control-card" style={{ animationDelay: '0.4s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
-                        <label className="field-label" style={{ marginBottom: 0 }}><Layers size={14} /> Navegador de Anúncios ({ads.length})</label>
+                        <label className="field-label" style={{ marginBottom: 0 }}><Layers size={14} /> Navegador de Anúncios ({(sub.ads || []).length})</label>
                         <div className="ad-tabs-container" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            {ads.map((_, idx) => (
+                            {(sub.ads || []).map((_, idx) => (
                                 <button
                                     key={idx}
                                     className={`ad-tab ${activeAdIdx === idx ? 'active' : ''}`}
