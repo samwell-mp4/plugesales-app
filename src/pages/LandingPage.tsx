@@ -200,7 +200,7 @@ const LandingPage = () => {
                     <div className="lp-step-card-v2">
                         <div className="lp-step-tag">Passo 4</div>
                         <h3>Disparo</h3>
-                        <p>Disparamos para toda sua base com relatório em tempo real de entregas.</p>
+                        <p>Disparamos sua mensagem em massa e sua base de contatos recebe em tempo recorde.</p>
                     </div>
                 </div>
             </section>
@@ -218,15 +218,8 @@ const LandingPage = () => {
                     <div className="lp-auth-item">
                         <TrendingUp color="#acf800" size={32} />
                         <div>
-                            <h4>100k envios/dia</h4>
-                            <p>Escala liberada por número para grandes volumes.</p>
-                        </div>
-                    </div>
-                    <div className="lp-auth-item">
-                        <Smartphone color="#acf800" size={32} />
-                        <div>
-                            <h4>Estrutura Própria</h4>
-                            <p>Infraestrutura preparada para alto volume sem lentidão.</p>
+                            <h4>Escala ilimitada</h4>
+                            <p>Envias quantas mensagens quiser, sem limites.</p>
                         </div>
                     </div>
                     <div className="lp-auth-item">
@@ -234,6 +227,13 @@ const LandingPage = () => {
                         <div>
                             <h4>API Oficial</h4>
                             <p>Aprovada pela Meta, operando dentro das normas.</p>
+                        </div>
+                    </div>
+                    <div className="lp-auth-item">
+                        <Smartphone color="#acf800" size={32} />
+                        <div>
+                            <h4>Estrutura Própria</h4>
+                            <p>Infraestrutura preparada para alto volume sem lentidão.</p>
                         </div>
                     </div>
                 </div>
@@ -280,37 +280,37 @@ const LandingPage = () => {
                     <h2 className="lp-section-title">Ative sua Operação</h2>
                     <p style={{ opacity: 0.7, maxWidth: '600px', margin: '0 auto' }}>Preencha os dados abaixo para receber um contato da nossa equipe.</p>
                 </div>
-                
+
                 <div className="lp-contact-container">
                     <form className="lp-basic-form" onSubmit={handleFormSubmit}>
                         <div className="lp-form-group">
                             <label>Seu Nome</label>
-                            <input 
-                                type="text" 
-                                required 
-                                placeholder="Como deseja ser chamado?" 
+                            <input
+                                type="text"
+                                required
+                                placeholder="Como deseja ser chamado?"
                                 value={formData.name}
-                                onChange={e => setFormData({...formData, name: e.target.value})}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
                         </div>
                         <div className="lp-form-group">
                             <label>WhatsApp (com DDD)</label>
-                            <input 
-                                type="tel" 
-                                required 
-                                placeholder="Ex: 11999999999" 
+                            <input
+                                type="tel"
+                                required
+                                placeholder="Ex: 11999999999"
                                 value={formData.phone}
-                                onChange={e => setFormData({...formData, phone: e.target.value})}
+                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
                             />
                         </div>
                         <div className="lp-form-group">
                             <label>E-mail Corporativo</label>
-                            <input 
-                                type="email" 
-                                required 
+                            <input
+                                type="email"
+                                required
                                 placeholder="Ex: contato@empresa.com"
                                 value={formData.email}
-                                onChange={e => setFormData({...formData, email: e.target.value})}
+                                onChange={e => setFormData({ ...formData, email: e.target.value })}
                             />
                         </div>
                         <button type="submit" className="lp-btn lp-btn-primary lp-btn-full" disabled={isSubmitting}>
