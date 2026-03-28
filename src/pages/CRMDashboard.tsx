@@ -52,10 +52,10 @@ const CRMDashboard = () => {
     }, 0);
 
     const stats = [
-        { label: 'Total de Leads', value: totalLeads, icon: <Users size={20} />, color: 'var(--primary-color)', suffix: 'CONTATOS' },
-        { label: 'Valor Total CRM', value: `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <DollarSign size={20} />, color: '#acf800', suffix: 'CONVERTIDO' },
-        { label: 'Tickets Médio', value: `R$ ${(totalLeads > 0 ? totalValue / totalLeads : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <TrendingUp size={20} />, color: '#eab308', suffix: 'POR CLIENTE' },
-        { label: 'Última Sincro', value: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), icon: <Clock size={20} />, color: 'var(--text-muted)', suffix: 'AO VIVO' }
+        { label: 'Total de Leads', value: totalLeads, icon: <Users size={22} />, color: 'var(--primary-color)', suffix: 'CONTATOS' },
+        { label: 'Valor Total CRM', value: `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <DollarSign size={22} />, color: '#acf800', suffix: 'CONVERTIDO' },
+        { label: 'Tickets Médio', value: `R$ ${(totalLeads > 0 ? totalValue / totalLeads : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <TrendingUp size={22} />, color: '#eab308', suffix: 'MÉDIO/LEAD' },
+        { label: 'Última Sincro', value: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), icon: <Clock size={22} />, color: 'var(--text-muted)', suffix: 'SYNC OK' }
     ];
 
     const getStatusBadgeClass = (status: string) => {
@@ -67,180 +67,156 @@ const CRMDashboard = () => {
     };
 
     return (
-        <div className="crm-dashboard-container animate-fade-in">
-            <header className="flex justify-between items-end mb-10">
-                <div className="header-titles">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 rounded-lg bg-primary-gradient/10 border border-primary-color/20">
-                            <FileSpreadsheet className="text-primary-color" size={24} />
-                        </div>
-                        <span className="text-[10px] font-black tracking-[0.2em] text-primary-color uppercase">Gestão de Leads</span>
+        <div className="crm-advanced-view animate-fade-in-up">
+            <header className="crm-main-header">
+                <div className="header-info">
+                    <div className="badge-category">
+                        <FileSpreadsheet className="text-primary-color" size={14} />
+                        <span>CRM INTELIGENTE</span>
                     </div>
-                    <h1 className="text-4xl font-black tracking-tight leading-tight">
-                        CRM <span className="text-gradient">Dashboard</span>
-                    </h1>
-                    <p className="text-sm font-medium text-slate-400 mt-2">
-                        Visualização inteligente em tempo real dos dados sincronizados do <span className="text-white border-b border-primary-color/30">Google Sheets</span>.
-                    </p>
+                    <h1 className="main-title">Base de Clientes <span className="highlight">Unificada</span></h1>
+                    <p className="subtitle">Gestão avançada de leads sincronizada em tempo real com sua planilha Google.</p>
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="header-actions">
                     <button 
                         onClick={fetchLeads} 
-                        className={`btn btn-secondary ${isLoading ? 'opacity-50' : ''}`}
+                        className={`refresh-btn ${isLoading ? 'loading' : ''}`}
                         disabled={isLoading}
                     >
-                        <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-                        {isLoading ? 'SINCRONIZANDO...' : 'ATUALIZAR DADOS'}
+                        <RefreshCw size={18} />
+                        <span>{isLoading ? 'SINCRONIZANDO...' : 'ATUALIZAR DADOS'}</span>
                     </button>
-                    <button className="btn btn-primary">
-                        <ArrowUpRight size={16} />
-                        PLANILHA MESTRE
+                    <button className="primary-action-btn">
+                        <ArrowUpRight size={18} />
+                        <span>ABRIR PLANILHA</span>
                     </button>
                 </div>
             </header>
 
-            {/* ERROR ALERT */}
+            {/* ERROR HANDLING */}
             {error && (
-                <div className="glass-panel border-l-4 border-l-rose-500 p-6 mb-10 animate-glow">
-                    <div className="flex items-center gap-4 text-rose-400">
-                        <div className="p-3 bg-rose-500/10 rounded-xl">
-                            <AlertCircle size={28} />
-                        </div>
-                        <div>
-                            <h4 className="font-black text-sm uppercase tracking-wider mb-1">Falha na Sincronização</h4>
-                            <p className="text-xs font-semibold opacity-70">{error}</p>
-                        </div>
+                <div className="auth-error-card">
+                    <AlertCircle size={32} strokeWidth={2.5} />
+                    <div className="error-content">
+                        <h3>FALHA NA CONEXÃO COM O GOOGLE</h3>
+                        <p>{error}</p>
                     </div>
                 </div>
             )}
 
-            {/* METRICS GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {/* METRICS - ADVANCED GRID */}
+            <section className="metrics-grid">
                 {stats.map((stat, i) => (
-                    <div key={i} className="glass-card group hover-scale p-7 flex flex-col justify-between min-h-[160px]">
-                        <div className="flex justify-between items-start">
-                            <div 
-                                style={{ background: `${stat.color}15`, color: stat.color }} 
-                                className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
-                            >
+                    <div key={i} className="metric-glass-card shadow-hover">
+                        <div className="metric-header">
+                            <div className="icon-box" style={{ background: `${stat.color}10`, border: `1px solid ${stat.color}20` }}>
                                 {stat.icon}
                             </div>
-                            <span className="text-[9px] font-black text-white/20 tracking-widest">{stat.suffix}</span>
+                            <span className="metric-suffix">{stat.suffix}</span>
                         </div>
-                        <div className="mt-4">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{stat.label}</p>
-                            <h3 className="text-2xl font-black text-white group-hover:text-primary-color transition-colors">{stat.value}</h3>
+                        <div className="metric-body">
+                            <label>{stat.label}</label>
+                            <h2 className="text-gradient-primary">{stat.value}</h2>
                         </div>
+                        <div className="metric-footer-bar" style={{ background: stat.color }}></div>
                     </div>
                 ))}
-            </div>
+            </section>
 
-            {/* TABLE SECTION */}
-            <div className="glass-panel rounded-3xl overflow-hidden shadow-2xl">
-                <div className="p-8 border-b border-white/5 flex flex-wrap justify-between items-center gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-1 h-8 bg-primary-color rounded-full"></div>
-                        <div>
-                            <h3 className="font-black uppercase tracking-tight text-sm text-white">Base de Leads</h3>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase">{filteredLeads.length} contatos encontrados</p>
-                        </div>
+            {/* TABLE SECTION - WITH ADVANCED RESPONSIVENESS */}
+            <section className="table-outer-container glass-container shadow-2xl">
+                <div className="table-controls-bar">
+                    <div className="title-group">
+                        <div className="indicator-dot"></div>
+                        <h3>LEADS DISPONÍVEIS</h3>
+                        <span className="count-label">{filteredLeads.length} REGISTROS</span>
                     </div>
 
-                    <div className="flex items-center gap-4 flex-1 min-w-[400px] justify-end">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-primary-color opacity-50" size={18} />
+                    <div className="filters-group">
+                        <div className="search-wrapper">
+                            <Search className="search-icon" size={18} />
                             <input 
                                 type="text" 
-                                placeholder="Pesquisar por nome, número ou responsável..."
-                                className="input-field pl-14 h-12 text-xs font-semibold !rounded-2xl"
+                                placeholder="Buscar por nome, etc..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-2xl border border-white/5 h-12">
-                            <Filter size={16} className="text-primary-color opacity-50" />
-                            <select 
-                                className="bg-transparent text-[10px] font-black p-1 outline-none text-slate-400 cursor-pointer uppercase tracking-wider"
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                            >
+                        <div className="select-wrapper">
+                            <Filter size={16} />
+                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                                 {statusList.map(s => <option key={s} value={s}>{s === 'Todos' ? 'FILTRAR STATUS' : s.toUpperCase()}</option>)}
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                <div className="table-responsive-wrapper">
+                    <table className="crm-premium-table">
                         <thead>
-                            <tr className="bg-white/[0.01]">
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Lead Informações</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status Atual</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Tags</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Responsável</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Investimento</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Data</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Gerenciar</th>
+                            <tr>
+                                <th>CLIENTE / LEADS</th>
+                                <th>STATUS ATUAL</th>
+                                <th>REFERÊNCIA / TAG</th>
+                                <th>RESPONSÁVEL</th>
+                                <th>INVESTIMENTO</th>
+                                <th className="text-center">ENTRADA</th>
+                                <th className="text-right">AÇÕES</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="p-32 text-center">
-                                        <div className="w-12 h-12 border-2 border-primary-color/10 border-t-primary-color rounded-full animate-spin mx-auto mb-6"></div>
-                                        <p className="text-[10px] font-black text-primary-color/40 uppercase tracking-[0.3em]">Sincronizando com a Nuvem...</p>
+                                    <td colSpan={7} className="table-loader-state">
+                                        <div className="loader-spinner"></div>
+                                        <p>MAPEANDO DADOS DA PLANILHA...</p>
                                     </td>
                                 </tr>
                             ) : filteredLeads.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="p-32 text-center opacity-30">
-                                        <Users size={60} className="mx-auto mb-6 opacity-10" />
-                                        <p className="font-black uppercase tracking-widest text-sm">Nenhum registro encontrado</p>
+                                    <td colSpan={7} className="table-empty-state">
+                                        <Users className="empty-icon" size={48} />
+                                        <p>NENHUM RESULTADO ENCONTRADO NA BASE</p>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredLeads.map((lead) => (
-                                    <tr key={lead.id} className="hover:bg-primary-color/[0.02] transition-colors group">
-                                        <td className="p-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-primary-color font-black text-sm group-hover:bg-primary-gradient group-hover:text-black transition-all">
-                                                    {lead.nome.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-black text-white mb-1 group-hover:text-primary-color transition-colors">{lead.nome}</div>
-                                                    <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5">
-                                                        <MessageSquare size={12} className="text-primary-color/50" /> {lead.numero}
-                                                    </div>
+                                    <tr key={lead.id}>
+                                        <td>
+                                            <div className="lead-identity">
+                                                <div className="avatar-mini">{lead.nome.charAt(0)}</div>
+                                                <div className="lead-meta">
+                                                    <span className="lead-name">{lead.nome}</span>
+                                                    <span className="lead-sub">{lead.numero}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-6">
-                                            <span className={`badge ${getStatusBadgeClass(lead.status)} !text-[9px] !font-black !px-3 !py-1.5`}>
+                                        <td>
+                                            <span className={`badge-pill ${getStatusBadgeClass(lead.status)}`}>
                                                 {lead.status}
                                             </span>
                                         </td>
-                                        <td className="p-6">
-                                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-400">
-                                                <Tag size={13} className="text-primary-color/40" /> {lead.tag || 'SEM TAG'}
+                                        <td>
+                                            <div className="tag-element">
+                                                <Tag size={12} />
+                                                <span>{lead.tag || 'SEM TAG'}</span>
                                             </div>
                                         </td>
-                                        <td className="p-6">
-                                            <div className="flex items-center gap-2.5 text-[10px] font-black text-white/90">
-                                                <div className="w-6 h-6 rounded-full bg-primary-color/10 flex items-center justify-center">
-                                                    <User size={12} className="text-primary-color" />
-                                                </div>
-                                                {lead.responsavel || 'NÃO ATRIBUÍDO'}
+                                        <td>
+                                            <div className="responsavel-box">
+                                                <User size={12} className="text-primary-color" />
+                                                <span>{lead.responsavel || '-'}</span>
                                             </div>
                                         </td>
-                                        <td className="p-6 font-black text-sm text-white">
-                                            {lead.value_client || 'R$ 0,00'}
+                                        <td>
+                                            <span className="investment-value">{lead.value_client || 'R$ 0,00'}</span>
                                         </td>
-                                        <td className="p-6 text-[10px] font-black text-slate-500 text-center">
+                                        <td className="text-center font-mono text-[10px] opacity-50">
                                             {lead.data_entrada}
                                         </td>
-                                        <td className="p-6 text-center">
-                                            <button className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center hover:bg-primary-gradient hover:text-black transition-all group-hover:scale-110">
+                                        <td className="text-right">
+                                            <button className="row-action-btn">
                                                 <ChevronRight size={18} />
                                             </button>
                                         </td>
@@ -250,40 +226,254 @@ const CRMDashboard = () => {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
 
             <style>{`
-                .crm-dashboard-container {
+                /* --- ADVANCED CSS GRID & RESPONSIVENESS --- */
+                .crm-advanced-view {
                     max-width: 1600px;
                     margin: 0 auto;
-                    padding: 40px 30px;
+                    padding: 60px 40px;
+                    background: transparent;
                 }
-                
-                .text-gradient {
+
+                .crm-main-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    margin-bottom: 50px;
+                    gap: 30px;
+                    flex-wrap: wrap;
+                }
+
+                .header-info .main-title {
+                    font-size: 3.5rem;
+                    font-weight: 900;
+                    letter-spacing: -2px;
+                    line-height: 1;
+                    margin: 15px 0;
+                }
+                .highlight {
                     background: var(--primary-gradient);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                 }
+                .subtitle { 
+                    color: var(--text-secondary); 
+                    font-size: 1.1rem; 
+                    max-width: 600px;
+                    opacity: 0.8;
+                }
 
-                .badge {
+                /* CATEGORY BADGE */
+                .badge-category {
                     display: inline-flex;
                     align-items: center;
+                    gap: 8px;
+                    background: rgba(172, 248, 0, 0.08);
+                    padding: 6px 14px;
                     border-radius: 50px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
+                    font-size: 11px;
+                    font-weight: 900;
+                    color: var(--primary-color);
+                    border: 1px solid rgba(172, 248, 0, 0.2);
+                    letter-spacing: 1px;
                 }
 
-                @keyframes fade-in {
-                    from { opacity: 0; transform: translateY(15px); }
-                    to { opacity: 1; transform: translateY(0); }
+                /* HEADER ACTIONS */
+                .header-actions { display: flex; gap: 15px; }
+                .refresh-btn, .primary-action-btn {
+                    height: 54px;
+                    padding: 0 24px;
+                    border-radius: 16px;
+                    font-weight: 800;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    cursor: pointer;
+                    font-size: 13px;
                 }
-                .animate-fade-in { animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .refresh-btn { 
+                    background: rgba(255,255,255,0.03); 
+                    border: 1px solid rgba(255,255,255,0.05); 
+                    color: white; 
+                }
+                .refresh-btn:hover { background: rgba(255,255,255,0.07); transform: translateY(-3px); }
+                .refresh-btn.loading svg { animation: spin 1s linear infinite; }
                 
-                /* Personalização de Scrollbar */
-                .overflow-x-auto::-webkit-scrollbar { height: 6px; }
-                .overflow-x-auto::-webkit-scrollbar-track { background: transparent; }
-                .overflow-x-auto::-webkit-scrollbar-thumb { background: rgba(172, 248, 0, 0.1); border-radius: 10px; }
-                .overflow-x-auto::-webkit-scrollbar-thumb:hover { background: rgba(172, 248, 0, 0.2); }
+                .primary-action-btn { 
+                    background: var(--primary-gradient); 
+                    color: black; 
+                    border: none;
+                    box-shadow: 0 10px 20px rgba(172, 248, 0, 0.2);
+                }
+                .primary-action-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(172, 248, 0, 0.3); }
+
+                /* METRICS GRID - THE CORE FIX */
+                .metrics-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 24px;
+                    margin-bottom: 50px;
+                }
+
+                .metric-glass-card {
+                    background: rgba(15, 23, 42, 0.4);
+                    backdrop-filter: blur(30px);
+                    border: 1px solid rgba(172, 248, 0, 0.1);
+                    padding: 30px;
+                    border-radius: 28px;
+                    position: relative;
+                    overflow: hidden;
+                    transition: all 0.3s var(--transition-normal);
+                }
+                .metric-glass-card:hover {
+                    transform: translateY(-8px);
+                    border-color: rgba(172, 248, 0, 0.3);
+                    background: rgba(15, 23, 42, 0.6);
+                }
+                .metric-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+                .icon-box { width: 56px; height: 56px; border-radius: 18px; display: flex; items-center justify-content: center; }
+                .metric-suffix { font-size: 9px; font-weight: 900; opacity: 0.2; letter-spacing: 2px; }
+                
+                .metric-body label { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+                .metric-body h2 { font-size: 2.2rem; font-weight: 900; margin-top: 5px; }
+                .text-gradient-primary { background: linear-gradient(135deg, #fff 30%, #acf800 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                
+                .metric-footer-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; opacity: 0.3; }
+
+                /* TABLE SECTION - ADVANCED RESPONSIVENESS */
+                .glass-container {
+                    background: rgba(15, 23, 42, 0.4);
+                    backdrop-filter: blur(40px);
+                    border: 1px solid rgba(255, 255, 255, 0.03);
+                    border-radius: 35px;
+                }
+
+                .table-controls-bar {
+                    padding: 30px 40px;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 30px;
+                    flex-wrap: wrap;
+                }
+
+                .title-group { display: flex; align-items: center; gap: 15px; }
+                .indicator-dot { width: 10px; height: 10px; background: var(--primary-color); border-radius: 50%; box-shadow: 0 0 10px var(--primary-color); }
+                .title-group h3 { font-size: 15px; font-weight: 900; letter-spacing: 1px; }
+                .count-label { font-size: 10px; font-weight: 900; background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 6px; color: var(--text-muted); }
+
+                .filters-group { display: flex; gap: 15px; flex-grow: 1; justify-content: flex-end; }
+                .search-wrapper { position: relative; max-width: 400px; width: 100%; }
+                .search-icon { position: absolute; left: 18px; top: 16px; color: var(--primary-color); opacity: 0.5; }
+                .search-wrapper input {
+                    width: 100%;
+                    height: 50px;
+                    background: rgba(0,0,0,0.3);
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 16px;
+                    padding: 0 20px 0 54px;
+                    color: white;
+                    font-weight: 600;
+                    font-size: 13px;
+                    transition: border-color 0.2s;
+                }
+                .search-wrapper input:focus { border-color: var(--primary-color); outline: none; }
+
+                .select-wrapper {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    background: rgba(0,0,0,0.3);
+                    padding: 0 20px;
+                    border-radius: 16px;
+                    border: 1px solid rgba(255,255,255,0.05);
+                    height: 50px;
+                }
+                .select-wrapper select { background: transparent; border: none; font-size: 11px; font-weight: 900; color: white; cursor: pointer; outline: none; }
+
+                /* THE TABLE RESPONSIVE CORE */
+                .table-responsive-wrapper {
+                    width: 100%;
+                    overflow-x: auto;
+                    padding-bottom: 20px;
+                    scrollbar-width: thin;
+                    scrollbar-color: var(--primary-color) transparent;
+                }
+                
+                .crm-premium-table {
+                    width: 100%;
+                    min-width: 1200px; /* GARANTE QUE AS COLUNAS NÃO ESMAGUEM */
+                    border-collapse: collapse;
+                }
+                .crm-premium-table th {
+                    padding: 25px 40px;
+                    font-size: 10px;
+                    font-weight: 900;
+                    color: var(--text-muted);
+                    letter-spacing: 1.5px;
+                    text-align: left;
+                    background: rgba(255,255,255,0.01);
+                }
+                .crm-premium-table td { padding: 25px 40px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+                .crm-premium-table tr:hover { background: rgba(172, 248, 0, 0.02); }
+
+                /* CELL STYLES */
+                .lead-identity { display: flex; align-items: center; gap: 15px; }
+                .avatar-mini { width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--primary-color); font-size: 18px; border: 1px solid rgba(172, 248, 0, 0.1); }
+                .lead-name { display: block; font-size: 15px; font-weight: 900; color: white; margin-bottom: 2px; }
+                .lead-sub { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+
+                .badge-pill {
+                    display: inline-flex;
+                    padding: 6px 16px;
+                    border-radius: 50px;
+                    font-size: 9px;
+                    font-weight: 900;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+                .badge-success { background: rgba(172, 248, 0, 0.1); color: #acf800; border: 1px solid rgba(172, 248, 0, 0.2); }
+                .badge-warning { background: rgba(234, 179, 8, 0.1); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.2); }
+                .badge-danger { background: rgba(255, 77, 77, 0.1); color: #ff4d4d; border: 1px solid rgba(255, 77, 77, 0.2); }
+
+                .tag-element, .responsavel-box { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; color: var(--text-secondary); }
+                .investment-value { font-size: 14px; font-weight: 900; color: white; }
+                .row-action-btn { width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+                .row-action-btn:hover { background: var(--primary-color); color: black; transform: scale(1.1); }
+
+                /* LOADER & EMPTY */
+                .table-loader-state, .table-empty-state { padding: 80px 0; text-align: center; }
+                .loader-spinner { width: 40px; height: 40px; border: 3px solid rgba(172, 248, 0, 0.1); border-top-color: var(--primary-color); border-radius: 50%; margin: 0 auto 15px; animation: spin 0.8s linear infinite; }
+                .empty-icon { opacity: 0.1; margin-bottom: 15px; }
+
+                /* HELPERS */
+                .text-right { text-align: right; }
+                .text-center { text-align: center; }
+
+                /* ANIMATIONS */
+                @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes fade-in-up { 
+                    from { opacity: 0; transform: translateY(30px); } 
+                    to { opacity: 1; transform: translateY(0); } 
+                }
+                .animate-fade-in-up { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+                /* MOBILE FIXES */
+                @media (max-width: 1024px) {
+                    .crm-advanced-view { padding: 30px 20px; }
+                    .header-info .main-title { font-size: 2.5rem; }
+                    .crm-main-header { justify-content: center; text-align: center; }
+                    .header-actions { width: 100%; justify-content: center; }
+                }
+                @media (max-width: 768px) {
+                    .filters-group { flex-direction: column; width: 100%; }
+                    .search-wrapper { max-width: none; }
+                    .select-wrapper { width: 100%; justify-content: center; }
+                }
             `}</style>
         </div>
     );
