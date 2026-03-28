@@ -116,6 +116,8 @@ const ClientSubmissionDetail = () => {
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isUploadingReport, setIsUploadingReport] = useState(false);
     const [attachedReports, setAttachedReports] = useState<any[]>([]);
+    const [subClients, setSubClients] = useState<any[]>([]);
+    const [isSubClientsLoading, setIsSubClientsLoading] = useState(false);
 
     const load = useCallback(async () => {
         if (!id) return;
@@ -455,6 +457,46 @@ const ClientSubmissionDetail = () => {
         }
     };
 
+    const handleAddVariable = (index: number, variable: string) => {
+        if (!variable.trim() || !sub || !sub.ads) return;
+        const currentVars = sub.ads[index].variables || [];
+        if (currentVars.includes(variable.trim())) return;
+        handleUpdateAd(index, 'variables', [...currentVars, variable.trim()]);
+    };
+
+    const handleRemoveVariable = (index: number, varIndex: number) => {
+        if (!sub || !sub.ads) return;
+        const currentVars = sub.ads[index].variables || [];
+        const newVars = currentVars.filter((_, i) => i !== varIndex);
+        handleUpdateAd(index, 'variables', newVars);
+    };
+
+    const handleFileUpload = async (index: number, file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const response = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = response.ok ? await response.json() : null;
+            if (data?.success) {
+                handleUpdateAd(index, 'media_url', data.url);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const copyToClipboard = (text: string, label: string) => {
+        navigator.clipboard.writeText(text);
+        setCopyFeedback(label);
+        setTimeout(() => setCopyFeedback(''), 2000);
+    };
+
+    const ensureProtocol = (url: string) => {
+        if (!url) return '';
+        const trimmed = url.trim();
+        return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    };
+
     if (isLoading) return <div className="loading-screen">Carregando...</div>;
     if (!sub) return <div className="error-screen">Submissão não encontrada.</div>;
 
@@ -463,6 +505,105 @@ const ClientSubmissionDetail = () => {
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '28px 24px' }}>
+            <style>{`
+                @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                
+                .control-card { 
+                    background: var(--card-bg-subtle); 
+                    border: 1px solid var(--surface-border-subtle); 
+                    border-radius: 24px; 
+                    padding: 24px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    animation: fadeInUp 0.4s ease-out backwards;
+                }
+                .control-card:hover { 
+                    background: var(--bg-primary); 
+                    border-color: var(--primary-color);
+                    transform: translateY(-2px);
+                    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.1);
+                }
+
+                .action-btn { padding: 12px 20px; border-radius: 14px; border: none; cursor: pointer; font-weight: 900; font-size: 11px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; text-transform: uppercase; }
+                .primary-btn { background: var(--primary-gradient); color: #000; box-shadow: 0 8px 20px -6px var(--primary); }
+                .ghost-btn { background: var(--card-bg-subtle); color: var(--text-muted); border: 1px solid var(--surface-border-subtle) !important; }
+                .ghost-btn:hover { background: var(--bg-primary); color: var(--text-primary); border-color: var(--primary-color) !important; }
+                
+                .status-btn { 
+                    width: 100%;
+                    padding: 12px 16px; 
+                    border-radius: 14px; 
+                    border: 1px solid transparent; 
+                    cursor: pointer; 
+                    font-weight: 800; 
+                    font-size: 10px; 
+                    letter-spacing: 1px; 
+                    transition: all 0.2s; 
+                    display: flex; 
+                    align-items: center; 
+                    gap: 10px;
+                    background: var(--card-bg-subtle);
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                }
+                .status-btn:hover:not(:disabled) { background: var(--bg-primary); transform: translateX(4px); }
+                .status-btn.active { background: var(--bg); color: var(--color); border-color: var(--border); }
+
+                .ad-tab { padding: 10px 18px; border-radius: 12px; border: 1px solid var(--surface-border-subtle); background: var(--card-bg-subtle); color: var(--text-muted); cursor: pointer; font-weight: 900; font-size: 10px; letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase; }
+                .ad-tab:hover { background: var(--bg-primary); color: var(--text-primary); }
+                .ad-tab.active { background: rgba(172,248,0,0.1); border-color: var(--primary-color); color: var(--primary-color); box-shadow: 0 0 15px rgba(172,248,0,0.15); }
+
+                .field-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 16px; padding: 16px; color: var(--text-primary); font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
+                .field-input:focus { border-color: var(--primary-color); background: var(--bg-primary); box-shadow: 0 0 20px rgba(172,248,0,0.1); }
+                
+                .field-label { font-size: 10px; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+                .info-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+                
+                .asset-link {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    padding: 16px;
+                    background: var(--card-bg-subtle);
+                    border: 1px solid var(--surface-border-subtle);
+                    border-radius: 18px;
+                    text-decoration: none;
+                    transition: all 0.3s;
+                }
+                .asset-link:hover {
+                    background: var(--bg-primary);
+                    border-color: var(--primary-color);
+                    transform: scale(1.02);
+                }
+
+                @media (max-width: 1024px) {
+                    .controls-wrapper { grid-template-columns: 1fr !important; }
+                    .ad-analyzer-grid { grid-template-columns: 1fr !important; }
+                    .header-content { flex-direction: column; align-items: flex-start !important; gap: 20px !important; }
+                    .header-actions { width: 100%; justify-content: space-between; }
+                }
+
+                @media (max-width: 640px) {
+                    .container-root { padding: 16px !important; }
+                    .control-card { padding: 16px !important; }
+                    .ad-tabs-container { flex-wrap: wrap; }
+                    .header-profile-info { flex-direction: column; align-items: flex-start !important; }
+                }
+
+                @media print {
+                    body { background: white !important; color: black !important; margin: 0; padding: 0; }
+                    .container-root { padding: 0 !important; background: white !important; }
+                    .header-actions, .controls-wrapper, button, .ad-tabs-container, input[type="date"]::-webkit-calendar-picker-indicator, nav, footer, .mobile-nav, [role="navigation"], .no-print { display: none !important; }
+                    .ad-analyzer-grid { display: block !important; }
+                    * { color: black !important; border-color: #eee !important; box-shadow: none !important; }
+                    .field-input { background: white !important; color: black !important; border: none; padding: 0; }
+                    .info-chip { border: 1px solid #ccc !important; }
+                    .print-only { display: block !important; }
+                }
+                @media screen {
+                    .print-only { display: none !important; }
+                }
+            `}</style>
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
                 
                 {/* HEADER */}
@@ -629,10 +770,54 @@ const ClientSubmissionDetail = () => {
                                         </div>
                                     </div>
                                 )}
-                                <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px' }}>
-                                    <label style={{ fontSize: '9px', fontWeight: 900 }}>LINK DO BOTÃO</label>
-                                    <input className="field-input" style={{ marginTop: '6px' }} value={currentAd.button_link || ''} onChange={e => handleUpdateAd(activeAdIdx, 'button_link', e.target.value)} readOnly={user?.role === 'CLIENT'} />
+                                <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid #3b82f6' }}>
+                                    <label style={{ fontSize: '9px', fontWeight: 900, color: '#3b82f6', marginBottom: '8px', display: 'block' }}>LINK DO BOTÃO</label>
+                                    <input 
+                                        className="field-input" 
+                                        style={{ marginTop: '6px' }} 
+                                        value={currentAd.button_link || ''} 
+                                        onChange={e => handleUpdateAd(activeAdIdx, 'button_link', e.target.value)} 
+                                        onBlur={e => handleUpdateAd(activeAdIdx, 'button_link', ensureProtocol(e.target.value))}
+                                        readOnly={user?.role === 'CLIENT'} 
+                                    />
                                 </div>
+
+                                <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                        <label className="field-label" style={{ marginBottom: 0 }}>Variáveis ({currentAd.variables?.length || 0})</label>
+                                        {user?.role !== 'CLIENT' && (
+                                            <button
+                                                onClick={() => {
+                                                    const name = window.prompt("Nome da nova variável (ex: NOME, VALOR):");
+                                                    if (name) handleAddVariable(activeAdIdx, name);
+                                                }}
+                                                className="ad-tab"
+                                                style={{ background: 'var(--primary-color)', color: '#000', border: 'none' }}
+                                            >
+                                                + ADICIONAR
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {currentAd.variables?.map((v, i) => (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--surface-border-subtle)' }}>
+                                                {user?.role !== 'CLIENT' ? (
+                                                    <input 
+                                                        style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, width: 'auto', minWidth: '40px', outline: 'none' }}
+                                                        value={v}
+                                                        onChange={(e) => {
+                                                            const newVars = [...(currentAd.variables || [])];
+                                                            newVars[i] = e.target.value;
+                                                            handleUpdateAd(activeAdIdx, 'variables', newVars);
+                                                        }}
+                                                    />
+                                                ) : <span style={{ fontSize: '11px', fontWeight: 700 }}>{v}</span>}
+                                                <button onClick={() => handleRemoveVariable(activeAdIdx, i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0 }}><X size={12} /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 {currentAd.media_url && (
                                     <a href={currentAd.media_url} target="_blank" rel="noreferrer" className="asset-link">
                                         <ImageIcon size={16} /> <span>VER MÍDIA DO AD</span> <ExternalLink size={12} style={{ marginLeft: 'auto' }} />
@@ -645,15 +830,43 @@ const ClientSubmissionDetail = () => {
                     )}
                 </div>
 
-                {/* HIDDEN PRINT REF */}
+                {/* HIDDEN PRINT REF & QR CODE */}
                 <div style={{ position: 'absolute', left: '-9999px' }}>
-                    <div ref={reportRef} style={{ width: '800px', padding: '40px', background: '#fff', color: '#000' }}>
-                        <h1>RELATÓRIO DE DISPARO - {sub.profile_name}</h1>
-                        <hr />
-                        <p>Total Entregue: {attachedReports.length > 0 ? aggregatedStats.delivered : currentAd?.delivered_leads || 0}</p>
-                        <p>Valor Investido: R$ {((attachedReports.length > 0 ? aggregatedStats.delivered : (currentAd?.delivered_leads || 0)) * (currentAd?.price_per_msg || 0)).toLocaleString()}</p>
+                    <div ref={reportRef} style={{ width: '800px', padding: '60px', background: '#fff', color: '#000', fontFamily: 'Arial, sans-serif' }}>
+                        <div style={{ borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                            <div>
+                                <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 900 }}>RELATÓRIO DE DISPARO</h1>
+                                <p style={{ margin: '8px 0 0 0', opacity: 0.6 }}>#{sub.id} - {sub.profile_name}</p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <p style={{ margin: 0, fontWeight: 900, color: '#10b981' }}>DISPARO CONCLUÍDO</p>
+                                <p style={{ margin: '4px 0 0 0' }}>Data: {new Date().toLocaleDateString('pt-BR')}</p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '40px' }}>
+                            <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '15px' }}>
+                                <p style={{ fontSize: '10px', color: '#64748b' }}>ENTREGUES TOTAL</p>
+                                <p style={{ fontSize: '24px', fontWeight: 900 }}>{aggregatedStats.delivered}</p>
+                            </div>
+                            <div style={{ padding: '20px', background: 'rgba(172,248,0,0.05)', borderRadius: '15px' }}>
+                                <p style={{ fontSize: '10px', color: '#64748b' }}>INVESTIMENTO</p>
+                                <p style={{ fontSize: '24px', fontWeight: 900 }}>R$ {(aggregatedStats.delivered * (currentAd?.price_per_msg || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                            </div>
+                        </div>
+                        <div style={{ background: '#f8fafc', padding: '25px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '30px' }}>
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/client-submissions/${sub.id}`)}`} alt="QR" />
+                            <div>
+                                <h3 style={{ fontSize: '16px', fontWeight: 800 }}>DASHBOARD EM TEMPO REAL</h3>
+                                <p style={{ fontSize: '10px', color: '#3b82f6' }}>{window.location.origin}/client-submissions/{sub.id}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                {copyFeedback && (
+                    <div style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-color)', color: '#000', padding: '12px 24px', borderRadius: '16px', fontWeight: 900, fontSize: '13px', boxShadow: '0 10px 40px rgba(172,248,0,0.3)', zIndex: 9999, animation: 'fadeInUp 0.3s ease-out' }}>
+                        ✓ {copyFeedback.toUpperCase()} COPIADO!
+                    </div>
+                )}
             </div>
         </div>
     );
