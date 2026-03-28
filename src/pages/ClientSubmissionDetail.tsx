@@ -678,14 +678,46 @@ const ClientSubmissionDetail = () => {
                                 <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)' }}>
                                     <label className="field-label">VARIÁVEIS ({currentAd.variables?.length || 0})</label>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-                                        {currentAd.variables?.map((v, i) => (
-                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--surface-border-subtle)' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 700 }}>{v}</span>
-                                                {user?.role !== 'CLIENT' && <button onClick={() => handleRemoveVariable(activeAdIdx, i)} style={{ background: 'none', border: 'none', color: '#ef4444', padding: 0 }}><X size={12} /></button>}
-                                            </div>
-                                        ))}
-                                        {user?.role !== 'CLIENT' && (
-                                            <button onClick={() => { const n = window.prompt("Nome:"); if(n) handleAddVariable(activeAdIdx, n); }} style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--primary-color)', border: 'none', color: '#000', fontSize: '10px', fontWeight: 900 }}>+ ADD</button>
+                                        {currentAd.variables?.map((v, i) => {
+                                            const isOwner = String(sub.user_id) === String(user?.id);
+                                            const isParent = String(sub.parent_id) === String(user?.id);
+                                            const canEdit = user?.role !== 'CLIENT' || isParent;
+
+                                            return (
+                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid var(--surface-border-subtle)', minWidth: '60px' }}>
+                                                    {canEdit ? (
+                                                        <input 
+                                                            style={{ 
+                                                                background: 'transparent', 
+                                                                border: 'none', 
+                                                                color: 'var(--text-primary)', 
+                                                                fontSize: '11px', 
+                                                                fontWeight: 700, 
+                                                                width: 'auto',
+                                                                maxWidth: '120px',
+                                                                outline: 'none',
+                                                                padding: 0
+                                                            }}
+                                                            value={v}
+                                                            onChange={(e) => {
+                                                                const newVars = [...(currentAd.variables || [])];
+                                                                newVars[i] = e.target.value;
+                                                                handleUpdateAd(activeAdIdx, 'variables', newVars);
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ fontSize: '11px', fontWeight: 700 }}>{v}</span>
+                                                    )}
+                                                    {canEdit && (
+                                                        <button onClick={() => handleRemoveVariable(activeAdIdx, i)} style={{ background: 'none', border: 'none', color: '#ef4444', padding: 0, opacity: 0.6, cursor: 'pointer' }}>
+                                                            <X size={12} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                        {(user?.role !== 'CLIENT' || (String(sub.parent_id) === String(user?.id))) && (
+                                            <button onClick={() => { const n = window.prompt("Nome da Variável:"); if(n) handleAddVariable(activeAdIdx, n); }} style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--primary-color)', border: 'none', color: '#000', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>+ ADD</button>
                                         )}
                                     </div>
                                 </div>
