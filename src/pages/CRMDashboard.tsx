@@ -200,7 +200,7 @@ const CRMDashboard = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredLeads.map((lead, idx) => (
+                                filteredLeads.map((lead) => (
                                     <tr key={lead.id} className="hover:bg-primary-color/[0.02] transition-colors group">
                                         <td className="p-6">
                                             <div className="flex items-center gap-4">
