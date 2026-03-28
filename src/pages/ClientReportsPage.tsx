@@ -74,6 +74,25 @@ const ClientReports = () => {
             alert("Erro ao baixar relatório: " + err);
         }
     };
+    const handleDeleteReport = async (id: number) => {
+        if (!window.confirm("Deseja realmente excluir este relatório permanentemente?")) return;
+        try {
+            await dbService.deleteReport(id);
+            fetchReports();
+        } catch (err) {
+            alert("Erro ao excluir relatório.");
+        }
+    };
+
+    const handleDeleteAllReports = async (submissionId: number) => {
+        if (!window.confirm("ATENÇÃO: Deseja realmente excluir TODOS os relatórios deste conjunto de disparos? Esta ação não pode ser desfeita.")) return;
+        try {
+            await dbService.deleteReportsBySubmissionId(submissionId);
+            fetchReports();
+        } catch (err) {
+            alert("Erro ao excluir relatórios em massa.");
+        }
+    };
 
     // GROUPING LOGIC
     const groupedCampaigns = useMemo(() => {
@@ -198,6 +217,17 @@ const ClientReports = () => {
                                             <span style={{ fontSize: '8px', fontWeight: 900, opacity: 0.5 }}>NÃO ENTREGUES</span>
                                         </div>
                                     </div>
+                                    
+                                    {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteAllReports(camp.id); }}
+                                            className="action-btn"
+                                            style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '6px 12px', borderRadius: '10px', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        >
+                                            <Trash2 size={12} /> LIMPAR CAMPANHA
+                                        </button>
+                                    )}
+
                                     <div style={{ opacity: 0.5 }}>
                                         {expandedCampaigns.has(camp.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                     </div>
@@ -229,6 +259,16 @@ const ClientReports = () => {
                                                 >
                                                     <Download size={14} /> BAIXAR FILTRADO
                                                 </button>
+
+                                                {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
+                                                    <button 
+                                                        onClick={() => handleDeleteReport(report.id)}
+                                                        className="action-btn"
+                                                        style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '8px' }}
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

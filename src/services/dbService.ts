@@ -104,6 +104,12 @@ export const dbService = {
             return await res.json();
         } catch (err) { return { error: err }; }
     },
+    deleteReportsBySubmissionId: async (submissionId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/reports/submission/${submissionId}`, { method: 'DELETE' });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
 
     // --- Media Library ---
     getMedia: async () => {
@@ -502,20 +508,23 @@ export const dbService = {
             return { error: err.message };
         }
     },
-    getShortLinks: async (role?: string, user_id?: number, startDate?: string, endDate?: string) => {
+    getShortLinks: async (role?: string, user_id?: number, startDate?: string, endDate?: string, page: number = 1, limit: number = 20, search?: string) => {
         try {
             const params = new URLSearchParams();
             if (role) params.append('role', role);
             if (user_id) params.append('user_id', user_id.toString());
             if (startDate) params.append('startDate', startDate);
             if (endDate) params.append('endDate', endDate);
+            params.append('page', page.toString());
+            params.append('limit', limit.toString());
+            if (search) params.append('search', search);
             
             const res = await fetch(`${API_BASE}/shortener/links?${params.toString()}`);
             if (!res.ok) throw new Error("Erro ao buscar links");
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching links:", err);
-            return [];
+            return { links: [], totalCount: 0, totalPages: 0, currentPage: 1 };
         }
     },
     getEmployees: async (): Promise<string[]> => {

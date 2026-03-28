@@ -47,10 +47,16 @@ const LinkShortener = () => {
     const [showBulkAssociateModal, setShowBulkAssociateModal] = useState(false);
     const [bulkAssociateTargetId, setBulkAssociateTargetId] = useState<string>('');
 
+    // Pagination States
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [linksPerPage] = useState(20);
+
     useEffect(() => {
         fetchLinks();
         fetchClients();
-    }, [user, filterClientId, startDate, endDate]);
+    }, [user, filterClientId, startDate, endDate, currentPage, searchTerm]);
 
     useEffect(() => {
         fetchStats();
@@ -94,10 +100,28 @@ const LinkShortener = () => {
     const fetchLinks = async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getShortLinks(user?.role, user?.role !== 'ADMIN' ? user?.id : undefined, startDate, endDate);
-            setLinks(Array.isArray(data) ? data : []);
+            const result = await dbService.getShortLinks(
+                user?.role, 
+                user?.role !== 'ADMIN' ? user?.id : (filterClientId ? parseInt(filterClientId) : undefined), 
+                startDate, 
+                endDate,
+                currentPage,
+                linksPerPage,
+                searchTerm
+            );
+            
+            if (result && result.links) {
+                setLinks(result.links);
+                setTotalPages(result.totalPages);
+                setTotalCount(result.totalCount);
+            } else {
+                setLinks([]);
+                setTotalPages(1);
+                setTotalCount(0);
+            }
         } catch (error) {
             console.error("Error fetching links:", error);
+            setLinks([]);
         } finally {
             setIsLoading(false);
         }
@@ -160,18 +184,11 @@ const LinkShortener = () => {
         alert("Link copiado para o clipboard!");
     };
 
-    const filteredLinks = links.filter(l => {
-        const matchesClient = filterClientId ? String(l.target_user_id) === filterClientId : true;
-        const matchesSearch = 
-            l.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            l.original_url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            l.short_code?.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesClient && matchesSearch;
-    });
+    const filteredLinks = links; // Now filtered by server
 
     // --- REACIVE SUMMARIES ---
-    const totalClicks = filteredLinks.reduce((acc, l) => acc + (Number(l.clicks) || 0), 0);
-    const totalLinksCount = filteredLinks.length;
+    const totalClicksSummary = totalCount > 0 ? (stats?.totalClicks || 0) : 0; // We'll rely on fetchStats for global totals
+    const totalLinksCount = totalCount;
 
     const toggleSelectAll = () => {
         if (selectedLinkIds.length === filteredLinks.length && filteredLinks.length > 0) {
@@ -496,7 +513,7 @@ const LinkShortener = () => {
                                             {(!filterClientId && user?.role !== 'CLIENT') ? 'Cliques Globais' : 'Cliques Totais'}
                                         </div>
                                         <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
-                                            {isLoading ? '...' : totalClicks}
+                                            {isLoading ? '...' : (stats?.totalClicks || 0)}
                                         </div>
                                     </div>
                                 </div>
@@ -811,6 +828,69 @@ const LinkShortener = () => {
                                         </div>
                                     </div>
                                 ))}
+
+                                {/* Pagination Controls */}
+                                {totalPages > 1 && (
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        gap: '12px', 
+                                        marginTop: '32px',
+                                        padding: '20px',
+                                        background: 'var(--card-bg-subtle)',
+                                        borderRadius: '20px',
+                                        border: '1px solid var(--surface-border-subtle)'
+                                    }}>
+                                        <button 
+                                            disabled={currentPage === 1}
+                                            onClick={() => { setCurrentPage(prev => Math.max(1, prev - 1)); window.scrollTo(0,0); }}
+                                            className="icon-button"
+                                            style={{ opacity: currentPage === 1 ? 0.3 : 1, width: 'auto', padding: '0 16px' }}
+                                        >
+                                            Anterior
+                                        </button>
+                                        
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {[...Array(totalPages)].map((_, i) => {
+                                                const p = i + 1;
+                                                // Show only near current page
+                                                if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) {
+                                                    return (
+                                                        <button 
+                                                            key={p}
+                                                            onClick={() => { setCurrentPage(p); window.scrollTo(0,0); }}
+                                                            className={`icon-button ${currentPage === p ? 'active' : ''}`}
+                                                            style={{ 
+                                                                width: '36px', 
+                                                                height: '36px',
+                                                                background: currentPage === p ? 'var(--primary-color)' : 'transparent',
+                                                                color: currentPage === p ? 'black' : 'var(--text-primary)',
+                                                                border: currentPage === p ? 'none' : '1px solid var(--surface-border-subtle)',
+                                                                fontWeight: 900
+                                                            }}
+                                                        >
+                                                            {p}
+                                                        </button>
+                                                    );
+                                                }
+                                                if (p === currentPage - 3 || p === currentPage + 3) {
+                                                    return <span key={p} style={{ opacity: 0.3 }}>...</span>;
+                                                }
+                                                return null;
+                                            })}
+                                        </div>
+
+                                        <button 
+                                            disabled={currentPage === totalPages}
+                                            onClick={() => { setCurrentPage(prev => Math.min(totalPages, prev + 1)); window.scrollTo(0,0); }}
+                                            className="icon-button"
+                                            style={{ opacity: currentPage === totalPages ? 0.3 : 1, width: 'auto', padding: '0 16px' }}
+                                        >
+                                            Próximo
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

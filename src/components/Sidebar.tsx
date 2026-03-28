@@ -28,25 +28,24 @@ const Sidebar = () => {
         { name: 'Meu Painel', path: '/client-dashboard', icon: <Home size={20} /> },
         { name: 'Meus Links', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet size={20} /> },
-        { name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> },
     ] : [
-        { name: 'Home', path: '/dashboard', icon: <Home size={20} /> },
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
         { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
         { name: 'Upload de Clientes', path: '/client-submissions', icon: <FileUp size={20} /> },
         { name: 'Preparar Planilha', path: '/upload', icon: <FileSpreadsheet size={20} /> },
         { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
-        { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet size={20} color="var(--primary-color)" />, special: true },
-        { name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> },
+        { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet size={20} /> },
     ];
 
 
     // Add SuperAdmin Control
     if (user?.role === 'ADMIN') {
-        menuItems.push({ name: 'Criar Transmissão', path: '/dispatch', icon: <Send size={20} />, special: true });
         menuItems.push({ name: 'Controle', path: '/control', icon: <ShieldCheck size={20} color="var(--primary-color)" /> });
     }
+
+    // Always put Profile at the end
+    menuItems.push({ name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> });
 
     const handleLogout = () => {
         if (window.confirm('Deseja realmente sair?')) {
