@@ -535,7 +535,9 @@ const ClientDashboard = () => {
 
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
                     <button className={`nav-tab ${activeTab === 'submissions' ? 'active' : ''}`} onClick={() => setActiveTab('submissions')}>MINHAS SUBMISSÕES</button>
-                    <button className={`nav-tab ${activeTab === 'agency_lots' ? 'active' : ''}`} onClick={() => setActiveTab('agency_lots')}>LOTES DA AGÊNCIA</button>
+                    {user?.role !== 'CLIENT' && (
+                        <button className={`nav-tab ${activeTab === 'agency_lots' ? 'active' : ''}`} onClick={() => setActiveTab('agency_lots')}>LOTES DA AGÊNCIA</button>
+                    )}
                     <button className={`nav-tab ${activeTab === 'links' ? 'active' : ''}`} onClick={() => setActiveTab('links')}>MEUS LINKS</button>
                     <button className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => setActiveTab('activity')}>REGISTRO DE ATIVIDADE</button>
                     <button className={`nav-tab ${activeTab === 'referrals' ? 'active' : ''}`} onClick={() => setActiveTab('referrals')}>MINHAS INDICAÇÕES</button>
