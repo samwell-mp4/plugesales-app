@@ -162,6 +162,7 @@ const TemplateCreator = () => {
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
     const [queueSize, setQueueSize] = useState(5);
     const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
+    const [templateCategory, setTemplateCategory] = useState<'MARKETING' | 'UTILITY'>('UTILITY');
 
 
     const handleFileUpload = async (file: File) => {
@@ -251,7 +252,7 @@ const TemplateCreator = () => {
         return {
             name: name,
             language: language,
-            category: 'UTILITY',
+            category: templateCategory,
             structure: structure
         };
     };
@@ -477,20 +478,6 @@ const TemplateCreator = () => {
 
                     if (row.hasButtons !== false && finalButtonUrls.length > 0) {
                         row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
-                        for (let urlIdx = 0; urlIdx < finalButtonUrls.length; urlIdx++) {
-                            const originalUrl = finalButtonUrls[urlIdx];
-                            if (originalUrl && (originalUrl.startsWith('http') || originalUrl.includes('.'))) {
-                                try {
-                                    const shortRes = await dbService.createShortLink({
-                                        user_id: user?.id,
-                                        target_user_id: Number(selectedClientId),
-                                        original_url: originalUrl,
-                                        title: `Bulk: ${name} - B${urlIdx + 1}`
-                                    });
-                                    if (shortRes.shortUrl) finalButtonUrls[urlIdx] = shortRes.shortUrl;
-                                } catch (err) { console.error(`Shortener error for ${name}:`, err); }
-                            }
-                        }
                     }
 
                     const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
@@ -633,6 +620,16 @@ const TemplateCreator = () => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({ ...r, sender })) } : c));
     };
 
+    const applySenderToAllCampaigns = () => {
+        const firstSender = senderNumbers.split(/[\n,]/)[0]?.trim() || '';
+        const sender = window.prompt("Digite o número (BM) para aplicar em TODAS as campanhas:", firstSender);
+        if (!sender) return;
+        setCampaigns(prev => prev.map(c => ({
+            ...c,
+            rows: c.rows.map(r => ({ ...r, sender }))
+        })));
+    };
+
     const applyGlobalHeaderType = (type: 'TEXT' | 'IMAGE' | 'VIDEO', campaignId: string) => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? {
             ...c, rows: c.rows.map(r => ({
@@ -656,8 +653,9 @@ const TemplateCreator = () => {
             const rowToCopy = c.rows[rowIndex];
             const newRows = Array(copiesCount).fill(null).map(() => ({
                 ...rowToCopy,
-                buttonTexts: [...rowToCopy.buttonTexts],
-                buttonUrls: [...rowToCopy.buttonUrls]
+                buttonTexts: [], // CLEAR TEXTS
+                buttonUrls: [],  // CLEAR URLS
+                originalButtonUrls: []
             }));
             const finalRows = [...c.rows];
             finalRows.splice(rowIndex + 1, 0, ...newRows);
@@ -1115,7 +1113,16 @@ const TemplateCreator = () => {
                                     )}
                                 </div>
 
-                                <div className="flex justify-between items-center" style={{ marginTop: '24px', marginBottom: '16px' }}><h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Campanhas Multi-Gerador</h3><div className="flex gap-4"><button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }])}>LIMPAR</button><button className="global-tile-btn global-tile-btn-primary " onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `nome_campanha_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button></div></div>
+                                <div className="flex justify-between items-center" style={{ marginTop: '24px', marginBottom: '16px' }}>
+                                    <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Campanhas Multi-Gerador</h3>
+                                    <div className="flex gap-4">
+                                        <button className="global-tile-btn global-tile-btn-ghost" onClick={applySenderToAllCampaigns}>
+                                            <Smartphone size={16} /> SENDER EM TODAS
+                                        </button>
+                                        <button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }])}>LIMPAR</button>
+                                        <button className="global-tile-btn global-tile-btn-primary " onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `nome_campanha_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button>
+                                    </div>
+                                </div>
 
                                 {campaigns.map((camp, cIdx) => (
                                     <div key={camp.id} className="glass-card flex flex-col gap-8 animate-fade-in">

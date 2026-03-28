@@ -478,6 +478,36 @@ const ClientSubmissionDetail = () => {
         }
     };
 
+    const handleDownloadNonDelivered = async () => {
+        if (!attachedReport || !attachedReport.data) return;
+        
+        try {
+            // Filter non-delivered leads
+            // We check for "delivered" in the status column (case-insensitive)
+            const nonDelivered = attachedReport.data.filter((row: any) => {
+                const status = String(row.Status || row.status || '').toLowerCase();
+                return status !== 'delivered';
+            });
+
+            if (nonDelivered.length === 0) {
+                alert("Não há leads não entregues neste relatório.");
+                return;
+            }
+
+            // Create a new workbook and worksheet
+            const ws = XLSX.utils.json_to_sheet(nonDelivered);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Nao Entregues");
+
+            // Write and download
+            XLSX.writeFile(wb, `leads_nao_entregues_${sub?.profile_name || id}.xlsx`);
+            await addLog("Relatório de leads não entregues baixado", 'info');
+        } catch (err) {
+            console.error("Error downloading non-delivered leads:", err);
+            alert("Erro ao gerar arquivo de exportação.");
+        }
+    };
+
     const handleAddVariable = (index: number, variable: string) => {
         if (!variable.trim() || !sub || !sub.ads) return;
         const currentVars = sub.ads[index].variables || [];
@@ -828,8 +858,15 @@ const ClientSubmissionDetail = () => {
                                             <p style={{ margin: 0, fontSize: '10px', color: 'var(--primary-color)', fontWeight: 700 }}>VISUALIZAR DASHBOARD</p>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <div className="flex-col items-end">
+                                    <div className="flex gap-2" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleDownloadNonDelivered(); }}
+                                            style={{ background: 'rgba(249,115,22,0.1)', border: 'none', color: '#f97316', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex' }}
+                                            title="Baixar Não Entregues"
+                                        >
+                                            <FileSpreadsheet size={16} />
+                                        </button>
+                                        <div className="flex-col items-end" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                             <span style={{ fontSize: '10px', fontWeight: 900, color: '#22c55e' }}>{attachedReport.summary?.delivered || 0}</span>
                                             <span style={{ fontSize: '7px', fontWeight: 800, opacity: 0.5 }}>OK</span>
                                         </div>

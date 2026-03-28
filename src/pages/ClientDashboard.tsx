@@ -11,7 +11,8 @@ import {
     ExternalLink,
     Link as LinkIcon,
     Trash2,
-    X
+    X,
+    Copy as CopyIcon
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -97,6 +98,34 @@ const ClientDashboard = () => {
             console.error("Error fetching submissions:", error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDuplicateSubmission = async (submission: any) => {
+        if (!window.confirm(`Deseja duplicar a campanha "${submission.profile_name}"?`)) return;
+        try {
+            const { id, timestamp, ...rest } = submission;
+            const duplicatedData = {
+                ...rest,
+                button_link: '', // Clear link
+                original_button_link: '',
+                status: 'PENDENTE',
+                timestamp: new Date().toISOString(),
+                submitted_by: user?.name,
+                ads: (submission.ads || []).map((ad: any) => ({
+                    ...ad,
+                    button_link: '', // Clear link in ads too
+                    original_button_link: '',
+                    delivered_leads: 0,
+                    clicks: 0
+                }))
+            };
+            await dbService.addClientSubmission(duplicatedData);
+            fetchSubmissions();
+            alert("Campanha duplicada com sucesso! Os links foram limpos.");
+        } catch (error) {
+            console.error("Error duplicating submission:", error);
+            alert("Erro ao duplicar submissão.");
         }
     };
 
@@ -370,13 +399,21 @@ const ClientDashboard = () => {
                                                         <Trash2 size={14} />
                                                     </button>
                                                 )}
-                                                <button 
-                                                    onClick={() => navigate(`/client-submissions/${sub.id}`)}
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
-                                                >
-                                                    DETALHES <ExternalLink size={14} />
-                                                </button>
+                                                    <button 
+                                                        onClick={() => handleDuplicateSubmission(sub)}
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ height: 36, width: 36, padding: 0 }}
+                                                        title="Duplicar Campanha"
+                                                    >
+                                                        <CopyIcon size={14} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => navigate(`/client-submissions/${sub.id}`)}
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
+                                                    >
+                                                        DETALHES <ExternalLink size={14} />
+                                                    </button>
                                             </div>
                                         </div>
                                     );

@@ -23,7 +23,8 @@ import {
     Trello,
     Eye,
     Send,
-    Calendar
+    Calendar,
+    Copy as CopyIcon
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -112,6 +113,31 @@ const ClientSubmissions = () => {
         const interval = setInterval(loadSubmissions, 20000);
         return () => clearInterval(interval);
     }, [user?.role]);
+
+    const handleDuplicate = async (submission: ClientSubmission) => {
+        if (!window.confirm(`Deseja duplicar a campanha de ${submission.profile_name}?`)) return;
+        try {
+            const { id, timestamp, ...rest } = submission;
+            const duplicatedData = {
+                ...rest,
+                button_link: '', // CLEAR LINK
+                status: 'PENDENTE',
+                timestamp: new Date().toISOString(),
+                submitted_by: user?.name,
+                ads: (submission.ads || []).map(ad => ({
+                    ...ad,
+                    button_link: '', // CLEAR LINK IN ADS TOO
+                    delivered_leads: 0
+                }))
+            };
+            await dbService.addClientSubmission(duplicatedData);
+            loadSubmissions();
+            alert("Campanha duplicada com sucesso! Links limpos.");
+        } catch (err) {
+            console.error("Error duplicating submission:", err);
+            alert("Erro ao duplicar campanha.");
+        }
+    };
 
     const handleDelete = async (id: number) => {
         if (!window.confirm("Deseja realmente excluir este envio?")) return;
@@ -348,7 +374,10 @@ const ClientSubmissions = () => {
                 return (
                     <div key={s.id} className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)} style={{ padding: '20px' }}>
                         <div className="card-actions">
-                            <button onClick={e => { e.stopPropagation(); handleDelete(s.id); }} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', display: 'flex' }}>
+                            <button onClick={e => { e.stopPropagation(); handleDuplicate(s); }} style={{ padding: '6px', background: 'rgba(172,248,0,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: 'var(--primary-color)', display: 'flex' }} title="Duplicar">
+                                <CopyIcon size={13} />
+                            </button>
+                            <button onClick={e => { e.stopPropagation(); handleDelete(s.id); }} style={{ padding: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', display: 'flex' }} title="Excluir">
                                 <Trash2 size={13} />
                             </button>
                         </div>
@@ -509,14 +538,24 @@ const ClientSubmissions = () => {
 
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         {s.status !== 'CONCLUIDO' && (
-                            <button 
-                                className="list-btn" 
-                                onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
-                                style={{ background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)' }}
-                                title="Preencher no Creator"
-                            >
-                                <Layers size={16} />
-                            </button>
+                            <>
+                                <button 
+                                    className="list-btn" 
+                                    onClick={e => { e.stopPropagation(); handleDuplicate(s); }}
+                                    style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.2)' }}
+                                    title="Duplicar"
+                                >
+                                    <CopyIcon size={16} />
+                                </button>
+                                <button 
+                                    className="list-btn" 
+                                    onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
+                                    style={{ background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)' }}
+                                    title="Preencher no Creator"
+                                >
+                                    <Layers size={16} />
+                                </button>
+                            </>
                         )}
                         <button 
                             className="list-btn" 
