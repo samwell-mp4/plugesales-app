@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import {
     MessageSquare,
     Zap,
@@ -27,6 +27,20 @@ const LandingPage = () => {
     const toggleFaq = (index: number) => {
         setActiveFaq(activeFaq === index ? null : index);
     };
+
+    const { id } = useParams<{ id: string }>();
+
+    useEffect(() => {
+        if (id) {
+            // Se o ID existir (ex: /landing1), salvamos como 'landing1'
+            sessionStorage.setItem('landing_ref', `landing${id}`);
+        } else {
+            // Caso seja apenas /landing, podemos salvar como padrao ou ignorar
+            if (!sessionStorage.getItem('landing_ref')) {
+                sessionStorage.setItem('landing_ref', 'landing_original');
+            }
+        }
+    }, [id]);
 
 
     const faqs = [

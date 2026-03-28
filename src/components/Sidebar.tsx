@@ -35,6 +35,7 @@ const Sidebar = () => {
         { name: 'Preparar Planilha', path: '/upload', icon: <FileSpreadsheet size={20} /> },
         { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
+        { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet size={20} color="var(--primary-color)" />, special: true },
         { name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> },
     ];
 

@@ -12,7 +12,11 @@ import {
     Link as LinkIcon,
     Trash2,
     X,
-    Copy as CopyIcon
+    Copy as CopyIcon,
+    Users,
+    Mail,
+    Building2,
+    QrCode
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -21,13 +25,16 @@ import { useNavigate } from 'react-router-dom';
 const ClientDashboard = () => {
     const { user, logout } = useAuth() as any;
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'submissions' | 'agency_lots' | 'links' | 'activity'>('submissions');
+    const [activeTab, setActiveTab] = useState<'submissions' | 'agency_lots' | 'links' | 'activity' | 'referrals'>('submissions');
     const [submissions, setSubmissions] = useState<any[]>([]);
+    const [subClients, setSubClients] = useState<any[]>([]);
     const [links, setLinks] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isLinksLoading, setIsLinksLoading] = useState(false);
     const [isLogsLoading, setIsLogsLoading] = useState(false);
+    const [isSubClientsLoading, setIsSubClientsLoading] = useState(false);
+    const [copyFeedback, setCopyFeedback] = useState('');
 
     
     // Analytics State
@@ -46,6 +53,7 @@ const ClientDashboard = () => {
             fetchLinks();
             if (activeTab === 'links') fetchAggregatedStats();
             if (activeTab === 'activity') fetchLogs();
+            if (activeTab === 'referrals') fetchSubClients();
         }
     }, [user, activeTab, statsDate]);
 
@@ -99,6 +107,48 @@ const ClientDashboard = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const fetchSubClients = async () => {
+        if (!user?.id) return;
+        setIsSubClientsLoading(true);
+        try {
+            const data = await dbService.getSubClients(user.id);
+            setSubClients(data);
+        } catch (error) {
+            console.error("Error fetching sub-clients:", error);
+        } finally {
+            setIsSubClientsLoading(false);
+        }
+    };
+
+    const handleApproveSubClient = async (id: number) => {
+        try {
+            const res = await dbService.approveSubClient(id);
+            if (res.success) {
+                fetchSubClients();
+            }
+        } catch (error) {
+            console.error("Error approving sub-client:", error);
+        }
+    };
+
+    const handleDeleteSubClient = async (id: number) => {
+        if (!window.confirm("Deseja realmente excluir este cadastro?")) return;
+        try {
+            const res = await dbService.deleteSubClient(id);
+            if (res.success) {
+                fetchSubClients();
+            }
+        } catch (error) {
+            console.error("Error deleting sub-client:", error);
+        }
+    };
+
+    const copyToClipboard = (text: string, label: string) => {
+        navigator.clipboard.writeText(text);
+        setCopyFeedback(label);
+        setTimeout(() => setCopyFeedback(''), 2000);
     };
 
     const handleDuplicateSubmission = async (submission: any) => {
@@ -282,6 +332,16 @@ const ClientDashboard = () => {
                     
                     <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <button
+                            onClick={() => {
+                                const link = `${window.location.origin}/client-add/${user.id}`;
+                                copyToClipboard(link, 'Link de Indicação');
+                            }}
+                            className="action-btn ghost-btn"
+                            style={{ height: 48, padding: '0 24px' }}
+                        >
+                            <Users size={18} /> INDICAR CLIENTE
+                        </button>
+                        <button
                             onClick={() => navigate('/client-form')}
                             className="action-btn primary-btn"
                             style={{ height: 48, padding: '0 24px' }}
@@ -350,6 +410,12 @@ const ClientDashboard = () => {
                         onClick={() => setActiveTab('activity')}
                     >
                         REGISTRO DE ATIVIDADE
+                    </button>
+                    <button
+                        className={`nav-tab ${activeTab === 'referrals' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('referrals')}
+                    >
+                        MINHAS INDICAÇÕES
                     </button>
                 </div>
 
@@ -626,6 +692,105 @@ const ClientDashboard = () => {
                                 </div>
                             )}
                         </div>
+                    ) : activeTab === 'referrals' ? (
+                        <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                            <div style={{ marginBottom: '32px', padding: '32px', background: 'rgba(172,248,0,0.02)', borderRadius: '24px', border: '1px solid rgba(172,248,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px' }}>
+                                <div style={{ flex: 1, minWidth: '300px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-1px' }}>Seu Link de <span className="text-primary-color">Indicação</span></h3>
+                                    <p style={{ margin: '8px 0 20px 0', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>GANHE BENEFÍCIOS INDICANDO NOVOS CLIENTES PARA A PLATAFORMA</p>
+                                    
+                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                        <div style={{ flex: 1, background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', fontSize: '13px', fontWeight: 700, color: 'var(--primary-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {window.location.origin}/client-add/{user?.id}
+                                        </div>
+                                        <button 
+                                            onClick={() => copyToClipboard(`${window.location.origin}/client-add/${user?.id}`, 'Link de Indicação')}
+                                            className="action-btn primary-btn" style={{ height: 52, padding: '0 24px' }}
+                                        >
+                                            <CopyIcon size={18} /> COPIAR LINK
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style={{ background: '#fff', padding: '12px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/client-add/${user?.id}`)}`} 
+                                        alt="QR Code" 
+                                        style={{ width: 100, height: 100 }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Indicados Registrados</h3>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>{subClients.length} INDICAÇÕES</div>
+                            </div>
+
+                            {isSubClientsLoading ? (
+                                <div style={{ padding: '60px', textAlign: 'center' }}>
+                                    <div style={{ width: 24, height: 24, margin: '0 auto 12px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                    <p style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>CARREGANDO INDICADOS...</p>
+                                </div>
+                            ) : subClients.length === 0 ? (
+                                <div style={{ padding: '80px', textAlign: 'center', opacity: 0.2 }}>
+                                    <Users size={48} style={{ marginBottom: '16px' }} />
+                                    <p style={{ fontWeight: 800 }}>Você ainda não possui indicações registradas.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                                    {subClients.map((sc: any) => (
+                                        <div key={sc.id} className="control-card" style={{ padding: '24px', position: 'relative', border: sc.approved ? '1px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                                                <div style={{ width: 44, height: 44, borderRadius: '12px', background: sc.approved ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <User size={20} className={sc.approved ? "text-primary-color" : ""} style={{ opacity: sc.approved ? 1 : 0.3 }} />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: 'var(--text-primary)' }}>{sc.data?.name || 'Cliente'}</h4>
+                                                    <span style={{ fontSize: '9px', fontWeight: 900, color: sc.approved ? 'var(--primary-color)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                                        {sc.approved ? 'CONTA ATIVA / APROVADA' : 'AGUARDANDO APROVAÇÃO'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                                    <Mail size={14} style={{ opacity: 0.5 }} /> {sc.data?.email}
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                                    <Smartphone size={14} style={{ opacity: 0.5 }} /> {sc.data?.phone}
+                                                </div>
+                                                {sc.data?.company && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                                        <Building2 size={14} style={{ opacity: 0.5 }} /> {sc.data?.company}
+                                                    </div>
+                                                )}
+                                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', opacity: 0.5, fontWeight: 700 }}>
+                                                    CADASTRO EM: {new Date(sc.created_at).toLocaleDateString()}
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                                {!sc.approved && (
+                                                    <button 
+                                                        onClick={() => handleApproveSubClient(sc.id)}
+                                                        className="action-btn primary-btn" 
+                                                        style={{ flex: 1, height: 40, fontSize: '9px' }}
+                                                    >
+                                                        APROVAR
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => handleDeleteSubClient(sc.id)}
+                                                    className="action-btn ghost-btn" 
+                                                    style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     ) : null}
                 </div>
 
@@ -633,6 +798,12 @@ const ClientDashboard = () => {
                 <div style={{ marginTop: '40px', textAlign: 'center', opacity: 0.1 }}>
                     <h2 style={{ fontSize: '12px', fontWeight: 900, letterSpacing: '4px' }}>PLUG & SALES • PRO</h2>
                 </div>
+
+                {copyFeedback && (
+                    <div style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-color)', color: '#000', padding: '12px 24px', borderRadius: '16px', fontWeight: 900, fontSize: '13px', boxShadow: '0 10px 40px rgba(172,248,0,0.3)', zIndex: 9999, animation: 'fadeInUp 0.3s ease-out' }}>
+                        ✓ {copyFeedback.toUpperCase()} COPIADO COM SUCESSO!
+                    </div>
+                )}
             </div>
 
             {/* ── LINK STATS MODAL ── */}

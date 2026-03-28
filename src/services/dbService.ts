@@ -643,6 +643,20 @@ export const dbService = {
             return await res.json();
         } catch (err) { return []; }
     },
+    // --- CRM / Google Sheets ---
+    getCRMLeads: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/leads`);
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro ao carregar dados da planilha.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("CRM Service Error:", err);
+            throw err;
+        }
+    },
     debugDb: async () => {
         try {
             const res = await fetch(`${API_BASE}/debug/db`);

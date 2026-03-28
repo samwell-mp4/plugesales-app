@@ -30,10 +30,18 @@ const LeadStepForm = () => {
         email: '',
         niche: '',
         method: '',
-        volume: ''
+        volume: '',
+        referral_source: ''
     });
 
     const totalSteps = STEPS.length - 1; // Success is outside the main loop
+
+    useEffect(() => {
+        const ref = sessionStorage.getItem('landing_ref');
+        if (ref) {
+            setFormData(prev => ({ ...prev, referral_source: ref }));
+        }
+    }, []);
 
     const nextStep = () => {
         if (currentStep < totalSteps) {

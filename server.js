@@ -7,6 +7,7 @@ import cors from 'cors';
 import pg from 'pg';
 import { createClient } from 'redis';
 import OpenAI from 'openai';
+import { google } from 'googleapis';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -283,6 +284,62 @@ const initDB = async () => {
         if (client) client.release();
     }
 };
+// --- GOOGLE SHEETS CONFIG ---
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "PASTE_YOUR_ID_HERE";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "PASTE_YOUR_SECRET_HERE";
+const CRM_SPREADSHEET_ID = "1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0";
+
+const oauth2Client = new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    "http://localhost:3000" // Placeholder redirect URI
+);
+
+// Nota: Para produção, o ideal é usar uma Service Account que não requer interação do usuário.
+// Como solução imediata para visualização, este endpoint tentará ler a planilha.
+app.get('/api/crm/leads', async (req, res) => {
+    try {
+        const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+        
+        // Se precisarmos de acesso público (sem OAuth complexo agora), 
+        // tentaremos usar o spreadsheetId diretamente se estiver aberto.
+        // Como o usuário passou ClientSecret, assumimos que é uma APP instalada.
+        
+        // Tentar buscar os valores da aba 0 (primeira aba)
+        // Colunas: Nome(A), Número(B), Email(C), tag(D), status(E), data entrada(F), responsavel(G), value_client(H)
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: CRM_SPREADSHEET_ID,
+            range: 'A2:H500', // Pula o cabeçalho
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+            return res.json([]);
+        }
+
+        const leads = rows.map((row, index) => ({
+            id: index + 1,
+            nome: row[0] || '',
+            numero: row[1] || '',
+            email: row[2] || '',
+            tag: row[3] || '',
+            status: row[4] || 'Sem Status',
+            data_entrada: row[5] || '',
+            responsavel: row[6] || '',
+            value_client: row[7] || '0'
+        }));
+
+        res.json(leads);
+    } catch (err) {
+        console.error("Error fetching CRM leads:", err.message);
+        // Se der erro de permissão (403/401), retornamos um erro claro
+        if (err.message.includes('permission') || err.message.includes('auth')) {
+            return res.status(403).json({ error: "Erro de Autenticação no Google. Certifique-se que a planilha está compartilhada com as permissões corretas ou está aberta para leitura pública." });
+        }
+        res.status(500).json({ error: err.message });
+    }
+});
+
 initDB();
 
 // Configuração de CORS
