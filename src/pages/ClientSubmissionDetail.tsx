@@ -588,33 +588,6 @@ const ClientSubmissionDetail = () => {
                                     <Upload size={18} /> <span style={{ fontSize: '11px', fontWeight: 900 }}>ANEXAR RELATÓRIO</span>
                                 </label>
                             )}
-
-                            {/* --- HISTÓRICO DA CAMPANHA --- */}
-                            <div style={{ marginTop: '32px' }}>
-                                <label className="field-label" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <Activity size={14} color="var(--primary-color)" /> HISTÓRICO DA CAMPANHA
-                                </label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {(!sub.logs || sub.logs.length === 0) ? (
-                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed var(--surface-border-subtle)', textAlign: 'center' }}>
-                                            <p style={{ margin: 0, fontSize: '10px', opacity: 0.4 }}>Nenhum histórico registrado.</p>
-                                        </div>
-                                    ) : (
-                                        ([...(sub.logs || [])].reverse()).map((log: any) => (
-                                            <div key={log.id} style={{ padding: '12px 16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: log.type === 'error' ? '#ef4444' : (log.type === 'success' ? '#22c55e' : 'var(--primary-color)'), marginTop: '4px' }} />
-                                                <div style={{ flex: 1 }}>
-                                                    <p style={{ margin: 0, fontSize: '12px', fontWeight: 800 }}>{log.message}</p>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', opacity: 0.5, fontSize: '9px', fontWeight: 700 }}>
-                                                        <span>{log.author || 'Sistema'}</span>
-                                                        <span>{new Date(log.timestamp).toLocaleString('pt-BR')}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
