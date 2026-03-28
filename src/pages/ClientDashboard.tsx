@@ -12,6 +12,7 @@ import {
     Link as LinkIcon,
     Trash2,
     X,
+    XCircle,
     Copy as CopyIcon,
     Users,
     Mail,
@@ -587,7 +588,25 @@ const ClientDashboard = () => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                {sub.status === 'AGUARDANDO_APROVACAO_PAI' && (
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); handleApproveReferralSubmission(sub.id, true); }} 
+                                                            className="action-btn ghost-btn" 
+                                                            style={{ height: 36, padding: '0 12px', fontSize: '9px', borderColor: '#22c55e', color: '#22c55e', background: 'rgba(34,197,94,0.05)' }}
+                                                        >
+                                                            <CheckCircle2 size={14} /> APROVAR
+                                                        </button>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); handleApproveReferralSubmission(sub.id, false); }} 
+                                                            className="action-btn ghost-btn" 
+                                                            style={{ height: 36, padding: '0 12px', fontSize: '9px', borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.05)' }}
+                                                        >
+                                                            <XCircle size={14} /> REPROVAR
+                                                        </button>
+                                                    </div>
+                                                )}
                                                 <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={14} /></button>
                                                 <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0 }}><CopyIcon size={14} /></button>
                                                 <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 36, padding: '0 16px', fontSize: '9px' }}>DETALHES <ExternalLink size={14} /></button>

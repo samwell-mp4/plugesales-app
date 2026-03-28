@@ -22,11 +22,13 @@ import {
     Trash2,
     Upload,
     X,
+    XCircle,
     Activity,
     Printer,
     Link2,
     BarChart3,
-    FileText
+    FileText,
+    CheckCircle2
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -417,6 +419,7 @@ const ClientSubmissionDetail = () => {
         setTimeout(() => setCopyFeedback(''), 2000);
     };
 
+
     if (isLoading) return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
             <div className="animate-spin" style={{ width: 48, height: 48, border: '3px solid rgba(172,248,0,0.15)', borderTopColor: 'var(--primary-color)', borderRadius: '50%' }} />
@@ -497,6 +500,41 @@ const ClientSubmissionDetail = () => {
                         <div className="info-chip" style={{ background: statusCfg.bg, color: statusCfg.color, border: `1px solid ${statusCfg.border}`, padding: '10px 20px' }}>{statusCfg.label.toUpperCase()}</div>
                     </div>
                 </div>
+
+                {/* PARENT APPROVAL BANNER */}
+                {sub.status === 'AGUARDANDO_APROVACAO_PAI' && (
+                    <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                        <div style={{ marginBottom: '32px', padding: '32px', background: 'rgba(172,248,0,0.02)', borderRadius: '24px', border: '1px solid rgba(172,248,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px' }}>
+                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                <div style={{ width: 60, height: 60, borderRadius: '20px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b' }}>
+                                    <Zap size={32} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-1px' }}>Aprovação <span style={{ color: '#f59e0b' }}>Pendente</span></h3>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>ESTA CAMPANHA AGUARDA SUA VALIDAÇÃO PARA SER ENVIADA AO ADMIN</p>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button 
+                                    onClick={() => handleParentApprove(true)} 
+                                    className="action-btn ghost-btn" 
+                                    style={{ height: 52, padding: '0 32px', borderColor: '#22c55e', color: '#22c55e', background: 'rgba(34,197,94,0.05)', fontSize: '11px' }}
+                                    disabled={isSaving}
+                                >
+                                    <CheckCircle2 size={18} /> APROVAR AGORA
+                                </button>
+                                <button 
+                                    onClick={() => handleParentApprove(false)} 
+                                    className="action-btn ghost-btn" 
+                                    style={{ height: 52, padding: '0 32px', borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.05)', fontSize: '11px' }}
+                                    disabled={isSaving}
+                                >
+                                    <XCircle size={18} /> REPROVAR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* CONTROL GRID */}
                 <div className="controls-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>

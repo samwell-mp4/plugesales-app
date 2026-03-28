@@ -39,8 +39,6 @@ function AppContent() {
   const isPublicRoute = 
     location.pathname.startsWith('/landing') || 
     location.pathname === '/obrigado' || 
-    location.pathname === '/client-form' || 
-    location.pathname === '/client' || 
     location.pathname === '/lead-flow' || 
     location.pathname.startsWith('/l/') || 
     location.pathname.startsWith('/client-add/');
