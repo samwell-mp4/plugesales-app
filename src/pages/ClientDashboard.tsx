@@ -589,7 +589,7 @@ const ClientDashboard = () => {
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                {sub.status === 'AGUARDANDO_APROVACAO_PAI' && (
+                                                {sub.status === 'AGUARDANDO_APROVACAO_PAI' && sub.isReferral && (
                                                     <div style={{ display: 'flex', gap: '8px' }}>
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); handleApproveReferralSubmission(sub.id, true); }} 

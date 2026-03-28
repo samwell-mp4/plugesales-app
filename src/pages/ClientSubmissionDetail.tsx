@@ -502,7 +502,7 @@ const ClientSubmissionDetail = () => {
                 </div>
 
                 {/* PARENT APPROVAL BANNER */}
-                {sub.status === 'AGUARDANDO_APROVACAO_PAI' && (
+                {sub.status === 'AGUARDANDO_APROVACAO_PAI' && (user?.id && String(sub.parent_id) === String(user.id)) && (
                     <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
                         <div style={{ marginBottom: '32px', padding: '32px', background: 'rgba(172,248,0,0.02)', borderRadius: '24px', border: '1px solid rgba(172,248,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px' }}>
                             <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>

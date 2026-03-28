@@ -380,17 +380,33 @@ const ClientExternalForm = () => {
                     font-size: 13px;
                 }
 
+                .glass-card {
+                    margin-top: 40px;
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(40px);
+                    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+                    border-radius: 40px;
+                    padding: 64px;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .glass-card:hover {
+                    background: rgba(255, 255, 255, 0.03);
+                    border-color: rgba(172, 248, 0, 0.15);
+                }
+
                 .creative-card {
                     background: rgba(255, 255, 255, 0.02);
                     border: 1px solid rgba(255, 255, 255, 0.05);
-                    padding: 12px 20px;
-                    border-radius: 16px;
-                    transition: all 0.3s ease;
+                    padding: 24px 20px;
+                    border-radius: 20px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     cursor: pointer;
                     display: flex;
                     align-items: center;
-                    gap: 12px;
+                    gap: 14px;
                     flex: 1;
+                    min-width: 140px;
                     justify-content: center;
                     color: rgba(255,255,255,0.4);
                 }
@@ -398,6 +414,8 @@ const ClientExternalForm = () => {
                     background: rgba(172, 248, 0, 0.1);
                     border-color: var(--primary-color);
                     color: var(--primary-color);
+                    box-shadow: 0 10px 30px rgba(172, 248, 0, 0.1);
+                    transform: translateY(-2px);
                 }
 
                 .mode-toggle {
@@ -597,32 +615,32 @@ const ClientExternalForm = () => {
                             )}
 
                             {step === 1 && (
-                                <div className="glass-card animate-fade-in space-y-10">
-                                    <div className="flex flex-col md:flex-row gap-10">
-                                        <div className="flex flex-col items-center gap-4">
+                                <div className="glass-card animate-fade-in space-y-12">
+                                    <div className="flex flex-col md:flex-row gap-12 items-center md:items-start">
+                                        <div className="flex flex-col items-center gap-6">
                                             <div 
-                                                className="w-32 h-32 rounded-full border-4 border-dashed border-white/10 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-all overflow-hidden bg-white/5"
+                                                className="w-40 h-40 rounded-full border-4 border-dashed border-white/10 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-all overflow-hidden bg-white/5 shadow-2xl"
                                                 onClick={() => document.getElementById('photo-upload')?.click()}
                                             >
                                                 <input id="photo-upload" type="file" hidden accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'profile_photo')} />
-                                                {formData.profile_photo ? <img src={formData.profile_photo} className="w-full h-full object-cover" /> : <ImageIcon size={32} className="opacity-20" />}
+                                                {formData.profile_photo ? <img src={formData.profile_photo} className="w-full h-full object-cover" /> : <ImageIcon size={40} className="opacity-20" />}
                                             </div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Foto do Perfil</span>
+                                            <span className="text-[10px] font-black uppercase tracking-[3px] opacity-50">Foto do Perfil</span>
                                         </div>
-                                        <div className="flex-1 space-y-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Nome do Atendimento</label>
-                                                <input className="input-premium py-4" placeholder="Ex: Suporte VIP" value={formData.profile_name} onChange={e => setFormData(p => ({ ...p, profile_name: e.target.value }))} />
+                                        <div className="flex-1 w-full space-y-10">
+                                            <div className="space-y-3">
+                                                <label className="text-[11px] font-black uppercase tracking-widest opacity-50 ml-1">Nome do Atendimento</label>
+                                                <input className="input-premium py-5 px-6 text-base" placeholder="Ex: Suporte VIP" value={formData.profile_name} onChange={e => setFormData(p => ({ ...p, profile_name: e.target.value }))} />
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">DDD Regional</label>
-                                                <input className="input-premium py-4" placeholder="Ex: 11" maxLength={2} value={formData.ddd} onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))} />
+                                            <div className="space-y-3">
+                                                <label className="text-[11px] font-black uppercase tracking-widest opacity-50 ml-1">DDD Regional</label>
+                                                <input className="input-premium py-5 px-6 text-base" placeholder="Ex: 11" maxLength={2} value={formData.ddd} onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))} />
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="pt-8 border-t border-white/5 flex gap-4">
-                                        <button onClick={prevStep} className="nav-btn nav-btn-secondary">VOLTAR</button>
-                                        <button onClick={nextStep} className="nav-btn nav-btn-primary flex-1 justify-center">PRÓXIMO PASSO <ArrowRight size={18} /></button>
+                                    <div className="pt-10 border-t border-white/5 flex gap-6">
+                                        <button onClick={prevStep} className="nav-btn nav-btn-secondary px-10">VOLTAR</button>
+                                        <button onClick={nextStep} className="nav-btn nav-btn-primary flex-1 justify-center py-5">PRÓXIMO PASSO <ArrowRight size={18} /></button>
                                     </div>
                                 </div>
                             )}
@@ -684,26 +702,51 @@ const ClientExternalForm = () => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-3 gap-4">
-                                            {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (
-                                                <div 
-                                                    key={t} 
-                                                    onClick={() => {
-                                                        const newAds = [...formData.ads];
-                                                        newAds[formData.currentAdIndex].template_type = t;
-                                                        setFormData(prev => ({ ...prev, ads: newAds }));
-                                                    }}
-                                                    className={`creative-card ${formData.ads[formData.currentAdIndex].template_type === t ? 'active' : ''}`}
-                                                >
-                                                    {t === 'TEXT' ? <Activity size={16} /> : t === 'IMAGE' ? <ImageIcon size={16} /> : <Video size={16} />}
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">{t}</span>
-                                                </div>
-                                            ))}
+                                    <div className="space-y-10">
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 ml-1">Tipo de Criativo</label>
+                                            <div className="flex flex-row gap-4">
+                                                {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (
+                                                    <div 
+                                                        key={t} 
+                                                        onClick={() => {
+                                                            const newAds = [...formData.ads];
+                                                            newAds[formData.currentAdIndex].template_type = t;
+                                                            setFormData(prev => ({ ...prev, ads: newAds }));
+                                                        }}
+                                                        className={`creative-card py-6 ${formData.ads[formData.currentAdIndex].template_type === t ? 'active' : ''}`}
+                                                    >
+                                                        {t === 'TEXT' ? <Activity size={18} /> : t === 'IMAGE' ? <ImageIcon size={18} /> : <Video size={18} />}
+                                                        <span className="text-[11px] font-black uppercase tracking-widest">{t}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+                                        {formData.ads[formData.currentAdIndex].template_type !== 'TEXT' && (
+                                            <div className="space-y-4 animate-fade-in">
+                                                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">
+                                                    Carregar {formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'Imagem' : 'Vídeo'}
+                                                </label>
+                                                <div className="upload-zone py-10" onClick={() => document.getElementById('media-upload')?.click()}>
+                                                    <input id="media-upload" type="file" hidden accept={formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'image/*' : 'video/*'} onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'media_url')} />
+                                                    {formData.ads[formData.currentAdIndex].media_url ? (
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <CheckCircle size={32} className="text-primary" />
+                                                            <span className="text-[10px] font-black text-primary uppercase">Arquivo Carregado</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center gap-2 opacity-30">
+                                                            {formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? <ImageIcon size={32} /> : <Video size={32} />}
+                                                            <p className="text-[10px] font-black uppercase">Clique para enviar</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-8">
+                                            <div className="flex items-center gap-3 bg-white/5 p-5 rounded-2xl border border-white/5 shadow-inner">
                                                 <label className="custom-switch">
                                                     <input 
                                                         type="checkbox" 
@@ -733,12 +776,12 @@ const ClientExternalForm = () => {
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">HABILITAR 5ª VARIÁVEL</span>
                                             </div>
 
-                                            <div className="space-y-2">
+                                            <div className="space-y-3">
                                                 <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Link do Botão (Obrigatório HTTPS)</label>
                                                 <div className="relative">
-                                                    <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 opacity-20" />
+                                                    <Globe size={18} className="absolute left-5 top-1/2 -translate-y-1/2 opacity-20" />
                                                     <input 
-                                                        className="input-premium py-4 pl-12" 
+                                                        className="input-premium py-5 pl-14" 
                                                         placeholder="https://sua-url.com" 
                                                         value={formData.ads[formData.currentAdIndex].button_link} 
                                                         onChange={e => {
@@ -755,57 +798,93 @@ const ClientExternalForm = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-4">
+                                            <div className="space-y-3">
                                                 <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Planilha de Contatos</label>
-                                                <div className="upload-zone" onClick={() => document.getElementById('sheet-upload')?.click()}>
+                                                <div className="upload-zone py-8" onClick={() => document.getElementById('sheet-upload')?.click()}>
                                                     <input id="sheet-upload" type="file" hidden accept=".xlsx,.xls,.csv" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'spreadsheet_url')} />
-                                                    {formData.ads[formData.currentAdIndex].spreadsheet_url ? <CheckCircle size={32} className="text-primary mx-auto" /> : <FileSpreadsheet size={32} className="opacity-20 mx-auto" />}
-                                                    <p className="text-[10px] font-black uppercase tracking-widest mt-4">Carregar Contatos</p>
+                                                    {formData.ads[formData.currentAdIndex].spreadsheet_url ? (
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <CheckCircle size={32} className="text-primary" />
+                                                            <span className="text-[10px] font-black text-primary uppercase">Planilha Pronta</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center gap-2 opacity-30">
+                                                            <FileSpreadsheet size={32} />
+                                                            <p className="text-[10px] font-black uppercase">Carregar Contatos</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
-                                            {formData.ads[formData.currentAdIndex].message_mode === 'manual' ? (
-                                                <div className="pt-6 grid grid-cols-2 gap-4">
-                                                    {[1, 2, 3, 4, 5].map(vNum => {
-                                                        if (vNum === 5 && !formData.ads[formData.currentAdIndex].showFifthVariable) return null;
-                                                        return (
-                                                            <div key={vNum} className="space-y-2">
-                                                                <label className="text-[10px] font-black uppercase tracking-widest text-primary">Variável {vNum}</label>
-                                                                <input 
-                                                                    className="input-premium py-4" 
-                                                                    placeholder={`Valor de {{${vNum}}}`}
-                                                                    value={formData.ads[formData.currentAdIndex].variables[vNum - 1]}
-                                                                    onChange={e => {
-                                                                        const newAds = [...formData.ads];
-                                                                        const ad = newAds[formData.currentAdIndex];
-                                                                        ad.variables[vNum - 1] = e.target.value;
-                                                                        
-                                                                        const v = ad.variables;
-                                                                        const v1 = v[0] || '{{1}}';
-                                                                        const v2 = v[1] || '{{2}}';
-                                                                        const v3 = v[2] || '{{3}}';
-                                                                        const v4 = v[3] || '{{4}}';
-                                                                        const v5 = v[4] || '{{5}}';
-                                                                        
-                                                                        if (ad.showFifthVariable) {
-                                                                            ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\n${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
-                                                                        } else {
-                                                                            ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\nPara ${v4}, clique no botão abaixo 👇`;
-                                                                        }
-                                                                        setFormData(p => ({ ...p, ads: newAds }));
-                                                                    }}
-                                                                />
+                                            <div className="space-y-4 pt-4 border-t border-white/5">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-1">Configuração da Mensagem</label>
+                                                    <div className="mode-toggle">
+                                                        <button onClick={() => {
+                                                            const newAds = [...formData.ads];
+                                                            newAds[formData.currentAdIndex].message_mode = 'manual';
+                                                            setFormData(prev => ({ ...prev, ads: newAds }));
+                                                        }} className={`mode-btn ${formData.ads[formData.currentAdIndex].message_mode === 'manual' ? 'active' : ''}`}>Manual</button>
+                                                        <button onClick={() => {
+                                                            const newAds = [...formData.ads];
+                                                            newAds[formData.currentAdIndex].message_mode = 'upload';
+                                                            setFormData(prev => ({ ...prev, ads: newAds }));
+                                                        }} className={`mode-btn ${formData.ads[formData.currentAdIndex].message_mode === 'upload' ? 'active' : ''}`}>Arquivo</button>
+                                                    </div>
+                                                </div>
+
+                                                {formData.ads[formData.currentAdIndex].message_mode === 'manual' ? (
+                                                    <div className="grid grid-cols-2 gap-x-6 gap-y-8 pt-4">
+                                                        {[1, 2, 3, 4, 5].map(vNum => {
+                                                            if (vNum === 5 && !formData.ads[formData.currentAdIndex].showFifthVariable) return null;
+                                                            return (
+                                                                <div key={vNum} className="space-y-2">
+                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-primary">Variável {vNum}</label>
+                                                                    <input 
+                                                                        className="input-premium py-4" 
+                                                                        placeholder={`Valor de {{${vNum}}}`}
+                                                                        value={formData.ads[formData.currentAdIndex].variables[vNum - 1]}
+                                                                        onChange={e => {
+                                                                            const newAds = [...formData.ads];
+                                                                            const ad = newAds[formData.currentAdIndex];
+                                                                            ad.variables[vNum - 1] = e.target.value;
+                                                                            
+                                                                            const v = ad.variables;
+                                                                            const v1 = v[0] || '{{1}}';
+                                                                            const v2 = v[1] || '{{2}}';
+                                                                            const v3 = v[2] || '{{3}}';
+                                                                            const v4 = v[3] || '{{4}}';
+                                                                            const v5 = v[4] || '{{5}}';
+                                                                            
+                                                                            if (ad.showFifthVariable) {
+                                                                                ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\n${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
+                                                                            } else {
+                                                                                ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\nPara ${v4}, clique no botão abaixo 👇`;
+                                                                            }
+                                                                            setFormData(p => ({ ...p, ads: newAds }));
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="upload-zone py-12" onClick={() => document.getElementById('msg-upload')?.click()}>
+                                                        <input id="msg-upload" type="file" hidden accept=".txt" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'ad_copy_file')} />
+                                                        {formData.ads[formData.currentAdIndex].ad_copy_file ? (
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <CheckCircle size={32} className="text-primary" />
+                                                                <span className="text-[10px] font-black text-primary uppercase">Mensagem Importada</span>
                                                             </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            ) : (
-                                                <div className="upload-zone" onClick={() => document.getElementById('msg-upload')?.click()}>
-                                                    <input id="msg-upload" type="file" hidden accept=".txt" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'ad_copy_file')} />
-                                                    {formData.ads[formData.currentAdIndex].ad_copy_file ? <CheckCircle size={32} className="text-primary mx-auto" /> : <Settings size={32} className="opacity-20 mx-auto" />}
-                                                    <p className="text-[10px] font-black uppercase tracking-widest mt-4">Carregar Mensagem TXT</p>
-                                                </div>
-                                            )}
+                                                        ) : (
+                                                            <div className="flex flex-col items-center gap-2 opacity-30">
+                                                                <Settings size={32} />
+                                                                <p className="text-[10px] font-black uppercase">Carregar Mensagem TXT</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
