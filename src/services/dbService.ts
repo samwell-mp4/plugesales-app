@@ -679,5 +679,56 @@ export const dbService = {
         } catch (err) {
             console.error("Error deleting step lead:", err);
         }
+    },
+    // --- Client-for-Client (Sub-clients) ---
+    getSubClients: async (parentUserId?: number, submissionId?: number, approvedOnly: boolean = false) => {
+        try {
+            const params = new URLSearchParams();
+            if (parentUserId) params.append('parentUserId', parentUserId.toString());
+            if (submissionId) params.append('submissionId', submissionId.toString());
+            if (approvedOnly) params.append('approvedOnly', 'true');
+            
+            const res = await fetch(`${API_BASE}/client-for-client?${params.toString()}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching sub-clients:", err);
+            return [];
+        }
+    },
+    registerSubClient: async (parentUserId: number, submissionId: number | null, data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/client-for-client/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ parentUserId, submissionId, data })
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error registering sub-client:", err);
+            return { error: err };
+        }
+    },
+    approveSubClient: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/client-for-client/${id}/approve`, {
+                method: 'PUT'
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error approving sub-client:", err);
+            return { error: err };
+        }
+    },
+    deleteSubClient: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/client-for-client/${id}`, {
+                method: 'DELETE'
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error deleting sub-client:", err);
+            return { error: err };
+        }
     }
 };

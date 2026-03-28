@@ -21,6 +21,7 @@ import ThankYou from './pages/ThankYou';
 import Profile from './pages/Profile';
 import LeadStepForm from './pages/LeadStepForm';
 import LeadAdminView from './pages/LeadAdminView';
+import ClientForClientForm from './pages/ClientForClientForm';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -33,7 +34,7 @@ function AppContent() {
   const { user, theme } = useAuth();
   const location = useLocation();
 
-  const isPublicRoute = location.pathname === '/landing' || location.pathname === '/obrigado' || location.pathname === '/client-form' || location.pathname === '/client' || location.pathname === '/lead-flow' || location.pathname.startsWith('/l/');
+  const isPublicRoute = location.pathname === '/landing' || location.pathname === '/obrigado' || location.pathname === '/client-form' || location.pathname === '/client' || location.pathname === '/lead-flow' || location.pathname.startsWith('/l/') || location.pathname.startsWith('/client-add/');
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -108,6 +109,7 @@ function AppContent() {
           <Route path="/lead-flow" element={<LeadStepForm />} />
           <Route path="/obrigado" element={<ThankYou />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/client-add/:parentId/:submissionId?" element={<ClientForClientForm />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
           <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/dashboard" />} />
         </Routes>

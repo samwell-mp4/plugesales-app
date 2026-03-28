@@ -257,6 +257,17 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
         await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`);
 
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS client_for_client_requests (
+                id SERIAL PRIMARY KEY,
+                parent_user_id INTEGER REFERENCES users(id),
+                submission_id INTEGER REFERENCES client_submissions(id),
+                data JSONB NOT NULL,
+                approved BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         console.log('✅ Database initialized and verified.');
 
     } catch (err) {
@@ -799,6 +810,74 @@ app.get('/api/client-submissions/:id', async (req, res) => {
         const result = await pool.query('SELECT * FROM client_submissions WHERE id = $1', [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
         res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Client-for-Client (Sub-clients) ---
+app.post('/api/client-for-client/register', async (req, res) => {
+    const { parentUserId, submissionId, data } = req.body;
+    if (!parentUserId || !data) {
+        return res.status(400).json({ error: 'parentUserId e data são obrigatórios.' });
+    }
+    try {
+        const result = await pool.query(
+            'INSERT INTO client_for_client_requests (parent_user_id, submission_id, data) VALUES ($1, $2, $3) RETURNING id',
+            [parentUserId, submissionId || null, JSON.stringify(data)]
+        );
+        res.json({ success: true, id: result.rows[0].id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/client-for-client', async (req, res) => {
+    const { parentUserId, submissionId, approvedOnly } = req.query;
+    try {
+        let query = 'SELECT * FROM client_for_client_requests';
+        const params = [];
+        const conditions = [];
+
+        if (parentUserId) {
+            conditions.push(`parent_user_id = $${params.length + 1}`);
+            params.push(parentUserId);
+        }
+        if (submissionId) {
+            conditions.push(`submission_id = $${params.length + 1}`);
+            params.push(submissionId);
+        }
+        if (approvedOnly === 'true') {
+            conditions.push(`approved = true`);
+        }
+
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+        query += ' ORDER BY created_at DESC';
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/client-for-client/:id/approve', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('UPDATE client_for_client_requests SET approved = true WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/client-for-client/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('DELETE FROM client_for_client_requests WHERE id = $1', [id]);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

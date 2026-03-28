@@ -28,7 +28,9 @@ import {
     TrendingUp,
     Printer,
     Link2,
-    BarChart3
+    BarChart3,
+    Mail,
+    Building2
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -112,6 +114,9 @@ const ClientSubmissionDetail = () => {
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isUploadingReport, setIsUploadingReport] = useState(false);
     const [attachedReport, setAttachedReport] = useState<any>(null);
+    const [subClients, setSubClients] = useState<any[]>([]);
+    const [isSubClientsLoading, setIsSubClientsLoading] = useState(false);
+    const [showSubClientLink, setShowSubClientLink] = useState(false);
 
     const load = useCallback(async () => {
         if (!id) return;
@@ -143,6 +148,9 @@ const ClientSubmissionDetail = () => {
                 } else {
                     setAttachedReport(null);
                 }
+
+                // Fetch Sub-clients (Referrals)
+                fetchSubClients();
             } else {
                 setSub(null);
             }
@@ -153,7 +161,22 @@ const ClientSubmissionDetail = () => {
         }
     }, [id]);
 
-    useEffect(() => { load(); }, [load]);
+    const fetchSubClients = useCallback(async () => {
+        if (!id) return;
+        setIsSubClientsLoading(true);
+        try {
+            // If client, fetch all. If admin/employee, fetch only approved.
+            const approvedOnly = user?.role !== 'CLIENT';
+            const data = await dbService.getSubClients(undefined, Number(id), approvedOnly);
+            setSubClients(data);
+        } catch (err) {
+            console.error("Error fetching sub-clients:", err);
+        } finally {
+            setIsSubClientsLoading(false);
+        }
+    }, [id, user]);
+
+    useEffect(() => { load(); }, [load, fetchSubClients]);
 
     const addLog = async (message: string, type: 'info' | 'success' | 'error' = 'info') => {
         if (!sub) return;
@@ -467,6 +490,30 @@ const ClientSubmissionDetail = () => {
         const currentVars = sub.ads[index].variables || [];
         const newVars = currentVars.filter((_, i) => i !== varIndex);
         handleUpdateAd(index, 'variables', newVars);
+    };
+
+    const handleApproveSubClient = async (subClientId: number) => {
+        try {
+            const res = await dbService.approveSubClient(subClientId);
+            if (res.success) {
+                await addLog("Novo cliente de indicação aprovado", 'success');
+                fetchSubClients();
+            }
+        } catch (err) {
+            console.error("Error approving sub-client:", err);
+        }
+    };
+
+    const handleDeleteSubClient = async (subClientId: number) => {
+        if (!window.confirm("Deseja realmente excluir este cadastro?")) return;
+        try {
+            const res = await dbService.deleteSubClient(subClientId);
+            if (res.success) {
+                fetchSubClients();
+            }
+        } catch (err) {
+            console.error("Error deleting sub-client:", err);
+        }
     };
 
     const copyToClipboard = (text: string, label: string) => {
@@ -879,6 +926,92 @@ const ClientSubmissionDetail = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* CARD 4: SUB-CLIENTS / REFERRALS */}
+                    <div className="control-card" style={{ animationDelay: '0.4s', gridColumn: 'span 3', marginTop: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <label className="field-label" style={{ marginBottom: 0 }}><Users size={14} /> Clientes Indicados (Referrals)</label>
+                            
+                            {user?.role === 'CLIENT' && (
+                                <button 
+                                    onClick={() => {
+                                        const link = `${window.location.origin}/client-add/${user.id}/${sub?.id}`;
+                                        copyToClipboard(link, 'Link de Cadastro');
+                                    }}
+                                    className="action-btn primary-btn" 
+                                    style={{ height: 36, padding: '0 16px', fontSize: '10px' }}
+                                >
+                                    <Plus size={14} /> COPIAR LINK DE CADASTRO
+                                </button>
+                            )}
+                        </div>
+
+                        {isSubClientsLoading ? (
+                            <div style={{ padding: '40px', textAlign: 'center' }}>
+                                <RefreshCw className="animate-spin" size={24} style={{ opacity: 0.3 }} />
+                            </div>
+                        ) : subClients.length === 0 ? (
+                            <div style={{ padding: '40px', textAlign: 'center', opacity: 0.3, background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed var(--surface-border-subtle)' }}>
+                                <User size={32} style={{ marginBottom: '12px' }} />
+                                <p style={{ fontSize: '12px', fontWeight: 700 }}>Nenhum cliente indicado vinculado a este card.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                                {subClients.map((sc: any) => (
+                                    <div key={sc.id} style={{ 
+                                        padding: '20px', 
+                                        background: 'var(--bg-primary)', 
+                                        border: sc.approved ? '1px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)', 
+                                        borderRadius: '20px',
+                                        position: 'relative'
+                                    }}>
+                                        {!sc.approved && user?.role === 'CLIENT' && (
+                                            <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: '8px' }}>
+                                                <button 
+                                                    onClick={() => handleApproveSubClient(sc.id)}
+                                                    style={{ background: 'var(--primary-color)', border: 'none', color: '#000', padding: '6px 12px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}
+                                                >
+                                                    APROVAR
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteSubClient(sc.id)}
+                                                    style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        )}
+                                        
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                                            <div style={{ width: 40, height: 40, borderRadius: '12px', background: sc.approved ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <User size={20} className={sc.approved ? "text-primary-color" : ""} style={{ opacity: sc.approved ? 1 : 0.3 }} />
+                                            </div>
+                                            <div>
+                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: 'var(--text-primary)' }}>{sc.data?.name}</h4>
+                                                <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5, textTransform: 'uppercase' }}>
+                                                    {sc.approved ? 'CADASTRO APROVADO' : 'AGUARDANDO APROVAÇÃO'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', opacity: 0.7 }}>
+                                                <Mail size={12} /> {sc.data?.email}
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', opacity: 0.7 }}>
+                                                <Smartphone size={12} /> {sc.data?.phone}
+                                            </div>
+                                            {sc.data?.company && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', opacity: 0.7 }}>
+                                                    <Building2 size={12} /> {sc.data?.company}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                 </div>
