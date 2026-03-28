@@ -124,8 +124,24 @@ const ClientDashboard = () => {
         if (!user?.id) return;
         setIsLoading(true);
         try {
-            const data = await dbService.getClientSubmissionsByUserId(user.id);
-            setSubmissions(data);
+            // Fetch own submissions
+            const ownSubmissions = await dbService.getClientSubmissionsByUserId(user.id);
+            
+            // If parent, also fetch referral submissions
+            let allSubmissions = [...(Array.isArray(ownSubmissions) ? ownSubmissions : [])];
+            
+            // Check if user is a parent (has sub-clients) or has referral submissions
+            const referrals = await dbService.getReferralSubmissions(user.id);
+            if (Array.isArray(referrals) && referrals.length > 0) {
+                // Add a flag to distinguish
+                const taggedReferrals = referrals.map((s: any) => ({ ...s, isReferral: true }));
+                allSubmissions = [...allSubmissions, ...taggedReferrals];
+            }
+
+            // Sort by timestamp descending
+            allSubmissions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            
+            setSubmissions(allSubmissions);
         } catch (error) {
             console.error("Error fetching submissions:", error);
         } finally {
@@ -544,11 +560,12 @@ const ClientDashboard = () => {
                                     return (
                                         <div key={sub.id} className="submission-link">
                                             <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                {sub.is_referral ? <Users size={20} style={{ opacity: 0.5, color: 'var(--primary-color)' }} /> : <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />}
+                                                {sub.isReferral ? <Users size={20} style={{ opacity: 0.5, color: 'var(--primary-color)' }} /> : <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />}
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-primary)' }}>
                                                     {sub.profile_name}
+                                                    {sub.isReferral && <span style={{ fontSize: '7px', background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(172,248,0,0.2)' }}>REFERRAL</span>}
                                                     {sub.status === 'CONCLUÍDO' && <CheckCircle size={14} className="text-primary-color" />}
                                                 </h4>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>

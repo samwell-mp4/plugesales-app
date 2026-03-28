@@ -90,7 +90,8 @@ const ClientSubmissions = () => {
         setIsLoading(true);
         try {
             const data = await dbService.getClientSubmissions();
-            setSubmissions(Array.isArray(data) ? data : []);
+            const filtered = Array.isArray(data) ? data.filter((s: any) => s.status !== 'AGUARDANDO_APROVACAO_PAI') : [];
+            setSubmissions(filtered);
             
             if (['ADMIN', 'EMPLOYEE'].includes(user?.role || '')) {
                 const empData = await dbService.getEmployees();

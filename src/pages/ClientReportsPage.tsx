@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { dbService } from '../services/dbService';
@@ -10,7 +10,11 @@ import {
     Trash2, 
     BarChart3, 
     CheckCircle, 
-    XCircle
+    XCircle,
+    ChevronDown,
+    ChevronUp,
+    Inbox,
+    RefreshCw
 } from 'lucide-react';
 
 const ClientReports = () => {
@@ -22,6 +26,7 @@ const ClientReports = () => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [expandedCampaigns, setExpandedCampaigns] = useState<Set<number>>(new Set());
 
     useEffect(() => {
         if (user?.id) fetchReports();
@@ -30,164 +35,99 @@ const ClientReports = () => {
     const fetchReports = async () => {
         setIsLoading(true);
         const fetchId = user?.role === 'CLIENT' ? user?.id : undefined;
-        const data = await dbService.getReports(fetchId);
-        setReports(data);
-        setIsLoading(false);
-    };
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        const userId = user?.id; // Capture ID
-        if (!file || !userId) return;
-
-        setIsUploading(true);
-        const reader = new FileReader();
-        reader.onload = async (evt) => {
-            try {
-                const bstr = evt.target?.result;
-                const wb = XLSX.read(bstr, { type: 'binary' });
-                const wsname = wb.SheetNames[0];
-                const ws = wb.Sheets[wsname];
-                const rawData = XLSX.utils.sheet_to_json(ws);
-
-                if (rawData.length === 0) {
-                    alert("O arquivo está vazio.");
-                    setIsUploading(false);
-                    return;
-                }
-
-                // Process summary
-                const summary = {
-                    total: rawData.length,
-                    delivered: rawData.filter((r: any) => String(r.Status || r.status || '').toLowerCase().includes('delivered')).length,
-                    expired: rawData.filter((r: any) => String(r.Status || r.status || '').toLowerCase().includes('expired')).length,
-                    others: 0
-                };
-                summary.others = summary.total - summary.delivered - summary.expired;
-
-                const reportName = file.name.replace(/\.[^/.]+$/, "");
-                
-                const res = await dbService.addReport({
-                    userId: userId,
-                    reportName: reportName,
-                    filename: file.name,
-                    data: rawData,
-                    summary: summary
-                });
-
-                if (res.success) {
-                    await fetchReports();
-                    alert("✅ Relatório processado e salvo com sucesso!");
-                } else {
-                    alert("❌ Erro ao salvar relatório: " + res.error);
-                }
-            } catch (err) {
-                console.error(err);
-                alert("❌ Erro ao ler o arquivo Excel. Verifique o formato.");
-            } finally {
-                setIsUploading(false);
-            }
-        };
-        reader.readAsBinaryString(file);
-    };
-
-    const handleDelete = async (id: number) => {
-        if (!window.confirm("Deseja realmente excluir este relatório?")) return;
-        const res = await dbService.deleteReport(id);
-        if (res.success) fetchReports();
-    };
-
-
-
-    const downloadXLS = async (report: any) => {
-        let fullReportData = null;
         try {
-            const data = await dbService.getReportDetails(report.id);
-            fullReportData = data;
+            const data = await dbService.getReports(fetchId);
+            setReports(data || []);
         } catch (err) {
-            alert("Erro ao baixar dados do relatório.");
-            return;
+            console.error(err);
+        } finally {
+            setIsLoading(false);
         }
-        
-        if (!fullReportData || !fullReportData.data) {
-            alert("Erro ao buscar dados do relatório.");
-            return;
-        }
-
-        const worksheet = XLSX.utils.json_to_sheet(fullReportData.data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
-        XLSX.writeFile(workbook, `${report.filename || 'relatorio'}.xlsx`);
     };
 
-    const totalStats = reports.reduce((acc, curr) => ({
+    const toggleCampaign = (id: number) => {
+        const next = new Set(expandedCampaigns);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setExpandedCampaigns(next);
+    };
+
+    // SECURE DOWNLOAD LOGIC: STRICT COLUMN FILTERING
+    const secureDownloadXLS = async (report: any) => {
+        try {
+            const details = await dbService.getReportDetails(report.id);
+            if (!details || !details.data) throw new Error("Erro ao buscar dados.");
+
+            // STRICT FILTERING: Name, Phone, Status, Done At
+            const filteredData = details.data.map((r: any) => ({
+                "NOME": r.Name || r.name || r.NOME || r.Nome || '',
+                "TELEFONE": r.Phone || r.phone || r.TELEFONE || r.Telefone || '',
+                "STATUS": r.Status || r.status || r.STATUS || (r.delivered ? 'Entregue' : 'Não Entregue'),
+                "DATA DE ENTREGA": r.DoneAt || r['Done At'] || r.done_at || r.timestamp || ''
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(filteredData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório Filtrado");
+            XLSX.writeFile(workbook, `${report.filename || 'relatorio_filtrado'}.xlsx`);
+        } catch (err) {
+            alert("Erro ao baixar relatório: " + err);
+        }
+    };
+
+    // GROUPING LOGIC
+    const groupedCampaigns = useMemo(() => {
+        const groups: { [key: number]: any } = {};
+        
+        reports.forEach(report => {
+            const campaignId = report.submission_id || 0;
+            if (!groups[campaignId]) {
+                groups[campaignId] = {
+                    id: campaignId,
+                    name: report.submission_name || 'Sem Campanha',
+                    reports: [],
+                    total: 0,
+                    delivered: 0,
+                    expired: 0,
+                    lastUpdate: report.timestamp
+                };
+            }
+            groups[campaignId].reports.push(report);
+            groups[campaignId].total += (report.summary?.total || 0);
+            groups[campaignId].delivered += (report.summary?.delivered || 0);
+            groups[campaignId].expired += (report.summary?.expired || 0);
+            if (new Date(report.timestamp) > new Date(groups[campaignId].lastUpdate)) {
+                groups[campaignId].lastUpdate = report.timestamp;
+            }
+        });
+
+        return Object.values(groups).sort((a: any, b: any) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime());
+    }, [reports]);
+
+    const totalStats = useMemo(() => reports.reduce((acc, curr) => ({
         total: acc.total + (curr.summary?.total || 0),
         delivered: acc.delivered + (curr.summary?.delivered || 0),
         expired: acc.expired + (curr.summary?.expired || 0)
-    }), { total: 0, delivered: 0, expired: 0 });
-
-    const filteredReports = reports.filter(r => {
-        const reportDate = new Date(r.timestamp);
-        const matchesStart = !startDate || reportDate >= new Date(startDate);
-        const matchesEnd = !endDate || reportDate <= new Date(endDate + 'T23:59:59');
-        
-        const matchesStatus = statusFilter === 'ALL' || 
-                             (statusFilter === 'DELIVERED' && (r.summary?.delivered || 0) > 0) ||
-                             (statusFilter === 'EXPIRED' && (r.summary?.expired || 0) > 0);
-
-        return matchesStart && matchesEnd && matchesStatus;
-    });
+    }), { total: 0, delivered: 0, expired: 0 }), [reports]);
 
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '100px' }}>
             <style>{`
                 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
-                .report-card { background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); border-radius: 24px; padding: 24px; margin-bottom: 16px; transition: all 0.3s ease; }
-                .report-card:hover { border-color: var(--primary-color); transform: translateY(-2px); box-shadow: var(--shadow-md); }
-                .report-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-                .status-badge { padding: 4px 12px; borderRadius: 8px; font-size: 10px; font-weight: 900; letter-spacing: 1px; }
-                .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-                .data-table th { text-align: left; padding: 12px; border-bottom: 1px solid var(--surface-border-subtle); color: var(--text-muted); text-transform: uppercase; font-size: 10px; }
-                .data-table td { padding: 12px; border-bottom: 1px solid var(--surface-border-subtle); color: var(--text-primary); }
-                .upload-zone { border: 2px dashed var(--surface-border-subtle); border-radius: 24px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 32px; background: rgba(255,255,255,0.02); }
-                .upload-zone:hover { border-color: var(--primary-color); background: rgba(172,248,0,0.05); }
+                .campaign-card { background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); border-radius: 28px; margin-bottom: 16px; overflow: hidden; transition: all 0.2s ease; }
+                .campaign-header { padding: 24px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(255,255,255,0.01); }
+                .campaign-header:hover { background: rgba(255,255,255,0.03); }
+                .campaign-body { border-top: 1px solid var(--surface-border-subtle); padding: 16px; background: rgba(0,0,0,0.1); }
+                .report-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 16px; margin-bottom: 8px; background: rgba(255,255,255,0.02); }
+                .report-row:hover { background: rgba(172,248,0,0.05); }
                 .text-primary-color { color: var(--primary-color); }
-                @media (max-width: 768px) {
-                    .stats-grid { grid-template-columns: 1fr; }
-                    .flex.items-center.justify-between.mb-8 { flex-direction: column; align-items: flex-start !important; gap: 20px; }
-                    .flex.gap-4.items-center { flex-direction: column; width: 100%; align-items: stretch !important; }
-                    .relative { width: 100%; }
-                    .input-field { width: 100% !important; }
-                    .report-header { flex-direction: column; align-items: flex-start; gap: 16px; }
-                    .report-header > div:last-child { width: 100%; justify-content: space-between; }
-                    .data-table { display: block; overflow-x: auto; white-space: nowrap; }
-                }
+                .stat-tag { font-size: 10px; font-weight: 900; padding: 4px 10px; borderRadius: 8px; letter-spacing: 0.5px; }
             `}</style>
 
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>Relatórios Clínicos</h1>
-                    <p className="subtitle">Gestão e visualização de resultados em massa por Excel</p>
-                </div>
-                <div className="flex gap-4 items-center">
-                    <div className="flex items-center gap-2">
-                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>DE:</span>
-                        <input type="date" className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '12px' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ:</span>
-                        <input type="date" className="input-field" style={{ padding: '8px', borderRadius: '10px', fontSize: '12px' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
-                    </div>
-                    <select 
-                        className="input-field" 
-                        style={{ padding: '8px', borderRadius: '10px', fontSize: '12px', width: '150px' }}
-                        value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
-                    >
-                        <option value="ALL">TODOS STATUS</option>
-                        <option value="DELIVERED">COM ENTREGA</option>
-                        <option value="EXPIRED">COM EXPIRADOS</option>
-                    </select>
+                    <p className="subtitle">Visão agregada por conjunto de disparos</p>
                 </div>
             </div>
 
@@ -197,7 +137,7 @@ const ClientReports = () => {
                         <BarChart3 color="var(--primary-color)" size={28} />
                     </div>
                     <div>
-                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>TOTAL DE COMUNICAÇÕES</span>
+                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>TOTAL ACUMULADO</span>
                         <h2 style={{ margin: 0, fontWeight: 900, fontSize: '24px' }}>{totalStats.total}</h2>
                     </div>
                 </div>
@@ -206,9 +146,9 @@ const ClientReports = () => {
                         <CheckCircle color="#22c55e" size={28} />
                     </div>
                     <div>
-                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>ENTREGUES (DELIVERED)</span>
+                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>ENTREGUES OK</span>
                         <h2 style={{ margin: 0, fontWeight: 900, fontSize: '24px', color: '#22c55e' }}>{totalStats.delivered}</h2>
-                        <span style={{ fontSize: '10px', opacity: 0.5 }}>{totalStats.total > 0 ? ((totalStats.delivered / totalStats.total) * 100).toFixed(1) : 0}% de taxa</span>
+                        <span style={{ fontSize: '10px', opacity: 0.5 }}>{totalStats.total > 0 ? ((totalStats.delivered / totalStats.total) * 100).toFixed(1) : 0}% taxa</span>
                     </div>
                 </div>
                 <div className="glass-card p-6 flex items-center gap-6">
@@ -216,94 +156,84 @@ const ClientReports = () => {
                         <XCircle color="#ef4444" size={28} />
                     </div>
                     <div>
-                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>EXPIRADOS (EXPIRED)</span>
+                        <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>NÃO ENTREGUES/EXP</span>
                         <h2 style={{ margin: 0, fontWeight: 900, fontSize: '24px', color: '#ef4444' }}>{totalStats.expired}</h2>
-                        <span style={{ fontSize: '10px', opacity: 0.5 }}>{totalStats.total > 0 ? ((totalStats.expired / totalStats.total) * 100).toFixed(1) : 0}% de perda</span>
+                        <span style={{ fontSize: '10px', opacity: 0.5 }}>{totalStats.total > 0 ? ((totalStats.expired / totalStats.total) * 100).toFixed(1) : 0}% perda</span>
                     </div>
                 </div>
             </div>
 
-            {user?.role !== 'CLIENT' && (
-                <label className="upload-zone flex-col items-center justify-center gap-4">
-                    <input type="file" accept=".xlsx, .xls" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
-                    <div style={{ background: 'var(--primary-gradient)', padding: '16px', borderRadius: '20px', color: 'black' }}>
-                        <Upload size={32} />
-                    </div>
-                    <div>
-                        <h3 style={{ margin: '0 0 4px 0', fontWeight: 900 }}>{isUploading ? 'PROCESSANDO...' : 'SUBIR NOVO RELATÓRIO EXCEL'}</h3>
-                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.5 }}>Suporta colunas: Name, Status, Done At, etc.</p>
-                    </div>
-                </label>
-            )}
-
             <div className="flex-col gap-4">
                 {isLoading ? (
                     <div style={{ padding: '80px', textAlign: 'center' }}>
-                         <div style={{ width: 40, height: 40, margin: '0 auto 16px', border: '3px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                         <p style={{ fontWeight: 800, color: 'var(--text-muted)' }}>BUSCANDO RELATÓRIOS...</p>
+                         <RefreshCw className="animate-spin" size={32} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
+                         <p style={{ fontWeight: 800, color: 'var(--text-muted)' }}>ORGANIZANDO CAMPANHAS...</p>
                     </div>
-                ) : filteredReports.length === 0 ? (
+                ) : groupedCampaigns.length === 0 ? (
                     <div style={{ padding: '80px', textAlign: 'center', background: 'var(--card-bg-subtle)', borderRadius: '32px', border: '1px dashed var(--surface-border-subtle)' }}>
-                        <FileSpreadsheet size={48} style={{ opacity: 0.1, marginBottom: '16px' }} />
-                        <h3 style={{ opacity: 0.3 }}>Nenhum relatório encontrado.</h3>
+                        <Inbox size={48} style={{ opacity: 0.1, marginBottom: '16px' }} />
+                        <h3 style={{ opacity: 0.3 }}>Nenhuma campanha disponível.</h3>
                     </div>
                 ) : (
-                    filteredReports.map((report) => (
-                        <div key={report.id} className="report-card">
-                            <div className="report-header">
-                                <div className="flex items-center gap-4">
-                                    <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', padding: '12px', borderRadius: '14px' }}>
-                                        <FileSpreadsheet size={20} className="text-primary-color" />
+                    groupedCampaigns.map((camp: any) => (
+                        <div key={camp.id} className="campaign-card">
+                            <div className="campaign-header" onClick={() => toggleCampaign(camp.id)}>
+                                <div className="flex items-center gap-5">
+                                    <div style={{ background: 'var(--primary-color)', padding: '12px', borderRadius: '16px', color: '#000' }}>
+                                        <FileSpreadsheet size={24} />
                                     </div>
                                     <div className="flex-col">
-                                        <div className="flex items-center gap-2">
-                                            <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px' }}>
-                                                {report.submission_name ? `Campanha: ${report.submission_name}` : report.report_name}
-                                            </h4>
-                                            {report.submission_id && (
-                                                <span 
-                                                    onClick={(e) => { e.stopPropagation(); navigate(`/client-submissions/${report.submission_id}`); }}
-                                                    style={{ cursor: 'pointer', fontSize: '9px', fontWeight: 900, background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(172, 248, 0, 0.2)' }}
-                                                >
-                                                    SUB #{report.submission_id}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(report.timestamp).toLocaleString()} • {report.filename}</span>
+                                        <h4 style={{ margin: 0, fontWeight: 900, fontSize: '17px', color: 'var(--text-primary)' }}>{camp.name}</h4>
+                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{camp.reports.length} ARQUIVOS NO CONJUNTO • ÚLTIMO EM {new Date(camp.lastUpdate).toLocaleDateString()}</span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-6">
-                                    <div className="flex gap-4">
+                                <div className="flex items-center gap-8">
+                                    <div className="flex gap-6">
                                         <div className="flex-col items-center">
-                                            <span style={{ fontSize: '12px', fontWeight: 900, color: '#22c55e' }}>{report.summary?.delivered || 0}</span>
-                                            <span style={{ fontSize: '8px', fontWeight: 800, opacity: 0.5 }}>DELIVERED</span>
+                                            <span style={{ fontSize: '14px', fontWeight: 900, color: '#22c55e' }}>{camp.delivered}</span>
+                                            <span style={{ fontSize: '8px', fontWeight: 900, opacity: 0.5 }}>ENTREGUES</span>
                                         </div>
                                         <div className="flex-col items-center">
-                                            <span style={{ fontSize: '12px', fontWeight: 900, color: '#ef4444' }}>{report.summary?.expired || 0}</span>
-                                            <span style={{ fontSize: '8px', fontWeight: 800, opacity: 0.5 }}>EXPIRED</span>
+                                            <span style={{ fontSize: '14px', fontWeight: 900, color: '#ef4444' }}>{camp.expired}</span>
+                                            <span style={{ fontSize: '8px', fontWeight: 900, opacity: 0.5 }}>NÃO ENTREGUES</span>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); downloadXLS(report); }} 
-                                            className="action-btn primary-btn" 
-                                            style={{ height: 36, padding: '0 16px', fontSize: '10px', fontWeight: 900, color: '#000' }}
-                                        >
-                                            <Download size={14} /> BAIXAR RELATÓRIO
-                                        </button>
-                                        {user?.role !== 'CLIENT' && (
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); handleDelete(report.id); }} 
-                                                className="action-btn ghost-btn" 
-                                                style={{ height: 36, width: 36, padding: 0, color: '#ef4444' }}
-                                                title="Excluir"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        )}
+                                    <div style={{ opacity: 0.5 }}>
+                                        {expandedCampaigns.has(camp.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                     </div>
                                 </div>
                             </div>
+
+                            {expandedCampaigns.has(camp.id) && (
+                                <div className="campaign-body">
+                                    {camp.reports.map((report: any) => (
+                                        <div key={report.id} className="report-row">
+                                            <div className="flex items-center gap-4">
+                                                <div style={{ width: 32, height: 32, borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <FileSpreadsheet size={16} style={{ opacity: 0.4 }} />
+                                                </div>
+                                                <div className="flex-col">
+                                                    <span style={{ fontSize: '12px', fontWeight: 800 }}>{report.filename}</span>
+                                                    <span style={{ fontSize: '9px', opacity: 0.5 }}>{new Date(report.timestamp).toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex gap-3 mr-4">
+                                                    <span style={{ color: '#22c55e', fontSize: '11px', fontWeight: 900 }}>{report.summary?.delivered || 0} OK</span>
+                                                    <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 900 }}>{report.summary?.expired || 0} OFF</span>
+                                                </div>
+                                                <button 
+                                                    onClick={() => secureDownloadXLS(report)}
+                                                    className="action-btn"
+                                                    style={{ border: '1px solid var(--primary-color)', color: 'var(--primary-color)', background: 'transparent', padding: '6px 12px', fontSize: '10px', fontWeight: 900, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                >
+                                                    <Download size={14} /> BAIXAR FILTRADO
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ))
                 )}
