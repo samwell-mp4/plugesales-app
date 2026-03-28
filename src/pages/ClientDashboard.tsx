@@ -16,7 +16,6 @@ import {
     Users,
     Mail,
     Building2,
-    QrCode,
     ShieldCheck,
     Lock
 } from 'lucide-react';
@@ -25,7 +24,7 @@ import { dbService } from '../services/dbService';
 import { useNavigate } from 'react-router-dom';
 
 const ClientDashboard = () => {
-    const { user, logout } = useAuth() as any;
+    const { user, setUser, logout } = useAuth() as any;
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'submissions' | 'agency_lots' | 'links' | 'activity' | 'referrals'>('submissions');
     const [submissions, setSubmissions] = useState<any[]>([]);
@@ -48,6 +47,8 @@ const ClientDashboard = () => {
     const [isStatsLoading, setIsStatsLoading] = useState(false);
     const [selectedLinkStats, setSelectedLinkStats] = useState<any>(null);
     const [showLinkModal, setShowLinkModal] = useState(false);
+    const [selectedSubDetail, setSelectedSubDetail] = useState<any>(null);
+    const [showSubDetailModal, setShowSubDetailModal] = useState(false);
 
     useEffect(() => {
         if (user?.id) {
@@ -55,9 +56,30 @@ const ClientDashboard = () => {
             fetchLinks();
             if (activeTab === 'links') fetchAggregatedStats();
             if (activeTab === 'activity') fetchLogs();
-            if (activeTab === 'referrals') fetchSubClients();
+            if (activeTab === 'referrals') {
+                fetchSubClients();
+                fetchReferralSubmissions();
+            }
         }
     }, [user, activeTab, statsDate]);
+
+    // Polling for status if pending
+    useEffect(() => {
+        if (user?.role === 'PENDING_CLIENT') {
+            const interval = setInterval(async () => {
+                try {
+                    const latestUser = await dbService.getCurrentUser(user.id);
+                    if (latestUser && latestUser.role !== 'PENDING_CLIENT') {
+                        setUser(latestUser);
+                        window.location.reload(); // Refresh to update UI
+                    }
+                } catch (err) {
+                    console.error("Polling error:", err);
+                }
+            }, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [user?.role]);
 
     const fetchAggregatedStats = async () => {
         if (!user?.id) return;
@@ -124,13 +146,21 @@ const ClientDashboard = () => {
         }
     };
 
-    const handleApproveSubClient = async (id: number) => {
-        const password = window.prompt("Defina uma senha para o acesso deste cliente:");
-        if (password === null) return;
-        if (!password.trim()) return alert("A senha é obrigatória.");
-
+    const [referralSubmissions, setReferralSubmissions] = useState<any[]>([]);
+    
+    const fetchReferralSubmissions = async () => {
+        if (!user?.id) return;
         try {
-            const res = await dbService.approveSubClient(id, password);
+            const data = await dbService.getReferralSubmissions(user.id);
+            setReferralSubmissions(data);
+        } catch (error) {
+            console.error("Error fetching referral submissions:", error);
+        }
+    };
+
+    const handleApproveSubClient = async (id: number) => {
+        try {
+            const res = await dbService.approveSubClient(id);
             if (res.success) {
                 fetchSubClients();
             } else {
@@ -138,6 +168,20 @@ const ClientDashboard = () => {
             }
         } catch (error) {
             console.error("Error approving sub-client:", error);
+        }
+    };
+
+    const handleApproveReferralSubmission = async (id: number, approved: boolean) => {
+        if (!window.confirm(approved ? "Deseja aprovar esta campanha?" : "Deseja reprovar esta campanha?")) return;
+        try {
+            const res = await dbService.parentApproveSubmission(id, approved);
+            if (res.success) {
+                fetchReferralSubmissions();
+                fetchSubmissions();
+                alert(approved ? "Campanha aprovada e enviada para processamento!" : "Campanha reprovada.");
+            }
+        } catch (error) {
+            console.error("Error approving submission:", error);
         }
     };
 
@@ -165,14 +209,14 @@ const ClientDashboard = () => {
             const { id, timestamp, ...rest } = submission;
             const duplicatedData = {
                 ...rest,
-                button_link: '', // Clear link
+                button_link: '',
                 original_button_link: '',
                 status: 'PENDENTE',
                 timestamp: new Date().toISOString(),
                 submitted_by: user?.name,
                 ads: (submission.ads || []).map((ad: any) => ({
                     ...ad,
-                    button_link: '', // Clear link in ads too
+                    button_link: '',
                     original_button_link: '',
                     delivered_leads: 0,
                     clicks: 0
@@ -198,7 +242,6 @@ const ClientDashboard = () => {
         }
     };
 
-
     const handleViewLinkStats = async (id: number) => {
         setIsStatsLoading(true);
         try {
@@ -215,6 +258,7 @@ const ClientDashboard = () => {
 
     const statusCfg = (status: string) => {
         switch (status) {
+            case 'AGUARDANDO_APROVACAO_PAI': return { label: 'Aguardando Pai', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' };
             case 'PENDENTE': return { label: 'Pendente', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' };
             case 'EM_ANDAMENTO':
             case 'EM ANDAMENTO': return { label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' };
@@ -222,13 +266,14 @@ const ClientDashboard = () => {
             case 'CONCLUÍDO': return { label: 'Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' };
             case 'GERADO': return { label: 'Gerado', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' };
             case 'CANCELADO': return { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' };
+            case 'REPROVADA_PELO_PAI': return { label: 'Reprovada pelo Pai', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' };
             default: return { label: status, color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' };
         }
     };
 
     const stats = {
         total: submissions.length,
-        pending: submissions.filter(s => s.status === 'PENDENTE').length,
+        pending: submissions.filter(s => s.status === 'PENDENTE' || s.status === 'AGUARDANDO_APROVACAO_PAI').length,
         completed: submissions.filter(s => s.status === 'CONCLUÍDO' || s.status === 'CONCLUIDO').length
     };
 
@@ -245,7 +290,6 @@ const ClientDashboard = () => {
                 overflow: 'hidden',
                 fontFamily: "'Inter', sans-serif"
             }}>
-                {/* Background Blobs */}
                 <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(172, 248, 0, 0.1) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: 0 }} />
                 <div style={{ position: 'absolute', bottom: '-100px', left: '-100px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: 0 }} />
 
@@ -382,7 +426,7 @@ const ClientDashboard = () => {
                 .stat-card h5 { margin: 0 0 8px 0; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; }
                 .stat-card .value { font-size: 28px; font-weight: 900; color: var(--text-primary); }
                 
-                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; display: flex; items-center: center; justify-content: center; padding: 20px; }
+                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
                 .modal-content { background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; }
                 .close-modal { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.05); border: none; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
                 
@@ -391,7 +435,6 @@ const ClientDashboard = () => {
             `}</style>
 
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-                {/* ── HEADER ── */}
                 <div className="header-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', gap: '24px' }}>
                     <div className="header-profile-info" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -403,9 +446,6 @@ const ClientDashboard = () => {
                                 boxShadow: '0 10px 25px -5px rgba(172, 248, 0, 0.4)'
                             }}>
                                 <User size={32} color="black" />
-                            </div>
-                            <div style={{ position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: '6px', background: '#22c55e', border: '3px solid var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <div className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
                             </div>
                         </div>
                         <div>
@@ -447,7 +487,6 @@ const ClientDashboard = () => {
                     </div>
                 </div>
 
-                {/* ── QUICK STATS ── */}
                 <div className="stats-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
                     <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.1s' }}>
                         <div style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
@@ -478,41 +517,14 @@ const ClientDashboard = () => {
                     </div>
                 </div>
 
-                {/* ── NAVIGATION TABS ── */}
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
-                    <button
-                        className={`nav-tab ${activeTab === 'submissions' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('submissions')}
-                    >
-                        MINHAS SUBMISSÕES
-                    </button>
-                    <button
-                        className={`nav-tab ${activeTab === 'agency_lots' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('agency_lots')}
-                    >
-                        LOTES DA AGÊNCIA
-                    </button>
-                    <button
-                        className={`nav-tab ${activeTab === 'links' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('links')}
-                    >
-                        MEUS LINKS
-                    </button>
-                    <button
-                        className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('activity')}
-                    >
-                        REGISTRO DE ATIVIDADE
-                    </button>
-                    <button
-                        className={`nav-tab ${activeTab === 'referrals' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('referrals')}
-                    >
-                        MINHAS INDICAÇÕES
-                    </button>
+                    <button className={`nav-tab ${activeTab === 'submissions' ? 'active' : ''}`} onClick={() => setActiveTab('submissions')}>MINHAS SUBMISSÕES</button>
+                    <button className={`nav-tab ${activeTab === 'agency_lots' ? 'active' : ''}`} onClick={() => setActiveTab('agency_lots')}>LOTES DA AGÊNCIA</button>
+                    <button className={`nav-tab ${activeTab === 'links' ? 'active' : ''}`} onClick={() => setActiveTab('links')}>MEUS LINKS</button>
+                    <button className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => setActiveTab('activity')}>REGISTRO DE ATIVIDADE</button>
+                    <button className={`nav-tab ${activeTab === 'referrals' ? 'active' : ''}`} onClick={() => setActiveTab('referrals')}>MINHAS INDICAÇÕES</button>
                 </div>
 
-                {/* ── CONTENT ── */}
                 <div className="control-card" style={{ animationDelay: '0.4s', padding: '24px' }}>
                     {activeTab === 'submissions' ? (
                         <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
@@ -538,9 +550,6 @@ const ClientDashboard = () => {
                                                 <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-primary)' }}>
                                                     {sub.profile_name}
                                                     {sub.status === 'CONCLUÍDO' && <CheckCircle size={14} className="text-primary-color" />}
-                                                    {sub.is_referral && (
-                                                        <span style={{ fontSize: '8px', background: 'var(--primary-color)', color: '#000', padding: '2px 6px', borderRadius: '4px', marginLeft: '4px' }}>INDICADO</span>
-                                                    )}
                                                 </h4>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
                                                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
@@ -548,37 +557,11 @@ const ClientDashboard = () => {
                                                     <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
                                                         {cfg.label.toUpperCase()}
                                                     </span>
-                                                    {sub.is_referral && sub.child_name && (
-                                                        <span style={{ fontSize: '9px', fontWeight: 800, opacity: 0.6 }}>• {sub.child_name.toUpperCase()}</span>
-                                                    )}
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px' }}>
-                                                {sub.status === 'PENDENTE' && (
-                                                    <button 
-                                                        onClick={() => handleDeleteSubmission(sub.id)}
-                                                        className="action-btn ghost-btn" 
-                                                        style={{ height: 36, width: 36, padding: 0, color: '#ef4444' }}
-                                                        title="Excluir Submissão"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                )}
-                                                <button 
-                                                    onClick={() => handleDuplicateSubmission(sub)}
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ height: 36, width: 36, padding: 0 }}
-                                                    title="Duplicar Campanha"
-                                                >
-                                                    <CopyIcon size={14} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => navigate(`/client-submissions/${sub.id}`)}
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
-                                                >
-                                                    DETALHES <ExternalLink size={14} />
-                                                </button>
+                                                <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0 }}><CopyIcon size={14} /></button>
+                                                <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 36, padding: '0 16px', fontSize: '9px' }}>DETALHES <ExternalLink size={14} /></button>
                                             </div>
                                         </div>
                                     );
@@ -606,27 +589,15 @@ const ClientDashboard = () => {
                                                 <Layers size={20} style={{ opacity: 0.5, color: '#3b82f6' }} />
                                             </div>
                                             <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                                                    {sub.profile_name}
-                                                    {(sub.status === 'CONCLUIDO' || sub.status === 'CONCLUÍDO') && <CheckCircle size={14} style={{ color: '#3b82f6' }} />}
-                                                </h4>
+                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>{sub.profile_name}</h4>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
                                                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
                                                     <span style={{ color: 'var(--surface-border-subtle)' }}>•</span>
-                                                    <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
-                                                        {cfg.label.toUpperCase()}
-                                                    </span>
-                                                    <span style={{ fontSize: '8px', fontWeight: 900, color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '2px 6px', borderRadius: '4px' }}>POR: {sub.submitted_by.toUpperCase()}</span>
+                                                    <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>{cfg.label.toUpperCase()}</span>
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button 
-                                                    onClick={() => navigate(`/client-submissions/${sub.id}`)}
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
-                                                >
-                                                    DETALHES <ExternalLink size={14} />
-                                                </button>
+                                                <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 36, padding: '0 16px', fontSize: '9px' }}>DETALHES <ExternalLink size={14} /></button>
                                             </div>
                                         </div>
                                     );
@@ -653,14 +624,11 @@ const ClientDashboard = () => {
                                                 {log.log_type === 'TEMPLATE' ? <Smartphone size={16} className="text-primary-color" /> : <ExternalLink size={16} style={{ color: '#3b82f6' }} />}
                                             </div>
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                                                    {log.log_type === 'TEMPLATE' ? 'Template Criado:' : 'Campanha Disparada:'} {log.name || log.campaign_name}
-                                                </div>
+                                                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>{log.log_type === 'TEMPLATE' ? 'Template Criado:' : 'Campanha Disparada:'} {log.name || log.campaign_name}</div>
                                                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px', fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                                                     <span>{new Date(log.timestamp).toLocaleString()}</span>
                                                     <span>•</span>
                                                     <span>RESPONSÁVEL: {log.author || 'SISTEMA'}</span>
-                                                    {log.total > 0 && <span>• {log.total} ENVIOS</span>}
                                                 </div>
                                             </div>
                                         </div>
@@ -670,7 +638,6 @@ const ClientDashboard = () => {
                         </div>
                     ) : activeTab === 'links' ? (
                         <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
-                            {/* Analytics Overview Section */}
                             <div style={{ marginBottom: '40px', padding: '32px', background: 'rgba(172,248,0,0.02)', borderRadius: '24px', border: '1px solid rgba(172,248,0,0.1)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
                                     <div>
@@ -690,106 +657,32 @@ const ClientDashboard = () => {
                                 </div>
 
                                 <div className="analytics-grid">
-                                    <div className="stat-card">
-                                        <h5>CLIQUES TOTAIS</h5>
-                                        <div className="value">{aggregatedStats?.summary?.total_clicks || 0}</div>
-                                        {aggregatedStats?.timeline?.length > 0 && <p style={{ fontSize: '9px', fontWeight: 700, color: '#22c55e', marginTop: '8px' }}>ATIVIDADE DETECTADA</p>}
-                                    </div>
-                                    <div className="stat-card">
-                                        <h5>LINKS ATIVOS</h5>
-                                        <div className="value">{aggregatedStats?.summary?.total_links || 0}</div>
-                                    </div>
-                                    <div className="stat-card">
-                                        <h5>TOP DISPOSITIVO</h5>
-                                        <div className="value" style={{ fontSize: '20px' }}>
-                                            {aggregatedStats?.devices?.sort((a:any, b:any) => b.count - a.count)[0]?.device_type || 'N/A'}
-                                        </div>
-                                    </div>
-                                    <div className="stat-card">
-                                        <h5>TOP PAÍS</h5>
-                                        <div className="value" style={{ fontSize: '20px' }}>
-                                            {aggregatedStats?.geo?.sort((a:any, b:any) => b.count - a.count)[0]?.country || 'N/A'}
-                                        </div>
-                                    </div>
+                                    <div className="stat-card"><h5>CLIQUES TOTAIS</h5><div className="value">{aggregatedStats?.summary?.total_clicks || 0}</div></div>
+                                    <div className="stat-card"><h5>LINKS ATIVOS</h5><div className="value">{aggregatedStats?.summary?.total_links || 0}</div></div>
+                                    <div className="stat-card"><h5>TOP DISPOSITIVO</h5><div className="value" style={{ fontSize: '20px' }}>{aggregatedStats?.devices?.sort((a:any, b:any) => b.count - a.count)[0]?.device_type || 'N/A'}</div></div>
+                                    <div className="stat-card"><h5>TOP PAÍS</h5><div className="value" style={{ fontSize: '20px' }}>{aggregatedStats?.geo?.sort((a:any, b:any) => b.count - a.count)[0]?.country || 'N/A'}</div></div>
                                 </div>
-
-                                {aggregatedStats?.timeline?.length > 0 && (
-                                    <div style={{ marginTop: '24px' }}>
-                                        <h5 style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '16px' }}>Tendência de Cliques (Timeline)</h5>
-                                        <div style={{ display: 'flex', gap: '4px', height: '100px', alignItems: 'flex-end', paddingBottom: '20px' }}>
-                                            {aggregatedStats.timeline.map((day: any, i: number) => {
-                                                const maxClicks = Math.max(...aggregatedStats.timeline.map((d: any) => parseInt(d.count)));
-                                                const height = (parseInt(day.count) / maxClicks) * 100;
-                                                return (
-                                                    <div key={i} style={{ flex: 1, background: 'var(--primary-gradient)', height: `${height}%`, borderRadius: '4px 4px 0 0', position: 'relative' }} title={`${new Date(day.date).toLocaleDateString()}: ${day.count} cliques`}>
-                                                        <div style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '8px', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                                                            {new Date(day.date).getDate()}/{new Date(day.date).getMonth() + 1}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Lista de Links</h3>
-                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>{links.length} LINKS ENCONTRADOS</div>
-                            </div>
-
-                            {isLinksLoading ? (
-                                <div style={{ padding: '60px', textAlign: 'center' }}>
-                                    <div style={{ width: 24, height: 24, margin: '0 auto 12px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                                    <p style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>BUSCANDO LINKS...</p>
-                                </div>
-                            ) : links.length === 0 ? (
-                                <div style={{ padding: '60px', textAlign: 'center' }}>
-                                    <LinkIcon size={40} style={{ margin: '0 auto 16px', opacity: 0.1, color: 'var(--text-primary)' }} />
-                                    <p style={{ color: 'var(--text-muted)', fontWeight: 800 }}>Nenhum link vinculado à sua conta.</p>
-                                </div>
-                            ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-                                    {links.map((link) => (
-                                        <div key={link.id} className="control-card" style={{ padding: '24px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                                                <div style={{ background: 'rgba(172,248,0,0.1)', padding: '10px', borderRadius: '12px' }}>
-                                                    <LinkIcon size={20} className="text-primary-color" />
-                                                </div>
-                                                <div style={{ textAlign: 'right', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                                    <div>
-                                                        <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
-                                                        <div style={{ fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
-                                                {link.title}
-                                            </h4>
-                                            <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'var(--primary-color)', wordBreak: 'break-all' }}>
-                                                {window.location.host}/l/{link.short_code}
-                                            </p>
-                                            
-                                            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-                                                <button 
-                                                    onClick={() => handleViewLinkStats(link.id)}
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ flex: 1, height: 40, fontSize: '9px' }}
-                                                >
-                                                    VER MÉTRICAS
-                                                </button>
-                                                <button 
-                                                    onClick={() => window.open(`https://${window.location.host}/l/${link.short_code}`, '_blank')}
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ width: 40, height: 40, padding: 0 }}
-                                                >
-                                                    <ExternalLink size={14} />
-                                                </button>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                                {links.map((link) => (
+                                    <div key={link.id} className="control-card" style={{ padding: '24px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                                            <div style={{ background: 'rgba(172,248,0,0.1)', padding: '10px', borderRadius: '12px' }}><LinkIcon size={20} className="text-primary-color" /></div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>{link.clicks || 0}</div>
+                                                <div style={{ fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>Cliques</div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                        <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{link.title}</h4>
+                                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'var(--primary-color)', wordBreak: 'break-all' }}>{window.location.host}/l/{link.short_code}</p>
+                                        <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                                            <button onClick={() => handleViewLinkStats(link.id)} className="action-btn ghost-btn" style={{ flex: 1, height: 40, fontSize: '9px' }}>VER MÉTRICAS</button>
+                                            <button onClick={() => window.open(`https://${window.location.host}/l/${link.short_code}`, '_blank')} className="action-btn ghost-btn" style={{ width: 40, height: 40, padding: 0 }}><ExternalLink size={14} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     ) : activeTab === 'referrals' ? (
                         <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
@@ -797,25 +690,12 @@ const ClientDashboard = () => {
                                 <div style={{ flex: 1, minWidth: '300px' }}>
                                     <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-1px' }}>Seu Link de <span className="text-primary-color">Indicação</span></h3>
                                     <p style={{ margin: '8px 0 20px 0', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>GANHE BENEFÍCIOS INDICANDO NOVOS CLIENTES PARA A PLATAFORMA</p>
-                                    
                                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                         <div style={{ flex: 1, background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', fontSize: '13px', fontWeight: 700, color: 'var(--primary-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {window.location.origin}/client-add/{user?.id}
                                         </div>
-                                        <button 
-                                            onClick={() => copyToClipboard(`${window.location.origin}/client-add/${user?.id}`, 'Link de Indicação')}
-                                            className="action-btn primary-btn" style={{ height: 52, padding: '0 24px' }}
-                                        >
-                                            <CopyIcon size={18} /> COPIAR LINK
-                                        </button>
+                                        <button onClick={() => copyToClipboard(`${window.location.origin}/client-add/${user?.id}`, 'Link de Indicação')} className="action-btn primary-btn" style={{ height: 52, padding: '0 24px' }}><CopyIcon size={18} /> COPIAR LINK</button>
                                     </div>
-                                </div>
-                                <div style={{ background: '#fff', padding: '12px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <img 
-                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/client-add/${user?.id}`)}`} 
-                                        alt="QR Code" 
-                                        style={{ width: 100, height: 100 }}
-                                    />
                                 </div>
                             </div>
 
@@ -824,174 +704,107 @@ const ClientDashboard = () => {
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>{subClients.length} INDICAÇÕES</div>
                             </div>
 
-                            {isSubClientsLoading ? (
-                                <div style={{ padding: '60px', textAlign: 'center' }}>
-                                    <div style={{ width: 24, height: 24, margin: '0 auto 12px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                                    <p style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>CARREGANDO INDICADOS...</p>
-                                </div>
-                            ) : subClients.length === 0 ? (
-                                <div style={{ padding: '80px', textAlign: 'center', opacity: 0.2 }}>
-                                    <Users size={48} style={{ marginBottom: '16px' }} />
-                                    <p style={{ fontWeight: 800 }}>Você ainda não possui indicações registradas.</p>
-                                </div>
-                            ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-                                    {subClients.map((sc: any) => (
-                                        <div key={sc.id} className="control-card" style={{ padding: '24px', position: 'relative', border: sc.approved ? '1px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                                                <div style={{ width: 44, height: 44, borderRadius: '12px', background: sc.approved ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <User size={20} className={sc.approved ? "text-primary-color" : ""} style={{ opacity: sc.approved ? 1 : 0.3 }} />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: 'var(--text-primary)' }}>{sc.data?.name || 'Cliente'}</h4>
-                                                    <span style={{ fontSize: '9px', fontWeight: 900, color: sc.approved ? 'var(--primary-color)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                                        {sc.approved ? 'CONTA ATIVA / APROVADA' : 'AGUARDANDO APROVAÇÃO'}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                                    <Mail size={14} style={{ opacity: 0.5 }} /> {sc.data?.email}
-                                                </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                                    <Smartphone size={14} style={{ opacity: 0.5 }} /> {sc.data?.phone}
-                                                </div>
-                                                {sc.data?.company && (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                                        <Building2 size={14} style={{ opacity: 0.5 }} /> {sc.data?.company}
-                                                    </div>
-                                                )}
-                                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', opacity: 0.5, fontWeight: 700 }}>
-                                                    CADASTRO EM: {new Date(sc.created_at).toLocaleDateString()}
-                                                </div>
-                                            </div>
-
-                                            <div style={{ display: 'flex', gap: '10px' }}>
-                                                {!sc.approved && (
-                                                    <button 
-                                                        onClick={() => handleApproveSubClient(sc.id)}
-                                                        className="action-btn primary-btn" 
-                                                        style={{ flex: 1, height: 40, fontSize: '9px' }}
-                                                    >
-                                                        APROVAR
-                                                    </button>
-                                                )}
-                                                <button 
-                                                    onClick={() => handleDeleteSubClient(sc.id)}
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', marginBottom: '48px' }}>
+                                {subClients.map((sc: any) => (
+                                    <div key={sc.id} className="control-card" style={{ padding: '24px', border: sc.approved ? '1px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: sc.approved ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={20} className={sc.approved ? "text-primary-color" : ""} /></div>
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900 }}>{sc.data?.name || 'Cliente'}</h4>
+                                                <span style={{ fontSize: '9px', fontWeight: 900, color: sc.approved ? 'var(--primary-color)' : 'var(--text-muted)' }}>{sc.approved ? 'CONTA ATIVA' : 'AGUARDANDO APROVAÇÃO'}</span>
                                             </div>
                                         </div>
-                                    ))}
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            {!sc.approved && <button onClick={() => handleApproveSubClient(sc.id)} className="action-btn primary-btn" style={{ flex: 1, height: 40, fontSize: '9px' }}>APROVAR</button>}
+                                            <button onClick={() => handleDeleteSubClient(sc.id)} className="action-btn ghost-btn" style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}><Trash2 size={16} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid var(--surface-border-subtle)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Campanhas de Indicados</h3>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>APROVE OU REPROVE OS TEMPLATES DOS SEUS CLIENTES INDICADOS</p>
+                                    </div>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>{referralSubmissions.length} SOLICITAÇÕES</div>
                                 </div>
-                            )}
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                                    {referralSubmissions.map((rs: any) => {
+                                        const isPendingParent = rs.status === 'AGUARDANDO_APROVACAO_PAI';
+                                        return (
+                                            <div key={rs.id} className="control-card" style={{ padding: '24px', position: 'relative', borderColor: isPendingParent ? 'var(--primary-color)' : 'var(--surface-border-subtle)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <div style={{ width: 40, height: 40, borderRadius: '10px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={18} style={{ opacity: 0.5 }} /></div>
+                                                        <div>
+                                                            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900 }}>{rs.profile_name}</h4>
+                                                            <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>POR: {rs.child_name || 'Cliente'}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className="info-chip" style={{ fontSize: '8px', padding: '2px 8px', background: rs.status === 'REPROVADA_PELO_PAI' ? 'rgba(239,68,68,0.1)' : 'rgba(172,248,0,0.1)', color: rs.status === 'REPROVADA_PELO_PAI' ? '#ef4444' : 'var(--primary-color)' }}>{rs.status.replace(/_/g, ' ')}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button onClick={() => { setSelectedSubDetail(rs); setShowSubDetailModal(true); }} className="action-btn ghost-btn" style={{ flex: 1, height: 40, fontSize: '9px' }}>VER DETALHES</button>
+                                                    {isPendingParent && (
+                                                        <>
+                                                            <button onClick={() => handleApproveReferralSubmission(rs.id, true)} className="action-btn primary-btn" style={{ width: 40, height: 40, padding: 0 }}><CheckCircle2 size={16} /></button>
+                                                            <button onClick={() => handleApproveReferralSubmission(rs.id, false)} className="action-btn ghost-btn" style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}><X size={16} /></button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
                     ) : null}
                 </div>
-
-                {/* ── FOOTER LOGO ── */}
-                <div style={{ marginTop: '40px', textAlign: 'center', opacity: 0.1 }}>
-                    <h2 style={{ fontSize: '12px', fontWeight: 900, letterSpacing: '4px' }}>PLUG & SALES • PRO</h2>
-                </div>
-
-                {copyFeedback && (
-                    <div style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-color)', color: '#000', padding: '12px 24px', borderRadius: '16px', fontWeight: 900, fontSize: '13px', boxShadow: '0 10px 40px rgba(172,248,0,0.3)', zIndex: 9999, animation: 'fadeInUp 0.3s ease-out' }}>
-                        ✓ {copyFeedback.toUpperCase()} COPIADO COM SUCESSO!
-                    </div>
-                )}
             </div>
 
-            {/* ── LINK STATS MODAL ── */}
+            {showSubDetailModal && selectedSubDetail && (
+                <div className="modal-overlay" onClick={() => setShowSubDetailModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                        <button className="close-modal" onClick={() => setShowSubDetailModal(false)}><X size={20} /></button>
+                        <div style={{ marginBottom: '32px' }}>
+                            <div style={{ display: 'inline-flex', background: 'rgba(172,248,0,0.1)', padding: '12px', borderRadius: '16px', marginBottom: '16px' }}><FileText className="text-primary-color" size={24} /></div>
+                            <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 940, letterSpacing: '-1.5px' }}>{selectedSubDetail.profile_name}</h2>
+                            <p style={{ color: 'var(--primary-color)', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '8px' }}>DETALHES DA CAMPANHA • {selectedSubDetail.status.replace(/_/g, ' ')}</p>
+                        </div>
+                        <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '20px', padding: '24px', marginBottom: '32px' }}>
+                            <h4 style={{ margin: '0 0 12px 0', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Cópia do Anúncio</h4>
+                            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selectedSubDetail.ad_copy || "Nenhuma cópia providenciada."}</p>
+                        </div>
+                        {selectedSubDetail.status === 'AGUARDANDO_APROVACAO_PAI' && (
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                                <button onClick={() => { handleApproveReferralSubmission(selectedSubDetail.id, true); setShowSubDetailModal(false); }} className="action-btn primary-btn" style={{ flex: 1, height: 52 }}>APROVAR CAMPANHA</button>
+                                <button onClick={() => { handleApproveReferralSubmission(selectedSubDetail.id, false); setShowSubDetailModal(false); }} className="action-btn ghost-btn" style={{ height: 52, color: '#ef4444' }}>REPROVAR</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {showLinkModal && selectedLinkStats && (
                 <div className="modal-overlay" onClick={() => setShowLinkModal(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <button className="close-modal" onClick={() => setShowLinkModal(false)}>
-                            <X size={20} />
-                        </button>
-                        
-                        {isStatsLoading && (
-                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '32px', zIndex: 10 }}>
-                                <div style={{ width: 40, height: 40, border: '4px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                            </div>
-                        )}
-                        
+                        <button className="close-modal" onClick={() => setShowLinkModal(false)}><X size={20} /></button>
                         <div style={{ marginBottom: '32px' }}>
-                            <div style={{ display: 'inline-flex', background: 'rgba(172,248,0,0.1)', padding: '12px', borderRadius: '16px', marginBottom: '16px' }}>
-                                <LinkIcon className="text-primary-color" size={24} />
-                            </div>
+                            <div style={{ display: 'inline-flex', background: 'rgba(172,248,0,0.1)', padding: '12px', borderRadius: '16px', marginBottom: '16px' }}><LinkIcon className="text-primary-color" size={24} /></div>
                             <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 940, letterSpacing: '-1.5px' }}>{selectedLinkStats.link.title}</h2>
-                            <p style={{ color: 'var(--primary-color)', fontWeight: 700, margin: '8px 0' }}>{window.location.host}/l/{selectedLinkStats.link.short_code}</p>
-                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', wordBreak: 'break-all' }}>{selectedLinkStats.link.original_url}</p>
-                        </div>
-
-                        <div className="analytics-grid">
-                            <div className="stat-card">
-                                <h5>CLIQUES TOTALS</h5>
-                                <div className="value">{selectedLinkStats.timeline.reduce((acc: any, curr: any) => acc + parseInt(curr.count), 0)}</div>
-                            </div>
-                            <div className="stat-card">
-                                <h5>CRIADO EM</h5>
-                                <div className="value" style={{ fontSize: '18px' }}>{new Date(selectedLinkStats.link.created_at).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
-                            <div>
-                                <h4 style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px' }}>Localização Geográfica</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {selectedLinkStats.geo.length === 0 ? (
-                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Sem dados geográficos ainda.</p>
-                                    ) : selectedLinkStats.geo.map((g: any, i: number) => (
-                                        <div key={i}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                                                <span>{g.city}, {g.country}</span>
-                                                <span>{g.count}</span>
-                                            </div>
-                                            <div className="chart-bar"><div className="chart-fill" style={{ width: `${(g.count / selectedLinkStats.timeline.reduce((acc:any, curr:any) => acc + parseInt(curr.count), 0)) * 100}%` }}></div></div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <h4 style={{ fontSize: '12px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '1px' }}>Referenciadores</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {selectedLinkStats.referrers.length === 0 ? (
-                                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Acesso direto ou sem rastreio.</p>
-                                    ) : selectedLinkStats.referrers.map((r: any, i: number) => (
-                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 700 }}>
-                                            <span style={{ opacity: 0.6 }}>{r.referrer || 'Direto'}</span>
-                                            <span>{r.count}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
             )}
-            <style>{`
-                @media (max-width: 768px) {
-                    .dashboard-header { flex-direction: column; align-items: flex-start !important; gap: 16px; }
-                    .nav-tabs { 
-                        overflow-x: auto; 
-                        width: 100%; 
-                        padding-bottom: 8px;
-                        display: flex !important;
-                        flex-wrap: nowrap !important;
-                        border-bottom: 1px solid var(--surface-border-subtle);
-                    }
-                    .nav-tab { white-space: nowrap; flex-shrink: 0; }
-                    .grid-3 { grid-template-columns: 1fr !important; }
-                    .submission-card { padding: 20px !important; }
-                    .modal-content { width: 95% !important; padding: 24px !important; margin: 10px !important; }
-                    .analytics-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-                }
-            `}</style>
+            
+            {copyFeedback && (
+                <div style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-color)', color: '#000', padding: '12px 24px', borderRadius: '16px', fontWeight: 900, fontSize: '13px', boxShadow: '0 10px 40px rgba(172,248,0,0.3)', zIndex: 9999, animation: 'fadeInUp 0.3s ease-out' }}>
+                    ✓ {copyFeedback.toUpperCase()} COPIADO COM SUCESSO!
+                </div>
+            )}
         </div>
     );
 };

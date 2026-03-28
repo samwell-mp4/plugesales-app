@@ -173,7 +173,9 @@ const ClientSubmissions = () => {
         const matchesEmployee = !selectedEmployeeFilter || 
             (s.assigned_to || '').trim().toLowerCase() === selectedEmployeeFilter.trim().toLowerCase();
 
-        return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming && matchesStatus && matchesType && matchesEmployee;
+        const isNotPendingParent = s.status !== 'AGUARDANDO_APROVACAO_PAI';
+
+        return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming && matchesStatus && matchesType && matchesEmployee && isNotPendingParent;
     });
 
     const filteredSubmissions = activeTab === 'available' ? allFiltered.filter(s => !s.assigned_to)

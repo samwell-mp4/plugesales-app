@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
-type Role = 'ADMIN' | 'EMPLOYEE' | 'CLIENT';
+type Role = 'ADMIN' | 'EMPLOYEE' | 'CLIENT' | 'PENDING_CLIENT';
 
 interface User {
     id?: number;
@@ -11,6 +11,7 @@ interface User {
     notification_number?: string;
     infobip_key?: string;
     infobip_sender?: string;
+    parent_id?: number;
 }
 
 interface AuthContextType {

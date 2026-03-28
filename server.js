@@ -223,6 +223,10 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS user_id INTEGER`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS notes TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS original_button_link TEXT`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_approved BOOLEAN DEFAULT FALSE`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_feedback TEXT`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_approved BOOLEAN DEFAULT FALSE`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_feedback TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS country TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS city TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS region TEXT`);
@@ -446,6 +450,17 @@ app.post('/api/auth/register', async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         if (err.code === '23505') return res.status(400).json({ error: 'Este email já está cadastrado.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/auth/me/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('SELECT id, name, email, phone, role, notification_number, infobip_key, infobip_sender, parent_id FROM users WHERE id = $1', [id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        res.json(result.rows[0]);
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
@@ -924,10 +939,12 @@ app.get('/api/clients', async (req, res) => {
 
 app.get('/api/client-submissions', async (req, res) => {
     try {
+        // Filter out referral submissions that haven't been approved by the parent yet
         const result = await pool.query(`
             SELECT c.*, u.name as client_name 
             FROM client_submissions c 
             LEFT JOIN users u ON c.user_id = u.id 
+            WHERE (c.status != 'AGUARDANDO_APROVACAO_PAI') OR (c.user_id IS NULL)
             ORDER BY c.timestamp DESC
         `);
         res.json(result.rows || []);
@@ -945,15 +962,14 @@ app.get('/api/client/submissions', async (req, res) => {
             SELECT c.*, u.name as child_name 
             FROM client_submissions c
             LEFT JOIN users u ON c.user_id = u.id
-            WHERE c.user_id = $1 
-               OR c.user_id IN (SELECT id FROM users WHERE parent_id = $1)
+            WHERE c.user_id = $1 OR u.parent_id = $1
             ORDER BY c.timestamp DESC
         `, [userId]);
         
         // Mark referral submissions
         const submissions = result.rows.map(s => ({
             ...s,
-            is_referral: Number(s.user_id) !== Number(userId)
+            is_referral: s.user_id && Number(s.user_id) !== Number(userId)
         }));
 
         res.json(submissions || []);
@@ -1090,19 +1106,63 @@ app.delete('/api/client-for-client/:id', async (req, res) => {
 app.post('/api/client-submissions', async (req, res) => {
     const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by } = req.body;
     try {
+        let finalStatus = status || 'PENDENTE';
+        let parentApproved = true;
+
+        // Logic: If this is a submission from a client who has a parent (it's a referral)
+        // Set status to AGUARDANDO_APROVACAO_PAI
+        if (user_id) {
+            const userRes = await pool.query('SELECT parent_id FROM users WHERE id = $1', [user_id]);
+            if (userRes.rows[0] && userRes.rows[0].parent_id) {
+                finalStatus = 'AGUARDANDO_APROVACAO_PAI';
+                parentApproved = false;
+            }
+        }
+
         const result = await pool.query(
             `INSERT INTO client_submissions 
-            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by, parent_approved) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
             [
                 profile_photo, profile_name, ddd,
                 template_type || 'none', media_url || '', ad_copy || '', button_link || '', original_button_link || button_link || '',
                 ads ? JSON.stringify(ads) : '[]',
-                spreadsheet_url, status || 'PENDENTE',
-                user_id, submitted_by, assigned_to, accepted_by
+                spreadsheet_url, finalStatus,
+                user_id, submitted_by, assigned_to, accepted_by, parentApproved
             ]
         );
         res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/client-submissions/:id/parent-approve', async (req, res) => {
+    const { id } = req.params;
+    const { approved, feedback } = req.body;
+    try {
+        const status = approved ? 'PENDENTE' : 'REPROVADA_PELO_PAI';
+        const result = await pool.query(
+            'UPDATE client_submissions SET parent_approved = $1, parent_feedback = $2, status = $3 WHERE id = $4 RETURNING *',
+            [approved, feedback || '', status, id]
+        );
+        res.json({ success: true, submission: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/referral-submissions/:parentId', async (req, res) => {
+    const { parentId } = req.params;
+    try {
+        // Fetch submissions from users whose parent is parentId
+        const result = await pool.query(
+            `SELECT s.* FROM client_submissions s 
+             JOIN users u ON s.user_id = u.id 
+             WHERE u.parent_id = $1 ORDER BY s.timestamp DESC`,
+            [parentId]
+        );
+        res.json(result.rows || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1119,16 +1179,27 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
         await client.query('BEGIN');
         const results = [];
         for (const s of submissions) {
+            let finalStatus = s.status || 'PENDENTE';
+            let parentApproved = true;
+
+            if (s.user_id) {
+                const userRes = await client.query('SELECT parent_id FROM users WHERE id = $1', [s.user_id]);
+                if (userRes.rows[0] && userRes.rows[0].parent_id) {
+                    finalStatus = 'AGUARDANDO_APROVACAO_PAI';
+                    parentApproved = false;
+                }
+            }
+
             const result = await client.query(
                 `INSERT INTO client_submissions 
-                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by, parent_approved) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
                 [
                     s.profile_photo, s.profile_name, s.ddd,
                     s.template_type, s.media_url, s.ad_copy, s.button_link, s.original_button_link || s.button_link || '',
                     s.ads ? JSON.stringify(s.ads) : '[]',
-                    s.spreadsheet_url, s.status || 'PENDENTE',
-                    s.user_id, s.submitted_by, s.assigned_to, s.accepted_by
+                    s.spreadsheet_url, finalStatus,
+                    s.user_id, s.submitted_by, s.assigned_to, s.accepted_by, parentApproved
                 ]
             );
             results.push(result.rows[0]);

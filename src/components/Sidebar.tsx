@@ -22,6 +22,8 @@ import { useAuth } from '../contexts/AuthContext';
 const Sidebar = () => {
     const { user, logout, theme, toggleTheme } = useAuth();
 
+    if (user?.role === 'PENDING_CLIENT') return null;
+
     const menuItems: any[] = user?.role === 'CLIENT' ? [
         { name: 'Meu Painel', path: '/client-dashboard', icon: <Home size={20} /> },
         { name: 'Meus Links', path: '/link-shortener', icon: <Link size={20} /> },

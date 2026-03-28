@@ -764,5 +764,40 @@ export const dbService = {
             console.error("Error deleting sub-client:", err);
             return { error: err };
         }
+    },
+    // --- Auth Profile ---
+    getCurrentUser: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/auth/me/${id}`);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching current user:", err);
+            return null;
+        }
+    },
+    // --- Campaign Approval ---
+    parentApproveSubmission: async (id: number, approved: boolean, feedback?: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/client-submissions/${id}/parent-approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ approved, feedback })
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error approving referral submission:", err);
+            return { error: err };
+        }
+    },
+    getReferralSubmissions: async (parentId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/referral-submissions/${parentId}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching referral submissions:", err);
+            return [];
+        }
     }
 };
