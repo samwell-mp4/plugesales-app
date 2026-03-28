@@ -23,6 +23,7 @@ import LeadStepForm from './pages/LeadStepForm';
 import LeadAdminView from './pages/LeadAdminView';
 import ClientForClientForm from './pages/ClientForClientForm';
 import CRMDashboard from './pages/CRMDashboard';
+import CronReport from './pages/CronReport';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -122,6 +123,7 @@ function AppContent() {
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
           <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/dashboard" />} />
           <Route path="/crm-dashboard" element={<CRMDashboard />} />
+          <Route path="/cron-report" element={<CronReport />} />
         </Routes>
       </main>
     </div>

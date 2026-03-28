@@ -15,6 +15,13 @@ const __dirname = path.dirname(__filename);
 
 const N8N_WEBHOOK_URL = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/proximo-disparo';
 
+// --- CRON MONITORING ---
+const cronHistory = [];
+const addCronLog = (log) => {
+    cronHistory.unshift({ ...log, id: Date.now(), timestamp: new Date().toISOString() });
+    if (cronHistory.length > 100) cronHistory.pop();
+};
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -2077,22 +2084,41 @@ app.post('/api/step-leads', async (req, res) => {
     }
 });
 
+// API: Cron Monitoring
+app.get('/api/cron/history', (req, res) => {
+    res.json(cronHistory);
+});
+
 // --- NOTIFICATIONS SCHEDULER: PROXIMOS DISPAROS ---
+let isCheckingNotifications = false;
 const checkScheduledNotifications = async () => {
-    console.log(`⏰ [NOTIFY] Verificando agendamentos (${new Date().toLocaleTimeString()})...`);
+    if (isCheckingNotifications) return;
+    isCheckingNotifications = true;
+    
     let client;
+    const runInfo = { found: 0, notificationsSent: 0, status: 'SUCCESS', details: [] };
+
     try {
         client = await pool.connect();
         
-        // 1. Buscar submissões que tenham o status "PROXIMOS DISPAROS" em algum anúncio
-        // Usamos JSONB para filtrar anúncios que contenham o status desejado
+        // 1. Buscar submissões que tenham o status relacionado a agendamento
+        // Alterado para ser mais flexível (aceita singular/plural e com/sem acento no JSONB)
         const result = await client.query(`
             SELECT id, profile_name, assigned_to, ads 
             FROM client_submissions 
-            WHERE ads @> '[{"status": "PROXIMOS DISPAROS"}]'
+            WHERE ads @> '[{"status": "PRÓXIMO DISPARO"}]'
+               OR ads @> '[{"status": "PRÓXIMOS DISPAROS"}]'
+               OR ads @> '[{"status": "AGENDADO"}]'
+               OR ads @> '[{"status": "PROXIMO DISPARO"}]'
+               OR ads @> '[{"status": "PROXIMOS DISPAROS"}]'
         `);
 
-        if (result.rows.length === 0) return;
+        runInfo.found = result.rows.length;
+
+        if (result.rows.length === 0) {
+            addCronLog({ ...runInfo, status: 'IDLE' });
+            return;
+        }
 
         const now = new Date();
 
@@ -2101,7 +2127,11 @@ const checkScheduledNotifications = async () => {
             let adsChanged = false;
 
             const updatedAds = await Promise.all(ads.map(async (ad) => {
-                if (ad.status !== 'PROXIMOS DISPAROS' || !ad.scheduled_at) return ad;
+                // Normalização para ignorar acentos e maiúsculas
+                const normalizedStatus = (ad.status || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const validStatuses = ['PROXIMO DISPARO', 'PROXIMOS DISPAROS', 'AGENDADO'];
+                
+                if (!validStatuses.includes(normalizedStatus) || !ad.scheduled_at) return ad;
 
                 const scheduledTime = new Date(ad.scheduled_at);
                 const diffMs = scheduledTime.getTime() - now.getTime();
@@ -2117,7 +2147,7 @@ const checkScheduledNotifications = async () => {
                 const sentNotifications = ad.notifications_sent || [];
                 let currentIntervalLabel = null;
 
-                // Verificar se estamos em algum dos janelas (com margem de 5 min)
+                // Verificar se estamos em algum dos janelas (com margem de 6 min para capturar bem)
                 for (const interval of intervals) {
                     if (diffMin <= interval.min && diffMin > (interval.min - 6) && !sentNotifications.includes(interval.label)) {
                         currentIntervalLabel = interval.label;
@@ -2126,8 +2156,6 @@ const checkScheduledNotifications = async () => {
                 }
 
                 if (currentIntervalLabel) {
-                    console.log(`🔔 [NOTIFY] Gatilho "${currentIntervalLabel}" para ${profile_name} (${ad.ad_name || 'Sem nome'})`);
-                    
                     // Buscar telefone do responsável
                     const userRes = await client.query("SELECT notification_number, phone FROM users WHERE name = $1 OR id::text = $1 LIMIT 1", [assigned_to]);
                     const employeePhone = userRes.rows[0]?.notification_number || userRes.rows[0]?.phone;
@@ -2155,11 +2183,14 @@ const checkScheduledNotifications = async () => {
                             sentNotifications.push(currentIntervalLabel);
                             ad.notifications_sent = sentNotifications;
                             adsChanged = true;
+                            runInfo.notificationsSent++;
+                            runInfo.details.push(`Sent ${currentIntervalLabel} to ${assigned_to} for ${profile_name}`);
                         } catch (webhookErr) {
                             console.error(`❌ [NOTIFY] Erro ao enviar para n8n:`, webhookErr.message);
+                            runInfo.details.push(`Error sending to n8n: ${webhookErr.message}`);
                         }
                     } else {
-                        console.warn(`⚠️ [NOTIFY] Responsável "${assigned_to}" não encontrado ou sem número cadastrado.`);
+                        runInfo.details.push(`Missing phone for ${assigned_to}`);
                     }
                 }
                 return ad;
@@ -2169,10 +2200,13 @@ const checkScheduledNotifications = async () => {
                 await client.query("UPDATE client_submissions SET ads = $1 WHERE id = $2", [JSON.stringify(updatedAds), submissionId]);
             }
         }
+        addCronLog(runInfo);
     } catch (err) {
         console.error('❌ [NOTIFY] Erro no monitor de notificações:', err.message);
+        addCronLog({ ...runInfo, status: 'ERROR', error: err.message });
     } finally {
         if (client) client.release();
+        isCheckingNotifications = false;
     }
 };
 

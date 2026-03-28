@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
     FileSpreadsheet, Users, DollarSign, Clock, Search,
     Filter, RefreshCw, AlertCircle, User, MessageSquare,
     Tag, ChevronRight, TrendingUp, ArrowUpRight, List,
     Trello, Mail, Phone, Edit3, X, Save, Plus, ArrowRight,
-    ExternalLink
+    ExternalLink, Activity
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 const CRM_SPREADSHEET_ID = "1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0";
 
 const CRMDashboard = () => {
+    const navigate = useNavigate();
+    const { user } = useAuth();
     const [leads, setLeads] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -235,6 +239,15 @@ const CRMDashboard = () => {
                         <Plus size={18} />
                         <span>NOVO LEAD</span>
                     </button>
+                    {user?.role !== 'CLIENT' && (
+                        <button 
+                            className="secondary-status-btn" 
+                            onClick={() => navigate('/cron-report')}
+                        >
+                            <Activity size={18} />
+                            <span>MONITOR</span>
+                        </button>
+                    )}
                 </div>
             </header>
 
