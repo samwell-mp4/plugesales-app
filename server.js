@@ -299,25 +299,25 @@ const oauth2Client = new google.auth.OAuth2(
 // Como solução imediata para visualização, este endpoint tentará ler a planilha.
 app.get('/api/crm/leads', async (req, res) => {
     try {
-        const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+        // Como a planilha é pública, usamos o export CSV que é mais rápido e não exige chaves
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${CRM_SPREADSHEET_ID}/export?format=csv&gid=0`;
         
-        // Se precisarmos de acesso público (sem OAuth complexo agora), 
-        // tentaremos usar o spreadsheetId diretamente se estiver aberto.
-        // Como o usuário passou ClientSecret, assumimos que é uma APP instalada.
+        const response = await fetch(csvUrl);
+        if (!response.ok) throw new Error('Falha ao acessar a planilha pública.');
         
-        // Tentar buscar os valores da aba 0 (primeira aba)
-        // Colunas: Nome(A), Número(B), Email(C), tag(D), status(E), data entrada(F), responsavel(G), value_client(H)
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: CRM_SPREADSHEET_ID,
-            range: 'A2:H500', // Pula o cabeçalho
+        const csvText = await response.text();
+        
+        // Parse manual simples de CSV (considerando que não há vírgulas dentro dos campos para este caso)
+        // Para algo mais robusto, usaríamos uma lib de CSV, mas para colunas fixas isso funciona bem.
+        const rows = csvText.split('\n').map(row => {
+            // Lidar com aspas duplas que o Google Sheets coloca
+            return row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim());
         });
 
-        const rows = response.data.values;
-        if (!rows || rows.length === 0) {
-            return res.json([]);
-        }
-
-        const leads = rows.map((row, index) => ({
+        // Pular o cabeçalho (A1:H1)
+        const dataRows = rows.slice(1);
+        
+        const leads = dataRows.filter(row => row.length >= 2 && row[0]).map((row, index) => ({
             id: index + 1,
             nome: row[0] || '',
             numero: row[1] || '',
@@ -331,12 +331,8 @@ app.get('/api/crm/leads', async (req, res) => {
 
         res.json(leads);
     } catch (err) {
-        console.error("Error fetching CRM leads:", err.message);
-        // Se der erro de permissão (403/401), retornamos um erro claro
-        if (err.message.includes('permission') || err.message.includes('auth')) {
-            return res.status(403).json({ error: "Erro de Autenticação no Google. Certifique-se que a planilha está compartilhada com as permissões corretas ou está aberta para leitura pública." });
-        }
-        res.status(500).json({ error: err.message });
+        console.error("Error fetching CRM leads (Public Mode):", err.message);
+        res.status(500).json({ error: `Erro ao carregar dados: ${err.message}` });
     }
 });
 
