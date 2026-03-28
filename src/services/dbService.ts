@@ -546,9 +546,10 @@ export const dbService = {
             return null;
         }
     },
-    getAllLinkStats: async (userId: number, startDate?: string, endDate?: string) => {
+    getAllLinkStats: async (userId?: number | null, startDate?: string, endDate?: string) => {
         try {
-            const params = new URLSearchParams({ user_id: userId.toString() });
+            const params = new URLSearchParams();
+            if (userId) params.append('user_id', userId.toString());
             if (startDate) params.append('startDate', startDate);
             if (endDate) params.append('endDate', endDate);
             

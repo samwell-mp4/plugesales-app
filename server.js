@@ -1537,7 +1537,11 @@ app.get('/api/shortener/stats/all', async (req, res) => {
             devices: devices.rows
         });
     } catch (err) {
-        console.error('[STATS_ALL_ERROR]', err);
+        console.error('[STATS_ALL_ERROR]', {
+            message: err.message,
+            stack: err.stack,
+            query: req.query
+        });
         res.status(500).json({ error: err.message });
     }
 });

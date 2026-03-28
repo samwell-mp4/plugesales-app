@@ -7,6 +7,7 @@ import {
     ChevronRight,
     FileSpreadsheet,
     Activity,
+    MessageSquare,
     Send,
     Copy,
     Trash2,
@@ -705,21 +706,34 @@ const ClientExternalForm = () => {
                                     <div className="space-y-10">
                                         <div className="space-y-4">
                                             <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 ml-1">Tipo de Criativo</label>
-                                            <div className="flex flex-row gap-4">
-                                                {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (
-                                                    <div 
-                                                        key={t} 
-                                                        onClick={() => {
-                                                            const newAds = [...formData.ads];
-                                                            newAds[formData.currentAdIndex].template_type = t;
-                                                            setFormData(prev => ({ ...prev, ads: newAds }));
-                                                        }}
-                                                        className={`creative-card py-6 ${formData.ads[formData.currentAdIndex].template_type === t ? 'active' : ''}`}
-                                                    >
-                                                        {t === 'TEXT' ? <Activity size={18} /> : t === 'IMAGE' ? <ImageIcon size={18} /> : <Video size={18} />}
-                                                        <span className="text-[11px] font-black uppercase tracking-widest">{t}</span>
-                                                    </div>
-                                                ))}
+                                            <div className="flex flex-wrap gap-4">
+                                                {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => {
+                                                    const isSelected = formData.ads[formData.currentAdIndex].template_type === t;
+                                                    return (
+                                                        <div 
+                                                            key={t} 
+                                                            onClick={() => {
+                                                                const newAds = [...formData.ads];
+                                                                newAds[formData.currentAdIndex].template_type = t;
+                                                                newAds[formData.currentAdIndex].media_url = '';
+                                                                setFormData(prev => ({ ...prev, ads: newAds }));
+                                                            }}
+                                                            className={`flex-1 min-w-[120px] p-6 rounded-2xl border transition-all duration-400 flex flex-col items-center justify-center gap-3 group relative overflow-hidden ${
+                                                                isSelected 
+                                                                    ? 'bg-[#ACF800]/10 border-[#ACF800] shadow-[0_0_20px_rgba(172,248,0,0.15)] scale-105 z-10' 
+                                                                    : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'
+                                                            }`}
+                                                        >
+                                                            <div className={`p-3 rounded-xl transition-all duration-300 ${isSelected ? 'bg-[#ACF800] text-black shadow-[0_0_15px_#ACF800]' : 'bg-white/5 text-white/20'}`}>
+                                                                {t === 'TEXT' ? <MessageSquare size={20} /> : t === 'IMAGE' ? <ImageIcon size={20} /> : <Video size={20} />}
+                                                            </div>
+                                                            <span className={`text-[10px] font-black uppercase tracking-[2px] ${isSelected ? 'text-[#ACF800]' : 'text-white/40'}`}>
+                                                                {t === 'TEXT' ? 'Apenas Texto' : t === 'IMAGE' ? 'Imagem' : 'Vídeo'}
+                                                            </span>
+                                                            {isSelected && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#ACF800]" />}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
 
@@ -940,18 +954,40 @@ const ClientExternalForm = () => {
                                     <div className="flex-1 p-2 flex flex-col items-start gap-1 overflow-y-auto">
                                         <div className="chat-bubble">
                                             {formData.ads[formData.currentAdIndex].template_type === 'IMAGE' && (
-                                                <div className="mb-2 w-full aspect-video bg-black/40 rounded-lg flex items-center justify-center border border-white/5 overflow-hidden">
-                                                    {formData.ads[formData.currentAdIndex].media_url ? <img src={formData.ads[formData.currentAdIndex].media_url} className="w-full h-full object-cover" /> : <ImageIcon size={24} className="opacity-10" />}
+                                                <div className="mb-3 w-full aspect-video bg-black/60 rounded-xl flex items-center justify-center border border-white/10 overflow-hidden relative group">
+                                                    {formData.ads[formData.currentAdIndex].media_url ? (
+                                                        <img 
+                                                            src={formData.ads[formData.currentAdIndex].media_url} 
+                                                            className="w-full h-full object-contain" 
+                                                            alt="Preview"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex flex-col items-center gap-2 opacity-20">
+                                                            <ImageIcon size={32} />
+                                                            <span className="text-[8px] font-black uppercase">Aguardando Imagem</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                             {formData.ads[formData.currentAdIndex].template_type === 'VIDEO' && (
-                                                <div className="mb-2 w-full aspect-video bg-black/60 rounded-lg flex items-center justify-center border border-white/5">
-                                                    <Video size={24} className="opacity-20" />
+                                                <div className="mb-3 w-full aspect-video bg-black/60 rounded-xl flex items-center justify-center border border-white/10 overflow-hidden relative group">
+                                                    {formData.ads[formData.currentAdIndex].media_url ? (
+                                                        <video 
+                                                            src={formData.ads[formData.currentAdIndex].media_url} 
+                                                            className="w-full h-full object-contain"
+                                                            controls
+                                                        />
+                                                    ) : (
+                                                        <div className="flex flex-col items-center gap-2 opacity-20">
+                                                            <Video size={32} />
+                                                            <span className="text-[8px] font-black uppercase">Aguardando Vídeo</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
-                                            <p className="whitespace-pre-wrap">{formData.ads[formData.currentAdIndex].ad_copy}</p>
-                                            <div className="chat-button">
-                                                Visitar Website
+                                            <p className="whitespace-pre-wrap leading-relaxed">{formData.ads[formData.currentAdIndex].ad_copy}</p>
+                                            <div className="chat-button mt-4">
+                                                Clique Aqui para Acessar
                                             </div>
                                         </div>
                                     </div>

@@ -53,6 +53,7 @@ const AdminControl = () => {
     const [dispatchLogs, setDispatchLogs] = useState<any[]>([]);
     const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
     const [allLinks, setAllLinks] = useState<any[]>([]);
+    const [aggregatedStats, setAggregatedStats] = useState<any>(null);
     const [employees, setEmployees] = useState<string[]>([]);
 
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -69,18 +70,20 @@ const AdminControl = () => {
     const loadData = async () => {
         setIsStatsLoading(true);
         try {
-            const [logs, subs, links, emps] = await Promise.all([
+            const [logs, subs, linksData, emps, statsData] = await Promise.all([
                 dbService.getLogs(),
                 dbService.getClientSubmissions(),
-                dbService.getShortLinks(),
-                dbService.getEmployees()
+                dbService.getShortLinks(undefined, undefined, undefined, undefined, 1, 1000), // Get all for ranking
+                dbService.getEmployees(),
+                dbService.getAllLinkStats(null)
             ]);
 
             setTemplateLogs(logs.filter((l: any) => l.log_type === 'TEMPLATE'));
             setDispatchLogs(logs.filter((l: any) => l.log_type === 'DISPATCH'));
             setAllSubmissions(subs || []);
-            setAllLinks(links || []);
+            setAllLinks(linksData?.links || []);
             setEmployees(emps || []);
+            setAggregatedStats(statsData);
         } catch (error) {
             console.error("Error loading dashboard data:", error);
         } finally {
@@ -152,126 +155,127 @@ const AdminControl = () => {
     }, [activeFilter, searchTerm, selectedEmployee]);
 
     return (
-        <div className="animate-fade-in" style={{ paddingBottom: '100px', maxWidth: '100%', padding: '20px' }}>
-            {/* Header section with margin bottom for better spacing */}
-            <div className="flex items-center justify-between mb-12 pt-4">
-                <div>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: 950, margin: 0, letterSpacing: '-1.5px', background: 'linear-gradient(to right, #fff, var(--primary-color))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CONTROLE MESTRE</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 700, marginTop: '4px', letterSpacing: '1px' }}>GESTÃO E MONITORAMENTO DE ALTA PERFORMANCE</p>
-                </div>
-                <div className="glass-card flex items-center gap-4 px-8 py-4" style={{ borderRadius: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(172, 248, 0, 0.3)' }}>
-                    <div className="p-2 bg-primary-subtle rounded-xl" style={{ border: '1px solid var(--primary-color)' }}>
-                        <User size={20} style={{ color: 'var(--primary-color)' }} />
-                    </div>
-                    <div className="flex flex-col">
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 900, textTransform: 'uppercase' }}>Operador Logado</span>
-                        <span style={{ fontWeight: 950, fontSize: '1rem', color: 'var(--text-primary)' }}>{currentUser?.name || 'Admin'}</span>
-                    </div>
-                </div>
-            </div>
+        <div className="animate-fade-in" style={{ paddingBottom: '100px', maxWidth: '1600px', margin: '0 auto', padding: '20px' }}>
+            <style>{`
+                .control-header { margin-bottom: 48px; position: relative; }
+                .control-title { font-size: 3.5rem; font-weight: 950; letter-spacing: -3px; margin: 0; line-height: 1; text-transform: uppercase; }
+                .control-subtitle { font-size: 0.9rem; font-weight: 900; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; }
+                
+                .premium-nav { display: flex; gap: 16px; margin-bottom: 48px; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 32px; border: 1px solid var(--surface-border-subtle); }
+                .nav-item { flex: 1; padding: 20px; border-radius: 24px; font-weight: 950; font-size: 0.9rem; letter-spacing: 1px; display: flex; alignItems: center; justifyContent: center; gap: 12px; transition: all 0.3s ease; cursor: pointer; border: none; }
+                .nav-item.active { background: var(--primary-color); color: black; box-shadow: 0 10px 30px rgba(172, 248, 0, 0.2); }
+                .nav-item.inactive { background: transparent; color: var(--text-muted); }
+                .nav-item.inactive:hover { background: rgba(255,255,255,0.05); color: white; }
 
-            {/* Premium Navigation Tabs with better margins */}
-            <div className="flex gap-4 mb-12 overflow-x-auto pb-2">
-                <button
-                    onClick={() => setActiveTab('MONITOR')}
-                    className={`btn flex-1 py-5 flex items-center justify-center gap-4 transition-all duration-300 ${activeTab === 'MONITOR' ? 'selected-tab-premium' : 'unselected-tab-premium'}`}
-                    style={{ borderRadius: '24px', fontWeight: 950, fontSize: '1rem', letterSpacing: '1px', minWidth: '300px' }}
-                >
-                    <LayoutDashboard size={24} /> MONITORAMENTO GLOBAL
+                .ranking-card { background: rgba(255,255,255,0.02); border: 1px solid var(--surface-border-subtle); border-radius: 32px; padding: 32px; height: 100%; transition: all 0.3s ease; }
+                .employee-row { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.03); border-radius: 24px; padding: 20px; margin-bottom: 16px; transition: all 0.3s ease; cursor: pointer; }
+                .employee-row:hover { border-color: var(--primary-color); transform: translateX(8px); background: rgba(172, 248, 0, 0.05); }
+                .employee-row.active { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.1); box-shadow: 0 0 30px rgba(172, 248, 0, 0.1); }
+
+                .audit-log-card { background: rgba(255,255,255,0.02); border: 1px solid var(--surface-border-subtle); border-radius: 40px; padding: 40px; }
+                .log-entry { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 24px; margin-bottom: 12px; transition: all 0.2s ease; }
+                .log-entry:hover { transform: scale(1.005); background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
+
+                .stat-box { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 16px; flex: 1; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+                .stat-box-val { font-size: 1.25rem; font-weight: 950; display: block; }
+                .stat-box-label { font-size: 0.6rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; }
+
+                .user-manager-card { background: rgba(255,255,255,0.02); border: 1px solid var(--surface-border-subtle); border-radius: 40px; padding: 40px; }
+                .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+                .user-row { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 28px; padding: 24px; transition: all 0.3s ease; }
+                .user-row:hover { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+            `}</style>
+            
+            <header className="control-header">
+                <div className="flex justify-between items-end">
+                    <div>
+                        <h1 className="control-title">Controle<br/><span style={{ color: 'var(--primary-color)' }}>Mestre</span></h1>
+                        <p className="control-subtitle">Monitoramento de Alta Fidelidade & Auditoria Geral</p>
+                    </div>
+                    <div className="glass-card flex items-center gap-4 py-3 px-6" style={{ borderRadius: '24px', border: '1px solid var(--primary-border-subtle)' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: '14px', background: 'var(--primary-color)', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <User size={20} />
+                        </div>
+                        <div>
+                            <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', display: 'block' }}>ADMIN LOGADO</span>
+                            <span style={{ fontWeight: 950, fontSize: '1.1rem' }}>{currentUser?.name}</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <nav className="premium-nav">
+                <button onClick={() => setActiveTab('MONITOR')} className={`nav-item ${activeTab === 'MONITOR' ? 'active' : 'inactive'}`}>
+                    <LayoutDashboard size={20} /> MONITORAMENTO GLOBAL
                 </button>
-                {currentUser?.role === 'ADMIN' && (
-                    <button
-                        onClick={() => setActiveTab('USUARIOS')}
-                        className={`btn flex-1 py-5 flex items-center justify-center gap-4 transition-all duration-300 ${activeTab === 'USUARIOS' ? 'selected-tab-premium' : 'unselected-tab-premium'}`}
-                        style={{ borderRadius: '24px', fontWeight: 950, fontSize: '1rem', letterSpacing: '1px', minWidth: '300px' }}
-                    >
-                        <ShieldCheck size={24} /> GESTÃO DE ACESSOS
-                    </button>
-                )}
-            </div>
+                <button onClick={() => setActiveTab('USUARIOS')} className={`nav-item ${activeTab === 'USUARIOS' ? 'active' : 'inactive'}`}>
+                    <ShieldCheck size={20} /> GESTÃO DE ACESSOS
+                </button>
+            </nav>
 
             {activeTab === 'MONITOR' ? (
-                <div className="animate-fade-in flex flex-col gap-10">
-                    {/* StatCards Row with more gap */}
-                    <div className="flex gap-6 mb-4 overflow-x-auto pb-8" style={{ flexWrap: 'nowrap' }}>
-                        <StatCard
-                            title="Links Ativos"
-                            value={isStatsLoading ? '...' : allLinks.length.toString()}
-                            subtitle="Total encurtado"
-                            icon={<LinkIcon size={26} />}
-                            color="#3b82f6"
+                <div className="flex-col gap-8 animate-fade-in">
+                    <div className="flex gap-6 overflow-x-auto pb-4">
+                        <StatCard 
+                            color="#3b82f6" 
+                            icon={<LinkIcon size={24}/>} 
+                            title="Total de Links" 
+                            value={isStatsLoading ? '...' : (aggregatedStats?.summary?.total_links || allLinks?.length || 0).toString()} 
+                            subtitle="Registrados no sistema" 
                         />
-                        <StatCard
-                            title="Desempenho"
-                            value={isStatsLoading ? '...' : allLinks.reduce((acc, l) => acc + (Number(l.clicks) || 0), 0).toString()}
-                            subtitle="Cliques mundiais"
-                            icon={<Activity size={26} />}
-                            color="#f87171"
+                        <StatCard 
+                            color="#f87171" 
+                            icon={<Activity size={24}/>} 
+                            title="Cliques Globais" 
+                            value={isStatsLoading ? '...' : (aggregatedStats?.summary?.total_clicks || 0).toString()} 
+                            subtitle="Cliques totais acumulados" 
+                        />
+                        <StatCard 
+                            color="var(--primary-color)" 
+                            icon={<MessageSquare size={24}/>} 
+                            title="Time Ativo" 
+                            value={isStatsLoading ? '...' : employees.length.toString()} 
+                            subtitle="Operadores monitorados" 
                         />
                     </div>
 
-                    {/* Main Content Side-by-Side Flex with row wrap and gaps */}
-                    <div className="flex gap-10 flex-wrap items-start">
-                        {/* Column 1: Team Ranking (35% roughly) */}
-                        <div className="flex-col" style={{ flex: '1 1 400px' }}>
-                            <div className="glass-card flex-col p-8 bg-surface-subtle" style={{ borderRadius: '32px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                                <div className="flex items-center justify-between mb-10">
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 950, borderLeft: '5px solid var(--primary-color)', paddingLeft: '20px', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Ranking da Equipe</h2>
-                                    <div style={{ padding: '8px', background: 'rgba(172, 248, 0, 0.1)', borderRadius: '12px', color: 'var(--primary-color)' }}>
-                                        <Activity size={24} />
-                                    </div>
-                                </div>
-                                <div className="flex flex-col" style={{ gap: '24px' }}>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                        <div className="lg:col-span-4">
+                            <div className="ranking-card">
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 950, marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <Activity size={20} color="var(--primary-color)" /> RANKING DA EQUIPE
+                                </h2>
+                                <div className="flex-col">
                                     {employees.map(employee => {
                                         const stats = getStats(employee);
                                         const isSelected = selectedEmployee === employee;
                                         return (
-                                            <div
-                                                key={employee}
-                                                onClick={() => setSelectedEmployee(isSelected ? null : employee)}
-                                                className={`p-6 rounded-[28px] border transition-all duration-300 cursor-pointer hover-lift shadow-glass ${isSelected ? 'selected-employee-card-v2' : 'normal-employee-card-v2'}`}
-                                                style={{ marginBottom: '4px' }}
-                                            >
-                                                <div className="flex items-center justify-between mb-6">
+                                            <div key={employee} onClick={() => setSelectedEmployee(isSelected ? null : employee)} className={`employee-row ${isSelected ? 'active' : ''}`}>
+                                                <div className="flex items-center justify-between mb-4">
                                                     <div className="flex items-center gap-4">
-                                                        <div style={{ width: '56px', height: '56px', background: isSelected ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.05)', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSelected ? 'black' : 'var(--text-muted)' }}>
-                                                            <User size={26} />
+                                                        <div style={{ width: 44, height: 44, borderRadius: '14px', background: isSelected ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isSelected ? 'white' : 'var(--text-muted)' }}>
+                                                            <User size={20} />
                                                         </div>
-                                                        <div className="flex flex-col">
-                                                            <span style={{ fontWeight: 950, fontSize: '1.3rem' }}>{employee}</span>
-                                                            <span style={{ fontSize: '0.7rem', color: isSelected ? 'var(--primary-color)' : 'var(--text-muted)', fontWeight: 900, textTransform: 'uppercase' }}>Membro Operacional</span>
-                                                        </div>
+                                                        <span style={{ fontWeight: 950, fontSize: '1.1rem' }}>{employee}</span>
                                                     </div>
-                                                    <div className="flex flex-col items-end">
-                                                        <span style={{ fontWeight: 950, fontSize: '1.5rem', color: isSelected ? 'var(--primary-color)' : 'inherit' }}>{stats.total}</span>
-                                                        <span style={{ fontSize: '0.6rem', opacity: 0.5, fontWeight: 800 }}>TOTAL AÇÕES</span>
+                                                    <div className="text-right">
+                                                        <span style={{ fontSize: '1.25rem', fontWeight: 950 }}>{stats.total}</span>
+                                                        <span style={{ fontSize: '7px', fontWeight: 900, display: 'block', opacity: 0.5 }}>PONTOS TOTAL</span>
                                                     </div>
                                                 </div>
-
-                                                <div className="flex items-center gap-4 mb-6">
-                                                    {[
-                                                        { label: 'TMPL', val: stats.templates, c: '#4ade80' },
-                                                        { label: 'DISP', val: stats.transmissions, c: '#60a5fa' },
-                                                        { label: 'LINK', val: stats.linksCount, c: '#f87171' },
-                                                    ].map(it => (
-                                                        <div key={it.label} className="flex-1 flex flex-col items-center p-4 rounded-2xl bg-surface-subtle" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                                                            <span style={{ fontSize: '0.55rem', fontWeight: 950, opacity: 0.5, marginBottom: '6px' }}>{it.label}</span>
-                                                            <span style={{ fontWeight: 950, fontSize: '1.1rem', color: it.c }}>{it.val}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-
-                                                <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(74, 222, 128, 0.1)', color: '#4ade80', fontSize: '0.75rem', fontWeight: 950 }}>
-                                                            <CheckCircle2 size={16} /> STATUS EM DIA
-                                                        </div>
+                                                <div className="flex gap-2">
+                                                    <div className="stat-box">
+                                                        <span className="stat-box-val" style={{ color: '#4ade80' }}>{stats.templates}</span>
+                                                        <span className="stat-box-label">Templates</span>
                                                     </div>
-                                                    {stats.lastActivity && (
-                                                        <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.5 }}>
-                                                            <Clock size={14} /> {stats.lastActivity.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </div>
-                                                    )}
+                                                    <div className="stat-box">
+                                                        <span className="stat-box-val" style={{ color: '#60a5fa' }}>{stats.transmissions}</span>
+                                                        <span className="stat-box-label">Envios</span>
+                                                    </div>
+                                                    <div className="stat-box">
+                                                        <span className="stat-box-val" style={{ color: '#f87171' }}>{stats.linksCount}</span>
+                                                        <span className="stat-box-label">Links</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -280,207 +284,130 @@ const AdminControl = () => {
                             </div>
                         </div>
 
-                        {/* Column 2: History (65% roughly) */}
-                        <div className="flex-col" style={{ flex: '1 1 600px' }}>
-                            <div className="glass-card flex-col p-8 bg-surface-subtle" style={{ borderRadius: '32px', minHeight: '800px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                                <div className="flex items-center justify-between mb-10">
-                                    <div className="flex flex-col">
-                                        <h2 style={{ fontSize: '1.5rem', fontWeight: 950, borderLeft: '5px solid var(--warning-color)', paddingLeft: '20px', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Log de Auditoria</h2>
-                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700, marginTop: '2px' }}>CONTROLE DE CRIAÇÃO E ENVIO DE TEMPLATES</p>
-                                    </div>
-                                    <div className="flex gap-3 p-1.5 bg-surface-subtle rounded-[20px]" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <div className="lg:col-span-8">
+                            <div className="audit-log-card">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <Clock size={20} color="var(--warning-color)" /> LOG DE AUDITORIA
+                                    </h2>
+                                    <div className="flex gap-2 p-1 background-strong rounded-2xl" style={{ background: 'rgba(0,0,0,0.2)' }}>
                                         {['ALL', 'TEMPLATE', 'DISPATCH'].map(f => (
-                                            <button
-                                                key={f}
+                                            <button 
+                                                key={f} 
                                                 onClick={() => setActiveFilter(f as any)}
-                                                className={`px-8 py-3 rounded-[16px] text-[0.75rem] font-black transition-all duration-300 ${activeFilter === f ? 'selected-audit-tab' : 'unselected-audit-tab'}`}
+                                                className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${activeFilter === f ? 'bg-white text-black' : 'text-muted'}`}
                                             >
-                                                {f === 'ALL' ? 'HISTÓRICO' : f}
+                                                {f}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
 
-                                <div className="mb-10 relative group">
-                                    <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity" />
-                                    <input
-                                        className="input-field w-full pl-14 pr-8"
-                                        placeholder="Pesquisar registros..."
-                                        value={searchTerm}
+                                <div className="relative mb-6">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30" size={18} />
+                                    <input 
+                                        className="input-field w-full pl-12" 
+                                        placeholder="Buscar no log..." 
+                                        value={searchTerm} 
                                         onChange={e => setSearchTerm(e.target.value)}
-                                        style={{
-                                            borderRadius: '20px',
-                                            background: 'rgba(255,255,255,0.03)',
-                                            border: '1px solid rgba(255,255,255,0.08)',
-                                            height: '60px',
-                                            fontSize: '1rem',
-                                            fontWeight: 600
-                                        }}
+                                        style={{ height: '54px', borderRadius: '18px', background: 'rgba(255,255,255,0.01)' }}
                                     />
                                 </div>
 
-                                <div className="flex flex-col" style={{ gap: '24px' }}>
+                                <div className="flex flex-col">
                                     {paginatedLogs.map((log, i) => (
-                                        <div key={i} className="flex items-center justify-between p-7 bg-surface-subtle rounded-[32px] border border-subtle hover-row transition-all shadow-glass" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                                            <div className="flex items-center gap-7">
-                                                <div className={`p-4 rounded-[20px] ${log.logType === 'TEMPLATE' ? 'bg-success-glow' : 'bg-info-glow'}`} style={{
-                                                    background: log.logType === 'TEMPLATE' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                                                    color: log.logType === 'TEMPLATE' ? '#4ade80' : '#3b82f6',
-                                                    boxShadow: `0 0 20px ${log.logType === 'TEMPLATE' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(59, 130, 246, 0.1)'}`
-                                                }}>
-                                                    {log.logType === 'TEMPLATE' ? <MessageSquare size={26} /> : <Send size={26} />}
+                                        <div key={i} className="log-entry">
+                                            <div className="flex items-center gap-5">
+                                                <div style={{ width: 44, height: 44, borderRadius: '16px', background: log.logType === 'TEMPLATE' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: log.logType === 'TEMPLATE' ? '#4ade80' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {log.logType === 'TEMPLATE' ? <MessageSquare size={20} /> : <Send size={20} />}
                                                 </div>
-                                                <div className="flex flex-col gap-1.5">
-                                                    <div className="flex items-center gap-3">
-                                                        <span style={{ fontWeight: 950, fontSize: '1.2rem', color: 'var(--text-primary)' }}>{log.author}</span>
-                                                        <div className="px-3 py-0.5 rounded-lg bg-surface-strong text-[0.6rem] font-black opacity-50" style={{ letterSpacing: '1.5px' }}>{log.logType}</div>
+                                                <div className="flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <span style={{ fontWeight: 950, fontSize: '1.1rem' }}>{log.author}</span>
+                                                        <span style={{ fontSize: '8px', fontWeight: 900, padding: '2px 6px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>{log.logType}</span>
                                                     </div>
-                                                    <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                                        {log.name || log.template || 'Operação registrada'}
-                                                    </span>
+                                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>{log.name || log.template || 'Operação registrada'}</span>
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span style={{ fontSize: '1.1rem', fontWeight: 950, color: 'var(--text-primary)' }}>
-                                                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>
-                                                    {new Date(log.timestamp).toLocaleDateString([], { day: '2-digit', month: 'short' })}
-                                                </span>
+                                            <div className="text-right">
+                                                <span style={{ fontSize: '1.1rem', fontWeight: 950, display: 'block' }}>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span style={{ fontSize: '9px', fontWeight: 900, opacity: 0.4 }}>{new Date(log.timestamp).toLocaleDateString()}</span>
                                             </div>
                                         </div>
                                     ))}
-
-                                    {totalPages > 1 && (
-                                        <div className="flex items-center justify-between mt-auto pt-10" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <button
-                                                className="btn btn-secondary px-10 py-4 flex items-center justify-center gap-2"
-                                                disabled={currentPage === 1}
-                                                onClick={() => setCurrentPage(p => p - 1)}
-                                                style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '18px', fontSize: '0.85rem', fontWeight: 950, letterSpacing: '1px' }}
-                                            >
-                                                <Activity size={16} /> ANTERIOR
-                                            </button>
-                                            <div className="flex items-center gap-4">
-                                                <span style={{ fontSize: '1.1rem', fontWeight: 950, color: 'var(--text-muted)' }}>PÁGINA</span>
-                                                <div className="px-4 py-2 rounded-xl bg-primary text-black font-black text-xl" style={{ background: 'var(--primary-color)' }}>{currentPage}</div>
-                                                <span style={{ fontSize: '1.1rem', fontWeight: 950, color: 'var(--text-muted)' }}>DE {totalPages}</span>
-                                            </div>
-                                            <button
-                                                className="btn btn-secondary px-10 py-4 flex items-center justify-center gap-2"
-                                                disabled={currentPage === totalPages}
-                                                onClick={() => setCurrentPage(p => p + 1)}
-                                                style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '18px', fontSize: '0.85rem', fontWeight: 950, letterSpacing: '1px' }}
-                                            >
-                                                PRÓXIMA <ChevronRight size={16} />
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
+
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-center gap-4 mt-8">
+                                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="btn btn-secondary px-6 py-3 rounded-xl font-black">ANTERIOR</button>
+                                        <span style={{ fontWeight: 950, fontSize: '0.9rem' }}>PÁGINA {currentPage} DE {totalPages}</span>
+                                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="btn btn-secondary px-6 py-3 rounded-xl font-black">PRÓXIMA</button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             ) : (
-                <div className="animate-fade-in glass-card p-12 bg-surface-subtle" style={{ borderRadius: '40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <div className="user-manager-card animate-fade-in">
                     <div className="flex items-center justify-between mb-12">
-                        <div className="flex-col">
-                            <h2 style={{ fontSize: '1.8rem', fontWeight: 950, borderLeft: '6px solid var(--primary-color)', paddingLeft: '24px', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Gestão de Acessos</h2>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 700, marginTop: '4px' }}>CONTROLE DE SEGURANÇA E CHAVES DE API</p>
+                        <div>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 950, margin: 0 }}>GESTÃO DE ACESSOS</h2>
+                            <p className="control-subtitle">Controle de Credenciais & Segurança</p>
                         </div>
-                        <div className="badge badge-primary px-10 py-3" style={{ background: 'rgba(172, 248, 0, 0.15)', color: 'var(--primary-color)', borderRadius: '16px', fontWeight: 950, fontSize: '1rem', border: '1px solid rgba(172, 248, 0, 0.2)' }}>{users.length} USUÁRIOS ATIVOS</div>
+                        <div className=" glass-card px-8 py-3" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', borderRadius: '20px', fontWeight: 950, border: '1px solid rgba(172, 248, 0, 0.2)' }}>
+                            {users.length} COLABORADORES
+                        </div>
                     </div>
 
-                    <div className="mb-14 relative group">
-                        <Search size={28} className="absolute left-7 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity" />
-                        <input
-                            className="input-field w-full pl-20 pr-10"
-                            placeholder="Buscar colaboradores por nome ou email..."
-                            value={userSearchTerm}
+                    <div className="relative mb-12">
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 opacity-30" size={24} />
+                        <input 
+                            className="input-field w-full pl-16" 
+                            placeholder="Buscar colaboradores..." 
+                            value={userSearchTerm} 
                             onChange={e => setUserSearchTerm(e.target.value)}
-                            style={{
-                                borderRadius: '24px',
-                                background: 'rgba(255,255,255,0.03)',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                height: '72px',
-                                fontSize: '1.2rem',
-                                fontWeight: 600
-                            }}
+                            style={{ height: '70px', borderRadius: '24px', fontSize: '1.1rem', background: 'rgba(255,255,255,0.01)' }}
                         />
                     </div>
 
                     {isUsersLoading ? (
-                        <div className="p-40 flex-col items-center justify-center opacity-40">
-                            <Activity className="animate-pulse mb-10" size={80} />
-                            <span style={{ fontWeight: 950, letterSpacing: '4px', fontSize: '1.2rem' }}>SINCRONIZANDO BASE DE SEGURANÇA...</span>
+                        <div className="p-40 flex items-center justify-center">
+                            <Activity className="animate-spin" size={48} color="var(--primary-color)" />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                        <div className="user-grid">
                             {users.filter(u => u.name.toLowerCase().includes(userSearchTerm.toLowerCase())).map((u, i) => (
-                                <div key={i} className="flex items-center justify-between p-8 bg-surface-subtle rounded-[36px] border border-subtle hover-row shadow-glass transition-all duration-300" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255, 255, 255, 0.03)' }}>
-                                    <div className="flex items-center gap-7">
-                                        <div style={{ padding: '18px', background: 'rgba(255,255,255,0.05)', borderRadius: '24px', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <User size={32} />
+                                <div key={i} className="user-row">
+                                    <div className="flex items-center gap-5 mb-6">
+                                        <div style={{ width: 56, height: 56, borderRadius: '20px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <User size={28} />
                                         </div>
-                                        <div className="flex-col gap-1.5">
+                                        <div className="flex-col">
                                             <div className="flex items-center gap-3">
-                                                <span style={{ fontWeight: 950, fontSize: '1.4rem', color: 'var(--text-primary)' }}>{u.name}</span>
-                                                <div className="px-4 py-1 rounded-full text-[0.7rem] font-black" style={{ background: u.role === 'ADMIN' ? 'var(--primary-color)' : 'rgba(255,255,255,0.08)', color: u.role === 'ADMIN' ? 'black' : 'inherit' }}>{u.role}</div>
+                                                <span style={{ fontWeight: 950, fontSize: '1.25rem' }}>{u.name}</span>
+                                                <span className={`badge ${u.role === 'ADMIN' ? 'badge-primary' : 'badge-secondary'}`} style={{ fontSize: '8px', background: u.role === 'ADMIN' ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', color: u.role === 'ADMIN' ? 'black' : 'white' }}>{u.role}</span>
                                             </div>
-                                            <span style={{ fontSize: '1rem', opacity: 0.5, fontWeight: 600, letterSpacing: '0.5px' }}>{u.email}</span>
+                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>{u.email}</span>
                                         </div>
                                     </div>
-                                    <button
-                                        className="btn btn-secondary px-12 py-4"
-                                        style={{ borderRadius: '18px', fontWeight: 950, fontSize: '0.85rem', height: '54px', background: 'rgba(255,255,255,0.05)', letterSpacing: '1px' }}
+                                    <button 
+                                        className="btn btn-primary w-full py-4 text-[10px]" 
+                                        style={{ borderRadius: '16px', letterSpacing: '1px' }}
                                         onClick={async () => {
-                                            const pass = window.prompt(`Definir nova chave mestra para ${u.name}:`);
+                                            const pass = window.prompt(`Nova senha para ${u.name}:`);
                                             if (pass) {
-                                                if (!u.id) {
-                                                    alert("Erro: ID do usuário ausente. Sincronize a base de dados.");
-                                                    return;
-                                                }
                                                 const res = await dbService.adminUpdatePassword(u.id, pass);
-                                                alert(res.error ? `Erro: ${res.error}` : 'Credenciais de segurança atualizadas!');
+                                                alert(res.error ? `Erro: ${res.error}` : 'Credenciais atualizadas com sucesso!');
                                             }
                                         }}
-                                    >REDEFINIR CHAVE</button>
+                                    >REDEFINIR CHAVE MESTRA</button>
                                 </div>
                             ))}
                         </div>
                     )}
                 </div>
             )}
-
-            <style>{`
-                .glass-card { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-                .shadow-glass { box-shadow: 0 12px 60px rgba(0, 0, 0, 0.5); }
-                .shadow-glow-sm { box-shadow: 0 0 20px rgba(172, 248, 0, 0.2); }
-                .hover-lift { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-                .hover-lift:hover { transform: translateY(-12px); }
-                .hover-row:hover { background: rgba(172, 248, 0, 0.05) !important; border-color: rgba(172, 248, 0, 0.3) !important; transform: scale(1.01); }
-                
-                .selected-tab-premium { background: var(--primary-color); color: black; box-shadow: 0 0 35px rgba(172, 248, 0, 0.3); }
-                .unselected-tab-premium { background: rgba(255, 255, 255, 0.02); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.05); }
-                .unselected-tab-premium:hover { color: white; background: rgba(255, 255, 255, 0.05); }
-
-                .selected-employee-card-v2 { border-color: var(--primary-color); background: rgba(172, 248, 0, 0.1); box-shadow: 0 0 40px rgba(172, 248, 0, 0.15); }
-                .normal-employee-card-v2 { border-color: rgba(255, 255, 255, 0.06); background: rgba(255, 255, 255, 0.015); }
-                
-                .selected-audit-tab { background: var(--primary-color); color: black; box-shadow: 0 0 25px rgba(172, 248, 0, 0.2); }
-                .unselected-audit-tab { background: transparent; color: var(--text-muted); }
-                .unselected-audit-tab:hover { color: white; background: rgba(255, 255, 255, 0.03); }
-
-                .bg-primary-subtle { background: rgba(172, 248, 0, 0.08); }
-                .bg-surface-strong { background: rgba(255, 255, 255, 0.08); }
-                
-                @keyframes fade-in { from { opacity: 0; transform: translateY(25px); } to { opacity: 1; transform: translateY(0); } }
-                .animate-fade-in { animation: fade-in 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-                
-                ::-webkit-scrollbar { width: 4px; height: 4px; }
-                ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); borderRadius: 10px; }
-                ::-webkit-scrollbar-thumb:hover { background: var(--primary-color); }
-            `}</style>
         </div>
     );
 };

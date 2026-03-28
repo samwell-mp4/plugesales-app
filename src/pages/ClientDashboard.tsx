@@ -113,7 +113,7 @@ const ClientDashboard = () => {
         setIsLinksLoading(true);
         try {
             const data = await dbService.getShortLinks(user.role, user.id);
-            setLinks(data);
+            setLinks(data?.links || []);
         } catch (error) {
             console.error("Error fetching client links:", error);
         } finally {
