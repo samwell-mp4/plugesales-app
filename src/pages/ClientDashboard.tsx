@@ -123,10 +123,16 @@ const ClientDashboard = () => {
     };
 
     const handleApproveSubClient = async (id: number) => {
+        const password = window.prompt("Defina uma senha para o acesso deste cliente:");
+        if (password === null) return;
+        if (!password.trim()) return alert("A senha é obrigatória.");
+
         try {
-            const res = await dbService.approveSubClient(id);
+            const res = await dbService.approveSubClient(id, password);
             if (res.success) {
                 fetchSubClients();
+            } else {
+                alert("Erro ao aprovar: " + (res.error || 'Erro desconhecido'));
             }
         } catch (error) {
             console.error("Error approving sub-client:", error);
@@ -428,23 +434,26 @@ const ClientDashboard = () => {
                                     <div style={{ width: 32, height: 32, margin: '0 auto 16px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                                     <p style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px' }}>CARREGANDO...</p>
                                 </div>
-                            ) : submissions.filter(s => s.submitted_by === user?.name || s.submitted_by === 'Cliente (Externo)' || !s.submitted_by).length === 0 ? (
+                            ) : submissions.length === 0 ? (
                                 <div style={{ padding: '80px', textAlign: 'center', opacity: 0.2 }}>
                                     <FileText size={48} style={{ marginBottom: '16px' }} />
                                     <p style={{ fontWeight: 800 }}>Nenhuma submissão manual registrada.</p>
                                 </div>
                             ) : (
-                                submissions.filter(s => s.submitted_by === user?.name || s.submitted_by === 'Cliente (Externo)' || !s.submitted_by).map((sub) => {
+                                submissions.map((sub) => {
                                     const cfg = statusCfg(sub.status);
                                     return (
                                         <div key={sub.id} className="submission-link">
                                             <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />
+                                                {sub.is_referral ? <Users size={20} style={{ opacity: 0.5, color: 'var(--primary-color)' }} /> : <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />}
                                             </div>
                                             <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-primary)' }}>
                                                     {sub.profile_name}
                                                     {sub.status === 'CONCLUÍDO' && <CheckCircle size={14} className="text-primary-color" />}
+                                                    {sub.is_referral && (
+                                                        <span style={{ fontSize: '8px', background: 'var(--primary-color)', color: '#000', padding: '2px 6px', borderRadius: '4px', marginLeft: '4px' }}>INDICADO</span>
+                                                    )}
                                                 </h4>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
                                                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
@@ -452,6 +461,9 @@ const ClientDashboard = () => {
                                                     <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
                                                         {cfg.label.toUpperCase()}
                                                     </span>
+                                                    {sub.is_referral && sub.child_name && (
+                                                        <span style={{ fontSize: '9px', fontWeight: 800, opacity: 0.6 }}>• {sub.child_name.toUpperCase()}</span>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px' }}>
@@ -465,21 +477,21 @@ const ClientDashboard = () => {
                                                         <Trash2 size={14} />
                                                     </button>
                                                 )}
-                                                    <button 
-                                                        onClick={() => handleDuplicateSubmission(sub)}
-                                                        className="action-btn ghost-btn" 
-                                                        style={{ height: 36, width: 36, padding: 0 }}
-                                                        title="Duplicar Campanha"
-                                                    >
-                                                        <CopyIcon size={14} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => navigate(`/client-submissions/${sub.id}`)}
-                                                        className="action-btn ghost-btn" 
-                                                        style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
-                                                    >
-                                                        DETALHES <ExternalLink size={14} />
-                                                    </button>
+                                                <button 
+                                                    onClick={() => handleDuplicateSubmission(sub)}
+                                                    className="action-btn ghost-btn" 
+                                                    style={{ height: 36, width: 36, padding: 0 }}
+                                                    title="Duplicar Campanha"
+                                                >
+                                                    <CopyIcon size={14} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => navigate(`/client-submissions/${sub.id}`)}
+                                                    className="action-btn ghost-btn" 
+                                                    style={{ height: 36, padding: '0 16px', fontSize: '9px' }}
+                                                >
+                                                    DETALHES <ExternalLink size={14} />
+                                                </button>
                                             </div>
                                         </div>
                                     );

@@ -242,6 +242,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_number TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_key TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_sender TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES users(id)`);
         
         // Backward-compat for infobip_templates
         await client.query(`ALTER TABLE infobip_templates ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
@@ -937,8 +938,23 @@ app.get('/api/client/submissions', async (req, res) => {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId é obrigatório.' });
     try {
-        const result = await pool.query('SELECT * FROM client_submissions WHERE user_id = $1 ORDER BY timestamp DESC', [userId]);
-        res.json(result.rows || []);
+        // Hierarchical Visibility: Show own AND children's submissions
+        const result = await pool.query(`
+            SELECT c.*, u.name as child_name 
+            FROM client_submissions c
+            LEFT JOIN users u ON c.user_id = u.id
+            WHERE c.user_id = $1 
+               OR c.user_id IN (SELECT id FROM users WHERE parent_id = $1)
+            ORDER BY c.timestamp DESC
+        `, [userId]);
+        
+        // Mark referral submissions
+        const submissions = result.rows.map(s => ({
+            ...s,
+            is_referral: Number(s.user_id) !== Number(userId)
+        }));
+
+        res.json(submissions || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1003,10 +1019,35 @@ app.get('/api/client-for-client', async (req, res) => {
 });
 
 app.put('/api/client-for-client/:id/approve', async (req, res) => {
+    const { id } = req.params;
+    const { password } = req.body;
     try {
-        const { id } = req.params;
+        const reqData = await pool.query('SELECT * FROM client_for_client_requests WHERE id = $1', [id]);
+        if (reqData.rows.length === 0) return res.status(404).json({ error: 'Request not found' });
+        
+        const referral = reqData.rows[0];
+        const { name, email, phone } = referral.data;
+
+        const userCheck = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+        let userId;
+
+        if (userCheck.rows.length > 0) {
+            userId = userCheck.rows[0].id;
+            await pool.query('UPDATE users SET parent_id = $1 WHERE id = $2 AND parent_id IS NULL', [referral.parent_user_id, userId]);
+        } else {
+            const newUser = await pool.query(
+                'INSERT INTO users (name, email, phone, password, role, parent_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+                [name, email, phone, password || '123456', 'CLIENT', referral.parent_user_id]
+            );
+            userId = newUser.rows[0].id;
+        }
+
         await pool.query('UPDATE client_for_client_requests SET approved = true WHERE id = $1', [id]);
-        res.json({ success: true });
+        
+        if (referral.submission_id) {
+            await pool.query('UPDATE client_submissions SET user_id = $1 WHERE id = $2', [userId, referral.submission_id]);
+        }
+        res.json({ success: true, userId });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1216,7 +1257,7 @@ app.get('/api/shortener/links', async (req, res) => {
         `;
 
         if (role === 'CLIENT' && user_id) {
-            whereClauses.push(`l.target_user_id = $${params.length + 1}`);
+            whereClauses.push(`(l.target_user_id = $${params.length + 1} OR l.target_user_id IN (SELECT id FROM users WHERE parent_id = $${params.length + 1}))`);
             params.push(user_id);
         } else if (client_id) {
             whereClauses.push(`l.client_id = $${params.length + 1}`);
@@ -1306,8 +1347,9 @@ app.get('/api/shortener/stats/all', async (req, res) => {
         let linksUserFilter = "";
         if (targetUserId) {
             params.push(targetUserId);
-            userFilter = `AND sl.target_user_id = $3`;
-            linksUserFilter = `AND target_user_id = $3`;
+            // Allow parent to see their own AND their children's data
+            userFilter = `AND (sl.target_user_id = $3 OR sl.target_user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
+            linksUserFilter = `AND (target_user_id = $3 OR target_user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
         }
 
         // 1. Aggregated Total Clicks & Link Count

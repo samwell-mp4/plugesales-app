@@ -523,11 +523,17 @@ const ClientSubmissionDetail = () => {
     };
 
     const handleApproveSubClient = async (subClientId: number) => {
+        const password = window.prompt("Defina uma senha para o acesso deste cliente:");
+        if (password === null) return; // Cancelled
+        if (!password.trim()) return alert("A senha é obrigatória para criar o acesso.");
+
         try {
-            const res = await dbService.approveSubClient(subClientId);
+            const res = await dbService.approveSubClient(subClientId, password);
             if (res.success) {
-                await addLog("Novo cliente de indicação aprovado", 'success');
+                await addLog("Novo cliente de indicação aprovado e conta criada", 'success');
                 fetchSubClients();
+            } else {
+                alert("Erro ao aprovar: " + (res.error || 'Erro desconhecido'));
             }
         } catch (err) {
             console.error("Error approving sub-client:", err);

@@ -740,10 +740,12 @@ export const dbService = {
             return { error: err };
         }
     },
-    approveSubClient: async (id: number) => {
+    approveSubClient: async (id: number, password?: string) => {
         try {
             const res = await fetch(`${API_BASE}/client-for-client/${id}/approve`, {
-                method: 'PUT'
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
             });
             return await res.json();
         } catch (err) {
