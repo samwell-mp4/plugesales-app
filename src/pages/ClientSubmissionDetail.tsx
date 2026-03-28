@@ -547,6 +547,19 @@ const ClientSubmissionDetail = () => {
                                 ) : <span style={{ color: 'var(--primary-color)', fontWeight: 900 }}>{sub.assigned_to || 'Aguardando'}</span>}
                             </div>
 
+                            {sub.media_url && (
+                                <a href={sub.media_url} target="_blank" rel="noreferrer" className="asset-link">
+                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <ImageIcon size={20} color="#a855f7" />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ margin: 0, fontSize: '11px', fontWeight: 900 }}>MÍDIA PRINCIPAL</p>
+                                        <p style={{ margin: 0, fontSize: '9px', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>VISUALIZAR HEADER</p>
+                                    </div>
+                                    <ExternalLink size={14} style={{ opacity: 0.3 }} />
+                                </a>
+                            )}
+
                             {sub.spreadsheet_url && (
                                 <a href={sub.spreadsheet_url} target="_blank" rel="noreferrer" className="asset-link">
                                     <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}><FileSpreadsheet size={20} /></div>
@@ -575,6 +588,33 @@ const ClientSubmissionDetail = () => {
                                     <Upload size={18} /> <span style={{ fontSize: '11px', fontWeight: 900 }}>ANEXAR RELATÓRIO</span>
                                 </label>
                             )}
+
+                            {/* --- HISTÓRICO DA CAMPANHA --- */}
+                            <div style={{ marginTop: '32px' }}>
+                                <label className="field-label" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Activity size={14} color="var(--primary-color)" /> HISTÓRICO DA CAMPANHA
+                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {(!sub.logs || sub.logs.length === 0) ? (
+                                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed var(--surface-border-subtle)', textAlign: 'center' }}>
+                                            <p style={{ margin: 0, fontSize: '10px', opacity: 0.4 }}>Nenhum histórico registrado.</p>
+                                        </div>
+                                    ) : (
+                                        ([...(sub.logs || [])].reverse()).map((log: any) => (
+                                            <div key={log.id} style={{ padding: '12px 16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: log.type === 'error' ? '#ef4444' : (log.type === 'success' ? '#22c55e' : 'var(--primary-color)'), marginTop: '4px' }} />
+                                                <div style={{ flex: 1 }}>
+                                                    <p style={{ margin: 0, fontSize: '12px', fontWeight: 800 }}>{log.message}</p>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', opacity: 0.5, fontSize: '9px', fontWeight: 700 }}>
+                                                        <span>{log.author || 'Sistema'}</span>
+                                                        <span>{new Date(log.timestamp).toLocaleString('pt-BR')}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
