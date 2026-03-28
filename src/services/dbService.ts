@@ -449,6 +449,7 @@ export const dbService = {
     },
     login: async (credentials: any) => {
         try {
+            // credentials can be { email, password }
             const res = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

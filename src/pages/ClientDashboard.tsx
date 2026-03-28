@@ -16,7 +16,9 @@ import {
     Users,
     Mail,
     Building2,
-    QrCode
+    QrCode,
+    ShieldCheck,
+    Lock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -229,6 +231,91 @@ const ClientDashboard = () => {
         pending: submissions.filter(s => s.status === 'PENDENTE').length,
         completed: submissions.filter(s => s.status === 'CONCLUÍDO' || s.status === 'CONCLUIDO').length
     };
+
+    if (user?.role === 'PENDING_CLIENT') {
+        return (
+            <div style={{ 
+                minHeight: '100vh', 
+                background: '#050505', 
+                color: 'white', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                position: 'relative',
+                overflow: 'hidden',
+                fontFamily: "'Inter', sans-serif"
+            }}>
+                {/* Background Blobs */}
+                <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(172, 248, 0, 0.1) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: 0 }} />
+                <div style={{ position: 'absolute', bottom: '-100px', left: '-100px', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: 0 }} />
+
+                <div style={{ zIndex: 1, textAlign: 'center', padding: '40px', maxWidth: '500px', animation: 'fadeInUp 0.8s cubic-bezier(0.19, 1, 0.22, 1)' }}>
+                    <div style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        background: 'rgba(255, 255, 255, 0.03)', 
+                        border: '1px solid rgba(255, 255, 255, 0.1)', 
+                        borderRadius: '24px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        margin: '0 auto 32px',
+                        color: 'var(--primary-color)',
+                        boxShadow: '0 0 40px rgba(172, 248, 0, 0.1)'
+                    }}>
+                        <Clock size={36} />
+                    </div>
+
+                    <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '16px', letterSpacing: '-1.5px' }}>
+                        Quase lá, <span style={{ color: 'var(--primary-color)' }}>{user.name.split(' ')[0]}</span>!
+                    </h1>
+                    
+                    <p style={{ fontSize: '1.1rem', color: 'rgba(255, 255, 255, 0.6)', lineHeight: '1.6', marginBottom: '40px' }}>
+                        Seu cadastro foi recebido com sucesso. Nossa equipe está analisando seus dados para liberar seu acesso à Dashboard.
+                    </p>
+
+                    <div style={{ 
+                        background: 'rgba(255, 255, 255, 0.02)', 
+                        border: '1px solid rgba(255, 255, 255, 0.05)', 
+                        padding: '24px', 
+                        borderRadius: '20px', 
+                        marginBottom: '40px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>
+                            <ShieldCheck size={18} style={{ color: 'var(--primary-color)' }} />
+                            <span>Conta criada e vinculada</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>
+                            <Lock size={18} style={{ color: 'var(--primary-color)' }} />
+                            <span>Acesso restrito em análise</span>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                        <button 
+                            onClick={() => window.location.reload()}
+                            style={{ padding: '14px 28px', background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '12px', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', transition: '0.3s' }}
+                        >
+                            ATUALIZAR STATUS
+                        </button>
+                        <button 
+                            onClick={logout}
+                            style={{ padding: '14px 28px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', transition: '0.3s', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <LogOut size={16} /> SAIR
+                        </button>
+                    </div>
+
+                    <p style={{ marginTop: '40px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', fontWeight: 700, letterSpacing: '1px' }}>
+                        PLUG & SALES © 2026 • SEGURANÇA MÁXIMA
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container-root" style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '28px 24px' }}>

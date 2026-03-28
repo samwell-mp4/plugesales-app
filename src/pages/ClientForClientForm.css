@@ -1,0 +1,223 @@
+.lead-flow-wrapper {
+    min-height: 100vh;
+    width: 100%;
+    background: #050505;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Inter', 'Outfit', sans-serif;
+}
+
+.bg-blob {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(172, 248, 0, 0.12) 0%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(100px);
+    z-index: 0;
+}
+
+.blob-1 { top: -150px; right: -150px; }
+.blob-2 { bottom: -150px; left: -150px; background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%); }
+
+.form-container-premium {
+    width: 100%;
+    max-width: 650px;
+    padding: 40px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.progress-indicator {
+    width: 100%;
+    margin-bottom: 50px;
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--primary-color);
+    box-shadow: 0 0 15px rgba(172, 248, 0, 0.4);
+    transition: width 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.step-counter {
+    margin-top: 12px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.35);
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.step-counter span {
+    color: white;
+}
+
+.content-viewport {
+    width: 100%;
+    min-height: 380px;
+    display: flex;
+    flex-direction: column;
+}
+
+.step-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+.icon-badge {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    margin-bottom: 24px;
+}
+
+.premium-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    letter-spacing: -1.5px;
+}
+
+.premium-subtitle {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 32px;
+    max-width: 450px;
+    line-height: 1.6;
+}
+
+.step-question {
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+}
+
+.step-hint {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.85rem;
+    margin-bottom: 40px;
+}
+
+.premium-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    outline: none;
+    transition: all 0.3s ease;
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.premium-input:focus {
+    border-color: var(--primary-color);
+}
+
+.step-actions {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.primary-btn-premium {
+    padding: 16px 36px;
+    background: var(--primary-color);
+    color: black;
+    border: none;
+    border-radius: 16px;
+    font-weight: 900;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.primary-btn-premium:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(172, 248, 0, 0.25);
+}
+
+.primary-btn-premium:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.35);
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.3s;
+}
+
+.back-btn:hover {
+    color: white;
+}
+
+.security-badge {
+    margin-top: 32px;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.25);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    gap: 6px;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in {
+    animation: slideIn 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@media (max-width: 600px) {
+    .premium-title { font-size: 2rem; }
+    .step-question { font-size: 1.5rem; }
+    .form-container-premium { padding: 20px; }
+}

@@ -1,250 +1,228 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-    User, 
-    Mail, 
-    Phone, 
-    Building2, 
-    Send, 
-    CheckCircle, 
-    ArrowRight,
-    Loader2
+    ChevronRight, ChevronLeft, Send, 
+    User, Mail, Briefcase, Lock, ShieldCheck,
+    Smartphone, Zap
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { useAuth } from '../contexts/AuthContext';
+import './ClientForClientForm.css';
+
+const STEPS = [
+    { id: 'intro', title: 'Boas-vindas' },
+    { id: 'name', title: 'Identificação' },
+    { id: 'contact', title: 'Contato' },
+    { id: 'security', title: 'Segurança' }
+];
 
 const ClientForClientForm = () => {
     const { parentId, submissionId } = useParams<{ parentId: string; submissionId?: string }>();
     const navigate = useNavigate();
+    const { setUser } = useAuth();
+    
+    const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSuccess, setIsSuccess] = useState(false);
-    const [parentName, setParentName] = useState('');
-
     const [formData, setFormData] = useState({
         name: '',
+        company: '',
         email: '',
         phone: '',
-        company: '',
-        notes: ''
+        password: ''
     });
 
-    useEffect(() => {
-        // Fetch parent client name for better UX
-        const fetchParent = async () => {
-            if (!parentId) return;
-            try {
-                const users = await dbService.getAllUsers();
-                const parent = users.find((u: any) => String(u.id) === String(parentId));
-                if (parent) setParentName(parent.name);
-            } catch (err) {
-                console.error("Error fetching parent client:", err);
-            }
-        };
-        fetchParent();
-    }, [parentId]);
+    const totalSteps = STEPS.length;
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+    const nextStep = () => {
+        if (currentStep < totalSteps - 1) {
+            setCurrentStep(currentStep + 1);
+        }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!parentId) return;
+    const prevStep = () => {
+        if (currentStep > 0) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
 
+    const updateData = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSubmit = async () => {
+        if (!parentId) return;
         setIsSubmitting(true);
+
         try {
-            const response = await dbService.registerSubClient(
+            const res = await dbService.registerSubClient(
                 Number(parentId),
                 submissionId ? Number(submissionId) : null,
                 formData
             );
 
-            if (response.success) {
-                setIsSuccess(true);
+            if (res.success) {
+                // Auto-login
+                const loginRes = await dbService.login({ 
+                    email: formData.email, 
+                    password: formData.password 
+                });
+                
+                if (loginRes && !loginRes.error) {
+                    // AuthContext provides setUser (via useAuth) which handles localStorage and state
+                    setUser(loginRes);
+                    navigate('/client-dashboard');
+                } else {
+                    // Fallback to manual login if auto-login fails for some reason
+                    navigate('/client-auth');
+                }
             } else {
-                alert("Erro ao enviar cadastro. Por favor, tente novamente.");
+                alert("Erro ao realizar cadastro: " + (res.error || "Tente novamente mais tarde."));
             }
         } catch (err) {
-            console.error("Submission error:", err);
-            alert("Erro de conexão. Verifique sua internet.");
+            console.error("Registration error:", err);
+            alert("Erro crítico ao enviar formulário.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    if (isSuccess) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--bg-primary)' }}>
-                <div className="max-w-md w-full bg-white/[0.03] border border-white/10 rounded-[32px] p-10 text-center animate-in fade-in zoom-in duration-500">
-                    <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <CheckCircle size={40} className="text-primary" />
-                    </div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '16px', letterSpacing: '-1px' }}>Cadastro Enviado!</h1>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '32px', lineHeight: '1.6' }}>
-                        Seus dados foram enviados com sucesso para <strong>{parentName || 'nossa equipe'}</strong>. 
-                        Aguarde o contato em breve.
-                    </p>
-                    <button 
-                        onClick={() => setIsSuccess(false)}
-                        className="w-full py-4 bg-primary text-black font-black uppercase tracking-widest rounded-2xl hover:scale-[1.02] transition-transform"
-                    >
-                        VOLTAR
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-            <style>{`
-                .input-premium {
-                    width: 100%;
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    border-radius: 16px;
-                    padding: 16px 16px 16px 48px;
-                    color: white;
-                    font-size: 14px;
-                    transition: all 0.3s;
-                    outline: none;
-                }
-                .input-premium:focus {
-                    border-color: var(--primary-color);
-                    background: rgba(255,255,255,0.05);
-                    box-shadow: 0 0 20px rgba(172,248,0,0.05);
-                }
-                .input-icon {
-                    position: absolute;
-                    left: 16px;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: rgba(255,255,255,0.3);
-                    transition: all 0.3s;
-                }
-                .input-premium:focus + .input-icon {
-                    color: var(--primary-color);
-                }
-                .label-premium {
-                    font-[10px] font-black uppercase tracking-[2px] opacity-40 mb-2 block;
-                }
-                @keyframes float {
-                    0% { transform: translateY(0px); }
-                    50% { transform: translateY(-10px); }
-                    100% { transform: translateY(0px); }
-                }
-                .float { animation: float 6s ease-in-out infinite; }
-            `}</style>
-
-            <div className="max-w-xl w-full">
-                <div className="text-center mb-10 animate-in slide-in-from-top duration-700">
-                    <div className="inline-block p-4 bg-primary/10 rounded-2xl mb-6 float">
-                        <Building2 size={32} className="text-primary" />
-                    </div>
-                    <h1 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-2px', lineHeight: 1 }}>
-                        Formulário de <span className="text-primary">Indicação</span>
-                    </h1>
-                    <p style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '13px' }}>
-                        {parentName ? `Cadastro de cliente para ${parentName}` : 'Preencha seus dados abaixo'}
-                    </p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="bg-white/[0.02] border border-white/5 rounded-[40px] p-8 md:p-12 shadow-2xl animate-in fade-in slide-in-from-bottom duration-1000">
-                    <div className="space-y-6">
-                        <div className="relative">
-                            <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 mb-2 block">Nome Completo</label>
-                            <div className="relative">
-                                <input 
-                                    className="input-premium" 
-                                    placeholder="Como devemos te chamar?" 
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    required
-                                />
-                                <User className="input-icon" size={18} />
-                            </div>
+    const renderStepContent = () => {
+        switch (currentStep) {
+            case 0: // Intro
+                return (
+                    <div className="step-content animate-slide-in">
+                        <div className="icon-badge main-glow">
+                            <Zap size={30} />
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="relative">
-                                <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 mb-2 block">Seu melhor E-mail</label>
-                                <div className="relative">
-                                    <input 
-                                        className="input-premium" 
-                                        type="email"
-                                        placeholder="email@exemplo.com" 
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                    <Mail className="input-icon" size={18} />
-                                </div>
-                            </div>
-                            <div className="relative">
-                                <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 mb-2 block">WhatsApp de Contato</label>
-                                <div className="relative">
-                                    <input 
-                                        className="input-premium" 
-                                        placeholder="(00) 00000-0000" 
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                    <Phone className="input-icon" size={18} />
-                                </div>
-                            </div>
+                        <h1 className="premium-title">Seja um <span style={{ color: 'var(--primary-color)' }}>Parceiro</span> Plug & Sales</h1>
+                        <p className="premium-subtitle">Você foi convidado para gerenciar suas próprias campanhas com a tecnologia oficial do WhatsApp API.</p>
+                        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', padding: '20px', borderRadius: '16px', fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', maxWidth: '400px' }}>
+                            Preencha os dados a seguir para criar seu acesso. Sua conta passará por uma breve aprovação.
                         </div>
-
-                        <div className="relative">
-                            <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 mb-2 block">Nome da Empresa (Opcional)</label>
-                            <div className="relative">
-                                <input 
-                                    className="input-premium" 
-                                    placeholder="Sua empresa ou negócio" 
-                                    name="company"
-                                    value={formData.company}
-                                    onChange={handleChange}
-                                />
-                                <Building2 className="input-icon" size={18} />
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 mb-2 block">Alguma observação?</label>
-                            <textarea 
-                                className="input-premium h-32 resize-none py-4 px-4 pl-12" 
-                                placeholder="Conte-nos um pouco sobre sua necessidade..." 
-                                name="notes"
-                                value={formData.notes}
-                                onChange={handleChange}
-                            />
-                            <div className="absolute left-4 top-[44px]">
-                                <ArrowRight className="text-white/30" size={18} />
-                            </div>
-                        </div>
-
-                        <button 
-                            type="submit" 
-                            disabled={isSubmitting}
-                            className="w-full py-5 bg-primary text-black font-black uppercase tracking-[2px] rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_15px_30px_-5px_rgba(172,248,0,0.3)] disabled:opacity-50 mt-4"
-                        >
-                            {isSubmitting ? (
-                                <Loader2 className="animate-spin" size={20} />
-                            ) : (
-                                <>
-                                    ENVIAR CADASTRO <Send size={18} />
-                                </>
-                            )}
+                        <button className="primary-btn-premium" style={{ marginTop: '30px' }} onClick={nextStep}>
+                            Começar Agora <ChevronRight size={18} />
                         </button>
                     </div>
-                </form>
+                );
+            case 1: // Name & Company
+                return (
+                    <div className="step-content animate-slide-in">
+                        <div className="icon-badge">
+                            <User size={24} />
+                        </div>
+                        <h2 className="step-question">Quem é você?</h2>
+                        <input 
+                            type="text" 
+                            className="premium-input" 
+                            placeholder="Seu Nome Completo"
+                            value={formData.name}
+                            onChange={(e) => updateData('name', e.target.value)}
+                        />
+                        <input 
+                            type="text" 
+                            className="premium-input" 
+                            placeholder="Nome da sua Empresa"
+                            value={formData.company}
+                            onChange={(e) => updateData('company', e.target.value)}
+                        />
+                        <div className="step-actions">
+                            <button className="back-btn" onClick={prevStep}><ChevronLeft size={18} /> Voltar</button>
+                            <button 
+                                className="primary-btn-premium" 
+                                disabled={!formData.name.trim() || !formData.company.trim()} 
+                                onClick={nextStep}
+                            >Continuar</button>
+                        </div>
+                    </div>
+                );
+            case 2: // Contact info
+                return (
+                    <div className="step-content animate-slide-in">
+                        <div className="icon-badge">
+                            <Smartphone size={24} />
+                        </div>
+                        <h2 className="step-question">Como falamos com você?</h2>
+                        <input 
+                            type="email" 
+                            className="premium-input" 
+                            placeholder="seu@email.com"
+                            value={formData.email}
+                            onChange={(e) => updateData('email', e.target.value)}
+                        />
+                        <input 
+                            type="text" 
+                            className="premium-input" 
+                            placeholder="+55 (00) 00000-0000"
+                            value={formData.phone}
+                            onChange={(e) => updateData('phone', e.target.value)}
+                        />
+                        <div className="step-actions">
+                            <button className="back-btn" onClick={prevStep}><ChevronLeft size={18} /> Voltar</button>
+                            <button 
+                                className="primary-btn-premium" 
+                                disabled={!formData.email.includes('@') || !formData.phone.trim()} 
+                                onClick={nextStep}
+                            >Continuar</button>
+                        </div>
+                    </div>
+                );
+            case 3: // Password (Security)
+                return (
+                    <div className="step-content animate-slide-in">
+                        <div className="icon-badge">
+                            <Lock size={24} />
+                        </div>
+                        <h2 className="step-question">Crie sua senha de acesso</h2>
+                        <p className="step-hint">Escolha uma senha segura para gerenciar suas campanhas.</p>
+                        <input 
+                            type="password" 
+                            className="premium-input" 
+                            placeholder="Sua Senha"
+                            value={formData.password}
+                            onChange={(e) => updateData('password', e.target.value)}
+                        />
+                        <div className="step-actions">
+                            <button className="back-btn" onClick={prevStep}><ChevronLeft size={18} /> Voltar</button>
+                            <button 
+                                className="primary-btn-premium" 
+                                disabled={formData.password.length < 4 || isSubmitting} 
+                                onClick={handleSubmit}
+                            >
+                                {isSubmitting ? 'Finalizando...' : 'Finalizar Cadastro'} <Send size={18} style={{ marginLeft: '8px' }} />
+                            </button>
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
 
-                <p className="mt-8 text-center text-[10px] font-bold opacity-20 uppercase tracking-[4px]">
-                    Powered by Plug & Sales Pro
-                </p>
+    return (
+        <div className="lead-flow-wrapper">
+            <div className="bg-blob blob-1"></div>
+            <div className="bg-blob blob-2"></div>
+            
+            <div className="form-container-premium">
+                <div className="progress-indicator">
+                    <div className="progress-bar-bg">
+                        <div 
+                            className="progress-bar-fill" 
+                            style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+                        ></div>
+                    </div>
+                    <div className="step-counter">
+                        PASSO <span>{currentStep + 1}</span> DE {totalSteps}
+                    </div>
+                </div>
+                
+                <div className="content-viewport">
+                    {renderStepContent()}
+                </div>
+
+                <div className="security-badge">
+                    <ShieldCheck size={14} /> Seus dados estão protegidos por criptografia de ponta a ponta
+                </div>
             </div>
         </div>
     );

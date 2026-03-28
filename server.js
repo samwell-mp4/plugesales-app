@@ -274,11 +274,13 @@ const initDB = async () => {
                 id SERIAL PRIMARY KEY,
                 parent_user_id INTEGER REFERENCES users(id),
                 submission_id INTEGER REFERENCES client_submissions(id),
+                user_id INTEGER REFERENCES users(id),
                 data JSONB NOT NULL,
                 approved BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
+        await client.query(`ALTER TABLE client_for_client_requests ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
 
         console.log('✅ Database initialized and verified.');
 
@@ -973,17 +975,47 @@ app.get('/api/client-submissions/:id', async (req, res) => {
 // --- Client-for-Client (Sub-clients) ---
 app.post('/api/client-for-client/register', async (req, res) => {
     const { parentUserId, submissionId, data } = req.body;
-    if (!parentUserId || !data) {
-        return res.status(400).json({ error: 'parentUserId e data são obrigatórios.' });
+    const { name, email, phone, password } = data;
+
+    if (!parentUserId || !data || !email) {
+        return res.status(400).json({ error: 'parentUserId, email e data são obrigatórios.' });
     }
+
+    const client = await pool.connect();
     try {
-        const result = await pool.query(
-            'INSERT INTO client_for_client_requests (parent_user_id, submission_id, data) VALUES ($1, $2, $3) RETURNING id',
-            [parentUserId, submissionId || null, JSON.stringify(data)]
+        await client.query('BEGIN');
+
+        // 1. Create or get user with PENDING_CLIENT role (if they don't already have a valid account)
+        const userCheck = await client.query('SELECT id, role FROM users WHERE email = $1', [email]);
+        let userId;
+
+        if (userCheck.rows.length > 0) {
+            userId = userCheck.rows[0].id;
+            // If they are already a client, we just link. If they are something else, we might need to handle it.
+            // For now, let's just ensure they have a parent_id if not set.
+            await client.query('UPDATE users SET parent_id = $1 WHERE id = $2 AND parent_id IS NULL', [parentUserId, userId]);
+        } else {
+            const newUser = await client.query(
+                'INSERT INTO users (name, email, phone, password, role, parent_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+                [name, email, phone, password || '123456', 'PENDING_CLIENT', parentUserId]
+            );
+            userId = newUser.rows[0].id;
+        }
+
+        // 2. Insert the request linked to the user
+        const result = await client.query(
+            'INSERT INTO client_for_client_requests (parent_user_id, submission_id, data, user_id, approved) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [parentUserId, submissionId || null, JSON.stringify(data), userId, false]
         );
-        res.json({ success: true, id: result.rows[0].id });
+
+        await client.query('COMMIT');
+        res.json({ success: true, id: result.rows[0].id, userId });
     } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error registering sub-client:', err);
         res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
@@ -1020,35 +1052,27 @@ app.get('/api/client-for-client', async (req, res) => {
 
 app.put('/api/client-for-client/:id/approve', async (req, res) => {
     const { id } = req.params;
-    const { password } = req.body;
     try {
         const reqData = await pool.query('SELECT * FROM client_for_client_requests WHERE id = $1', [id]);
         if (reqData.rows.length === 0) return res.status(404).json({ error: 'Request not found' });
         
         const referral = reqData.rows[0];
-        const { name, email, phone } = referral.data;
-
-        const userCheck = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-        let userId;
-
-        if (userCheck.rows.length > 0) {
-            userId = userCheck.rows[0].id;
-            await pool.query('UPDATE users SET parent_id = $1 WHERE id = $2 AND parent_id IS NULL', [referral.parent_user_id, userId]);
-        } else {
-            const newUser = await pool.query(
-                'INSERT INTO users (name, email, phone, password, role, parent_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-                [name, email, phone, password || '123456', 'CLIENT', referral.parent_user_id]
-            );
-            userId = newUser.rows[0].id;
+        
+        // Upgrade the linked user to CLIENT
+        if (referral.user_id) {
+            await pool.query("UPDATE users SET role = 'CLIENT' WHERE id = $1", [referral.user_id]);
         }
 
         await pool.query('UPDATE client_for_client_requests SET approved = true WHERE id = $1', [id]);
         
-        if (referral.submission_id) {
-            await pool.query('UPDATE client_submissions SET user_id = $1 WHERE id = $2', [userId, referral.submission_id]);
+        // If there was a submission_id linked, associate it with the user_id (redundant if already done, but safe)
+        if (referral.submission_id && referral.user_id) {
+            await pool.query('UPDATE client_submissions SET user_id = $1 WHERE id = $2', [referral.user_id, referral.submission_id]);
         }
-        res.json({ success: true, userId });
+
+        res.json({ success: true });
     } catch (err) {
+        console.error('Error approving sub-client:', err);
         res.status(500).json({ error: err.message });
     }
 });
