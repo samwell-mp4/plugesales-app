@@ -560,6 +560,7 @@ const ClientDashboard = () => {
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={14} /></button>
                                                 <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0 }}><CopyIcon size={14} /></button>
                                                 <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 36, padding: '0 16px', fontSize: '9px' }}>DETALHES <ExternalLink size={14} /></button>
                                             </div>
@@ -758,6 +759,14 @@ const ClientDashboard = () => {
                                                         style={{ flex: 1, height: 40, fontSize: '9px' }}
                                                     >
                                                         VER DETALHES
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteSubmission(rs.id); }}
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}
+                                                    >
+                                                        <Trash2 size={16} />
                                                     </button>
                                                     {isPendingParent && (
                                                         <>
