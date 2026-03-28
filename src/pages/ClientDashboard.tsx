@@ -141,7 +141,16 @@ const ClientDashboard = () => {
             // Sort by timestamp descending
             allSubmissions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             
-            setSubmissions(allSubmissions);
+            // STRICT FILTER: Client only sees what they or their referrals created
+            // Filter out submissions created by Admin / Employees for this client
+            const filteredSubmissions = allSubmissions.filter((s: any) => {
+                // Keep referrals (parents see child submissions)
+                if (s.isReferral) return true;
+                // For own submissions, must be created by the client themselves
+                return s.submitted_by === user.name || s.submitted_by === 'Cliente (Externo)';
+            });
+
+            setSubmissions(filteredSubmissions);
         } catch (error) {
             console.error("Error fetching submissions:", error);
         } finally {
