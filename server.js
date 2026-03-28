@@ -8,9 +8,12 @@ import pg from 'pg';
 import { createClient } from 'redis';
 import OpenAI from 'openai';
 import { google } from 'googleapis';
+import cron from 'node-cron';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const N8N_WEBHOOK_URL = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/proximo-disparo';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -2073,6 +2076,108 @@ app.post('/api/step-leads', async (req, res) => {
         res.status(500).json({ error: 'Erro interno' });
     }
 });
+
+// --- NOTIFICATIONS SCHEDULER: PROXIMOS DISPAROS ---
+const checkScheduledNotifications = async () => {
+    console.log(`⏰ [NOTIFY] Verificando agendamentos (${new Date().toLocaleTimeString()})...`);
+    let client;
+    try {
+        client = await pool.connect();
+        
+        // 1. Buscar submissões que tenham o status "PROXIMOS DISPAROS" em algum anúncio
+        // Usamos JSONB para filtrar anúncios que contenham o status desejado
+        const result = await client.query(`
+            SELECT id, profile_name, assigned_to, ads 
+            FROM client_submissions 
+            WHERE ads @> '[{"status": "PROXIMOS DISPAROS"}]'
+        `);
+
+        if (result.rows.length === 0) return;
+
+        const now = new Date();
+
+        for (const submission of result.rows) {
+            const { id: submissionId, profile_name, assigned_to, ads } = submission;
+            let adsChanged = false;
+
+            const updatedAds = await Promise.all(ads.map(async (ad) => {
+                if (ad.status !== 'PROXIMOS DISPAROS' || !ad.scheduled_at) return ad;
+
+                const scheduledTime = new Date(ad.scheduled_at);
+                const diffMs = scheduledTime.getTime() - now.getTime();
+                const diffMin = Math.round(diffMs / 60000);
+
+                // Definimos os intervalos (em minutos) e suas labels
+                const intervals = [
+                    { min: 60, label: '1 hora' },
+                    { min: 30, label: '30 minutos' },
+                    { min: 10, label: '10 minutos' }
+                ];
+
+                const sentNotifications = ad.notifications_sent || [];
+                let currentIntervalLabel = null;
+
+                // Verificar se estamos em algum dos janelas (com margem de 5 min)
+                for (const interval of intervals) {
+                    if (diffMin <= interval.min && diffMin > (interval.min - 6) && !sentNotifications.includes(interval.label)) {
+                        currentIntervalLabel = interval.label;
+                        break;
+                    }
+                }
+
+                if (currentIntervalLabel) {
+                    console.log(`🔔 [NOTIFY] Gatilho "${currentIntervalLabel}" para ${profile_name} (${ad.ad_name || 'Sem nome'})`);
+                    
+                    // Buscar telefone do responsável
+                    const userRes = await client.query("SELECT notification_number, phone FROM users WHERE name = $1 OR id::text = $1 LIMIT 1", [assigned_to]);
+                    const employeePhone = userRes.rows[0]?.notification_number || userRes.rows[0]?.phone;
+
+                    if (employeePhone) {
+                        try {
+                            const payload = {
+                                event: 'notification_alert',
+                                interval: currentIntervalLabel,
+                                time_remaining: `${diffMin} min`,
+                                profile_name,
+                                ad_name: ad.ad_name,
+                                scheduled_at: ad.scheduled_at,
+                                employee_name: assigned_to,
+                                employee_phone: employeePhone,
+                                submission_id: submissionId
+                            };
+
+                            await fetch(N8N_WEBHOOK_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            
+                            sentNotifications.push(currentIntervalLabel);
+                            ad.notifications_sent = sentNotifications;
+                            adsChanged = true;
+                        } catch (webhookErr) {
+                            console.error(`❌ [NOTIFY] Erro ao enviar para n8n:`, webhookErr.message);
+                        }
+                    } else {
+                        console.warn(`⚠️ [NOTIFY] Responsável "${assigned_to}" não encontrado ou sem número cadastrado.`);
+                    }
+                }
+                return ad;
+            }));
+
+            if (adsChanged) {
+                await client.query("UPDATE client_submissions SET ads = $1 WHERE id = $2", [JSON.stringify(updatedAds), submissionId]);
+            }
+        }
+    } catch (err) {
+        console.error('❌ [NOTIFY] Erro no monitor de notificações:', err.message);
+    } finally {
+        if (client) client.release();
+    }
+};
+
+// Agendar para rodar a cada 5 minutos
+cron.schedule('*/5 * * * *', checkScheduledNotifications);
 
 app.delete('/api/step-leads/:id', async (req, res) => {
     const { id } = req.params;
