@@ -67,6 +67,7 @@ interface Submission {
     assigned_to?: string;
     client_name?: string;
     user_id?: number | string;
+    parent_id?: number | string;
     sender_number?: string;
     ads?: Ad[];
     ad_copy?: string;
@@ -124,10 +125,12 @@ const ClientSubmissionDetail = () => {
         try {
             const data = await dbService.getClientSubmissionById(Number(id));
             if (data && !data.error) {
-                // Security Check: Clients can only see their own submissions
-                // We use != to handle potential string/number mismatches safely
-                if (user?.role === 'CLIENT' && String(data.user_id) !== String(user.id)) {
-                    console.warn(`Access denied for user ${user.id} to submission ${id} (owner: ${data.user_id})`);
+                // Security Check: Clients can only see their own submissions or sub-client submissions
+                const isOwner = user?.id ? String(data.user_id) === String(user.id) : false;
+                const isParent = user?.id ? String(data.parent_id) === String(user.id) : false;
+                
+                if (user?.role === 'CLIENT' && !isOwner && !isParent) {
+                    console.warn(`Access denied for user ${user?.id} to submission ${id} (owner: ${data.user_id}, parent: ${data.parent_id})`);
                     navigate('/client-dashboard', { replace: true });
                     return;
                 }
@@ -241,6 +244,24 @@ const ClientSubmissionDetail = () => {
             console.error(err);
         } finally {
             setUpdatingAssign(false);
+        }
+    };
+
+    const handleParentApprove = async (approve: boolean) => {
+        if (!id) return;
+        setIsSaving(true);
+        try {
+            const res = await dbService.parentApproveSubmission(Number(id), approve);
+            if (res.success) {
+                await addLog(approve ? "Campanha aprovada pelo parceiro" : "Campanha reprovada pelo parceiro", approve ? 'success' : 'error');
+                await load();
+            } else {
+                alert("Erro ao processar: " + (res.error || "Erro desconhecido"));
+            }
+        } catch (err) {
+            console.error("Parent approval error:", err);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -784,6 +805,33 @@ const ClientSubmissionDetail = () => {
                             })}
                         </div>
                     </div>
+
+                    {/* NEW CARD: PARENT APPROVAL (REFERRALS) */}
+                    {sub.status === 'AGUARDANDO_APROVACAO_PAI' && String(sub.parent_id) === String(user?.id) && (
+                        <div className="control-card" style={{ animationDelay: '0.15s', borderColor: 'var(--primary-color)', background: 'rgba(172,248,0,0.03)' }}>
+                            <label className="field-label" style={{ color: 'var(--primary-color)' }}><Users size={14} /> Ação do Indicado</label>
+                            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '16px', fontWeight: 600 }}>Esta campanha foi submetida por um indicado. Revise os detalhes e aprove para que o time prossiga.</p>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button
+                                    className="action-btn primary-btn"
+                                    onClick={() => handleParentApprove(true)}
+                                    disabled={isSaving}
+                                    style={{ flex: 2 }}
+                                >
+                                    {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                                    APROVAR
+                                </button>
+                                <button
+                                    className="action-btn ghost-btn"
+                                    onClick={() => handleParentApprove(false)}
+                                    disabled={isSaving}
+                                    style={{ flex: 1, color: '#ef4444' }}
+                                >
+                                    REPROVAR
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* CARD 2: CONFIGURAÇÃO DE TIME */}
                     <div className="control-card" style={{ animationDelay: '0.2s' }}>

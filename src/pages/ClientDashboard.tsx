@@ -747,11 +747,22 @@ const ClientDashboard = () => {
                                                     <span className="info-chip" style={{ fontSize: '8px', padding: '2px 8px', background: rs.status === 'REPROVADA_PELO_PAI' ? 'rgba(239,68,68,0.1)' : 'rgba(172,248,0,0.1)', color: rs.status === 'REPROVADA_PELO_PAI' ? '#ef4444' : 'var(--primary-color)' }}>{rs.status.replace(/_/g, ' ')}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button onClick={() => { setSelectedSubDetail(rs); setShowSubDetailModal(true); }} className="action-btn ghost-btn" style={{ flex: 1, height: 40, fontSize: '9px' }}>VER DETALHES</button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={(e) => { 
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            navigate(`/client-submissions/${rs.id}`);
+                                                        }} 
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ flex: 1, height: 40, fontSize: '9px' }}
+                                                    >
+                                                        VER DETALHES
+                                                    </button>
                                                     {isPendingParent && (
                                                         <>
-                                                            <button onClick={() => handleApproveReferralSubmission(rs.id, true)} className="action-btn primary-btn" style={{ width: 40, height: 40, padding: 0 }}><CheckCircle2 size={16} /></button>
-                                                            <button onClick={() => handleApproveReferralSubmission(rs.id, false)} className="action-btn ghost-btn" style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}><X size={16} /></button>
+                                                            <button type="button" onClick={() => handleApproveReferralSubmission(rs.id, true)} className="action-btn primary-btn" style={{ width: 40, height: 40, padding: 0 }}><CheckCircle2 size={16} /></button>
+                                                            <button type="button" onClick={() => handleApproveReferralSubmission(rs.id, false)} className="action-btn ghost-btn" style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}><X size={16} /></button>
                                                         </>
                                                     )}
                                                 </div>
@@ -778,10 +789,20 @@ const ClientDashboard = () => {
                             <h4 style={{ margin: '0 0 12px 0', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Cópia do Anúncio</h4>
                             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selectedSubDetail.ad_copy || "Nenhuma cópia providenciada."}</p>
                         </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                            <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '16px', padding: '16px' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>TIPO DE TEMPLATE</span>
+                                <div style={{ fontWeight: 700, marginTop: '4px' }}>{selectedSubDetail.template_type}</div>
+                            </div>
+                            <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '16px', padding: '16px' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>DDD</span>
+                                <div style={{ fontWeight: 700, marginTop: '4px' }}>{selectedSubDetail.ddd}</div>
+                            </div>
+                        </div>
                         {selectedSubDetail.status === 'AGUARDANDO_APROVACAO_PAI' && (
                             <div style={{ display: 'flex', gap: '16px' }}>
-                                <button onClick={() => { handleApproveReferralSubmission(selectedSubDetail.id, true); setShowSubDetailModal(false); }} className="action-btn primary-btn" style={{ flex: 1, height: 52 }}>APROVAR CAMPANHA</button>
-                                <button onClick={() => { handleApproveReferralSubmission(selectedSubDetail.id, false); setShowSubDetailModal(false); }} className="action-btn ghost-btn" style={{ height: 52, color: '#ef4444' }}>REPROVAR</button>
+                                <button type="button" onClick={() => { handleApproveReferralSubmission(selectedSubDetail.id, true); setShowSubDetailModal(false); }} className="action-btn primary-btn" style={{ flex: 1, height: 52 }}>APROVAR CAMPANHA</button>
+                                <button type="button" onClick={() => { handleApproveReferralSubmission(selectedSubDetail.id, false); setShowSubDetailModal(false); }} className="action-btn ghost-btn" style={{ height: 52, color: '#ef4444' }}>REPROVAR</button>
                             </div>
                         )}
                     </div>
@@ -795,6 +816,45 @@ const ClientDashboard = () => {
                         <div style={{ marginBottom: '32px' }}>
                             <div style={{ display: 'inline-flex', background: 'rgba(172,248,0,0.1)', padding: '12px', borderRadius: '16px', marginBottom: '16px' }}><LinkIcon className="text-primary-color" size={24} /></div>
                             <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 940, letterSpacing: '-1.5px' }}>{selectedLinkStats.link.title}</h2>
+                            <p style={{ color: 'var(--primary-color)', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '8px' }}>DETALHES DE PERFORMANCE EM TEMPO REAL</p>
+                        </div>
+                        
+                        <div className="analytics-grid">
+                            <div className="stat-card"><h5>CLIQUES TOTAIS</h5><div className="value">{selectedLinkStats.clicks || 0}</div></div>
+                            <div className="stat-card"><h5>PAÍS PRINCIPAL</h5><div className="value" style={{ fontSize: '20px' }}>{selectedLinkStats.geo_stats?.sort((a:any, b:any) => b.count - a.count)[0]?.country || 'N/A'}</div></div>
+                            <div className="stat-card"><h5>DISPOSITIVO</h5><div className="value" style={{ fontSize: '20px' }}>{selectedLinkStats.device_stats?.sort((a:any, b:any) => b.count - a.count)[0]?.device_type || 'N/A'}</div></div>
+                            <div className="stat-card"><h5>CRIADO EM</h5><div className="value" style={{ fontSize: '20px' }}>{new Date(selectedLinkStats.link.created_at).toLocaleDateString()}</div></div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <div className="control-card">
+                                <h4 style={{ margin: '0 0 20px 0', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Geolocalização (Países)</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {selectedLinkStats.geo_stats?.slice(0, 5).map((g: any) => (
+                                        <div key={g.country}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>
+                                                <span>{g.country}</span>
+                                                <span className="text-primary-color">{g.count}</span>
+                                            </div>
+                                            <div className="chart-bar"><div className="chart-fill" style={{ width: `${(g.count / selectedLinkStats.clicks) * 100}%` }} /></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="control-card">
+                                <h4 style={{ margin: '0 0 20px 0', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Dispositivos e Navegadores</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {selectedLinkStats.device_stats?.slice(0, 5).map((d: any) => (
+                                        <div key={d.device_type}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>
+                                                <span>{d.device_type}</span>
+                                                <span className="text-primary-color">{d.count}</span>
+                                            </div>
+                                            <div className="chart-bar"><div className="chart-fill" style={{ width: `${(d.count / selectedLinkStats.clicks) * 100}%`, background: 'var(--secondary-color)' }} /></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

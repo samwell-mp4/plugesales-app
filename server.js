@@ -980,7 +980,13 @@ app.get('/api/client/submissions', async (req, res) => {
 
 app.get('/api/client-submissions/:id', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM client_submissions WHERE id = $1', [req.params.id]);
+        const query = `
+            SELECT cs.*, u.parent_id 
+            FROM client_submissions cs
+            LEFT JOIN users u ON cs.user_id = u.id
+            WHERE cs.id = $1
+        `;
+        const result = await pool.query(query, [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
         res.json(result.rows[0]);
     } catch (err) {
