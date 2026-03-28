@@ -292,6 +292,7 @@ const CRM_SPREADSHEET_ID = "1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0";
 const SERVICE_ACCOUNT_FILE = path.join(__dirname, 'service-account.json');
 
 const getSheetsClient = async () => {
+    // 1. Tentar ler do arquivo local (Útil para desenvolvimento local)
     if (fs.existsSync(SERVICE_ACCOUNT_FILE)) {
         const auth = new google.auth.GoogleAuth({
             keyFile: SERVICE_ACCOUNT_FILE,
@@ -299,6 +300,22 @@ const getSheetsClient = async () => {
         });
         return google.sheets({ version: 'v4', auth });
     }
+
+    // 2. Tentar ler de Variável de Ambiente (Crucial para Produção/Deploy)
+    const envCreds = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    if (envCreds) {
+        try {
+            const credentials = JSON.parse(envCreds);
+            const auth = new google.auth.GoogleAuth({
+                credentials,
+                scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+            });
+            return google.sheets({ version: 'v4', auth });
+        } catch (err) {
+            console.error("Erro ao processar GOOGLE_SERVICE_ACCOUNT_JSON:", err.message);
+        }
+    }
+
     return null;
 };
 
