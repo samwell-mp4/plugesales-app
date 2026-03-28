@@ -2176,8 +2176,8 @@ const checkScheduledNotifications = async () => {
     }
 };
 
-// Agendar para rodar a cada 5 minutos
-cron.schedule('*/5 * * * *', checkScheduledNotifications);
+// Agendar para rodar a cada 20 segundos
+cron.schedule('*/20 * * * * *', checkScheduledNotifications);
 
 app.delete('/api/step-leads/:id', async (req, res) => {
     const { id } = req.params;
