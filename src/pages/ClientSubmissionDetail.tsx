@@ -111,6 +111,7 @@ const ClientSubmissionDetail = () => {
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isUploadingReport, setIsUploadingReport] = useState(false);
     const [attachedReports, setAttachedReports] = useState<any[]>([]);
+    const [reportsPage, setReportsPage] = useState(0);
 
     const load = useCallback(async () => {
         if (!id) return;
@@ -568,7 +569,7 @@ const ClientSubmissionDetail = () => {
                                 </a>
                             )}
 
-                            {attachedReports.map(rep => (
+                            {attachedReports.slice(reportsPage * 2, (reportsPage + 1) * 2).map(rep => (
                                 <div key={rep.id} className="asset-link" style={{ cursor: 'default' }}>
                                     <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}><BarChart3 size={20} /></div>
                                     <div style={{ flex: 1 }}>
@@ -581,6 +582,26 @@ const ClientSubmissionDetail = () => {
                                     </div>
                                 </div>
                             ))}
+
+                            {attachedReports.length > 2 && (
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                                    <button 
+                                        disabled={reportsPage === 0}
+                                        onClick={() => setReportsPage(prev => Math.max(0, prev - 1))}
+                                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--surface-border-subtle)', color: reportsPage === 0 ? 'rgba(255,255,255,0.2)' : 'var(--text-primary)', borderRadius: '8px', padding: '4px 8px', cursor: reportsPage === 0 ? 'default' : 'pointer', fontSize: '10px', fontWeight: 900 }}
+                                    >
+                                        &lt;
+                                    </button>
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)' }}>{reportsPage + 1} / {Math.ceil(attachedReports.length / 2)}</span>
+                                    <button 
+                                        disabled={(reportsPage + 1) * 2 >= attachedReports.length}
+                                        onClick={() => setReportsPage(prev => prev + 1)}
+                                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--surface-border-subtle)', color: (reportsPage + 1) * 2 >= attachedReports.length ? 'rgba(255,255,255,0.2)' : 'var(--text-primary)', borderRadius: '8px', padding: '4px 8px', cursor: (reportsPage + 1) * 2 >= attachedReports.length ? 'default' : 'pointer', fontSize: '10px', fontWeight: 900 }}
+                                    >
+                                        &gt;
+                                    </button>
+                                </div>
+                            )}
 
                             {user?.role !== 'CLIENT' && (sub.status === 'CONCLUIDO' || sub.status === 'CONCLUÍDO') && (
                                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '16px', border: '2px dashed var(--surface-border-subtle)', cursor: 'pointer' }} className="ghost-btn">
