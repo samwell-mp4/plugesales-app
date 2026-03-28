@@ -287,36 +287,53 @@ const initDB = async () => {
 // --- GOOGLE SHEETS CONFIG ---
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "PASTE_YOUR_ID_HERE";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "PASTE_YOUR_SECRET_HERE";
+// --- GOOGLE SHEETS CONFIG ---
 const CRM_SPREADSHEET_ID = "1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0";
+const SERVICE_ACCOUNT_FILE = path.join(__dirname, 'service-account.json');
 
-const oauth2Client = new google.auth.OAuth2(
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    "http://localhost:3000" // Placeholder redirect URI
-);
+const getSheetsClient = async () => {
+    if (fs.existsSync(SERVICE_ACCOUNT_FILE)) {
+        const auth = new google.auth.GoogleAuth({
+            keyFile: SERVICE_ACCOUNT_FILE,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+        return google.sheets({ version: 'v4', auth });
+    }
+    return null;
+};
 
-// Nota: Para produção, o ideal é usar uma Service Account que não requer interação do usuário.
-// Como solução imediata para visualização, este endpoint tentará ler a planilha.
 app.get('/api/crm/leads', async (req, res) => {
     try {
-        // Como a planilha é pública, usamos o export CSV que é mais rápido e não exige chaves
+        const sheets = await getSheetsClient();
+        if (sheets) {
+            const response = await sheets.spreadsheets.values.get({
+                spreadsheetId: CRM_SPREADSHEET_ID,
+                range: 'Página1!A2:I', // Ajuste o nome da página se necessário
+            });
+            const rows = response.data.values;
+            if (!rows) return res.json([]);
+
+            const leads = rows.map((row, index) => ({
+                id: index + 1,
+                nome: row[0] || '',
+                numero: row[1] || '',
+                email: row[2] || '',
+                tag: row[3] || '',
+                status: row[4] || 'Sem Status',
+                data_entrada: row[5] || '',
+                responsavel: row[6] || '',
+                value_client: row[7] || '0'
+            }));
+            return res.json(leads);
+        }
+
+        // Fallback para CSV público
         const csvUrl = `https://docs.google.com/spreadsheets/d/${CRM_SPREADSHEET_ID}/export?format=csv&gid=0`;
-        
         const response = await fetch(csvUrl);
         if (!response.ok) throw new Error('Falha ao acessar a planilha pública.');
-        
         const csvText = await response.text();
-        
-        // Parse manual simples de CSV (considerando que não há vírgulas dentro dos campos para este caso)
-        // Para algo mais robusto, usaríamos uma lib de CSV, mas para colunas fixas isso funciona bem.
-        const rows = csvText.split('\n').map(row => {
-            // Lidar com aspas duplas que o Google Sheets coloca
-            return row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim());
-        });
-
-        // Pular o cabeçalho (A1:H1)
+        const rows = csvText.split('\n').map(row => row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim()));
         const dataRows = rows.slice(1);
-        
         const leads = dataRows.filter(row => row.length >= 2 && row[0]).map((row, index) => ({
             id: index + 1,
             nome: row[0] || '',
@@ -328,11 +345,45 @@ app.get('/api/crm/leads', async (req, res) => {
             responsavel: row[6] || '',
             value_client: row[7] || '0'
         }));
-
         res.json(leads);
     } catch (err) {
-        console.error("Error fetching CRM leads (Public Mode):", err.message);
-        res.status(500).json({ error: `Erro ao carregar dados: ${err.message}` });
+        console.error("CRM Leads Error:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/crm/leads/:id', async (req, res) => {
+    const { id } = req.params;
+    const updateData = req.body;
+    const rowNumber = parseInt(id) + 1; // +1 porque pulei o cabeçalho no map
+
+    try {
+        const sheets = await getSheetsClient();
+        if (!sheets) throw new Error('Google API não configurada. Arquivo service-account.json ausente.');
+
+        // Mapear dados para as colunas A-H
+        const values = [[
+            updateData.nome,
+            updateData.numero,
+            updateData.email,
+            updateData.tag,
+            updateData.status,
+            updateData.data_entrada,
+            updateData.responsavel,
+            updateData.value_client
+        ]];
+
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: CRM_SPREADSHEET_ID,
+            range: `Página1!A${rowNumber}:H${rowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values },
+        });
+
+        res.json({ success: true, message: `Lead na linha ${rowNumber} atualizado.` });
+    } catch (err) {
+        console.error("CRM Update Error:", err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 

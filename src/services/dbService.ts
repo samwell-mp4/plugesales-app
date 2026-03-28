@@ -657,6 +657,23 @@ export const dbService = {
             throw err;
         }
     },
+    updateCRMLead: async (id: number, data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/leads/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro ao atualizar lead na planilha.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("CRM Update Error:", err);
+            throw err;
+        }
+    },
     debugDb: async () => {
         try {
             const res = await fetch(`${API_BASE}/debug/db`);
