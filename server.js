@@ -294,6 +294,7 @@ const SERVICE_ACCOUNT_FILE = path.join(__dirname, 'service-account.json');
 const getSheetsClient = async () => {
     // 1. Tentar ler do arquivo local (Útil para desenvolvimento local)
     if (fs.existsSync(SERVICE_ACCOUNT_FILE)) {
+        console.log("CRM: Usando arquivo service-account.json local.");
         const auth = new google.auth.GoogleAuth({
             keyFile: SERVICE_ACCOUNT_FILE,
             scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -302,20 +303,27 @@ const getSheetsClient = async () => {
     }
 
     // 2. Tentar ler de Variável de Ambiente (Crucial para Produção/Deploy)
-    const envCreds = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    let envCreds = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
     if (envCreds) {
         try {
+            // Remover aspas simples extras se o EasyPanel as adicionou ao valor
+            if (envCreds.startsWith("'") && envCreds.endsWith("'")) {
+                envCreds = envCreds.slice(1, -1);
+            }
+            
             const credentials = JSON.parse(envCreds);
+            console.log("CRM: Usando credenciais via Variável de Ambiente.");
             const auth = new google.auth.GoogleAuth({
                 credentials,
                 scopes: ['https://www.googleapis.com/auth/spreadsheets'],
             });
             return google.sheets({ version: 'v4', auth });
         } catch (err) {
-            console.error("Erro ao processar GOOGLE_SERVICE_ACCOUNT_JSON:", err.message);
+            console.error("CRM: Erro ao processar GOOGLE_SERVICE_ACCOUNT_JSON:", err.message);
         }
     }
 
+    console.warn("CRM: Nenhuma credencial do Google encontrada (Arquivo ou Variável).");
     return null;
 };
 
@@ -376,7 +384,7 @@ app.put('/api/crm/leads/:id', async (req, res) => {
 
     try {
         const sheets = await getSheetsClient();
-        if (!sheets) throw new Error('Google API não configurada. Arquivo service-account.json ausente.');
+        if (!sheets) throw new Error('Google API não configurada. Verifique o arquivo service-account.json ou a variável GOOGLE_SERVICE_ACCOUNT_JSON.');
 
         // Mapear dados para as colunas A-H
         const values = [[
