@@ -126,18 +126,21 @@ const ClientDashboard = () => {
         setIsLoading(true);
         try {
             // Fetch own submissions
+            // The API /api/client/submissions now returns BOTH own and referral submissions
+            // with a flag `is_referral`
             const ownSubmissions = await dbService.getClientSubmissionsByUserId(user.id);
-            
-            // If parent, also fetch referral submissions
             let allSubmissions = [...(Array.isArray(ownSubmissions) ? ownSubmissions : [])];
             
-            // Check if user is a parent (has sub-clients) or has referral submissions
-            const referrals = await dbService.getReferralSubmissions(user.id);
-            if (Array.isArray(referrals) && referrals.length > 0) {
-                // Add a flag to distinguish
-                const taggedReferrals = referrals.map((s: any) => ({ ...s, isReferral: true }));
-                allSubmissions = [...allSubmissions, ...taggedReferrals];
-            }
+            // Normalize the referral flag (API uses snake_case, frontend uses camelCase)
+            allSubmissions = allSubmissions.map(s => ({
+                ...s,
+                isReferral: s.isReferral || s.is_referral
+            }));
+
+            // Optional: Deduplicate just in case `allSubmissions` had overlapping entries
+            const uniqueMap = new Map();
+            allSubmissions.forEach(sub => uniqueMap.set(sub.id, sub));
+            allSubmissions = Array.from(uniqueMap.values());
 
             // Sort by timestamp descending
             allSubmissions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -152,8 +155,8 @@ const ClientDashboard = () => {
                 const isManagement = s.submitted_role === 'ADMIN' || s.submitted_role === 'EMPLOYEE';
                 if (isManagement) return false;
 
-                // For own submissions, must be created by the client themselves
-                return s.submitted_by === user.name || s.submitted_by === 'Cliente (Externo)';
+                // For own submissions, if it wasn't made by management, it's safe to show
+                return true;
             });
 
             setSubmissions(filteredSubmissions);
