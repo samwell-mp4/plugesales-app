@@ -27,7 +27,7 @@ import { useNavigate } from 'react-router-dom';
 const ClientDashboard = () => {
     const { user, setUser, logout } = useAuth() as any;
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'submissions' | 'agency_lots' | 'links' | 'activity' | 'referrals'>('submissions');
+    const [activeTab, setActiveTab] = useState<'submissions' | 'links' | 'activity' | 'referrals'>('submissions');
     const [submissions, setSubmissions] = useState<any[]>([]);
     const [subClients, setSubClients] = useState<any[]>([]);
     const [links, setLinks] = useState<any[]>([]);
@@ -147,6 +147,11 @@ const ClientDashboard = () => {
             const filteredSubmissions = allSubmissions.filter((s: any) => {
                 // Keep referrals (parents see child submissions)
                 if (s.isReferral) return true;
+                
+                // EXCLUDE anything created by Admin/Employee for this client
+                const isManagement = s.submitted_role === 'ADMIN' || s.submitted_role === 'EMPLOYEE';
+                if (isManagement) return false;
+
                 // For own submissions, must be created by the client themselves
                 return s.submitted_by === user.name || s.submitted_by === 'Cliente (Externo)';
             });
@@ -240,6 +245,7 @@ const ClientDashboard = () => {
                 status: 'PENDENTE',
                 timestamp: new Date().toISOString(),
                 submitted_by: user?.name,
+                submitted_role: user?.role,
                 ads: (submission.ads || []).map((ad: any) => ({
                     ...ad,
                     button_link: '',
@@ -545,9 +551,6 @@ const ClientDashboard = () => {
 
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
                     <button className={`nav-tab ${activeTab === 'submissions' ? 'active' : ''}`} onClick={() => setActiveTab('submissions')}>MINHAS SUBMISSÕES</button>
-                    {user?.role !== 'CLIENT' && (
-                        <button className={`nav-tab ${activeTab === 'agency_lots' ? 'active' : ''}`} onClick={() => setActiveTab('agency_lots')}>LOTES DA AGÊNCIA</button>
-                    )}
                     <button className={`nav-tab ${activeTab === 'links' ? 'active' : ''}`} onClick={() => setActiveTab('links')}>MEUS LINKS</button>
                     <button className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => setActiveTab('activity')}>REGISTRO DE ATIVIDADE</button>
                     <button className={`nav-tab ${activeTab === 'referrals' ? 'active' : ''}`} onClick={() => setActiveTab('referrals')}>MINHAS INDICAÇÕES</button>
@@ -609,42 +612,6 @@ const ClientDashboard = () => {
                                                 )}
                                                 <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={14} /></button>
                                                 <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0 }}><CopyIcon size={14} /></button>
-                                                <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 36, padding: '0 16px', fontSize: '9px' }}>DETALHES <ExternalLink size={14} /></button>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-                    ) : activeTab === 'agency_lots' ? (
-                        <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
-                            {isLoading ? (
-                                <div style={{ padding: '80px', textAlign: 'center' }}>
-                                    <div style={{ width: 32, height: 32, margin: '0 auto 16px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                                    <p style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px' }}>CARREGANDO...</p>
-                                </div>
-                            ) : submissions.filter(s => s.submitted_by && s.submitted_by !== user?.name && s.submitted_by !== 'Cliente (Externo)').length === 0 ? (
-                                <div style={{ padding: '80px', textAlign: 'center', opacity: 0.2 }}>
-                                    <Layers size={48} style={{ marginBottom: '16px' }} />
-                                    <p style={{ fontWeight: 800 }}>Nenhum lote automático registrado.</p>
-                                </div>
-                            ) : (
-                                submissions.filter(s => s.submitted_by && s.submitted_by !== user?.name && s.submitted_by !== 'Cliente (Externo)').map((sub) => {
-                                    const cfg = statusCfg(sub.status);
-                                    return (
-                                        <div key={sub.id} className="submission-link" style={{ borderLeft: '4px solid #3b82f6' }}>
-                                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <Layers size={20} style={{ opacity: 0.5, color: '#3b82f6' }} />
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>{sub.profile_name}</h4>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
-                                                    <span style={{ color: 'var(--surface-border-subtle)' }}>•</span>
-                                                    <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>{cfg.label.toUpperCase()}</span>
-                                                </div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
                                                 <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 36, padding: '0 16px', fontSize: '9px' }}>DETALHES <ExternalLink size={14} /></button>
                                             </div>
                                         </div>

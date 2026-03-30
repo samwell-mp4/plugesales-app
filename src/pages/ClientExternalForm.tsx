@@ -174,6 +174,7 @@ const ClientExternalForm = () => {
                 ddd: formData.ddd,
                 status: formData.status,
                 submitted_by: user?.name || 'cliente',
+                submitted_role: user?.role || 'CLIENT',
                 user_id: formData.user_id || user?.id,
                 ads: formData.ads.map(ad => ({
                     ...ad,

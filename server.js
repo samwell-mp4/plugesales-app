@@ -1119,14 +1119,16 @@ app.delete('/api/client-for-client/:id', async (req, res) => {
 });
 
 app.post('/api/client-submissions', async (req, res) => {
-    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by } = req.body;
+    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by } = req.body;
     try {
         let finalStatus = status || 'PENDENTE';
         let parentApproved = true;
 
         // Logic: If this is a submission from a client who has a parent (it's a referral)
-        // Set status to AGUARDANDO_APROVACAO_PAI
-        if (user_id) {
+        // Set status to AGUARDANDO_APROVACAO_PAI, UNLESS submitted by Admin/Employee
+        const isManagement = submitted_role === 'ADMIN' || submitted_role === 'EMPLOYEE';
+        
+        if (user_id && !isManagement) {
             const userRes = await pool.query('SELECT parent_id FROM users WHERE id = $1', [user_id]);
             if (userRes.rows[0] && userRes.rows[0].parent_id) {
                 finalStatus = 'AGUARDANDO_APROVACAO_PAI';
@@ -1197,7 +1199,9 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
             let finalStatus = s.status || 'PENDENTE';
             let parentApproved = true;
 
-            if (s.user_id) {
+            const isManagement = s.submitted_role === 'ADMIN' || s.submitted_role === 'EMPLOYEE';
+
+            if (s.user_id && !isManagement) {
                 const userRes = await client.query('SELECT parent_id FROM users WHERE id = $1', [s.user_id]);
                 if (userRes.rows[0] && userRes.rows[0].parent_id) {
                     finalStatus = 'AGUARDANDO_APROVACAO_PAI';

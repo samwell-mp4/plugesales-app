@@ -125,10 +125,12 @@ const ClientSubmissions = () => {
                 status: 'PENDENTE',
                 timestamp: new Date().toISOString(),
                 submitted_by: user?.name,
+                submitted_role: user?.role,
                 ads: (submission.ads || []).map(ad => ({
                     ...ad,
                     button_link: '', // CLEAR LINK IN ADS TOO
-                    delivered_leads: 0
+                    delivered_leads: 0,
+                    clicks: 0
                 }))
             };
             await dbService.addClientSubmission(duplicatedData);
