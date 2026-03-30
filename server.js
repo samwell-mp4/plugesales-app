@@ -988,7 +988,7 @@ app.get('/api/client/submissions', async (req, res) => {
         `;
 
         if (userRole === 'CLIENT') {
-            query += ` AND (c.user_id = $1 OR (c.submitted_role NOT IN ('ADMIN', 'EMPLOYEE') OR c.submitted_role IS NULL))`;
+            query += ` AND (c.submitted_role NOT IN ('ADMIN', 'EMPLOYEE') OR c.submitted_role IS NULL)`;
             query += ` AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = $1)`;
         }
 

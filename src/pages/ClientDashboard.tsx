@@ -146,7 +146,6 @@ const ClientDashboard = () => {
             allSubmissions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             
             // STRICT FILTER: Client only sees what they or their referrals created
-            // Filter out submissions created by Admin / Employees for this client
             const filteredSubmissions = allSubmissions.filter((s: any) => {
                 // Keep referrals (parents see child submissions)
                 if (s.isReferral) return true;
@@ -155,7 +154,16 @@ const ClientDashboard = () => {
                 const isManagement = s.submitted_role === 'ADMIN' || s.submitted_role === 'EMPLOYEE';
                 if (isManagement) return false;
 
-                // For own submissions, if it wasn't made by management, it's safe to show
+                // For older submissions that don't have submitted_role, check submitted_by
+                // If submitted_by is an external admin/employee name (not the user or "cliente")
+                if (s.submitted_by) {
+                    const by = s.submitted_by.toLowerCase();
+                    const uName = user.name?.toLowerCase() || '';
+                    if (by !== uName && by !== 'cliente (externo)' && by !== 'cliente') {
+                        return false; // It was submitted by an Admin/Employee
+                    }
+                }
+
                 return true;
             });
 
