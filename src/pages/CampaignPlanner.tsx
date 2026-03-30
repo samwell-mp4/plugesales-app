@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Route, Plus, Save, PlayCircle, Play, Settings2, Trash2, Smartphone, Database, Activity } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { useAuth } from '../contexts/AuthContext';
 
 type Step = {
     id: number;
@@ -15,6 +16,7 @@ type Step = {
 const CampaignPlanner = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
 
     // Check if we came from Upload with a specific tag
     const queryParams = new URLSearchParams(location.search);
@@ -29,8 +31,8 @@ const CampaignPlanner = () => {
     const [availableLists, setAvailableLists] = useState<any[]>([]);
     const [isFetching, setIsFetching] = useState(false);
 
-    const apiKey = '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8';
-    const fromNumber = '5511997625247';
+    const apiKey = user?.infobip_key || '';
+    const fromNumber = user?.infobip_sender || '';
 
     const loadData = async () => {
         setIsFetching(true);
@@ -38,6 +40,11 @@ const CampaignPlanner = () => {
             // Load Lists from DB
             const contactsList = await dbService.getContacts();
             setAvailableLists(contactsList.map((c: any) => ({ tag: c.tag, count: c.count })));
+
+            if (!apiKey || !fromNumber) {
+                console.warn('Infobip key or sender not configured in CampaignPlanner');
+                return;
+            }
 
             // Load Templates from Infobip
             const tResponse = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${fromNumber}/templates`, {

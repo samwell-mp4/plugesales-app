@@ -48,8 +48,8 @@ const Accounts = () => {
     const { user, setUser } = useAuth();
     
     // --- API / CONFIG STATE ---
-    const [apiKey, setApiKey] = useState(user?.infobip_key || '5b90ba4e71d2c00cdb1784f476b59c1e-a0338025-abdc-46e6-8b90-0b2b2d62d5c8');
-    const [senderNumber, setSenderNumber] = useState(user?.infobip_sender || '5511997625247');
+    const [apiKey, setApiKey] = useState(user?.infobip_key || '');
+    const [senderNumber, setSenderNumber] = useState(user?.infobip_sender || '');
     const [senders, setSenders] = useState<any[]>([]);
     const [recentNumbers, setRecentNumbers] = useState<string[]>([]);
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
@@ -93,6 +93,7 @@ const Accounts = () => {
     };
 
     const fetchSenders = async () => {
+        if (!apiKey) return;
         setIsLoadingSenders(true);
         try {
             const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/1/senders`, {
@@ -126,6 +127,7 @@ const Accounts = () => {
     const itemsPerPage = 8;
 
     const fetchTemplates = async () => {
+        if (!apiKey || !senderNumber) return;
         setIsLoading(true);
         try {
             const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${senderNumber}/templates?_t=${Date.now()}`, {
@@ -159,15 +161,16 @@ const Accounts = () => {
     };
 
     useEffect(() => {
-        fetchTemplates();
-        const interval = setInterval(fetchTemplates, 20000); // Relaxed for quota
+        if (apiKey && senderNumber) {
+            fetchTemplates();
+            const interval = setInterval(fetchTemplates, 20000); // Relaxed for quota
+            return () => clearInterval(interval);
+        }
 
         // Fetch drafts from DB
         dbService.getPlannerDrafts().then(dbDrafts => {
             setDrafts(dbDrafts.filter((d: any) => d._draft === true));
         });
-
-        return () => clearInterval(interval);
     }, [senderNumber, apiKey]);
 
     const approvedCount = templates.filter(t => t.status === 'APPROVED').length;

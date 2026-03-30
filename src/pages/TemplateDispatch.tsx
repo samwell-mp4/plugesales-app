@@ -214,7 +214,9 @@ const TemplateDispatch = () => {
             setAvailableTags([...new Set(tags)] as string[]);
         };
 
-        fetchTemplates();
+        if (apiKey && fromNumber) {
+            fetchTemplates();
+        }
         loadTags();
 
         if (passedTemplate) {
