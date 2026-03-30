@@ -205,7 +205,8 @@ const initDB = async () => {
                 timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log('✅ Table step_leads verified/created.');
+        await client.query(`ALTER TABLE step_leads ADD COLUMN IF NOT EXISTS agent_name TEXT`);
+        console.log('✅ Table step_leads verified/created/updated.');
         console.log('✅ Table client_submissions verified/created.');
 
 
@@ -2217,7 +2218,39 @@ const startTemplateMonitoring = () => {
 
 // Start monitoring session
 
+// --- OFFICIAL EMPLOYEE SEEDING ---
+const seedOfficialEmployees = async () => {
+    const employees = [
+        { name: 'Ricardo Willer', email: 'ricardowiller@plugsales.com.br' },
+        { name: 'Otávio Augusto', email: 'otavioaugusto@plugsales.com.br' },
+        { name: 'Augusto Fagundes', email: 'augustofagundes@plugsales.com.br' },
+        { name: 'Luis Henrique', email: 'luishenrique@plugsales.com.br' },
+        { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br' },
+        { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br' },
+        { name: 'Samwell Souza', email: 'samwellsouza@plugsales.com.br' },
+        { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br' }
+    ];
+
+    const standardPassword = 'PlugSales#2026';
+
+    console.log('🚀 [SEED] Sincronizando funcionários oficiais com a senha padrão...');
+    try {
+        for (const emp of employees) {
+            await pool.query(
+                `INSERT INTO users (name, email, password, role) 
+                 VALUES ($1, $2, $3, $4) 
+                 ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password`,
+                [emp.name, emp.email, standardPassword, 'EMPLOYEE']
+            );
+        }
+        console.log('✅ [SEED] Funcionários oficiais sincronizados com sucesso.');
+    } catch (err) {
+        console.error('❌ [SEED] Erro ao cadastrar funcionários:', err.message);
+    }
+};
+
 startTemplateMonitoring();
+seedOfficialEmployees();
 
 // --- Step Leads ---
 app.get('/api/step-leads', async (req, res) => {
@@ -2231,12 +2264,12 @@ app.get('/api/step-leads', async (req, res) => {
 });
 
 app.post('/api/step-leads', async (req, res) => {
-    const { name, phone, email, niche, method, volume } = req.body;
-    console.log('📬 [STEP_LEAD] New submission received:', { name, phone, email });
+    const { name, phone, email, niche, method, volume, agent_name } = req.body;
+    console.log('📬 [STEP_LEAD] New submission received:', { name, phone, email, agent_name });
     try {
         const result = await pool.query(
-            'INSERT INTO step_leads (name, phone, email, niche, method, volume) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [name, phone, email, niche, method, volume]
+            'INSERT INTO step_leads (name, phone, email, niche, method, volume, agent_name) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [name, phone, email, niche, method, volume, agent_name || null]
         );
         
         const newLead = result.rows[0];

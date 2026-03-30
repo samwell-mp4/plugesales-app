@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-    ChevronRight, ChevronLeft, Send, CheckCircle2, 
-    MessageSquare, User, Mail, Briefcase, BarChart3, 
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+    ChevronRight, ChevronLeft, Send, CheckCircle2,
+    MessageSquare, User, Mail, Briefcase, BarChart3,
     Zap, Globe, ShieldCheck
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
@@ -21,6 +21,7 @@ const STEPS = [
 
 const LeadStepForm = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [direction, setDirection] = useState(1); // 1 for forward, -1 for back
@@ -31,17 +32,24 @@ const LeadStepForm = () => {
         niche: '',
         method: '',
         volume: '',
-        referral_source: ''
+        referral_source: '',
+        agent_name: ''
     });
 
     const totalSteps = STEPS.length - 1; // Success is outside the main loop
 
     useEffect(() => {
         const ref = sessionStorage.getItem('landing_ref');
-        if (ref) {
-            setFormData(prev => ({ ...prev, referral_source: ref }));
+        const agent = searchParams.get('agent');
+        
+        if (agent || ref) {
+            setFormData(prev => ({ 
+                ...prev, 
+                referral_source: ref || '',
+                agent_name: agent || '' 
+            }));
         }
-    }, []);
+    }, [searchParams]);
 
     const nextStep = () => {
         if (currentStep < totalSteps) {
@@ -64,31 +72,14 @@ const LeadStepForm = () => {
     const handleSubmit = async () => {
         setIsSubmitting(true);
         let success = false;
-        
+
         try {
-            // 1. Enviar para o Backend (Local - Se falhar, não impede o fluxo)
+            // Enviar para o Backend (O backend gerencia o Webhook centralizado)
             try {
                 const res = await dbService.addStepLead(formData);
                 if (res) success = true;
             } catch (err) {
                 console.error("Local backend error:", err);
-            }
-
-            // 2. Enviar para n8n WEBHOOK (Crítico - Direto do Cliente)
-            const n8nUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/8b096b73-408c-456e-8d27-282b8da62084';
-            try {
-                const n8nRes = await fetch(n8nUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        source: 'LeadStepForm (Direct)',
-                        ...formData,
-                        captured_at: new Date().toISOString()
-                    })
-                });
-                if (n8nRes.ok) success = true;
-            } catch (wErr) {
-                console.error("Webhook error:", wErr);
             }
 
             if (success) {
@@ -130,9 +121,9 @@ const LeadStepForm = () => {
                             <User size={24} />
                         </div>
                         <h2 className="step-question">Qual é o seu nome?</h2>
-                        <input 
-                            type="text" 
-                            className="premium-input text-center" 
+                        <input
+                            type="text"
+                            className="premium-input text-center"
                             placeholder="Seu nome completo"
                             value={formData.name}
                             onChange={(e) => updateData('name', e.target.value)}
@@ -140,9 +131,9 @@ const LeadStepForm = () => {
                         />
                         <div className="step-actions">
                             <button className="back-btn" onClick={prevStep}><ChevronLeft size={20} /> Voltar</button>
-                            <button 
-                                className="primary-btn-premium" 
-                                disabled={!formData.name.trim()} 
+                            <button
+                                className="primary-btn-premium"
+                                disabled={!formData.name.trim()}
                                 onClick={nextStep}
                             >Continuar</button>
                         </div>
@@ -156,9 +147,9 @@ const LeadStepForm = () => {
                         </div>
                         <h2 className="step-question">Qual é o seu WhatsApp principal?</h2>
                         <p className="step-hint">Certifique-se de informar um número válido. Nosso contato será feito por ele.</p>
-                        <input 
-                            type="text" 
-                            className="premium-input text-center" 
+                        <input
+                            type="text"
+                            className="premium-input text-center"
                             placeholder="+55 (00) 00000-0000"
                             value={formData.phone}
                             onChange={(e) => updateData('phone', e.target.value)}
@@ -166,9 +157,9 @@ const LeadStepForm = () => {
                         />
                         <div className="step-actions">
                             <button className="back-btn" onClick={prevStep}><ChevronLeft size={20} /> Voltar</button>
-                            <button 
-                                className="primary-btn-premium" 
-                                disabled={!formData.phone.trim()} 
+                            <button
+                                className="primary-btn-premium"
+                                disabled={!formData.phone.trim()}
                                 onClick={nextStep}
                             >Continuar</button>
                         </div>
@@ -181,9 +172,9 @@ const LeadStepForm = () => {
                             <Mail size={24} />
                         </div>
                         <h2 className="step-question">Qual é o seu melhor e-mail?</h2>
-                        <input 
-                            type="email" 
-                            className="premium-input text-center" 
+                        <input
+                            type="email"
+                            className="premium-input text-center"
                             placeholder="seu@email.com"
                             value={formData.email}
                             onChange={(e) => updateData('email', e.target.value)}
@@ -191,9 +182,9 @@ const LeadStepForm = () => {
                         />
                         <div className="step-actions">
                             <button className="back-btn" onClick={prevStep}><ChevronLeft size={20} /> Voltar</button>
-                            <button 
-                                className="primary-btn-premium" 
-                                disabled={!formData.email.trim() || !formData.email.includes('@')} 
+                            <button
+                                className="primary-btn-premium"
+                                disabled={!formData.email.trim() || !formData.email.includes('@')}
                                 onClick={nextStep}
                             >Continuar</button>
                         </div>
@@ -206,19 +197,19 @@ const LeadStepForm = () => {
                             <Briefcase size={24} />
                         </div>
                         <h2 className="step-question">Qual é o seu nicho de atuação?</h2>
-                        <input 
-                            type="text" 
-                            className="premium-input text-center" 
-                            placeholder="Ex: E-commerce, Info-produtos, SaaS..."
+                        <input
+                            type="text"
+                            className="premium-input text-center"
+                            placeholder=""
                             value={formData.niche}
                             onChange={(e) => updateData('niche', e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && formData.niche.trim() && nextStep()}
                         />
                         <div className="step-actions">
                             <button className="back-btn" onClick={prevStep}><ChevronLeft size={20} /> Voltar</button>
-                            <button 
-                                className="primary-btn-premium" 
-                                disabled={!formData.niche.trim()} 
+                            <button
+                                className="primary-btn-premium"
+                                disabled={!formData.niche.trim()}
                                 onClick={nextStep}
                             >Continuar</button>
                         </div>
@@ -237,8 +228,8 @@ const LeadStepForm = () => {
                                 { id: 'B', text: 'Utilizo ferramentas alternativas' },
                                 { id: 'C', text: 'Ainda não realizo disparos' }
                             ].map(opt => (
-                                <div 
-                                    key={opt.id} 
+                                <div
+                                    key={opt.id}
                                     className={`option-card ${formData.method === opt.text ? 'selected' : ''}`}
                                     onClick={() => {
                                         updateData('method', opt.text);
@@ -261,19 +252,19 @@ const LeadStepForm = () => {
                         <div className="icon-badge">
                             <BarChart3 size={24} />
                         </div>
-                        <h2 className="step-question">Qual é o seu volume mensal pretendido?</h2>
+                        <h2 className="step-question">Qual é o volume da sua base de Contatos?</h2>
                         <p className="step-hint text-center max-w-lg mx-auto">Trabalhamos com operações em escala. Volumes muito baixos podem não se enquadrar.</p>
                         <div className="options-list">
                             {[
-                                { id: 'A', text: 'Menos de 10 mil mensagens' },
-                                { id: 'B', text: '10 mil a 30 mil mensagens' },
-                                { id: 'C', text: '31 mil a 50 mil mensagens' },
-                                { id: 'D', text: '51 mil a 100 mil mensagens' },
-                                { id: 'E', text: 'Acima de 100 mil mensagens' },
+                                { id: 'A', text: 'Menos de 10 mil contatos' },
+                                { id: 'B', text: '10 mil a 30 mil contatos' },
+                                { id: 'C', text: '31 mil a 50 mil contatos' },
+                                { id: 'D', text: '51 mil a 100 mil contatos' },
+                                { id: 'E', text: 'Acima de 100 mil contatos' },
                                 { id: 'F', text: 'Não possuo uma base de contatos' }
                             ].map(opt => (
-                                <div 
-                                    key={opt.id} 
+                                <div
+                                    key={opt.id}
                                     className={`option-row ${formData.volume === opt.text ? 'selected' : ''}`}
                                     onClick={() => updateData('volume', opt.text)}
                                 >
@@ -284,9 +275,9 @@ const LeadStepForm = () => {
                         </div>
                         <div className="step-actions mt-8">
                             <button className="back-btn" onClick={prevStep}><ChevronLeft size={20} /> Voltar</button>
-                            <button 
-                                className="primary-btn-premium" 
-                                disabled={!formData.volume || isSubmitting} 
+                            <button
+                                className="primary-btn-premium"
+                                disabled={!formData.volume || isSubmitting}
                                 onClick={handleSubmit}
                             >
                                 {isSubmitting ? 'Enviando...' : 'Finalizar Cadastro'} <Send size={18} className="ml-2" />
@@ -317,13 +308,13 @@ const LeadStepForm = () => {
             {/* Background elements */}
             <div className="bg-blob blob-1"></div>
             <div className="bg-blob blob-2"></div>
-            
+
             <div className="form-container-premium">
                 {currentStep < 7 && (
                     <div className="progress-indicator">
                         <div className="progress-bar-bg">
-                            <div 
-                                className="progress-bar-fill" 
+                            <div
+                                className="progress-bar-fill"
                                 style={{ width: `${(currentStep / totalSteps) * 100}%` }}
                             ></div>
                         </div>
@@ -332,7 +323,7 @@ const LeadStepForm = () => {
                         </div>
                     </div>
                 )}
-                
+
                 <div className="content-viewport">
                     {renderStepContent()}
                 </div>
