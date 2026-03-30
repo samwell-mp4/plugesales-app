@@ -248,12 +248,12 @@ const initDB = async () => {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_key TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_sender TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES users(id)`);
-        
+
         // Backward-compat for infobip_templates
         await client.query(`ALTER TABLE infobip_templates ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
 
         console.log('✅ All columns and infobip_templates table verified/migrated.');
-        
+
         // --- AFFILIATE LEADS ROBUST MIGRATIONS ---
         await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS affiliate_id INTEGER REFERENCES users(id)`);
         await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS company_name TEXT`);
@@ -267,7 +267,7 @@ const initDB = async () => {
         // Patch: Restore roles for static team members if they were incorrectly registered as CLIENT
         await client.query("UPDATE users SET role = 'ADMIN' WHERE name = 'Admin'");
         await client.query("UPDATE users SET role = 'EMPLOYEE' WHERE name IN ('Vini', 'Italo', 'Matheus')");
-        
+
         // Ensure client_reports schema is up-to-date
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS summary JSONB`);
         await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`); // Wait, user said CARD (campaign), which is client_submissions
@@ -328,7 +328,7 @@ const getSheetsClient = async () => {
             if (envCreds.startsWith("'") && envCreds.endsWith("'")) {
                 envCreds = envCreds.slice(1, -1);
             }
-            
+
             const credentials = JSON.parse(envCreds);
             console.log("CRM: Usando credenciais via Variável de Ambiente.");
             const auth = new google.auth.GoogleAuth({
@@ -446,7 +446,7 @@ app.post('/api/auth/register', async (req, res) => {
     try {
         const result = await pool.query(
             'INSERT INTO users (name, email, phone, password, role, notification_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, notification_number, infobip_key, infobip_sender',
-            [name, email, phone, password, role || 'CLIENT', phone || null] 
+            [name, email, phone, password, role || 'CLIENT', phone || null]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -482,11 +482,11 @@ app.put('/api/auth/profile', async (req, res) => {
                  infobip_sender = COALESCE($7, infobip_sender)
              WHERE id = $8 RETURNING id, name, email, phone, role, notification_number, infobip_key, infobip_sender`,
             [
-                name || null, 
-                email || null, 
-                phone || null, 
-                password || null, 
-                req.body.notification_number || null, 
+                name || null,
+                email || null,
+                phone || null,
+                password || null,
+                req.body.notification_number || null,
                 req.body.infobip_key || null,
                 req.body.infobip_sender || null,
                 id
@@ -975,7 +975,7 @@ app.get('/api/client/submissions', async (req, res) => {
             WHERE c.user_id = $1 OR u.parent_id = $1
             ORDER BY c.timestamp DESC
         `, [userId]);
-        
+
         // Mark referral submissions
         const submissions = result.rows.map(s => ({
             ...s,
@@ -1087,16 +1087,16 @@ app.put('/api/client-for-client/:id/approve', async (req, res) => {
     try {
         const reqData = await pool.query('SELECT * FROM client_for_client_requests WHERE id = $1', [id]);
         if (reqData.rows.length === 0) return res.status(404).json({ error: 'Request not found' });
-        
+
         const referral = reqData.rows[0];
-        
+
         // Upgrade the linked user to CLIENT
         if (referral.user_id) {
             await pool.query("UPDATE users SET role = 'CLIENT' WHERE id = $1", [referral.user_id]);
         }
 
         await pool.query('UPDATE client_for_client_requests SET approved = true WHERE id = $1', [id]);
-        
+
         // If there was a submission_id linked, associate it with the user_id (redundant if already done, but safe)
         if (referral.submission_id && referral.user_id) {
             await pool.query('UPDATE client_submissions SET user_id = $1 WHERE id = $2', [referral.user_id, referral.submission_id]);
@@ -1128,7 +1128,7 @@ app.post('/api/client-submissions', async (req, res) => {
         // Logic: If this is a submission from a client who has a parent (it's a referral)
         // Set status to AGUARDANDO_APROVACAO_PAI, UNLESS submitted by Admin/Employee
         const isManagement = submitted_role === 'ADMIN' || submitted_role === 'EMPLOYEE';
-        
+
         if (user_id && !isManagement) {
             const userRes = await pool.query('SELECT parent_id FROM users WHERE id = $1', [user_id]);
             if (userRes.rows[0] && userRes.rows[0].parent_id) {
@@ -1279,7 +1279,7 @@ app.delete('/api/client-submissions/:id', async (req, res) => {
 app.post('/api/shortener/create', async (req, res) => {
     const { user_id, target_user_id, client_id, links, original_url, title, short_code: custom_code } = req.body;
     console.log(`[SHORTENER_CREATE] Request: user=${user_id}, target=${target_user_id}, client=${client_id}, url=${original_url}, custom=${custom_code}`);
-    
+
     const linksToCreate = Array.isArray(links) ? links : [{ original_url, title, short_code: custom_code }];
 
     if (linksToCreate.some(l => !l.original_url)) {
@@ -1312,7 +1312,7 @@ app.post('/api/shortener/create', async (req, res) => {
             const protocol = req.headers['x-forwarded-proto'] || req.protocol;
             const host = req.headers['x-forwarded-host'] || req.headers['host'] || req.get('host');
             const fullShortUrl = `${protocol}://${host}/l/${short_code}`;
-            
+
             console.log(`[SHORTENER_CREATE] Saved: ID=${result.rows[0].id}, FullURL=${fullShortUrl}`);
             results.push({ ...result.rows[0], shortUrl: fullShortUrl });
         }
@@ -1350,21 +1350,21 @@ app.put('/api/shortener/:id', async (req, res) => {
 app.get('/api/shortener/links', async (req, res) => {
     const { user_id, client_id, role, startDate, endDate, page = 1, limit = 20, search } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    
+
     try {
         const params = [];
         let whereClauses = [];
 
         // Base query for counting totals (for pagination)
         let countQuery = `SELECT COUNT(*) FROM shortened_links l`;
-        
+
         // Base query for results
         let selectClicks = '(SELECT COUNT(*) FROM link_clicks WHERE link_id = l.id) as clicks';
         if (startDate || endDate) {
             const start = startDate ? new Date(startDate) : new Date(0);
             const end = endDate ? new Date(endDate) : new Date();
             if (endDate) end.setHours(23, 59, 59, 999);
-            
+
             // Note: In a real app we'd need to handle param indexing carefully for both queries
             // For now, let's simplify and use the same filter context
         }
@@ -1394,7 +1394,7 @@ app.get('/api/shortener/links', async (req, res) => {
         }
 
         let whereStr = whereClauses.length > 0 ? ' WHERE ' + whereClauses.join(' AND ') : '';
-        
+
         // Final count query
         const totalResult = await pool.query(countQuery + whereStr, params);
         const totalCount = parseInt(totalResult.rows[0].count);
@@ -1410,10 +1410,10 @@ app.get('/api/shortener/links', async (req, res) => {
             ORDER BY l.created_at DESC
             LIMIT $${params.length + 1} OFFSET $${params.length + 2}
         `;
-        
+
         const finalParams = [...params, parseInt(limit), offset];
         const result = await pool.query(query, finalParams);
-        
+
         res.json({
             links: result.rows,
             totalCount,
@@ -1465,7 +1465,7 @@ app.get('/api/shortener/stats/:id', async (req, res) => {
 
 app.get('/api/shortener/stats/all', async (req, res) => {
     const { user_id, startDate, endDate } = req.query;
-    
+
     // Improved parsing: handle '0', '', null, and invalid strings
     let targetUserId = null;
     if (user_id && user_id !== '0' && user_id !== 'undefined' && user_id !== 'null') {
@@ -1670,7 +1670,7 @@ const upload = multer({
 app.get('/api/shortener/test-protocol', (req, res) => {
     let url = req.query.url;
     if (!url) return res.status(400).json({ error: 'Faltando url' });
-    
+
     let original = url;
     let normalized = url.trim();
     if (!/^https?:\/\//i.test(normalized)) {
@@ -1683,11 +1683,11 @@ app.get('/api/shortener/test-protocol', (req, res) => {
 app.get('/l/:shortCode', async (req, res) => {
     const { shortCode } = req.params;
     console.log(`[LINK_REDIRECT] Request for: "${shortCode}"`);
-    
+
     try {
         // Search case-insensitive just in case
         const result = await pool.query('SELECT * FROM shortened_links WHERE LOWER(short_code) = LOWER($1)', [shortCode]);
-        
+
         if (result.rows.length === 0) {
             console.warn(`[LINK_REDIRECT] 404: Code "${shortCode}" not found.`);
             // Redirect to home/dashboard instead of showing 404
@@ -2027,7 +2027,7 @@ app.post('/api/webhook-push', async (req, res) => {
 // --- AI CONTACTS FORMATTER ---
 app.post('/api/contacts/ai-format', async (req, res) => {
     const { text, apiKey } = req.body;
-    
+
     if (!text) {
         return res.status(400).json({ error: 'Nenhum texto de planilha fornecido.' });
     }
@@ -2114,7 +2114,7 @@ const startTemplateMonitoring = () => {
             mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.`
         };
         const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado';
-        
+
         try {
             await redisClient.del('dispatch_queue');
             await redisClient.del('webhook_queue');
@@ -2145,14 +2145,14 @@ const startTemplateMonitoring = () => {
 
             for (const userRow of usersRes.rows) {
                 const { id: userId, infobip_key: apiKey, infobip_sender: sender, notification_number } = userRow;
-                
+
                 console.log(`🔍 [MONITOR] Verificando templates para ${userRow.name} (Sender: ${sender})...`);
 
                 try {
                     const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${sender}/templates?_t=${Date.now()}`, {
                         headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
                     });
-                    
+
                     if (!response.ok) {
                         console.error(`❌ [MONITOR] Erro API Infobip para ${userRow.name}: ${response.status}`);
                         continue;
@@ -2212,7 +2212,7 @@ const startTemplateMonitoring = () => {
     };
 
     // Initial check (2s delay) + 45s interval
-    setTimeout(checkStatus, 2000); 
+    setTimeout(checkStatus, 2000);
     setInterval(checkStatus, 45000);
 };
 
@@ -2221,14 +2221,14 @@ const startTemplateMonitoring = () => {
 // --- OFFICIAL EMPLOYEE SEEDING ---
 const seedOfficialEmployees = async () => {
     const employees = [
-        { name: 'Ricardo Willer', email: 'ricardowiller@plugsales.com.br', phone: '3193737757' },
-        { name: 'Otávio Augusto', email: 'otavioaugusto@plugsales.com.br', phone: '553171264296' },
-        { name: 'Augusto Fagundes', email: 'augustofagundes@plugsales.com.br', phone: '553175155601' },
-        { name: 'Luis Henrique', email: 'luishenrique@plugsales.com.br', phone: '553190690293' },
-        { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br', phone: '553183195398' },
-        { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br', phone: '553195113394' },
+        { name: 'Ricardo Willer', email: 'ricardowiller@plugsales.com.br', phone: '5531993737757' },
+        { name: 'Otávio Augusto', email: 'otavioaugusto@plugsales.com.br', phone: '5531971264296' },
+        { name: 'Augusto Fagundes', email: 'augustofagundes@plugsales.com.br', phone: '5531975155601' },
+        { name: 'Luis Henrique', email: 'luishenrique@plugsales.com.br', phone: '5531990690293' },
+        { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br', phone: '5531983195398' },
+        { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br', phone: '5531995113394' },
         { name: 'Samwell Souza', email: 'samwellsouza@plugsales.com.br', phone: '5531988868362' },
-        { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br', phone: '553192330403' }
+        { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br', phone: '5531992330403' }
     ];
 
     const standardPassword = 'PlugSales#2026';
@@ -2280,7 +2280,7 @@ app.post('/api/step-leads', async (req, res) => {
             'INSERT INTO step_leads (name, phone, email, niche, method, volume, agent_name) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
             [name, phone, email, niche, method, volume, agent_name || null]
         );
-        
+
         const newLead = result.rows[0];
         console.log('✅ [STEP_LEAD] Saved to database with ID:', newLead.id);
 
@@ -2298,7 +2298,7 @@ app.post('/api/step-leads', async (req, res) => {
                     timestamp_br: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
                 })
             }).then(r => console.log('📡 [WEBHOOK] Sent to n8n:', r.status))
-              .catch(e => console.error('❌ [WEBHOOK] Error sending to n8n:', e.message));
+                .catch(e => console.error('❌ [WEBHOOK] Error sending to n8n:', e.message));
         } catch (webhookErr) {
             console.error('❌ [WEBHOOK] Sync error:', webhookErr.message);
         }
@@ -2320,13 +2320,13 @@ let isCheckingNotifications = false;
 const checkScheduledNotifications = async () => {
     if (isCheckingNotifications) return;
     isCheckingNotifications = true;
-    
+
     let client;
     const runInfo = { found: 0, notificationsSent: 0, status: 'SUCCESS', details: [] };
 
     try {
         client = await pool.connect();
-        
+
         // 1. Buscar submissões que tenham o status relacionado a agendamento
         // Alterado para ser mais flexível (aceita singular/plural e com/sem acento no JSONB)
         const result = await client.query(`
@@ -2356,7 +2356,7 @@ const checkScheduledNotifications = async () => {
                 // Normalização para ignorar acentos e maiúsculas
                 const normalizedStatus = (ad.status || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 const validStatuses = ['PROXIMO DISPARO', 'PROXIMOS DISPAROS', 'AGENDADO'];
-                
+
                 if (!validStatuses.includes(normalizedStatus) || !ad.scheduled_at) return ad;
 
                 const scheduledTime = new Date(ad.scheduled_at);
@@ -2405,7 +2405,7 @@ const checkScheduledNotifications = async () => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(payload)
                             });
-                            
+
                             sentNotifications.push(currentIntervalLabel);
                             ad.notifications_sent = sentNotifications;
                             adsChanged = true;
