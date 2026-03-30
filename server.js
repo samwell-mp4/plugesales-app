@@ -2221,26 +2221,29 @@ const startTemplateMonitoring = () => {
 // --- OFFICIAL EMPLOYEE SEEDING ---
 const seedOfficialEmployees = async () => {
     const employees = [
-        { name: 'Ricardo Willer', email: 'ricardowiller@plugsales.com.br' },
-        { name: 'Otávio Augusto', email: 'otavioaugusto@plugsales.com.br' },
-        { name: 'Augusto Fagundes', email: 'augustofagundes@plugsales.com.br' },
-        { name: 'Luis Henrique', email: 'luishenrique@plugsales.com.br' },
-        { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br' },
-        { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br' },
-        { name: 'Samwell Souza', email: 'samwellsouza@plugsales.com.br' },
-        { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br' }
+        { name: 'Ricardo Willer', email: 'ricardowiller@plugsales.com.br', phone: '3193737757' },
+        { name: 'Otávio Augusto', email: 'otavioaugusto@plugsales.com.br', phone: '553171264296' },
+        { name: 'Augusto Fagundes', email: 'augustofagundes@plugsales.com.br', phone: '553175155601' },
+        { name: 'Luis Henrique', email: 'luishenrique@plugsales.com.br', phone: '553190690293' },
+        { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br', phone: '553183195398' },
+        { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br', phone: '553195113394' },
+        { name: 'Samwell Souza', email: 'samwellsouza@plugsales.com.br', phone: '5531988868362' },
+        { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br', phone: '553192330403' }
     ];
 
     const standardPassword = 'PlugSales#2026';
 
-    console.log('🚀 [SEED] Sincronizando funcionários oficiais com a senha padrão...');
+    console.log('🚀 [SEED] Sincronizando funcionários oficiais com a senha padrão e telefones...');
     try {
         for (const emp of employees) {
             await pool.query(
-                `INSERT INTO users (name, email, password, role) 
-                 VALUES ($1, $2, $3, $4) 
-                 ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password`,
-                [emp.name, emp.email, standardPassword, 'EMPLOYEE']
+                `INSERT INTO users (name, email, password, role, phone, notification_number) 
+                 VALUES ($1, $2, $3, $4, $5, $5) 
+                 ON CONFLICT (email) DO UPDATE SET 
+                    password = EXCLUDED.password, 
+                    phone = EXCLUDED.phone, 
+                    notification_number = EXCLUDED.notification_number`,
+                [emp.name, emp.email, standardPassword, 'EMPLOYEE', emp.phone]
             );
         }
         console.log('✅ [SEED] Funcionários oficiais sincronizados com sucesso.');
@@ -2267,6 +2270,12 @@ app.post('/api/step-leads', async (req, res) => {
     const { name, phone, email, niche, method, volume, agent_name } = req.body;
     console.log('📬 [STEP_LEAD] New submission received:', { name, phone, email, agent_name });
     try {
+        let agentPhone = null;
+        if (agent_name) {
+            const agentRes = await pool.query("SELECT notification_number, phone FROM users WHERE name = $1 LIMIT 1", [agent_name]);
+            agentPhone = agentRes.rows[0]?.notification_number || agentRes.rows[0]?.phone || null;
+        }
+
         const result = await pool.query(
             'INSERT INTO step_leads (name, phone, email, niche, method, volume, agent_name) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
             [name, phone, email, niche, method, volume, agent_name || null]
@@ -2285,6 +2294,7 @@ app.post('/api/step-leads', async (req, res) => {
                 body: JSON.stringify({
                     event: 'new_lead',
                     ...newLead,
+                    number_agent: agentPhone,
                     timestamp_br: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
                 })
             }).then(r => console.log('📡 [WEBHOOK] Sent to n8n:', r.status))
