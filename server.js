@@ -976,11 +976,9 @@ app.get('/api/client/submissions', async (req, res) => {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId é obrigatório.' });
     try {
-        // Find the requester's role
         const userRes = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
         const userRole = userRes.rows[0]?.role || 'CLIENT';
 
-        // Hierarchical Visibility: Show own AND children's submissions
         let query = `
             SELECT c.*, u.name as child_name 
             FROM client_submissions c
@@ -988,18 +986,14 @@ app.get('/api/client/submissions', async (req, res) => {
             WHERE (c.user_id = $1 OR u.parent_id = $1)
         `;
 
-        // STRICT SECURITY: If the logged in user is a CLIENT, they 
-        // MUST NOT see anything created by ADMIN or EMPLOYEE
         if (userRole === 'CLIENT') {
-            query += ` AND (c.submitted_role NOT IN ('ADMIN', 'EMPLOYEE') OR c.submitted_role IS NULL)`;
-            // Also hide submissions waiting for parent approval unless they are the parent
+            query += ` AND (c.user_id = $1 OR (c.submitted_role NOT IN ('ADMIN', 'EMPLOYEE') OR c.submitted_role IS NULL))`;
             query += ` AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = $1)`;
         }
 
         query += ` ORDER BY c.timestamp DESC`;
         const result = await pool.query(query, [userId]);
 
-        // Mark referral submissions
         const submissions = result.rows.map(s => ({
             ...s,
             is_referral: s.user_id && Number(s.user_id) !== Number(userId)
