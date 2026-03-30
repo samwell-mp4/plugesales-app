@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ChevronRight, ChevronLeft, Send, CheckCircle2,
@@ -24,6 +24,7 @@ const LeadStepForm = () => {
     const [searchParams] = useSearchParams();
     const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const submitLock = useRef(false);
     const [direction, setDirection] = useState(1); // 1 for forward, -1 for back
     const [formData, setFormData] = useState({
         name: '',
@@ -69,7 +70,41 @@ const LeadStepForm = () => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let val = e.target.value.replace(/\D/g, '');
+        // Limit to 11 digits if no +55, 13 if +55
+        if (val.length > 11) {
+            val = val.substring(0, 11);
+        }
+        let formatted = val;
+        if (val.length > 2) {
+            formatted = `(${val.substring(0, 2)}) `;
+            if (val.length > 6) {
+                // Formatting for 9 digits or 8 digits
+                if (val.length === 11) {
+                    formatted += `${val.substring(2, 7)}-${val.substring(7, 11)}`;
+                } else {
+                    formatted += `${val.substring(2, 6)}-${val.substring(6, 11)}`;
+                }
+            } else {
+                formatted += val.substring(2);
+            }
+        }
+        updateData('phone', formatted);
+    };
+
+    const isValidPhone = () => {
+        const digits = formData.phone.replace(/\D/g, '');
+        return digits.length >= 10 && digits.length <= 11;
+    };
+
+    const isValidEmail = () => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
+    };
+
     const handleSubmit = async () => {
+        if (submitLock.current) return;
+        submitLock.current = true;
         setIsSubmitting(true);
         let success = false;
 
@@ -150,16 +185,17 @@ const LeadStepForm = () => {
                         <input
                             type="text"
                             className="premium-input text-center"
-                            placeholder="+55 (00) 00000-0000"
+                            placeholder="(11) 99999-9999"
                             value={formData.phone}
-                            onChange={(e) => updateData('phone', e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && formData.phone.trim() && nextStep()}
+                            onChange={handlePhoneChange}
+                            onKeyPress={(e) => e.key === 'Enter' && isValidPhone() && nextStep()}
                         />
-                        <div className="step-actions">
+                        {!isValidPhone() && formData.phone.replace(/\D/g,'').length > 0 && <p style={{color: '#ef4444', fontSize: '12px', marginTop: '8px'}}>O número precisa ser um formato válido de celular brasileiro.</p>}
+                        <div className="step-actions mt-6">
                             <button className="back-btn" onClick={prevStep}><ChevronLeft size={20} /> Voltar</button>
                             <button
                                 className="primary-btn-premium"
-                                disabled={!formData.phone.trim()}
+                                disabled={!isValidPhone()}
                                 onClick={nextStep}
                             >Continuar</button>
                         </div>
@@ -178,13 +214,14 @@ const LeadStepForm = () => {
                             placeholder="seu@email.com"
                             value={formData.email}
                             onChange={(e) => updateData('email', e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && formData.email.trim() && nextStep()}
+                            onKeyPress={(e) => e.key === 'Enter' && isValidEmail() && nextStep()}
                         />
-                        <div className="step-actions">
+                        {!isValidEmail() && formData.email.length > 5 && <p style={{color: '#ef4444', fontSize: '12px', marginTop: '8px'}}>Insira um e-mail com formato válido.</p>}
+                        <div className="step-actions mt-6">
                             <button className="back-btn" onClick={prevStep}><ChevronLeft size={20} /> Voltar</button>
                             <button
                                 className="primary-btn-premium"
-                                disabled={!formData.email.trim() || !formData.email.includes('@')}
+                                disabled={!isValidEmail()}
                                 onClick={nextStep}
                             >Continuar</button>
                         </div>
