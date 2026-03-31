@@ -12,7 +12,8 @@ const employees = [
     { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br' },
     { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br' },
     { name: 'Samwell Souza', email: 'samwellsouza@plugsales.com.br' },
-    { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br' }
+    { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br' },
+    { name: 'Ramon Gomes', email: 'ramongomes@plugsales.com.br', password: 'Ramon@plugsales2026!' }
 ];
 
 const generatePassword = () => {
@@ -28,7 +29,7 @@ async function seed() {
         console.log('✅ Tabela step_leads atualizada (agent_name adicionado).');
 
         for (const emp of employees) {
-            const password = generatePassword();
+            const password = emp.password || generatePassword();
             const check = await pool.query('SELECT id FROM users WHERE email = $1', [emp.email]);
             
             if (check.rows.length === 0) {
