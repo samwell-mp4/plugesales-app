@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { CreditCard, Users, TrendingUp, DollarSign, ToggleLeft, ToggleRight, RefreshCw, Loader, ShoppingCart, Edit, X, Save, Shield, Cpu, Zap } from 'lucide-react';
+import { CreditCard, Users, TrendingUp, DollarSign, ToggleLeft, ToggleRight, RefreshCw, Loader, ShoppingCart, Edit, X, Save, Shield, Cpu, Zap, Plus } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 // Interface for Sales/Transactions (Overview tab)
@@ -110,7 +110,10 @@ export default function AdminPlugCards() {
         if (!editingCard) return;
         setIsSaving(true);
         try {
-            const res = await dbService.updatePlugCard(editingCard.id, editingCard);
+            const res = editingCard.id 
+                ? await dbService.updatePlugCard(editingCard.id, editingCard)
+                : await dbService.createPlugCard(editingCard);
+
             if (res.success) {
                 setEditingCard(null);
                 fetchCatalog();
@@ -120,6 +123,24 @@ export default function AdminPlugCards() {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleNewCard = () => {
+        setEditingCard({
+            id: 0,
+            name: 'Novo Card | Descrição',
+            tier: 'foundation',
+            total_volume: 10000,
+            max_chips: 5,
+            max_campaigns: 1,
+            priority_level: 'low',
+            speed: 'standard',
+            anti_ban_level: 'basic',
+            features: { resources: [] },
+            copy: '',
+            price: 97.00,
+            is_active: true
+        } as any);
     };
 
     return (
@@ -139,6 +160,9 @@ export default function AdminPlugCards() {
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={handleNewCard} style={{ background: 'var(--primary-color)', border: 'none', color: 'black', borderRadius: 10, padding: '9px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(172,248,0,0.2)' }}>
+                        <Plus size={16} strokeWidth={3} /> Novo Card
+                    </button>
                     <button onClick={() => { fetchOverview(); fetchCatalog(); }} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--surface-border)', color: 'var(--text-secondary)', borderRadius: 10, padding: '9px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.82rem' }}>
                         <RefreshCw size={13} /> Atualizar
                     </button>

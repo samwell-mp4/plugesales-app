@@ -347,16 +347,7 @@ const initDB = async () => {
             await client.query(`
                 INSERT INTO plug_cards (name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                ON CONFLICT (name) DO UPDATE SET
-                    total_volume = EXCLUDED.total_volume,
-                    max_chips = EXCLUDED.max_chips,
-                    max_campaigns = EXCLUDED.max_campaigns,
-                    priority_level = EXCLUDED.priority_level,
-                    speed = EXCLUDED.speed,
-                    anti_ban_level = EXCLUDED.anti_ban_level,
-                    features = EXCLUDED.features,
-                    copy = EXCLUDED.copy,
-                    price = EXCLUDED.price
+                ON CONFLICT (name) DO NOTHING
             `, [card.name, card.tier, card.vol, card.chips, card.camps, card.pri, card.speed, card.ban, JSON.stringify(card.features), card.copy, card.price]);
         }
 
@@ -2704,6 +2695,79 @@ app.post('/api/plug-cards/buy', async (req, res) => {
 
     } catch (err) {
         console.error('❌ Plug Cards buy error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/plug-cards — Catalog for exchange
+app.get('/api/plug-cards', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM plug_cards WHERE is_active = TRUE ORDER BY price ASC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/plug-cards/admin/overview — Admin sales and stats
+app.get('/api/plug-cards/admin/overview', async (req, res) => {
+    try {
+        const salesResult = await pool.query(`
+            SELECT 
+                upc.*,
+                u.name as user_name,
+                u.email as user_email,
+                u.role as user_role,
+                pc.name as card_name,
+                pc.tier
+            FROM user_plug_cards upc
+            JOIN users u ON upc.user_id = u.id
+            JOIN plug_cards pc ON upc.plug_card_id = pc.id
+            ORDER BY upc.created_at DESC
+        `);
+
+        const statsResult = await pool.query(`
+            SELECT 
+                COUNT(*)::INT as total_cards,
+                COUNT(CASE WHEN status = 'active' THEN 1 END)::INT as active_cards,
+                COALESCE(SUM(purchased_price), 0)::NUMERIC as total_revenue,
+                COALESCE(SUM(total_volume), 0)::INT as total_volume_sold,
+                COALESCE(SUM(used_volume), 0)::INT as total_volume_used
+            FROM user_plug_cards
+        `);
+
+        res.json({
+            sales: salesResult.rows,
+            stats: statsResult.rows[0]
+        });
+    } catch (err) {
+        console.error('Error fetching plug cards admin overview:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/plug-cards — Admin: Create new card in catalog
+app.get('/api/plug-cards', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM plug_cards WHERE is_active = TRUE ORDER BY price ASC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/plug-cards', async (req, res) => {
+    const { name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price } = req.body;
+    try {
+        const result = await pool.query(`
+            INSERT INTO plug_cards 
+                (name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING *
+        `, [name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price]);
+        res.json({ success: true, card: result.rows[0] });
+    } catch (err) {
+        console.error('Error creating plug card:', err);
         res.status(500).json({ error: err.message });
     }
 });

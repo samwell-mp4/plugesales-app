@@ -824,6 +824,19 @@ export const dbService = {
             return { error: err };
         }
     },
+    createPlugCard: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/plug-cards`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error creating plug card:", err);
+            return { error: err };
+        }
+    },
     validatePlugCard: async (userId: number, requiredVolume?: number, requiredChips?: number) => {
         try {
             const res = await fetch(`${API_BASE}/plug-cards/validate`, {
