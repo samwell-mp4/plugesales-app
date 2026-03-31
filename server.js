@@ -2731,12 +2731,15 @@ app.post('/api/plug-cards/buy', async (req, res) => {
 // GET /api/plug-cards — Catalog for exchange (Only active ones)
 app.get('/api/plug-cards', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM plug_cards WHERE is_active = TRUE ORDER BY price ASC');
+        // Use IS NOT FALSE so cards with NULL is_active also appear (e.g. inserted via pgAdmin without setting the column)
+        const result = await pool.query('SELECT * FROM plug_cards WHERE is_active IS NOT FALSE ORDER BY price ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
+
 
 // GET /api/plug-cards/admin/overview — Admin sales and stats
 app.get('/api/plug-cards/admin/overview', async (req, res) => {
