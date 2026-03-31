@@ -279,6 +279,16 @@ const initDB = async () => {
         await client.query("UPDATE users SET role = 'EMPLOYEE' WHERE name IN ('Vini', 'Italo', 'Matheus')");
 
         // Ensure schemas are up-to-date
+        try {
+            await client.query(`
+                INSERT INTO users (name, email, password, role)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (email) DO UPDATE SET role = 'EMPLOYEE', password = $3
+            `, ['Ramon Gomes', 'ramongomes@plugsales.com.br', 'Ramon@plugsales2026!', 'EMPLOYEE']);
+            console.log('✅ Conta de funcionário (Ramon) verificada na Easypanel.');
+        } catch (e) {
+            console.error('Erro ao verificar conta do Ramon:', e.message);
+        }
         await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS summary JSONB`);
         await safeAlter(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
         await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
@@ -357,11 +367,17 @@ const initDB = async () => {
         ];
 
         for (const card of seedCards) {
-            await client.query(`
-                INSERT INTO plug_cards (name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                ON CONFLICT (name) DO NOTHING
-            `, [card.name, card.tier, card.vol, card.chips, card.camps, card.pri, card.speed, card.ban, JSON.stringify(card.features), card.copy, card.price]);
+            try {
+                const checkRes = await client.query('SELECT id FROM plug_cards WHERE name = $1', [card.name]);
+                if (checkRes.rows.length === 0) {
+                    await client.query(`
+                        INSERT INTO plug_cards (name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    `, [card.name, card.tier, card.vol, card.chips, card.camps, card.pri, card.speed, card.ban, JSON.stringify(card.features), card.copy, card.price]);
+                }
+            } catch (e) {
+                console.error('Error seeding plug card:', card.name, e.message);
+            }
         }
 
         console.log('✅ Plug Cards tables verified and catalog seeded automatically.');
