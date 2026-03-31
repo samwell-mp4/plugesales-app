@@ -24,6 +24,9 @@ import LeadAdminView from './pages/LeadAdminView';
 import ClientForClientForm from './pages/ClientForClientForm';
 import CRMDashboard from './pages/CRMDashboard';
 import CronReport from './pages/CronReport';
+import PlugCardsExchange from './pages/PlugCardsExchange';
+import MyPlugCards from './pages/MyPlugCards';
+import AdminPlugCards from './pages/AdminPlugCards';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -41,7 +44,8 @@ function AppContent() {
     location.pathname === '/obrigado' || 
     location.pathname === '/lead-flow' || 
     location.pathname.startsWith('/l/') || 
-    location.pathname.startsWith('/client-add/');
+    location.pathname.startsWith('/client-add/') ||
+    location.pathname === '/plug-cards';
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -122,6 +126,10 @@ function AppContent() {
           <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/dashboard" />} />
           <Route path="/crm-dashboard" element={<CRMDashboard />} />
           <Route path="/cron-report" element={<CronReport />} />
+          {/* PLUG CARDS MODULE — isolated, no impact on existing routes */}
+          <Route path="/plug-cards" element={<PlugCardsExchange />} />
+          <Route path="/my-cards" element={<MyPlugCards />} />
+          <Route path="/admin/plug-cards" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminPlugCards /> : <Navigate to="/dashboard" />} />
         </Routes>
       </main>
     </div>

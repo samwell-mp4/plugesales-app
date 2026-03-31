@@ -288,6 +288,61 @@ const initDB = async () => {
         `);
         await client.query(`ALTER TABLE client_for_client_requests ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
 
+        // ============================================================
+        // PLUG CARDS MODULE — Isolated tables, zero impact on existing
+        // ============================================================
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS plug_cards (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                tier TEXT NOT NULL,
+                total_volume INTEGER NOT NULL,
+                max_chips INTEGER,
+                max_campaigns INTEGER,
+                priority_level TEXT DEFAULT 'medium',
+                speed TEXT DEFAULT 'normal',
+                anti_ban_level TEXT DEFAULT 'basic',
+                features JSONB DEFAULT '{}',
+                price NUMERIC(10,2) NOT NULL,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS user_plug_cards (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                plug_card_id INTEGER REFERENCES plug_cards(id),
+                total_volume INTEGER NOT NULL,
+                used_volume INTEGER DEFAULT 0,
+                remaining_volume INTEGER NOT NULL,
+                active_campaigns INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'active',
+                payment_method TEXT,
+                payment_ref TEXT,
+                purchased_price NUMERIC(10,2),
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Seed the 8 Plug Cards catalog — idempotent via ON CONFLICT
+        await client.query(`
+            INSERT INTO plug_cards (name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, price)
+            VALUES
+                ('PC-10 | Foundation Card',   'foundation',    10000,  2,  1, 'low',    'normal',      'basic',    '{"support":"standard"}',                                   97.00),
+                ('PC-20 | Growth Card',       'growth',        20000,  3,  2, 'low',    'normal',      'basic',    '{"support":"standard"}',                                  177.00),
+                ('PC-50 | Performance Card',  'performance',   50000,  5,  3, 'medium', 'fast',        'medium',   '{"support":"priority"}',                                  397.00),
+                ('PC-100 | Velocity Card',    'velocity',     100000,  8,  5, 'medium', 'fast',        'medium',   '{"support":"priority"}',                                  697.00),
+                ('PC-150 | Dominance Card',   'dominance',    150000, 12,  8, 'high',   'accelerated', 'advanced', '{"support":"dedicated"}',                                 997.00),
+                ('PC-500 | Elite Card',       'elite',        500000, 20, 15, 'high',   'accelerated', 'advanced', '{"support":"dedicated","manager":true}',                 2997.00),
+                ('PC-1M | Sovereign Card',    'sovereign',   1000000, 30, 25, 'max',    'accelerated', 'advanced', '{"support":"dedicated","manager":true,"api":true}',      5497.00),
+                ('PC-X | Apex Card',          'apex',        9999999, 99, 99, 'max',    'accelerated', 'advanced', '{"support":"dedicated","manager":true,"api":true,"custom":true}', 9997.00)
+            ON CONFLICT DO NOTHING
+        `);
+
+        console.log('✅ Plug Cards tables verified/created and catalog seeded.');
+        // ============================================================
         console.log('✅ Database initialized and verified.');
 
     } catch (err) {
@@ -2470,7 +2525,201 @@ app.delete('/api/step-leads/:id', async (req, res) => {
     }
 });
 
+// ============================================================
+// PLUG CARDS MODULE — Isolated routes
+// ============================================================
+
+// GET /api/plug-cards — List all active cards (PUBLIC)
+app.get('/api/plug-cards', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM plug_cards WHERE is_active = TRUE ORDER BY total_volume ASC'
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/plug-cards/buy — Purchase a card (gateway base)
+app.post('/api/plug-cards/buy', async (req, res) => {
+    const { userId, plugCardId, paymentMethod, cardNumber, cardHolder, expiryDate, cvv } = req.body;
+
+    if (!userId || !plugCardId) {
+        return res.status(400).json({ error: 'userId e plugCardId são obrigatórios.' });
+    }
+    if (!paymentMethod) {
+        return res.status(400).json({ error: 'Método de pagamento é obrigatório.' });
+    }
+
+    try {
+        // 1. Buscar o card no catálogo
+        const cardResult = await pool.query('SELECT * FROM plug_cards WHERE id = $1 AND is_active = TRUE', [plugCardId]);
+        if (cardResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Plug Card não encontrado ou inativo.' });
+        }
+        const card = cardResult.rows[0];
+
+        // 2. Gateway BASE — Simulação de processamento de pagamento
+        // Em produção, aqui entraria Stripe, MercadoPago, etc.
+        const GATEWAY_SIMULATION = {
+            process: async (method, amount, cardData) => {
+                // Simular latência de processamento
+                await new Promise(resolve => setTimeout(resolve, 1200));
+
+                // Validação básica para teste
+                if (method === 'credit_card' || method === 'debit_card') {
+                    const num = (cardData?.cardNumber || '').replace(/\s/g, '');
+                    if (num.length < 13) {
+                        return { success: false, error: 'Número de cartão inválido.' };
+                    }
+                    if (!cardData?.cvv || cardData.cvv.length < 3) {
+                        return { success: false, error: 'CVV inválido.' };
+                    }
+                }
+
+                // Gerar referência de transação (simulada)
+                const ref = `PCG-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+                return {
+                    success: true,
+                    transactionId: ref,
+                    amount,
+                    method,
+                    processedAt: new Date().toISOString()
+                };
+            }
+        };
+
+        const gatewayResult = await GATEWAY_SIMULATION.process(
+            paymentMethod,
+            parseFloat(card.price),
+            { cardNumber, cardHolder, expiryDate, cvv }
+        );
+
+        if (!gatewayResult.success) {
+            return res.status(402).json({
+                error: 'Pagamento recusado.',
+                details: gatewayResult.error
+            });
+        }
+
+        // 3. Criar UserPlugCard após pagamento aprovado
+        const insertResult = await pool.query(`
+            INSERT INTO user_plug_cards
+                (user_id, plug_card_id, total_volume, used_volume, remaining_volume, status, payment_method, payment_ref, purchased_price)
+            VALUES
+                ($1, $2, $3, 0, $4, 'active', $5, $6, $7)
+            RETURNING *
+        `, [
+            userId,
+            plugCardId,
+            card.total_volume,
+            card.total_volume,
+            paymentMethod,
+            gatewayResult.transactionId,
+            card.price
+        ]);
+
+        res.json({
+            success: true,
+            message: `Plug Card "${card.name}" adquirido com sucesso!`,
+            transaction: {
+                id: gatewayResult.transactionId,
+                amount: gatewayResult.amount,
+                method: paymentMethod,
+                processedAt: gatewayResult.processedAt
+            },
+            userCard: insertResult.rows[0]
+        });
+
+    } catch (err) {
+        console.error('❌ Plug Cards buy error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/plug-cards/wallet/:userId — User's cards wallet
+app.get('/api/plug-cards/wallet/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const result = await pool.query(`
+            SELECT 
+                upc.*,
+                pc.name as card_name,
+                pc.tier,
+                pc.priority_level,
+                pc.speed,
+                pc.anti_ban_level,
+                pc.max_chips,
+                pc.max_campaigns,
+                pc.features,
+                pc.price as catalog_price
+            FROM user_plug_cards upc
+            JOIN plug_cards pc ON upc.plug_card_id = pc.id
+            WHERE upc.user_id = $1
+            ORDER BY upc.created_at DESC
+        `, [userId]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/plug-cards/admin — Admin overview (all user cards with user info)
+app.get('/api/plug-cards/admin', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                upc.*,
+                u.name as user_name,
+                u.email as user_email,
+                u.role as user_role,
+                pc.name as card_name,
+                pc.tier,
+                pc.price as catalog_price
+            FROM user_plug_cards upc
+            JOIN users u ON upc.user_id = u.id
+            JOIN plug_cards pc ON upc.plug_card_id = pc.id
+            ORDER BY upc.created_at DESC
+        `);
+
+        // Stats summary
+        const statsResult = await pool.query(`
+            SELECT 
+                COUNT(*) as total_cards,
+                COUNT(CASE WHEN status = 'active' THEN 1 END) as active_cards,
+                SUM(purchased_price) as total_revenue,
+                SUM(total_volume) as total_volume_sold,
+                SUM(used_volume) as total_volume_used
+            FROM user_plug_cards
+        `);
+
+        res.json({
+            cards: result.rows,
+            stats: statsResult.rows[0]
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH /api/plug-cards/admin/toggle/:id — Admin: activate/deactivate catalog card
+app.patch('/api/plug-cards/admin/toggle/:id', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'UPDATE plug_cards SET is_active = NOT is_active WHERE id = $1 RETURNING *',
+            [req.params.id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Card não encontrado.' });
+        res.json({ success: true, card: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ============================================================
+
 app.listen(port, '0.0.0.0', () => {
+
     console.log(`Server running at http://0.0.0.0:${port}`);
     console.log(`Uploads directory: ${uploadDir}`);
 });

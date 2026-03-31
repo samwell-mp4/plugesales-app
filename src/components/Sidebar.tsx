@@ -14,7 +14,8 @@ import {
     Layers,
     Sun,
     Moon,
-    Users
+    Users,
+    CreditCard
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -36,6 +37,8 @@ const Sidebar = () => {
         { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet size={20} /> },
+        { name: 'Meus Cards', path: '/my-cards', icon: <CreditCard size={20} /> },
+        { name: 'Gerenciar Cards', path: '/admin/plug-cards', icon: <Layers size={20} /> },
     ];
 
 
