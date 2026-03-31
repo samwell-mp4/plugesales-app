@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { CreditCard, Users, TrendingUp, DollarSign, ToggleLeft, ToggleRight, RefreshCw, Loader, ShoppingCart, Edit, X, Save, Shield, Cpu, Zap, Plus } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { supabase } from '../lib/supabase';
 
 // Interface for Sales/Transactions (Overview tab)
 interface AdminCardSale {
@@ -85,15 +86,20 @@ export default function AdminPlugCards() {
             .catch(() => setLoading(false));
     };
 
-    const fetchCatalog = () => {
+    const fetchCatalog = async () => {
         setLoading(true);
-        fetch('/api/plug-cards/admin/catalog')
-            .then(r => r.json())
-            .then(data => {
-                setCatalog(Array.isArray(data) ? data : []);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        try {
+            const { data, error } = await supabase
+                .from('plug_cards')
+                .select('*')
+                .order('price', { ascending: true });
+            
+            if (!error && data) {
+                setCatalog(data as CatalogPlugCard[]);
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => { fetchOverview(); fetchCatalog(); }, []);
@@ -101,8 +107,14 @@ export default function AdminPlugCards() {
     const toggleCard = async (id: number) => {
         setToggling(id);
         try {
-            await fetch(`/api/plug-cards/admin/toggle/${id}`, { method: 'PATCH' });
-            fetchCatalog();
+            const card = catalog.find(c => c.id === id);
+            if (!card) return;
+            const { error } = await supabase
+                .from('plug_cards')
+                .update({ is_active: !card.is_active })
+                .eq('id', id);
+            
+            if (!error) fetchCatalog();
         } finally { setToggling(null); }
     };
 
@@ -110,15 +122,15 @@ export default function AdminPlugCards() {
         if (!editingCard) return;
         setIsSaving(true);
         try {
-            const res = editingCard.id 
-                ? await dbService.updatePlugCard(editingCard.id, editingCard)
-                : await dbService.createPlugCard(editingCard);
+            const { data, error } = editingCard.id 
+                ? await supabase.from('plug_cards').update(editingCard).eq('id', editingCard.id).select()
+                : await supabase.from('plug_cards').insert([editingCard]).select();
 
-            if (res.success) {
+            if (!error) {
                 setEditingCard(null);
                 fetchCatalog();
             } else {
-                alert("Erro ao salvar: " + (res.error || 'Erro desconhecido'));
+                alert("Erro ao salvar: " + error.message);
             }
         } finally {
             setIsSaving(false);
