@@ -29,7 +29,7 @@ const port = process.env.PORT || 3000;
 // Priority: 1. ENV vars, 2. Easypanel fallbacks (if in Docker), 3. Local individual fallbacks
 const DEFAULT_PG = "postgres://postgres:Marketing@plugsales2026!@plug_sales_dispatch_app_plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
 const DEFAULT_REDIS = "redis://default:Marketing@plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379";
-const LOCAL_PG = "postgres://postgres:123456@localhost:5432/plugesales";
+const LOCAL_PG = "postgres://postgres:Marketing@plugsales2026!@72.62.138.244:5432/plug_sales_dispatch_app?sslmode=disable";
 const LOCAL_REDIS = "redis://localhost:6379";
 
 let pgUrl = process.env.DATABASE_URL;
@@ -2828,29 +2828,6 @@ app.get('/api/plug-cards/wallet/:userId', async (req, res) => {
     }
 });
 
-// POST /api/plug-cards/buy — Process card purchase
-app.post('/api/plug-cards/buy', async (req, res) => {
-    const { userId, cardId, paymentMethod } = req.body;
-    try {
-        // 1. Get card details
-        const cardRes = await pool.query('SELECT * FROM plug_cards WHERE id = $1', [cardId]);
-        if (cardRes.rows.length === 0) return res.status(404).json({ error: 'Card não encontrado.' });
-        const card = cardRes.rows[0];
-
-        // 2. Create the user card record
-        const result = await pool.query(`
-            INSERT INTO user_plug_cards (
-                user_id, plug_card_id, total_volume, remaining_volume, purchased_price, payment_method, status
-            ) VALUES ($1, $2, $3, $4, $5, $6, 'active')
-            RETURNING *
-        `, [userId, cardId, card.total_volume, card.total_volume, card.price, paymentMethod]);
-
-        res.json({ success: true, userCard: result.rows[0] });
-    } catch (err) {
-        console.error('Error buying plug card:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
 
 // GET /api/plug-cards/admin — Admin overview (all user cards with user info)
 app.get('/api/plug-cards/admin', async (req, res) => {
