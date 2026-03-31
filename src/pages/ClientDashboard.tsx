@@ -310,6 +310,17 @@ const ClientDashboard = () => {
         completed: submissions.filter(s => s.status === 'CONCLUÍDO' || s.status === 'CONCLUIDO').length
     };
 
+    const handleBackupData = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(submissions, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "submissions_backup.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        alert("Lista salva com sucesso! (submissions_backup.json)");
+    };
+
     if (user?.role === 'PENDING_CLIENT') {
         return (
             <div style={{ 

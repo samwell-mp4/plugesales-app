@@ -1041,6 +1041,9 @@ app.get('/api/client/submissions', async (req, res) => {
         const allAllowedUserIds = [parseInt(userId), ...childIds];
 
         if (userRole === 'CLIENT') {
+            // STALWART WHITELIST: O cliente JAMAIS vê o que o admin/empol criou.
+            // Ele só vê o que tem submitted_role = 'CLIENT'.
+            // Isso garante que mesmo templates criados pelo Admin para o cliente fiquem ocultos para o cliente.
             const idPlaceholders = allAllowedUserIds.map((_, i) => `$${i + 1}`).join(', ');
             const parentParam = `$${allAllowedUserIds.length + 1}`;
 
@@ -1049,12 +1052,11 @@ app.get('/api/client/submissions', async (req, res) => {
                 FROM client_submissions c
                 LEFT JOIN users u ON c.user_id = u.id
                 WHERE c.user_id IN (${idPlaceholders})
-                  AND c.submitted_role IS DISTINCT FROM 'ADMIN'
-                  AND c.submitted_role IS DISTINCT FROM 'EMPLOYEE'
-                  AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = ${parentParam})
+                  AND c.submitted_role = 'CLIENT'
+                  AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = $${parentParam})
                 ORDER BY c.timestamp DESC
             `;
-            const params = [...allAllowedUserIds, parseInt(userId)];
+            const params = [...allAllowedUserIds, uid];
             const result = await pool.query(query, params);
 
             const submissions = result.rows.map(s => ({
@@ -1235,14 +1237,14 @@ app.post('/api/client-submissions', async (req, res) => {
 
         const result = await pool.query(
             `INSERT INTO client_submissions 
-            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by, parent_approved) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, parent_approved) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
             [
                 profile_photo, profile_name, ddd,
                 template_type || 'none', media_url || '', ad_copy || '', button_link || '', original_button_link || button_link || '',
                 ads ? JSON.stringify(ads) : '[]',
                 spreadsheet_url, finalStatus,
-                user_id, submitted_by, assigned_to, accepted_by, parentApproved
+                user_id, submitted_by, submitted_role || null, assigned_to, accepted_by, parentApproved
             ]
         );
         res.json(result.rows[0]);
