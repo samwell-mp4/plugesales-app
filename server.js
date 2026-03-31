@@ -2917,6 +2917,9 @@ app.put('/api/plug-cards/:id', async (req, res) => {
 });
 // ============================================================
 
+// Call database initialization
+initDB();
+
 app.listen(port, '0.0.0.0', () => {
 
     console.log(`Server running at http://0.0.0.0:${port}`);
