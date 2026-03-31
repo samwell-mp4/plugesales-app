@@ -143,7 +143,7 @@ const ClientDashboard = () => {
             allSubmissions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             
 
-            setSubmissions(filteredSubmissions);
+            setSubmissions(allSubmissions);
         } catch (error) {
             console.error("Error fetching submissions:", error);
         } finally {

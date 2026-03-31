@@ -29,6 +29,8 @@ const Sidebar = () => {
         { name: 'Meu Painel', path: '/client-dashboard', icon: <Home size={20} /> },
         { name: 'Meus Links', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet size={20} /> },
+        { name: 'Plug Cards', path: '/plug-cards', icon: <LayoutDashboard size={20} />, special: true }, // Marketplace
+        { name: 'Meus Cards', path: '/my-cards', icon: <CreditCard size={20} /> },
     ] : [
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
         { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
@@ -37,6 +39,7 @@ const Sidebar = () => {
         { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
         { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
         { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet size={20} /> },
+        { name: 'Plug Cards', path: '/plug-cards', icon: <LayoutDashboard size={20} />, special: true },
         { name: 'Meus Cards', path: '/my-cards', icon: <CreditCard size={20} /> },
         { name: 'Gerenciar Cards', path: '/admin/plug-cards', icon: <Layers size={20} /> },
     ];

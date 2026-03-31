@@ -809,5 +809,67 @@ export const dbService = {
             console.error("Error fetching referral submissions:", err);
             return [];
         }
+    },
+    // --- Plug Cards ---
+    updatePlugCard: async (id: number, data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/plug-cards/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error updating plug card:", err);
+            return { error: err };
+        }
+    },
+    validatePlugCard: async (userId: number, requiredVolume?: number, requiredChips?: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/plug-cards/validate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, requiredVolume, requiredChips })
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error validating plug card:", err);
+            return { error: "Erro de conexão ao validar Plug Card." };
+        }
+    },
+    consumePlugCardVolume: async (userId: number, volume: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/plug-cards/consume`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, volume })
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error consuming plug card volume:", err);
+            return { error: "Erro ao descontar volume do Plug Card." };
+        }
+    },
+    getUserPlugCards: async (userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/plug-cards/wallet/${userId}`);
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching user plug cards:", err);
+            return [];
+        }
+    },
+    buyPlugCard: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/plug-cards/buy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error buying plug card:", err);
+            return { error: "Falha ao processar compra do Plug Card." };
+        }
     }
 };

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Zap, Shield, Cpu, ChevronRight, X, CreditCard, Check, Lock, AlertCircle, Loader } from 'lucide-react';
+import { CreditCard, Zap, Shield, Cpu, TrendingUp, Check, Plus, ShoppingCart, Loader, ArrowRight, ChevronRight, Sparkles, Building, Rocket, Crown, Star, ShieldCheck, Gem, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-interface PlugCard {
+interface CatalogCard {
     id: number;
     name: string;
     tier: string;
@@ -12,28 +12,31 @@ interface PlugCard {
     priority_level: string;
     speed: string;
     anti_ban_level: string;
-    features: { support?: string; manager?: boolean; api?: boolean; custom?: boolean };
+    features: { resources?: string[] };
+    copy: string;
     price: string;
     is_active: boolean;
 }
 
-interface CheckoutData {
-    paymentMethod: 'credit_card' | 'debit_card' | 'pix';
-    cardNumber: string;
-    cardHolder: string;
-    expiryDate: string;
-    cvv: string;
-}
-
-const TIER_CONFIG: Record<string, { glow: string; border: string; badge: string; label: string; emoji: string }> = {
-    foundation: { glow: 'rgba(148,163,184,0.25)', border: 'rgba(148,163,184,0.4)', badge: '#94a3b8', label: 'Foundation', emoji: '🧱' },
-    growth:      { glow: 'rgba(59,130,246,0.25)',  border: 'rgba(59,130,246,0.5)',  badge: '#3b82f6', label: 'Growth',      emoji: '📈' },
-    performance: { glow: 'rgba(172,248,0,0.25)',   border: 'rgba(172,248,0,0.5)',   badge: '#acf800', label: 'Performance', emoji: '⚡' },
-    velocity:    { glow: 'rgba(6,182,212,0.25)',   border: 'rgba(6,182,212,0.5)',   badge: '#06b6d4', label: 'Velocity',    emoji: '🚀' },
-    dominance:   { glow: 'rgba(139,92,246,0.25)',  border: 'rgba(139,92,246,0.5)',  badge: '#8b5cf6', label: 'Dominance',   emoji: '👑' },
-    elite:       { glow: 'rgba(234,179,8,0.3)',    border: 'rgba(234,179,8,0.6)',   badge: '#eab308', label: 'Elite',       emoji: '🌟' },
-    sovereign:   { glow: 'rgba(249,115,22,0.3)',   border: 'rgba(249,115,22,0.6)',  badge: '#f97316', label: 'Sovereign',   emoji: '🔱' },
-    apex:        { glow: 'rgba(239,68,68,0.35)',   border: 'rgba(239,68,68,0.7)',   badge: '#ef4444', label: 'Apex',        emoji: '💎' },
+const TIER_UI: Record<string, { 
+    id: string;
+    color: string; 
+    bg: string; 
+    border: string; 
+    glow: string; 
+    emoji: string; 
+    icon: any;
+    label: string;
+    accent: string;
+}> = {
+    foundation:  { id: 'foundation',  color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.3)', glow: 'rgba(148,163,184,0.2)', emoji: '🧱', icon: Building,    label: 'Foundation',  accent: '#64748b' },
+    growth:      { id: 'growth',      color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.3)',  glow: 'rgba(59,130,246,0.2)',  emoji: '📈', icon: TrendingUp,  label: 'Growth',      accent: '#1d4ed8' },
+    performance: { id: 'performance', color: '#acf800', bg: 'rgba(172,248,0,0.1)',   border: 'rgba(172,248,0,0.3)',   glow: 'rgba(172,248,0,0.2)',   emoji: '⚡', icon: Zap,         label: 'Performance', accent: '#84c000' },
+    velocity:    { id: 'velocity',    color: '#06b6d4', bg: 'rgba(6,182,212,0.1)',   border: 'rgba(6,182,212,0.3)',   glow: 'rgba(6,182,212,0.2)',   emoji: '🚀', icon: Rocket,      label: 'Velocity',    accent: '#0891b2' },
+    dominance:   { id: 'dominance',   color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.3)',  glow: 'rgba(139,92,246,0.2)',  emoji: '👑', icon: Crown,       label: 'Dominance',   accent: '#7c3aed' },
+    elite:       { id: 'elite',       color: '#eab308', bg: 'rgba(234,179,8,0.1)',   border: 'rgba(234,179,8,0.3)',   glow: 'rgba(234,179,8,0.2)',   emoji: '🌟', icon: Star,        label: 'Elite',       accent: '#ca8a04' },
+    sovereign:   { id: 'sovereign',   color: '#f97316', bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.3)',  glow: 'rgba(249,115,22,0.2)',  emoji: '🔱', icon: ShieldCheck, label: 'Sovereign',   accent: '#ea580c' },
+    apex:        { id: 'apex',        color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   glow: 'rgba(239,68,68,0.2)',   emoji: '💎', icon: Gem,         label: 'Apex',        accent: '#dc2626' },
 };
 
 const formatVolume = (v: number) => {
@@ -42,432 +45,299 @@ const formatVolume = (v: number) => {
     return v.toString();
 };
 
-const formatPrice = (p: string) =>
-    parseFloat(p).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-const SPEED_LABEL: Record<string, string> = { normal: 'Normal', fast: 'Rápido', accelerated: 'Acelerado' };
-const PRIORITY_LABEL: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta', max: 'Máxima' };
-const ANTIBAN_LABEL: Record<string, string> = { basic: 'Básico', medium: 'Médio', advanced: 'Avançado' };
+const formatPrice = (p: string | number) =>
+    parseFloat(String(p)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function PlugCardsExchange() {
     const { user } = useAuth();
-    const [cards, setCards] = useState<PlugCard[]>([]);
+    const [catalog, setCatalog] = useState<CatalogCard[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedCard, setSelectedCard] = useState<PlugCard | null>(null);
-    const [checkoutStep, setCheckoutStep] = useState<'details' | 'payment' | 'processing' | 'success' | 'error'>('details');
-    const [checkoutData, setCheckoutData] = useState<CheckoutData>({
-        paymentMethod: 'credit_card', cardNumber: '', cardHolder: '', expiryDate: '', cvv: ''
-    });
-    const [txResult, setTxResult] = useState<any>(null);
-    const [errorMsg, setErrorMsg] = useState('');
-    const [hoveredId, setHoveredId] = useState<number | null>(null);
+    const [buyingId, setBuyingId] = useState<number | null>(null);
+    const [checkoutCard, setCheckoutCard] = useState<CatalogCard | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'debit_card' | 'pix'>('pix');
 
     useEffect(() => {
+        setLoading(true);
         fetch('/api/plug-cards')
             .then(r => r.json())
-            .then(data => { setCards(Array.isArray(data) ? data : []); setLoading(false); })
+            .then(data => { setCatalog(Array.isArray(data) ? data : []); setLoading(false); })
             .catch(() => setLoading(false));
     }, []);
 
-    const openCheckout = (card: PlugCard) => {
-        setSelectedCard(card);
-        setCheckoutStep('details');
-        setCheckoutData({ paymentMethod: 'credit_card', cardNumber: '', cardHolder: '', expiryDate: '', cvv: '' });
-        setTxResult(null);
-        setErrorMsg('');
-    };
-
-    const closeCheckout = () => setSelectedCard(null);
-
-    const formatCardNumber = (v: string) => v.replace(/\D/g, '').substring(0, 16).replace(/(.{4})/g, '$1 ').trim();
-    const formatExpiry = (v: string) => v.replace(/\D/g, '').substring(0, 4).replace(/^(\d{2})(\d)/, '$1/$2');
-
     const handleBuy = async () => {
-        if (!user) {
-            setErrorMsg('Você precisa estar logado para comprar. Acesse /login.');
-            setCheckoutStep('error');
-            return;
-        }
-
-        setCheckoutStep('processing');
+        if (!user || !checkoutCard) return;
+        setBuyingId(checkoutCard.id);
         try {
             const res = await fetch('/api/plug-cards/buy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user.id,
-                    plugCardId: selectedCard?.id,
-                    paymentMethod: checkoutData.paymentMethod,
-                    cardNumber: checkoutData.cardNumber,
-                    cardHolder: checkoutData.cardHolder,
-                    expiryDate: checkoutData.expiryDate,
-                    cvv: checkoutData.cvv,
-                })
+                body: JSON.stringify({ userId: user.id, cardId: checkoutCard.id, paymentMethod })
             });
             const data = await res.json();
-            if (!res.ok || !data.success) {
-                setErrorMsg(data.details || data.error || 'Erro no processamento.');
-                setCheckoutStep('error');
-                return;
+            if (data.success) {
+                alert(`Sucesso! Você adquiriu o card ${checkoutCard.name}. Ele já está disponível na sua wallet.`);
+                window.location.href = '/my-cards';
+            } else {
+                alert("Erro na transação: " + data.error);
             }
-            setTxResult(data);
-            setCheckoutStep('success');
-        } catch (e) {
-            setErrorMsg('Erro de conexão. Tente novamente.');
-            setCheckoutStep('error');
+        } finally {
+            setBuyingId(null);
         }
     };
 
-    const tier = selectedCard ? TIER_CONFIG[selectedCard.tier] || TIER_CONFIG.foundation : null;
-
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--bg-gradient)', fontFamily: 'var(--font-family)', padding: '0' }}>
+        <div style={{ fontFamily: 'var(--font-family)', maxWidth: 1200, margin: '0 auto', paddingBottom: 100 }}>
 
-            {/* Header */}
-            <header style={{
-                background: 'rgba(5, 7, 10, 0.95)',
-                backdropFilter: 'blur(20px)',
-                borderBottom: '1px solid rgba(172,248,0,0.1)',
-                padding: '20px 40px',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                position: 'sticky', top: 0, zIndex: 100
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ background: 'linear-gradient(135deg,#acf800,#84c000)', padding: 10, borderRadius: 14, display: 'flex', boxShadow: '0 0 20px rgba(172,248,0,0.3)' }}>
-                        <CreditCard color="#000" size={24} />
-                    </div>
-                    <div>
-                        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#f8fafc', letterSpacing: '-0.5px' }}>
-                            Plug <span style={{ color: '#acf800' }}>Cards</span>
-                        </h1>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>Exchange — Unidades de capacidade de disparo</p>
-                    </div>
+            {/* Hero Header */}
+            <div style={{ textAlign: 'center', marginBottom: 60, marginTop: 20 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(172,248,0,0.08)', padding: '8px 20px', borderRadius: 100, border: '1px solid rgba(172,248,0,0.2)', marginBottom: 20 }}>
+                    <Sparkles size={16} color="#acf800" />
+                    <span style={{ color: '#acf800', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Exchange Oficial Plug & Sales</span>
                 </div>
-                {user ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Olá, <strong style={{ color: '#f8fafc' }}>{user.name}</strong></span>
-                        <a href="/my-cards" style={{ background: 'rgba(172,248,0,0.1)', border: '1px solid rgba(172,248,0,0.3)', color: '#acf800', padding: '8px 16px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <ShoppingCart size={14} /> Meus Cards
-                        </a>
-                    </div>
-                ) : (
-                    <a href="/login" style={{ background: 'var(--primary-gradient)', color: '#000', padding: '10px 20px', borderRadius: 10, fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}>
-                        Entrar / Cadastrar
-                    </a>
-                )}
-            </header>
-
-            {/* Hero */}
-            <section style={{ textAlign: 'center', padding: '64px 40px 48px' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(172,248,0,0.08)', border: '1px solid rgba(172,248,0,0.2)', borderRadius: 40, padding: '6px 16px', marginBottom: 24 }}>
-                    <Zap size={14} color="#acf800" />
-                    <span style={{ color: '#acf800', fontSize: '0.8rem', fontWeight: 700, letterSpacing: 1 }}>PLUG CARDS EXCHANGE</span>
-                </div>
-                <h2 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 900, color: '#f8fafc', margin: '0 0 16px', lineHeight: 1.1, letterSpacing: '-1px' }}>
-                    Capacidade de Disparo<br />
-                    <span style={{ background: 'linear-gradient(135deg,#acf800,#84c000)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Sob Demanda</span>
-                </h2>
-                <p style={{ color: '#64748b', fontSize: '1.1rem', maxWidth: 560, margin: '0 auto', lineHeight: 1.6 }}>
-                    Escolha o card ideal para sua operação. Volume garantido, prioridade no envio e proteção anti-ban calibrada para cada escala.
+                <h1 style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-2px', lineHeight: 0.9 }}>
+                    Potencialize seu <span style={{ color: '#acf800' }}>Ecossistema</span>
+                </h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: 600, margin: '0 auto', lineHeight: 1.6 }}>
+                    Adquira capacidade de disparo inteligente com performance acelerada, <br />
+                    proteção anti-ban avançada e prioridade máxima na rede.
                 </p>
-            </section>
+            </div>
 
-            {/* Cards Grid */}
             {loading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                    <Loader size={40} color="#acf800" style={{ animation: 'spin 1s linear infinite' }} />
+                    <Loader size={48} color="#acf800" style={{ animation: 'spin 1.5s linear infinite' }} />
                 </div>
             ) : (
-                <section style={{ maxWidth: 1400, margin: '0 auto', padding: '0 32px 80px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
-                    {cards.map(card => {
-                        const t = TIER_CONFIG[card.tier] || TIER_CONFIG.foundation;
-                        const isHovered = hoveredId === card.id;
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 20 }}>
+                    {catalog.filter(c => c.is_active).map(card => {
+                        const ui = TIER_UI[card.tier] || TIER_UI.foundation;
+                        const Icon = ui.icon;
+                        const resources = card.features?.resources || [];
+
                         return (
-                            <div
+                            <div 
                                 key={card.id}
-                                onMouseEnter={() => setHoveredId(card.id)}
-                                onMouseLeave={() => setHoveredId(null)}
                                 style={{
                                     background: 'rgba(15,23,42,0.8)',
                                     backdropFilter: 'blur(20px)',
-                                    border: `1px solid ${isHovered ? t.border : 'rgba(255,255,255,0.06)'}`,
-                                    borderRadius: 20,
-                                    padding: '28px 24px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-                                    transform: isHovered ? 'translateY(-6px)' : 'translateY(0)',
-                                    boxShadow: isHovered ? `0 20px 60px ${t.glow}, 0 0 0 1px ${t.border}` : '0 4px 24px rgba(0,0,0,0.4)',
-                                    display: 'flex', flexDirection: 'column', gap: 20,
-                                    position: 'relative', overflow: 'hidden'
+                                    border: `1px solid ${ui.border}`,
+                                    borderRadius: 30,
+                                    padding: '32px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    cursor: 'pointer'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-10px)';
+                                    e.currentTarget.style.boxShadow = `0 20px 60px ${ui.glow}`;
+                                    e.currentTarget.style.borderColor = ui.color;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                    e.currentTarget.style.borderColor = ui.border;
                                 }}
                             >
-                                {/* Glow bg */}
-                                <div style={{ position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: '50%', background: t.glow, filter: 'blur(40px)', pointerEvents: 'none' }} />
+                                {/* Glow Corner */}
+                                <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: ui.glow, filter: 'blur(40px)', pointerEvents: 'none' }} />
 
-                                {/* Header */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                            <span style={{ fontSize: '1.2rem' }}>{t.emoji}</span>
-                                            <span style={{ background: `${t.badge}20`, color: t.badge, border: `1px solid ${t.badge}40`, borderRadius: 30, padding: '3px 10px', fontSize: '0.65rem', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>
-                                                {t.label}
-                                            </span>
+                                <div style={{ marginBottom: 24 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                                        <div style={{ background: ui.bg, border: `1px solid ${ui.border}`, padding: 12, borderRadius: 16, display: 'flex', color: ui.color }}>
+                                            <Icon size={24} strokeWidth={2.5} />
                                         </div>
-                                        <h3 style={{ margin: 0, color: '#f8fafc', fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.3px' }}>
-                                            {card.name.split(' | ')[0]}
-                                        </h3>
-                                        <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '0.8rem', fontWeight: 500 }}>
-                                            {card.name.split(' | ')[1]}
-                                        </p>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ color: '#acf800', fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.5px' }}>
-                                            {formatPrice(card.price)}
+                                        <div>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: ui.color, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 2 }}>Tier {ui.label}</div>
+                                            <h3 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.3px' }}>{card.name.split(' | ')[0]}</h3>
                                         </div>
-                                        <div style={{ color: '#475569', fontSize: '0.7rem' }}>à vista</div>
                                     </div>
+                                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5, minHeight: 40 }}>
+                                        {card.copy || "Capacidade estratégica para sua operação."}
+                                    </p>
                                 </div>
 
-                                {/* Volume destaque */}
-                                <div style={{ background: `${t.badge}10`, border: `1px solid ${t.badge}20`, borderRadius: 12, padding: '14px 18px', textAlign: 'center' }}>
-                                    <div style={{ color: t.badge, fontWeight: 900, fontSize: '2rem', letterSpacing: '-1px', lineHeight: 1 }}>
+                                {/* Main Specs */}
+                                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div style={{ color: ui.color, fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', marginBottom: 4 }}>
                                         {formatVolume(card.total_volume)}
+                                        <span style={{ fontSize: '1rem', marginLeft: 6, fontWeight: 700, color: 'var(--text-muted)' }}>envios</span>
                                     </div>
-                                    <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 4, fontWeight: 600 }}>disparos incluídos</div>
-                                </div>
-
-                                {/* Specs */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                    {[
-                                        { label: 'Chips', value: card.max_chips === 99 ? 'Ilimitado' : card.max_chips, icon: <Cpu size={13} /> },
-                                        { label: 'Campanhas', value: card.max_campaigns === 99 ? 'Ilimitadas' : card.max_campaigns, icon: <Zap size={13} /> },
-                                        { label: 'Velocidade', value: SPEED_LABEL[card.speed] || card.speed, icon: <Zap size={13} /> },
-                                        { label: 'Anti-Ban', value: ANTIBAN_LABEL[card.anti_ban_level] || card.anti_ban_level, icon: <Shield size={13} /> },
-                                    ].map(s => (
-                                        <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 12px' }}>
-                                            <div style={{ color: '#475569', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                                                {s.icon} {s.label}
-                                            </div>
-                                            <div style={{ color: '#cbd5e1', fontWeight: 700, fontSize: '0.85rem' }}>{s.value}</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-secondary)', fontSize: '0.72rem', fontWeight: 600 }}>
+                                            <Cpu size={12} /> {card.max_chips === 99 ? '∞' : card.max_chips} Chips
                                         </div>
-                                    ))}
-                                </div>
-
-                                {/* Prioridade */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 600 }}>Prioridade de Envio</span>
-                                    <div style={{ display: 'flex', gap: 4 }}>
-                                        {['low', 'medium', 'high', 'max'].map((p, i) => {
-                                            const levels = ['low', 'medium', 'high', 'max'];
-                                            const active = levels.indexOf(card.priority_level) >= i;
-                                            return <div key={p} style={{ width: 20, height: 6, borderRadius: 3, background: active ? t.badge : 'rgba(255,255,255,0.08)', transition: 'background 0.2s' }} />;
-                                        })}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-secondary)', fontSize: '0.72rem', fontWeight: 600 }}>
+                                            <Zap size={12} /> {card.max_campaigns === 99 ? '∞' : card.max_campaigns} Camps
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-secondary)', fontSize: '0.72rem', fontWeight: 600 }}>
+                                            <Shield size={12} /> {card.anti_ban_level} Ban
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Features */}
-                                {card.features?.manager && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                        {card.features.manager && <span style={{ background: 'rgba(234,179,8,0.1)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 20, padding: '2px 10px', fontSize: '0.65rem', fontWeight: 700 }}>👤 Gestor Dedicado</span>}
-                                        {card.features.api && <span style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 20, padding: '2px 10px', fontSize: '0.65rem', fontWeight: 700 }}>🔌 API Access</span>}
-                                        {card.features.custom && <span style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 20, padding: '2px 10px', fontSize: '0.65rem', fontWeight: 700 }}>⚙️ Custom</span>}
-                                    </div>
-                                )}
+                                {/* Features List */}
+                                <div style={{ flex: 1, marginBottom: 30 }}>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Recursos Inclusos:</div>
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                        {resources.map((res: string, idx: number) => (
+                                            <li key={idx} style={{ display: 'flex', alignItems: 'start', gap: 10, color: 'var(--text-secondary)', fontSize: '0.78rem', marginBottom: 10, lineHeight: 1.3 }}>
+                                                <div style={{ background: 'rgba(172,248,0,0.1)', borderRadius: 4, padding: 2, display: 'flex', marginTop: 1 }}>
+                                                    <Check size={12} color="#acf800" strokeWidth={3} />
+                                                </div>
+                                                {res}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
 
-                                {/* CTA */}
-                                <button
-                                    id={`buy-btn-${card.id}`}
-                                    onClick={() => openCheckout(card)}
-                                    style={{
-                                        background: isHovered ? t.badge : 'rgba(255,255,255,0.05)',
-                                        color: isHovered ? '#000' : '#94a3b8',
-                                        border: `1px solid ${isHovered ? t.badge : 'rgba(255,255,255,0.1)'}`,
-                                        borderRadius: 12, padding: '14px', width: '100%',
-                                        fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer',
-                                        transition: 'all 0.25s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                                    }}
-                                >
-                                    <ShoppingCart size={16} /> Adquirir Card <ChevronRight size={16} />
-                                </button>
+                                {/* Action */}
+                                <div style={{ marginTop: 'auto' }}>
+                                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'line-through', opacity: 0.5 }}>De {formatPrice(parseFloat(card.price) * 1.5)}</div>
+                                        <div style={{ color: 'var(--text-primary)', fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.5px' }}>{formatPrice(card.price)}</div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setCheckoutCard(card)}
+                                        style={{
+                                            width: '100%',
+                                            background: `linear-gradient(135deg, ${ui.color}, ${ui.accent})`,
+                                            color: card.tier === 'foundation' || card.tier === 'growth' ? '#fff' : '#000',
+                                            border: 'none',
+                                            borderRadius: 16,
+                                            padding: '16px',
+                                            fontWeight: 900,
+                                            fontSize: '0.9rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: 8,
+                                            boxShadow: `0 10px 30px ${ui.glow}`,
+                                            transition: 'transform 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
+                                        Adquirir Capacidade <ArrowRight size={18} />
+                                    </button>
+                                </div>
                             </div>
                         );
                     })}
-                </section>
+                </div>
             )}
 
             {/* Checkout Modal */}
-            {selectedCard && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.92)', backdropFilter: 'blur(12px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
-                    onClick={(e) => { if (e.target === e.currentTarget && checkoutStep !== 'processing') closeCheckout(); }}>
-                    <div style={{ background: '#0a0f1e', border: `1px solid ${tier?.border || 'rgba(255,255,255,0.1)'}`, borderRadius: 24, maxWidth: 480, width: '100%', padding: 32, boxShadow: `0 0 60px ${tier?.glow}`, position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-
-                        {checkoutStep !== 'processing' && checkoutStep !== 'success' && (
-                            <button onClick={closeCheckout} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.05)', border: 'none', color: '#64748b', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
-                        )}
-
-                        {/* Card Summary */}
-                        {(checkoutStep === 'details' || checkoutStep === 'payment') && (
-                            <>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                                    <span style={{ fontSize: '2rem' }}>{tier?.emoji}</span>
-                                    <div>
-                                        <h3 style={{ margin: 0, color: '#f8fafc', fontWeight: 900, fontSize: '1.1rem' }}>{selectedCard.name.split(' | ')[0]}</h3>
-                                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.8rem' }}>{selectedCard.name.split(' | ')[1]}</p>
-                                    </div>
-                                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                                        <div style={{ color: '#acf800', fontWeight: 900, fontSize: '1.4rem' }}>{formatPrice(selectedCard.price)}</div>
-                                        <div style={{ color: '#475569', fontSize: '0.7rem' }}>{formatVolume(selectedCard.total_volume)} disparos</div>
-                                    </div>
+            {checkoutCard && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(15px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                    <div style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: 32, maxWidth: 900, width: '100%', display: 'grid', gridTemplateColumns: '1.2fr 1fr', overflow: 'hidden' }}>
+                        
+                        {/* Details Side */}
+                        <div style={{ padding: 40, background: 'rgba(255,255,255,0.02)', borderRight: '1px solid var(--surface-border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 30 }}>
+                                <div style={{ background: TIER_UI[checkoutCard.tier].bg, color: TIER_UI[checkoutCard.tier].color, padding: 12, borderRadius: 16 }}>
+                                    <CreditCard size={28} />
                                 </div>
+                                <div>
+                                    <h2 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 900, fontSize: '1.5rem' }}>Confirme sua Compra</h2>
+                                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Ativação imediata em sua conta</p>
+                                </div>
+                            </div>
 
-                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24, marginBottom: 24 }}>
-                                    <h4 style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>Método de Pagamento</h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
-                                        {(['credit_card', 'debit_card', 'pix'] as const).map(m => {
-                                            const labels = { credit_card: '💳 Crédito', debit_card: '💳 Débito', pix: '⚡ PIX' };
-                                            return (
-                                                <button
-                                                    key={m}
-                                                    onClick={() => setCheckoutData(d => ({ ...d, paymentMethod: m }))}
-                                                    style={{ background: checkoutData.paymentMethod === m ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${checkoutData.paymentMethod === m ? 'rgba(172,248,0,0.5)' : 'rgba(255,255,255,0.08)'}`, color: checkoutData.paymentMethod === m ? '#acf800' : '#64748b', borderRadius: 10, padding: '10px 8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.75rem', transition: 'all 0.2s' }}
-                                                >{labels[m]}</button>
-                                            );
-                                        })}
-                                    </div>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border)', borderRadius: 24, padding: 24, marginBottom: 30 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Produto selecionado:</span>
+                                    <span style={{ color: TIER_UI[checkoutCard.tier].color, fontWeight: 900 }}>{checkoutCard.name}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Volume de disparo:</span>
+                                    <span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>{formatVolume(checkoutCard.total_volume)} envios</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nível de prioridade:</span>
+                                    <span style={{ color: 'var(--text-primary)', fontWeight: 800, textTransform: 'capitalize' }}>{checkoutCard.priority_level}</span>
+                                </div>
+                                <div style={{ height: 1, background: 'var(--surface-border)', margin: '15px 0' }} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>Valor Total:</span>
+                                    <span style={{ color: '#acf800', fontWeight: 900, fontSize: '1.8rem' }}>{formatPrice(checkoutCard.price)}</span>
+                                </div>
+                            </div>
 
-                                    {(checkoutData.paymentMethod === 'credit_card' || checkoutData.paymentMethod === 'debit_card') && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                            <div>
-                                                <label style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600, marginBottom: 6, display: 'block' }}>Número do Cartão</label>
-                                                <input
-                                                    id="card-number-input"
-                                                    placeholder="0000 0000 0000 0000"
-                                                    value={checkoutData.cardNumber}
-                                                    onChange={e => setCheckoutData(d => ({ ...d, cardNumber: formatCardNumber(e.target.value) }))}
-                                                    style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 14px', color: '#f8fafc', fontSize: '1rem', fontFamily: 'monospace', letterSpacing: 2, outline: 'none' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600, marginBottom: 6, display: 'block' }}>Nome no Cartão</label>
-                                                <input
-                                                    id="card-holder-input"
-                                                    placeholder="NOME COMPLETO"
-                                                    value={checkoutData.cardHolder}
-                                                    onChange={e => setCheckoutData(d => ({ ...d, cardHolder: e.target.value.toUpperCase() }))}
-                                                    style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 14px', color: '#f8fafc', fontSize: '0.9rem', outline: 'none' }}
-                                                />
-                                            </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                                <div>
-                                                    <label style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600, marginBottom: 6, display: 'block' }}>Validade</label>
-                                                    <input
-                                                        id="expiry-input"
-                                                        placeholder="MM/AA"
-                                                        value={checkoutData.expiryDate}
-                                                        onChange={e => setCheckoutData(d => ({ ...d, expiryDate: formatExpiry(e.target.value) }))}
-                                                        style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 14px', color: '#f8fafc', fontSize: '0.9rem', outline: 'none' }}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600, marginBottom: 6, display: 'block' }}>CVV</label>
-                                                    <input
-                                                        id="cvv-input"
-                                                        placeholder="000"
-                                                        maxLength={4}
-                                                        value={checkoutData.cvv}
-                                                        onChange={e => setCheckoutData(d => ({ ...d, cvv: e.target.value.replace(/\D/g, '') }))}
-                                                        style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 14px', color: '#f8fafc', fontSize: '0.9rem', outline: 'none', fontFamily: 'monospace' }}
-                                                    />
-                                                </div>
-                                            </div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <div style={{ background: 'rgba(172,248,0,0.05)', padding: 15, borderRadius: 16, display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                                    <ShieldCheck size={20} color="#acf800" />
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.3 }}>Ativação garantida e segura via gateway Plug & Sales.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Payment Side */}
+                        <div style={{ padding: 40, display: 'flex', flexDirection: 'column' }}>
+                            <h3 style={{ color: 'var(--text-primary)', marginBottom: 20, fontWeight: 800 }}>Método de Pagamento</h3>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 40 }}>
+                                {[
+                                    { id: 'pix', label: 'PIX (Aprovação Instantânea)', icon: <Zap size={18} /> },
+                                    { id: 'credit_card', label: 'Cartão de Crédito', icon: <CreditCard size={18} /> },
+                                    { id: 'debit_card', label: 'Cartão de Débito', icon: <Plus size={18} /> },
+                                ].map(m => (
+                                    <button 
+                                        key={m.id}
+                                        onClick={() => setPaymentMethod(m.id as any)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '16px 20px',
+                                            borderRadius: 16,
+                                            border: `1px solid ${paymentMethod === m.id ? '#acf800' : 'var(--surface-border)'}`,
+                                            background: paymentMethod === m.id ? 'rgba(172,248,0,0.05)' : 'transparent',
+                                            color: paymentMethod === m.id ? '#acf800' : 'var(--text-secondary)',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            {m.icon}
+                                            {m.label}
                                         </div>
-                                    )}
+                                        {paymentMethod === m.id && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#acf800' }} />}
+                                    </button>
+                                ))}
+                            </div>
 
-                                    {checkoutData.paymentMethod === 'pix' && (
-                                        <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)', borderRadius: 14 }}>
-                                            <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>⚡</div>
-                                            <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.85rem' }}>Após confirmação, um QR Code PIX será gerado para pagamento instantâneo.</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {!user && (
-                                    <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 16 }}>
-                                        <AlertCircle size={16} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />
-                                        <p style={{ margin: 0, color: '#fca5a5', fontSize: '0.8rem' }}>
-                                            Você precisa estar <strong>logado</strong> para concluir a compra. <a href="/login" style={{ color: '#acf800' }}>Entrar aqui →</a>
-                                        </p>
-                                    </div>
-                                )}
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-                                    <Lock size={12} color="#475569" />
-                                    <span style={{ color: '#475569', fontSize: '0.72rem' }}>Pagamento seguro • Dados criptografados</span>
-                                </div>
-
-                                <button
-                                    id="confirm-purchase-btn"
+                            <div style={{ marginTop: 'auto' }}>
+                                <button 
                                     onClick={handleBuy}
-                                    style={{ width: '100%', background: 'linear-gradient(135deg,#acf800,#84c000)', color: '#000', border: 'none', borderRadius: 14, padding: '16px', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                                    disabled={buyingId !== null}
+                                    style={{
+                                        width: '100%',
+                                        background: '#acf800',
+                                        color: '#000',
+                                        border: 'none',
+                                        borderRadius: 16,
+                                        padding: '18px',
+                                        fontWeight: 900,
+                                        fontSize: '1rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 10,
+                                        marginBottom: 12
+                                    }}
                                 >
-                                    <Lock size={18} /> Confirmar Compra — {formatPrice(selectedCard.price)}
+                                    {buyingId !== null ? <Loader size={20} style={{ animation: 'spin 1s linear infinite' }} /> : 'Finalizar e Ativar Agora'}
+                                    <ChevronRight size={20} />
                                 </button>
-                            </>
-                        )}
-
-                        {/* Processing */}
-                        {checkoutStep === 'processing' && (
-                            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                                <div style={{ width: 64, height: 64, border: '4px solid rgba(172,248,0,0.2)', borderTop: '4px solid #acf800', borderRadius: '50%', margin: '0 auto 24px', animation: 'spin 1s linear infinite' }} />
-                                <h3 style={{ color: '#f8fafc', marginBottom: 8 }}>Processando Pagamento...</h3>
-                                <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Aguarde enquanto verificamos sua transação.</p>
+                                <button onClick={() => setCheckoutCard(null)} style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', padding: 10 }}>Cancelar Transação</button>
                             </div>
-                        )}
-
-                        {/* Success */}
-                        {checkoutStep === 'success' && txResult && (
-                            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                                <div style={{ width: 72, height: 72, background: 'rgba(172,248,0,0.1)', border: '2px solid #acf800', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                                    <Check size={36} color="#acf800" />
-                                </div>
-                                <h3 style={{ color: '#f8fafc', marginBottom: 8, fontWeight: 900 }}>Compra Realizada! 🎉</h3>
-                                <p style={{ color: '#64748b', marginBottom: 24, fontSize: '0.9rem' }}>{txResult.message}</p>
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '16px', textAlign: 'left', marginBottom: 24 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Transação ID</span>
-                                        <span style={{ color: '#acf800', fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700 }}>{txResult.transaction.id}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Valor</span>
-                                        <span style={{ color: '#f8fafc', fontWeight: 700 }}>{formatPrice(String(txResult.transaction.amount))}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>Status</span>
-                                        <span style={{ color: '#acf800', fontWeight: 700, fontSize: '0.8rem' }}>✅ Aprovado</span>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: 10 }}>
-                                    <button onClick={closeCheckout} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 12, padding: '12px', fontWeight: 700, cursor: 'pointer' }}>Fechar</button>
-                                    <a href="/my-cards" style={{ flex: 1, background: 'linear-gradient(135deg,#acf800,#84c000)', color: '#000', borderRadius: 12, padding: '12px', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '0.9rem' }}>
-                                        Ver Meus Cards →
-                                    </a>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Error */}
-                        {checkoutStep === 'error' && (
-                            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                                <div style={{ width: 72, height: 72, background: 'rgba(239,68,68,0.1)', border: '2px solid #ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                                    <X size={36} color="#ef4444" />
-                                </div>
-                                <h3 style={{ color: '#f8fafc', marginBottom: 8 }}>Pagamento Recusado</h3>
-                                <p style={{ color: '#94a3b8', marginBottom: 24, fontSize: '0.9rem' }}>{errorMsg}</p>
-                                <button onClick={() => setCheckoutStep('details')} style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 12, padding: '12px', fontWeight: 700, cursor: 'pointer' }}>
-                                    Tentar Novamente
-                                </button>
-                            </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             )}

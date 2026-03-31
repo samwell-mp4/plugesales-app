@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Zap, Shield, Cpu, TrendingUp, ShoppingCart, RefreshCw, Loader } from 'lucide-react';
+import { CreditCard, Zap, Shield, Cpu, TrendingUp, ShoppingCart, RefreshCw, Loader, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface UserCard {
@@ -21,7 +21,8 @@ interface UserCard {
     anti_ban_level: string;
     max_chips: number;
     max_campaigns: number;
-    features: { support?: string; manager?: boolean; api?: boolean; custom?: boolean };
+    features: { resources?: string[] };
+    copy: string;
     catalog_price: string;
 }
 
@@ -74,7 +75,7 @@ export default function MyPlugCards() {
     const activeCards = cards.filter(c => c.status === 'active').length;
 
     return (
-        <div style={{ fontFamily: 'var(--font-family)', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ fontFamily: 'var(--font-family)', maxWidth: 1100, margin: '0 auto', paddingBottom: 60 }}>
 
             {/* Page Header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
@@ -179,7 +180,7 @@ export default function MyPlugCards() {
                                                     </span>
                                                 </div>
                                                 <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                                                    {card.card_name.split(' | ')[1]} • Adquirido em {new Date(card.created_at).toLocaleDateString('pt-BR')}
+                                                    {card.copy || card.card_name.split(' | ')[1]} • Adquirido em {new Date(card.created_at).toLocaleDateString('pt-BR')}
                                                 </p>
                                             </div>
                                         </div>
@@ -201,11 +202,23 @@ export default function MyPlugCards() {
                                             </div>
                                         </div>
 
+                                        {/* Resources */}
+                                        {card.features?.resources && (
+                                            <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                {card.features.resources.map((res, idx) => (
+                                                    <span key={idx} style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.03)', padding: '2px 8px', borderRadius: 6 }}>
+                                                        <Check size={10} color="#acf800" /> {res}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         {/* Specs grid */}
                                         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                                             {[
                                                 { label: 'Chips', value: card.max_chips === 99 ? '∞' : card.max_chips, icon: <Cpu size={12} /> },
-                                                { label: 'Campanhas Ativas', value: card.active_campaigns || '—', icon: <Zap size={12} /> },
+                                                { label: 'Campanhas', value: card.max_campaigns === 99 ? '∞' : card.max_campaigns, icon: <Zap size={12} /> },
+                                                { label: 'Prioridade', value: card.priority_level, icon: <TrendingUp size={12} /> },
                                                 { label: 'Anti-Ban', value: card.anti_ban_level, icon: <Shield size={12} /> },
                                                 { label: 'Pagamento', value: PM_LABELS[card.payment_method] || card.payment_method, icon: <CreditCard size={12} /> },
                                             ].map(s => (

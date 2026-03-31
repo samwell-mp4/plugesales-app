@@ -124,11 +124,26 @@ const EngineExecution = () => {
             : activeCampaign.steps;
 
         // Calculate real total from contact lists
+        const uniqueChips = new Set(stepsToProcess.map((s: any) => s.wabaId)).size;
+        totalRecords = 0; // Reset existing totalRecords
         const enrichedSteps = await Promise.all(stepsToProcess.map(async (s: any) => {
             const contacts = await dbService.getContactsByTag(s.listTag) || [];
             totalRecords += contacts.length;
             return { ...s, contacts };
         }));
+
+        // --- PLUG CARDS VALIDATION ---
+        if (user?.id) {
+            try {
+                const validation = await dbService.validatePlugCard(user.id, totalRecords, uniqueChips);
+                if (validation.error) {
+                    setIsRunning(false);
+                    return alert(`🚫 Bloqueio Plug Cards: ${validation.error}`);
+                }
+            } catch (vErr) {
+                console.error("Validation error:", vErr);
+            }
+        }
 
         for (let sIdx = 0; sIdx < enrichedSteps.length; sIdx++) {
             if (!isRunning && processed > 0) break;

@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
-import { CreditCard, Users, TrendingUp, DollarSign, ToggleLeft, ToggleRight, RefreshCw, Loader, ShoppingCart } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { CreditCard, Users, TrendingUp, DollarSign, ToggleLeft, ToggleRight, RefreshCw, Loader, ShoppingCart, Edit, X, Save, Shield, Cpu, Zap } from 'lucide-react';
+import { dbService } from '../services/dbService';
 
-interface AdminCard {
+// Interface for Sales/Transactions (Overview tab)
+interface AdminCardSale {
     id: number;
     user_name: string;
     user_email: string;
@@ -11,35 +13,32 @@ interface AdminCard {
     total_volume: number;
     used_volume: number;
     remaining_volume: number;
-    status: string;
+    purchased_price: string;
     payment_method: string;
     payment_ref: string;
-    purchased_price: string;
-    catalog_price: string;
+    status: string;
     created_at: string;
 }
 
-interface CatalogCard {
+// Interface for the Catalog items
+interface CatalogPlugCard {
     id: number;
     name: string;
     tier: string;
     total_volume: number;
-    price: string;
-    is_active: boolean;
     max_chips: number;
     max_campaigns: number;
-}
-
-interface Stats {
-    total_cards: string;
-    active_cards: string;
-    total_revenue: string;
-    total_volume_sold: string;
-    total_volume_used: string;
+    priority_level: string;
+    speed: string;
+    anti_ban_level: string;
+    features: { resources?: string[] };
+    copy: string;
+    price: string | number;
+    is_active: boolean;
 }
 
 const TIER_CONFIG: Record<string, { badge: string; label: string; emoji: string }> = {
-    foundation: { badge: '#94a3b8', label: 'Foundation', emoji: '🧱' },
+    foundation:  { badge: '#94a3b8', label: 'Foundation',  emoji: '🧱' },
     growth:      { badge: '#3b82f6', label: 'Growth',      emoji: '📈' },
     performance: { badge: '#acf800', label: 'Performance', emoji: '⚡' },
     velocity:    { badge: '#06b6d4', label: 'Velocity',    emoji: '🚀' },
@@ -49,43 +48,52 @@ const TIER_CONFIG: Record<string, { badge: string; label: string; emoji: string 
     apex:        { badge: '#ef4444', label: 'Apex',        emoji: '💎' },
 };
 
-const formatVolume = (v: number | string) => {
-    const n = Number(v);
-    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-    if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
-    return String(n);
+const formatVolume = (v: number) => {
+    if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+    if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
+    return v.toString();
 };
 
 const formatPrice = (p: string | number) =>
-    parseFloat(String(p) || '0').toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    parseFloat(String(p)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-const PM_LABELS: Record<string, string> = { credit_card: '💳 Crédito', debit_card: '💳 Débito', pix: '⚡ PIX' };
+const PM_LABELS: Record<string, string> = {
+    credit_card: '💳 Crédito',
+    debit_card: '💳 Débito',
+    pix: '⚡ PIX',
+};
 
 export default function AdminPlugCards() {
     const [tab, setTab] = useState<'overview' | 'catalog'>('overview');
-    const [cards, setCards] = useState<AdminCard[]>([]);
-    const [catalog, setCatalog] = useState<CatalogCard[]>([]);
-    const [stats, setStats] = useState<Stats | null>(null);
+    const [cards, setCards] = useState<AdminCardSale[]>([]);
+    const [catalog, setCatalog] = useState<CatalogPlugCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [toggling, setToggling] = useState<number | null>(null);
+    const [editingCard, setEditingCard] = useState<CatalogPlugCard | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [stats, setStats] = useState<any>(null);
 
-    const fetchOverview = async () => {
+    const fetchOverview = () => {
         setLoading(true);
-        try {
-            const res = await fetch('/api/plug-cards/admin');
-            const data = await res.json();
-            setCards(data.cards || []);
-            setStats(data.stats || null);
-        } finally { setLoading(false); }
+        fetch('/api/plug-cards/admin/overview')
+            .then(r => r.json())
+            .then(data => {
+                setCards(data.sales || []);
+                setStats(data.stats || null);
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
     };
 
-    const fetchCatalog = async () => {
+    const fetchCatalog = () => {
         setLoading(true);
-        try {
-            const res = await fetch('/api/plug-cards');
-            const data = await res.json();
-            setCatalog(Array.isArray(data) ? data : []);
-        } finally { setLoading(false); }
+        fetch('/api/plug-cards')
+            .then(r => r.json())
+            .then(data => {
+                setCatalog(Array.isArray(data) ? data : []);
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
     };
 
     useEffect(() => { fetchOverview(); fetchCatalog(); }, []);
@@ -98,8 +106,24 @@ export default function AdminPlugCards() {
         } finally { setToggling(null); }
     };
 
+    const handleSaveCard = async () => {
+        if (!editingCard) return;
+        setIsSaving(true);
+        try {
+            const res = await dbService.updatePlugCard(editingCard.id, editingCard);
+            if (res.success) {
+                setEditingCard(null);
+                fetchCatalog();
+            } else {
+                alert("Erro ao salvar: " + (res.error || 'Erro desconhecido'));
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
-        <div style={{ fontFamily: 'var(--font-family)', maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ fontFamily: 'var(--font-family)', maxWidth: 1200, margin: '0 auto', paddingBottom: 60 }}>
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
@@ -118,14 +142,14 @@ export default function AdminPlugCards() {
                     <button onClick={() => { fetchOverview(); fetchCatalog(); }} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--surface-border)', color: 'var(--text-secondary)', borderRadius: 10, padding: '9px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.82rem' }}>
                         <RefreshCw size={13} /> Atualizar
                     </button>
-                    <a href="/plug-cards" target="_blank" style={{ background: 'rgba(172,248,0,0.08)', border: '1px solid rgba(172,248,0,0.2)', color: '#acf800', borderRadius: 10, padding: '9px 14px', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem' }}>
+                    <a href="/plug-cards" style={{ background: 'rgba(172,248,0,0.08)', border: '1px solid rgba(172,248,0,0.2)', color: '#acf800', borderRadius: 10, padding: '9px 14px', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem' }}>
                         <ShoppingCart size={13} /> Ver Exchange
                     </a>
                 </div>
             </div>
 
             {/* Stats row */}
-            {stats && (
+            {stats && (tab === 'overview') && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 14, marginBottom: 28 }}>
                     {[
                         { label: 'Cards Vendidos', value: stats.total_cards || '0', icon: <CreditCard size={15} />, color: '#acf800' },
@@ -147,16 +171,8 @@ export default function AdminPlugCards() {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 4, background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: 12, padding: 4, width: 'fit-content', marginBottom: 24 }}>
-                {[
-                    { key: 'overview', label: '📊 Vendas' },
-                    { key: 'catalog', label: '🗂️ Catálogo' },
-                ].map(t => (
-                    <button
-                        key={t.key}
-                        onClick={() => setTab(t.key as any)}
-                        style={{ background: tab === t.key ? 'rgba(172,248,0,0.1)' : 'transparent', color: tab === t.key ? '#acf800' : '#64748b', border: `1px solid ${tab === t.key ? 'rgba(172,248,0,0.3)' : 'transparent'}`, borderRadius: 9, padding: '8px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', transition: 'all 0.2s' }}
-                    >{t.label}</button>
-                ))}
+                <button onClick={() => setTab('overview')} style={{ background: tab === 'overview' ? 'rgba(172,248,0,0.1)' : 'transparent', color: tab === 'overview' ? '#acf800' : '#64748b', border: `1px solid ${tab === 'overview' ? 'rgba(172,248,0,0.3)' : 'transparent'}`, borderRadius: 9, padding: '8px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', transition: 'all 0.2s' }}>📊 Vendas</button>
+                <button onClick={() => setTab('catalog')} style={{ background: tab === 'catalog' ? 'rgba(172,248,0,0.1)' : 'transparent', color: tab === 'catalog' ? '#acf800' : '#64748b', border: `1px solid ${tab === 'catalog' ? 'rgba(172,248,0,0.3)' : 'transparent'}`, borderRadius: 9, padding: '8px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', transition: 'all 0.2s' }}>🗂️ Catálogo</button>
             </div>
 
             {loading ? (
@@ -224,12 +240,12 @@ export default function AdminPlugCards() {
                 )
             ) : (
                 /* Catálogo */
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px,1fr))', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 14 }}>
                     {catalog.map(c => {
                         const t = TIER_CONFIG[c.tier] || TIER_CONFIG.foundation;
                         const isToggling = toggling === c.id;
                         return (
-                            <div key={c.id} style={{ background: c.is_active ? 'rgba(15,23,42,0.8)' : 'rgba(15,23,42,0.4)', border: `1px solid ${c.is_active ? t.badge + '30' : 'rgba(255,255,255,0.06)'}`, borderRadius: 16, padding: '20px', opacity: c.is_active ? 1 : 0.6, transition: 'all 0.2s' }}>
+                            <div key={c.id} style={{ background: c.is_active ? 'rgba(15,23,42,0.8)' : 'rgba(15,23,42,0.4)', border: `1px solid ${c.is_active ? t.badge + '30' : 'rgba(255,255,255,0.06)'}`, borderRadius: 16, padding: '20px', opacity: c.is_active ? 1 : 0.6, transition: 'all 0.2s', position: 'relative' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -239,21 +255,27 @@ export default function AdminPlugCards() {
                                         <h4 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 900, fontSize: '0.95rem' }}>{c.name.split(' | ')[0]}</h4>
                                         <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{c.name.split(' | ')[1]}</p>
                                     </div>
-                                    <button
-                                        onClick={() => toggleCard(c.id)}
-                                        disabled={isToggling}
-                                        style={{ background: 'transparent', border: 'none', cursor: isToggling ? 'not-allowed' : 'pointer', color: c.is_active ? '#acf800' : '#64748b', padding: 4, borderRadius: 6 }}
-                                        title={c.is_active ? 'Desativar card' : 'Ativar card'}
-                                    >
-                                        {isToggling ? <Loader size={20} style={{ animation: 'spin 1s linear infinite' }} /> : c.is_active ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-                                    </button>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                        <button onClick={() => setEditingCard({ ...c })} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 6, borderRadius: 6 }}>
+                                            <Edit size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => toggleCard(c.id)}
+                                            disabled={isToggling}
+                                            style={{ background: 'transparent', border: 'none', cursor: isToggling ? 'not-allowed' : 'pointer', color: c.is_active ? '#acf800' : '#64748b', padding: 4, borderRadius: 6 }}
+                                            title={c.is_active ? 'Desativar card' : 'Ativar card'}
+                                        >
+                                            {isToggling ? <Loader size={20} style={{ animation: 'spin 1s linear infinite' }} /> : c.is_active ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div style={{ color: t.badge, fontWeight: 900, fontSize: '1.2rem' }}>{formatVolume(c.total_volume)}</div>
                                     <div style={{ color: '#acf800', fontWeight: 900, fontSize: '1rem' }}>{formatPrice(c.price)}</div>
                                 </div>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: 8 }}>
-                                    {c.max_chips === 99 ? '∞' : c.max_chips} chips • {c.max_campaigns === 99 ? '∞' : c.max_campaigns} campanhas
+                                <div style={{ display: 'flex', gap: 8, marginTop: 10, color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 600 }}>
+                                    <span style={{ background: 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: 6 }}>{c.max_chips === 99 ? '∞' : c.max_chips} Chips</span>
+                                    <span style={{ background: 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: 6 }}>{c.max_campaigns === 99 ? '∞' : c.max_campaigns} Camps</span>
                                 </div>
                             </div>
                         );
@@ -261,7 +283,79 @@ export default function AdminPlugCards() {
                 </div>
             )}
 
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            {/* Edit Modal */}
+            {editingCard && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                    <div style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: 24, padding: 32, maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
+                            <h2 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 950 }}>Editar Card: <span style={{ color: '#acf800' }}>{editingCard.name.split(' | ')[0]}</span></h2>
+                            <button onClick={() => setEditingCard(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 50, padding: 8, color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20}/></button>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                            <div className="input-group">
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Nome Comercial</label>
+                                <input className="input-field" value={editingCard.name} onChange={e => setEditingCard({...editingCard, name: e.target.value})} />
+                            </div>
+                            <div className="input-group">
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Tier</label>
+                                <select className="input-field" value={editingCard.tier} onChange={e => setEditingCard({...editingCard, tier: e.target.value})}>
+                                    {Object.keys(TIER_CONFIG).map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+                                </select>
+                            </div>
+                            <div className="input-group">
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Preço (BRL)</label>
+                                <input className="input-field" type="number" value={editingCard.price} onChange={e => setEditingCard({...editingCard, price: e.target.value})} />
+                            </div>
+                            <div className="input-group">
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Volume Total</label>
+                                <input className="input-field" type="number" value={editingCard.total_volume} onChange={e => setEditingCard({...editingCard, total_volume: parseInt(e.target.value)})} />
+                            </div>
+                            <div className="input-group">
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Máx Chips (99=∞)</label>
+                                <input className="input-field" type="number" value={editingCard.max_chips} onChange={e => setEditingCard({...editingCard, max_chips: parseInt(e.target.value)})} />
+                            </div>
+                            <div className="input-group">
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Máx Campanhas (99=∞)</label>
+                                <input className="input-field" type="number" value={editingCard.max_campaigns} onChange={e => setEditingCard({...editingCard, max_campaigns: parseInt(e.target.value)})} />
+                            </div>
+                        </div>
+
+                        <div className="input-group" style={{ marginTop: 20 }}>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Marketing Copy (Pitch)</label>
+                            <textarea className="input-field" style={{ height: 80, resize: 'none' }} value={editingCard.copy} onChange={e => setEditingCard({...editingCard, copy: e.target.value})} />
+                        </div>
+
+                        <div className="input-group" style={{ marginTop: 20 }}>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Recursos (um por linha)</label>
+                            <textarea 
+                                className="input-field" 
+                                style={{ height: 100, resize: 'none' }} 
+                                value={editingCard.features?.resources?.join('\n') || ''} 
+                                onChange={e => setEditingCard({...editingCard, features: { resources: e.target.value.split('\n') }})} 
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
+                            <button onClick={() => setEditingCard(null)} style={{ flex: 1, padding: '16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer', fontWeight: 800 }}>Cancelar</button>
+                            <button 
+                                onClick={handleSaveCard} 
+                                disabled={isSaving}
+                                style={{ flex: 2, padding: '16px', borderRadius: 12, background: 'linear-gradient(135deg,#acf800,#84c000)', color: '#000', border: 'none', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                            >
+                                {isSaving ? <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={18} />} Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .input-group { margin-bottom: 4px; }
+                .input-field { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--surface-border); border-radius: 12px; padding: 12px 16px; color: white; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; outline: none; }
+                .input-field:focus { border-color: #acf800; background: rgba(0,0,0,0.3); }
+            `}</style>
         </div>
     );
 }
