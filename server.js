@@ -278,6 +278,19 @@ const initDB = async () => {
         await client.query("UPDATE users SET role = 'ADMIN' WHERE name = 'Admin'");
         await client.query("UPDATE users SET role = 'EMPLOYEE' WHERE name IN ('Vini', 'Italo', 'Matheus')");
 
+        // Create/Update Ramon Gomes employee account
+        try {
+            const bcrypt = require('bcrypt');
+            const ramonHash = await bcrypt.hash("Ramon@plugsales2026!", 10);
+            await client.query(`
+                INSERT INTO users (name, email, password, role)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (email) DO UPDATE SET role = 'EMPLOYEE', password = $3
+            `, ['Ramon Gomes', 'ramongomes@plugsales.com.br', ramonHash, 'EMPLOYEE']);
+        } catch (e) {
+            console.error('Failed to create Ramon employee:', e.message);
+        }
+
         // Ensure schemas are up-to-date
         await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS summary JSONB`);
         await safeAlter(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
