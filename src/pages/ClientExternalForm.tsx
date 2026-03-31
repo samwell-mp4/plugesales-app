@@ -186,6 +186,7 @@ const ClientExternalForm = () => {
                 button_link: formData.ads[0]?.button_link || '',
                 original_button_link: formData.ads[0]?.button_link || '',
                 spreadsheet_url: formData.ads[0]?.spreadsheet_url || '',
+                origin: 'CLIENT_FORM'
             };
 
             const result = await dbService.addClientSubmission(payload);

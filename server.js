@@ -209,7 +209,6 @@ const initDB = async () => {
         console.log('✅ Table step_leads verified/created/updated.');
         console.log('✅ Table client_submissions verified/created.');
 
-
         // Backward-compat: add new columns if the table already existed without them
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'CLIENT'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS ads JSONB DEFAULT '[]'`);
@@ -227,8 +226,13 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS original_button_link TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_approved BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_feedback TEXT`);
-        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_approved BOOLEAN DEFAULT FALSE`);
-        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_feedback TEXT`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS origin VARCHAR(50)`);
+        
+        // Migration: Tag existing data
+        console.log('Running security migration: tagging submission origin...');
+        await client.query(`UPDATE client_submissions SET origin = 'TEMPLATE_CREATOR' WHERE status = 'GERADO' AND origin IS NULL`);
+        await client.query(`UPDATE client_submissions SET origin = 'CLIENT_FORM' WHERE (status != 'GERADO' OR status IS NULL) AND origin IS NULL`);
+
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS country TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS city TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS region TEXT`);
@@ -1052,7 +1056,7 @@ app.get('/api/client/submissions', async (req, res) => {
                 FROM client_submissions c
                 LEFT JOIN users u ON c.user_id = u.id
                 WHERE c.user_id IN (${idPlaceholders})
-                  AND c.submitted_role = 'CLIENT'
+                  AND c.origin = 'CLIENT_FORM'
                   AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = $${parentParam})
                 ORDER BY c.timestamp DESC
             `;
@@ -1237,14 +1241,15 @@ app.post('/api/client-submissions', async (req, res) => {
 
         const result = await pool.query(
             `INSERT INTO client_submissions 
-            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, parent_approved) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, parent_approved, origin) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *`,
             [
                 profile_photo, profile_name, ddd,
                 template_type || 'none', media_url || '', ad_copy || '', button_link || '', original_button_link || button_link || '',
                 ads ? JSON.stringify(ads) : '[]',
                 spreadsheet_url, finalStatus,
-                user_id, submitted_by, submitted_role || null, assigned_to, accepted_by, parentApproved
+                user_id, submitted_by, submitted_role || null, assigned_to, accepted_by, parentApproved,
+                req.body.origin || 'CLIENT_FORM'
             ]
         );
         res.json(result.rows[0]);
@@ -1271,12 +1276,12 @@ app.post('/api/client-submissions/:id/parent-approve', async (req, res) => {
 app.get('/api/referral-submissions/:parentId', async (req, res) => {
     const { parentId } = req.params;
     try {
-        // Fetch submissions from users whose parent is parentId but EXCLUDE those created by ADMIN/EMPLOYEE
+        // Fetch submissions from users whose parent is parentId but ONLY those originating from the Client Form
         const result = await pool.query(
             `SELECT s.* FROM client_submissions s 
              JOIN users u ON s.user_id = u.id 
              WHERE u.parent_id = $1 
-             AND (s.submitted_role NOT IN ('ADMIN', 'EMPLOYEE') OR s.submitted_role IS NULL)
+             AND s.origin = 'CLIENT_FORM'
              ORDER BY s.timestamp DESC`,
             [parentId]
         );
@@ -1312,14 +1317,15 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
 
             const result = await client.query(
                 `INSERT INTO client_submissions 
-                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by, parent_approved) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
+                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by, parent_approved, origin) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
                 [
                     s.profile_photo, s.profile_name, s.ddd,
                     s.template_type, s.media_url, s.ad_copy, s.button_link, s.original_button_link || s.button_link || '',
                     s.ads ? JSON.stringify(s.ads) : '[]',
                     s.spreadsheet_url, finalStatus,
-                    s.user_id, s.submitted_by, s.assigned_to, s.accepted_by, parentApproved
+                    s.user_id, s.submitted_by, s.assigned_to, s.accepted_by, parentApproved,
+                    s.origin || 'CLIENT_FORM'
                 ]
             );
             results.push(result.rows[0]);

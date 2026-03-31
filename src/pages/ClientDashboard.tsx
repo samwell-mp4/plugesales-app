@@ -142,19 +142,6 @@ const ClientDashboard = () => {
             // Sort by timestamp descending
             allSubmissions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             
-            // FIREWALL: Secondary client-side filter as defense-in-depth
-            // The backend already filters, but this guards against edge-cases
-            const filteredSubmissions = allSubmissions.filter((s: any) => {
-                // Always allow referrals (submissions from child/referred clients)
-                if (s.isReferral) return true;
-                
-                // BLOCK anything explicitly created by Admin or Employee
-                // IS DISTINCT FROM NULL is handled: if submitted_role is NULL but user_id
-                // belongs to the client (already guaranteed by backend), it's safe to show.
-                if (s.submitted_role === 'ADMIN' || s.submitted_role === 'EMPLOYEE') return false;
-
-                return true;
-            });
 
             setSubmissions(filteredSubmissions);
         } catch (error) {

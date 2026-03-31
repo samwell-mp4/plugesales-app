@@ -573,7 +573,8 @@ const TemplateCreator = () => {
                             message: '🎉 Campanha criada via CREADOR',
                             timestamp: new Date().toISOString(),
                             author: user?.name
-                        }]
+                        }],
+                        origin: 'TEMPLATE_CREATOR'
                     });
                 }
             }
