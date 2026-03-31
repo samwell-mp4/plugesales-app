@@ -259,25 +259,30 @@ const initDB = async () => {
 
         console.log('✅ All columns and infobip_templates table verified/migrated.');
 
+        // Safe execution of migrations so they don't break the entire init if a table was dropped
+        const safeAlter = async (query) => {
+            try { await client.query(query); } catch (e) { /* ignore */ }
+        };
+
         // --- AFFILIATE LEADS ROBUST MIGRATIONS ---
-        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS affiliate_id INTEGER REFERENCES users(id)`);
-        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS company_name TEXT`);
-        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS offer_text TEXT`);
-        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'NOVO'`);
-        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS notes TEXT`);
-        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS email TEXT`);
-        await client.query(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS assigned_to INTEGER REFERENCES users(id)`);
+        await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS affiliate_id INTEGER REFERENCES users(id)`);
+        await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS company_name TEXT`);
+        await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS offer_text TEXT`);
+        await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'NOVO'`);
+        await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS notes TEXT`);
+        await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS email TEXT`);
+        await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS assigned_to INTEGER REFERENCES users(id)`);
         console.log('✅ Table affiliate_leads columns verified/migrated.');
 
         // Patch: Restore roles for static team members if they were incorrectly registered as CLIENT
         await client.query("UPDATE users SET role = 'ADMIN' WHERE name = 'Admin'");
         await client.query("UPDATE users SET role = 'EMPLOYEE' WHERE name IN ('Vini', 'Italo', 'Matheus')");
 
-        // Ensure client_reports schema is up-to-date
-        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS summary JSONB`);
-        await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`); // Wait, user said CARD (campaign), which is client_submissions
-        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
-        await client.query(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`);
+        // Ensure schemas are up-to-date
+        await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS summary JSONB`);
+        await safeAlter(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
+        await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
+        await safeAlter(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`);
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS client_for_client_requests (
