@@ -298,7 +298,7 @@ const initDB = async () => {
         await client.query(`
             CREATE TABLE IF NOT EXISTS plug_cards (
                 id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
+                name TEXT UNIQUE NOT NULL,
                 tier TEXT NOT NULL,
                 total_volume INTEGER NOT NULL,
                 max_chips INTEGER,
@@ -329,31 +329,25 @@ const initDB = async () => {
                 status TEXT DEFAULT 'active',
                 payment_method TEXT,
                 payment_ref TEXT,
-                purchased_price NUMERIC(10,2),
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
-        // Seed the 8 Plug Cards catalog — idempotent via ON CONFLICT
-        // We use an UPDATE on conflict to ensure the catalog stays fresh with the refined specs
+        // Seed the Plug Cards catalog — idempotent via ON CONFLICT (name)
         const seedCards = [
-            { id: 1, name: 'PC-10 | Foundation Card',  tier: 'foundation',  vol: 10000,   chips: 5,   camps: 1,  pri: 'low',    speed: 'normal',   ban: 'basic',    price: 97.00,   copy: 'Entrada estratégica para validação de campanhas e aquisição inicial.', features: { resources: ['Templates padrão (texto, imagem, vídeo)', 'Tracking básico de clique', 'Dashboard essencial'] } },
-            { id: 2, name: 'PC-20 | Growth Card',      tier: 'growth',      vol: 20000,   chips: 8,   camps: 2,  pri: 'low',    speed: 'normal',   ban: 'basic',    price: 177.00,  copy: 'Primeiro nível de escala com consistência operacional.', features: { resources: ['Personalização de templates', 'Métricas de entrega', 'Histórico de campanhas'] } },
-            { id: 3, name: 'PC-50 | Performance Card', tier: 'performance', vol: 50000,   chips: 15,  camps: 4,  pri: 'medium', speed: 'fast',     ban: 'medium',   price: 397.00,  copy: 'Construído para operações que já geram receita consistente.', features: { resources: ['Dashboard premium (Taxa entrega + CTR)', 'Teste A/B básico', 'Segmentação simples (listas)'] } },
-            { id: 4, name: 'PC-100 | Velocity Card',   tier: 'velocity',    vol: 100000,  chips: 25,  camps: 99, pri: 'medium', speed: 'fast',     ban: 'medium',   price: 697.00,  copy: 'Alta velocidade com inteligência de conversão.', features: { resources: ['A/B testing avançado', 'Análise de horário ideal', 'Insights automáticos performance', 'Encurtador com tracking completo'] } },
-            { id: 5, name: 'PC-150 | Dominance Card',  tier: 'dominance',   vol: 150000,  chips: 40,  camps: 99, pri: 'high',   speed: 'accel',    ban: 'advanced', price: 997.00,  copy: 'Controle refinado com máxima eficiência operacional.', features: { resources: ['Segmentação avançada (tags, comportamento)', 'Retargeting simples', 'Análise de funil'] } },
-            { id: 6, name: 'PC-500 | Elite Card',      tier: 'elite',       vol: 500000,  chips: 80,  camps: 99, pri: 'high',   speed: 'accel',    ban: 'advanced', price: 2997.00, copy: 'Infraestrutura de alto volume com inteligência estratégica.', features: { resources: ['Automação de campanhas (reenvio inteligente)', 'Clusterização de leads', 'Dashboard completo (ROI, LTV, CAC)', 'Exportações avançadas'] } },
-            { id: 7, name: 'PC-1M | Sovereign Card',   tier: 'sovereign',   vol: 1000000, chips: 150, camps: 99, pri: 'max',    speed: 'accel',    ban: 'advanced', price: 5497.00, copy: 'Operação em escala máxima com controle total da distribuição.', features: { resources: ['API liberada', 'Integração com sistemas externos', 'Automações avançadas (flows)', 'IA de otimização de envio'] } },
-            { id: 8, name: 'PC-X | Apex Card',         tier: 'apex',        vol: 9999999, chips: 999, camps: 99, pri: 'max',    speed: 'accel',    ban: 'advanced', price: 9997.00, copy: 'O topo da cadeia. Controle, prioridade e participação no ecossistema.', features: { resources: ['White-label parcial', 'Revenda oficial de Plug Cards', 'Acesso antecipado a novos recursos', 'Suporte prioritário dedicado'] } }
+            { name: 'PC-10 | Foundation Card',   tier: 'foundation',  vol: 10000,   chips: 5,   camps: 1,   pri: 'low',    speed: 'standard',    ban: 'basic',     price: 97.00,   copy: 'Entrada estratégica para validação de campanhas e aquisição inicial.', features: { resources: ['Templates padrão', 'Tracking básico de clique', 'Dashboard essencial'] } },
+            { name: 'PC-20 | Growth Card',       tier: 'growth',      vol: 20000,   chips: 8,   camps: 2,   pri: 'low',    speed: 'stable',      ban: 'basic',     price: 197.00,  copy: 'Primeiro nível de escala com consistência operacional.', features: { resources: ['Personalização de templates', 'Métricas de entrega', 'Histórico de campanhas'] } },
+            { name: 'PC-50 | Performance Card',  tier: 'performance', vol: 50000,   chips: 15,  camps: 4,   pri: 'medium', speed: 'accelerated', ban: 'pro',       price: 497.00,  copy: 'Construído para operações que já geram receita consistente.', features: { resources: ['Prioridade média', 'Envio acelerado', 'Suporte priority'] } },
+            { name: 'PC-100 | Scale Card',       tier: 'velocity',    vol: 100000,  chips: 25,  camps: 10,  pri: 'medium', speed: 'high',        ban: 'pro',       price: 897.00,  copy: 'Focado em escala rápida com automação de infraestrutura.', features: { resources: ['Automação de rotação', 'Chips ilimitados (soft)', 'Relatórios avançados'] } },
+            { name: 'PC-250 | Domination Card',  tier: 'dominance',   vol: 250000,  chips: 60,  camps: 999, pri: 'high',   speed: 'turbo',       ban: 'enterprise', price: 1997.00, copy: 'Domínio total de mercado com volume massivo e estabilidade.', features: { resources: ['Infra dedicada', 'Warm-up assistido', 'Manager exclusivo'] } },
+            { name: 'PC-500 | Apex Card',        tier: 'apex',        vol: 500000,  chips: 150, camps: 999, pri: 'high',   speed: 'instant',     ban: 'highest',   price: 3497.00, copy: 'O ápice da operação Plug & Sales. Máxima escala, mínima fricção.', features: { resources: ['Acesso antecipado beta', 'Customização total', 'Acordo de SLA 99%'] } }
         ];
 
         for (const card of seedCards) {
             await client.query(`
-                INSERT INTO plug_cards (id, name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                ON CONFLICT (id) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    tier = EXCLUDED.tier,
+                INSERT INTO plug_cards (name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ON CONFLICT (name) DO UPDATE SET
                     total_volume = EXCLUDED.total_volume,
                     max_chips = EXCLUDED.max_chips,
                     max_campaigns = EXCLUDED.max_campaigns,
@@ -363,10 +357,10 @@ const initDB = async () => {
                     features = EXCLUDED.features,
                     copy = EXCLUDED.copy,
                     price = EXCLUDED.price
-            `, [card.id, card.name, card.tier, card.vol, card.chips, card.camps, card.pri, card.speed, card.ban, JSON.stringify(card.features), card.copy, card.price]);
+            `, [card.name, card.tier, card.vol, card.chips, card.camps, card.pri, card.speed, card.ban, JSON.stringify(card.features), card.copy, card.price]);
         }
 
-        console.log('✅ Plug Cards tables verified/created and catalog refined.');
+        console.log('✅ Plug Cards tables verified and catalog seeded automatically.');
         // ============================================================
         console.log('✅ Database initialized and verified.');
 
@@ -1076,12 +1070,11 @@ app.get('/api/client/submissions', async (req, res) => {
                 SELECT c.*, u.name as child_name 
                 FROM client_submissions c
                 LEFT JOIN users u ON c.user_id = u.id
-                WHERE c.user_id IN (${idPlaceholders})
-                  AND c.origin = 'CLIENT_FORM'
-                  AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = $${parentParam})
+                WHERE (c.user_id IN (${idPlaceholders}) OR c.submitted_by = (SELECT name FROM users WHERE id = $${parentParam}))
+                  AND (c.origin = 'CLIENT_FORM' OR c.origin IS NULL)
                 ORDER BY c.timestamp DESC
             `;
-            const params = [...allAllowedUserIds, uid];
+            const params = [...allAllowedUserIds, userId];
             const result = await pool.query(query, params);
 
             const submissions = result.rows.map(s => ({
@@ -1624,7 +1617,7 @@ app.get('/api/shortener/stats/all', async (req, res) => {
                  JOIN shortened_links sl ON lc.link_id = sl.id 
                  WHERE lc.timestamp >= $1 AND lc.timestamp <= $2 ${userFilter}), 0) as total_clicks,
                 COALESCE((SELECT COUNT(*)::INT FROM shortened_links 
-                 WHERE 1=1 ${linksUserFilter}), 0) as total_links
+                 WHERE 1=1 ${linksUserFilter.replace('sl.', '')}), 0) as total_links
         `, params);
 
         // 2. Timeline (Aggregated)
@@ -2584,16 +2577,41 @@ app.delete('/api/step-leads/:id', async (req, res) => {
 // GET /api/plug-cards — List all active cards (PUBLIC)
 app.get('/api/plug-cards', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM plug_cards WHERE is_active = TRUE ORDER BY total_volume ASC'
-        );
+        const result = await pool.query('SELECT * FROM plug_cards WHERE is_active = TRUE ORDER BY price ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// POST /api/plug-cards/buy — Purchase a card (gateway base)
+// TEMPORARY: Seed Plug Cards Catalog
+app.post('/api/admin/seed-cards', async (req, res) => {
+    try {
+        const seedSql = `
+            INSERT INTO plug_cards 
+                (name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price, is_active)
+            VALUES
+                ('PC-10 | Foundation Card', 'foundation', 10000, 5, 1, 'low', 'standard', 'basic', '{"resources":["templates padrão","tracking básico","dashboard essencial"]}', 'Entrada estratégica para validação de campanhas e aquisição inicial.', 97.00, true),
+                ('PC-20 | Growth Card', 'growth', 20000, 8, 2, 'low', 'stable', 'basic', '{"resources":["personalização de templates","métricas de entrega","histórico de campanhas"]}', 'Primeiro nível de escala com consistência operacional.', 197.00, true),
+                ('PC-50 | Performance Card', 'performance', 50000, 15, 4, 'medium', 'accelerated', 'pro', '{"resources":["prioridade média","envio acelerado","suporte priority"]}', 'Construído para operações que já geram receita consistente.', 497.00, true),
+                ('PC-100 | Scale Card', 'velocity', 100000, 25, 10, 'medium', 'high', 'pro', '{"resources":["automação de rotação","chips ilimitados (soft)","relatórios avançados"]}', 'Focado em escala rápida com automação de infraestrutura.', 897.00, true),
+                ('PC-250 | Domination Card', 'dominance', 250000, 60, 999, 'high', 'turbo', 'enterprise', '{"resources":["infra dedicada","warm-up assistido","manager exclusivo"]}', 'Domínio total de mercado com volume massivo e estabilidade.', 1997.00, true),
+                ('PC-500 | Apex Card', 'apex', 500000, 150, 999, 'high', 'instant', 'highest', '{"resources":["acesso antecipado beta","customização total","acordo de SLA 99%"]}', 'O ápice da operação Plug & Sales. Máxima escala, mínima fricção.', 3497.00, true)
+            ON CONFLICT (name) DO UPDATE SET
+                total_volume = EXCLUDED.total_volume,
+                max_chips = EXCLUDED.max_chips,
+                max_campaigns = EXCLUDED.max_campaigns,
+                price = EXCLUDED.price,
+                features = EXCLUDED.features;
+        `;
+        await pool.query(seedSql);
+        res.json({ success: true, message: 'Catalog seeded successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/plug-cards/buy — Purchase a card from catalog
 app.post('/api/plug-cards/buy', async (req, res) => {
     const { userId, plugCardId, paymentMethod, cardNumber, cardHolder, expiryDate, cvv } = req.body;
 

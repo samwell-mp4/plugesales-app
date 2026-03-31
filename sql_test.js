@@ -1,3 +1,0 @@
-﻿const {Pool} = require('pg');
-const pool = new Pool({ connectionString: 'postgresql://postgres:postgres@localhost:5432/plugesales' });
-pool.query(SELECT c.id, u.name as child_name FROM client_submissions c LEFT JOIN users u ON c.user_id = u.id WHERE (c.user_id = 6 OR u.parent_id = 6) AND (c.user_id = 6 OR (c.submitted_role NOT IN ('ADMIN', 'EMPLOYEE') OR c.submitted_role IS NULL)) AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = 6) ORDER BY c.timestamp DESC).then(r => { console.log('SUCCESS', r.rows.length); pool.end(); }).catch(e => { console.log('ERROR IS', e.message); pool.end(); });
