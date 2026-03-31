@@ -12,6 +12,7 @@
     "preview": "node node_modules/vite/bin/vite.js preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
     "@types/leaflet": "^1.9.21",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",

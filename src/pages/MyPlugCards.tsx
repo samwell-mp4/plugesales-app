@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, Zap, Shield, Cpu, TrendingUp, ShoppingCart, RefreshCw, Loader, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface UserCard {
     id: number;
@@ -58,13 +59,45 @@ export default function MyPlugCards() {
     const [loading, setLoading] = useState(true);
     const [hoveredId, setHoveredId] = useState<number | null>(null);
 
-    const fetchCards = () => {
+    const fetchCards = async () => {
         if (!user?.id) return;
         setLoading(true);
-        fetch(`/api/plug-cards/wallet/${user.id}`)
-            .then(r => r.json())
-            .then(data => { setCards(Array.isArray(data) ? data : []); setLoading(false); })
-            .catch(() => setLoading(false));
+        const { data, error } = await supabase
+            .from('user_plug_cards')
+            .select(`
+                *,
+                plug_cards (
+                    name,
+                    tier,
+                    priority_level,
+                    speed,
+                    anti_ban_level,
+                    max_chips,
+                    max_campaigns,
+                    features,
+                    price
+                )
+            `)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            // Flatten the nested plug_cards object into the card
+            const flat = data.map((row: any) => ({
+                ...row,
+                card_name: row.plug_cards?.name ?? '',
+                tier: row.plug_cards?.tier ?? '',
+                priority_level: row.plug_cards?.priority_level ?? '',
+                speed: row.plug_cards?.speed ?? '',
+                anti_ban_level: row.plug_cards?.anti_ban_level ?? '',
+                max_chips: row.plug_cards?.max_chips ?? 0,
+                max_campaigns: row.plug_cards?.max_campaigns ?? 0,
+                features: row.plug_cards?.features ?? {},
+                catalog_price: row.plug_cards?.price ?? 0,
+            }));
+            setCards(flat);
+        }
+        setLoading(false);
     };
 
     useEffect(() => { fetchCards(); }, [user?.id]);

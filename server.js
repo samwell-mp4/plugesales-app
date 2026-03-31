@@ -73,6 +73,61 @@ console.log('PG URL (masked):', pgUrl.replace(/:[^:@]+@/, ':****@'));
 const { Pool } = pg;
 const pool = new Pool({ connectionString: pgUrl });
 
+// ============================================================
+// SUPABASE POOL — Used EXCLUSIVELY for Plug Cards routes
+// ============================================================
+const SUPABASE_PG_URL = 'postgresql://postgres:Marketing%40plugsales2026!@db.hpwahwsbtqvfyutosfyr.supabase.co:5432/postgres';
+const supabasePool = new Pool({
+    connectionString: SUPABASE_PG_URL,
+    ssl: { rejectUnauthorized: false }
+});
+
+// Init Supabase tables for plug_cards
+const initSupabase = async () => {
+    try {
+        await supabasePool.query(`
+            CREATE TABLE IF NOT EXISTS plug_cards (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                tier TEXT NOT NULL,
+                total_volume INTEGER NOT NULL,
+                max_chips INTEGER,
+                max_campaigns INTEGER,
+                priority_level TEXT DEFAULT 'medium',
+                speed TEXT DEFAULT 'normal',
+                anti_ban_level TEXT DEFAULT 'basic',
+                features JSONB DEFAULT '{}',
+                copy TEXT,
+                price NUMERIC DEFAULT 0,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await supabasePool.query(`
+            CREATE TABLE IF NOT EXISTS user_plug_cards (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                plug_card_id INTEGER REFERENCES plug_cards(id),
+                total_volume INTEGER DEFAULT 0,
+                used_volume INTEGER DEFAULT 0,
+                remaining_volume INTEGER DEFAULT 0,
+                active_campaigns INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'active',
+                payment_method TEXT,
+                payment_ref TEXT,
+                purchased_price NUMERIC DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✅ Supabase Plug Cards tables ready.');
+    } catch (err) {
+        console.error('❌ Supabase init error:', err.message);
+    }
+};
+initSupabase();
+
+
+
 const redisClient = createClient({ url: redisUrl });
 redisClient.on('error', err => console.error('Redis Client Error:', err));
 
@@ -2624,7 +2679,7 @@ app.post('/api/admin/seed-cards', async (req, res) => {
                 price = EXCLUDED.price,
                 features = EXCLUDED.features;
         `;
-        await pool.query(seedSql);
+        await supabasePool.query(seedSql);
         res.json({ success: true, message: 'Catalog seeded successfully.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2644,7 +2699,7 @@ app.post('/api/plug-cards/buy', async (req, res) => {
 
     try {
         // 1. Buscar o card no catálogo
-        const cardResult = await pool.query('SELECT * FROM plug_cards WHERE id = $1 AND is_active = TRUE', [plugCardId]);
+        const cardResult = await supabasePool.query('SELECT * FROM plug_cards WHERE id = $1 AND is_active IS NOT FALSE', [plugCardId]);
         if (cardResult.rows.length === 0) {
             return res.status(404).json({ error: 'Plug Card não encontrado ou inativo.' });
         }
@@ -2694,7 +2749,7 @@ app.post('/api/plug-cards/buy', async (req, res) => {
         }
 
         // 3. Criar UserPlugCard após pagamento aprovado
-        const insertResult = await pool.query(`
+        const insertResult = await supabasePool.query(`
             INSERT INTO user_plug_cards
                 (user_id, plug_card_id, total_volume, used_volume, remaining_volume, status, payment_method, payment_ref, purchased_price)
             VALUES
@@ -2732,7 +2787,7 @@ app.post('/api/plug-cards/buy', async (req, res) => {
 app.get('/api/plug-cards', async (req, res) => {
     try {
         // Use IS NOT FALSE so cards with NULL is_active also appear (e.g. inserted via pgAdmin without setting the column)
-        const result = await pool.query('SELECT * FROM plug_cards WHERE is_active IS NOT FALSE ORDER BY price ASC');
+        const result = await supabasePool.query('SELECT * FROM plug_cards WHERE is_active IS NOT FALSE ORDER BY price ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2744,21 +2799,34 @@ app.get('/api/plug-cards', async (req, res) => {
 // GET /api/plug-cards/admin/overview — Admin sales and stats
 app.get('/api/plug-cards/admin/overview', async (req, res) => {
     try {
-        const salesResult = await pool.query(`
+        // Fetch all users from PostgreSQL
+        const usersResult = await pool.query('SELECT id, name, email, role FROM users');
+        const usersMap = {};
+        usersResult.rows.forEach(u => usersMap[u.id] = u);
+
+        // Fetch all plug cards sales from Supabase
+        const salesResult = await supabasePool.query(`
             SELECT 
                 upc.*,
-                u.name as user_name,
-                u.email as user_email,
-                u.role as user_role,
                 pc.name as card_name,
                 pc.tier
             FROM user_plug_cards upc
-            JOIN users u ON upc.user_id = u.id
             JOIN plug_cards pc ON upc.plug_card_id = pc.id
             ORDER BY upc.created_at DESC
         `);
 
-        const statsResult = await pool.query(`
+        // Merge the two datasets
+        const mergedSales = salesResult.rows.map(sale => {
+            const u = usersMap[sale.user_id] || { name: 'Usuário Deletado', email: '-', role: 'UNKNOWN' };
+            return {
+                ...sale,
+                user_name: u.name,
+                user_email: u.email,
+                user_role: u.role
+            };
+        });
+
+        const statsResult = await supabasePool.query(`
             SELECT 
                 COUNT(*)::INT as total_cards,
                 COUNT(CASE WHEN status = 'active' THEN 1 END)::INT as active_cards,
@@ -2769,7 +2837,7 @@ app.get('/api/plug-cards/admin/overview', async (req, res) => {
         `);
 
         res.json({
-            sales: salesResult.rows,
+            sales: mergedSales,
             stats: statsResult.rows[0]
         });
     } catch (err) {
@@ -2781,7 +2849,7 @@ app.get('/api/plug-cards/admin/overview', async (req, res) => {
 // GET /api/plug-cards/admin/catalog — Admin version (Shows ALL cards)
 app.get('/api/plug-cards/admin/catalog', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM plug_cards ORDER BY price ASC');
+        const result = await supabasePool.query('SELECT * FROM plug_cards ORDER BY price ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2791,7 +2859,7 @@ app.get('/api/plug-cards/admin/catalog', async (req, res) => {
 app.post('/api/plug-cards', async (req, res) => {
     const { name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price } = req.body;
     try {
-        const result = await pool.query(`
+        const result = await supabasePool.query(`
             INSERT INTO plug_cards 
                 (name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -2808,7 +2876,7 @@ app.post('/api/plug-cards', async (req, res) => {
 app.get('/api/plug-cards/wallet/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        const result = await pool.query(`
+        const result = await supabasePool.query(`
             SELECT 
                 upc.*,
                 pc.name as card_name,
@@ -2835,23 +2903,19 @@ app.get('/api/plug-cards/wallet/:userId', async (req, res) => {
 // GET /api/plug-cards/admin — Admin overview (all user cards with user info)
 app.get('/api/plug-cards/admin', async (req, res) => {
     try {
-        const result = await pool.query(`
+        const result = await supabasePool.query(`
             SELECT 
                 upc.*,
-                u.name as user_name,
-                u.email as user_email,
-                u.role as user_role,
                 pc.name as card_name,
                 pc.tier,
                 pc.price as catalog_price
             FROM user_plug_cards upc
-            JOIN users u ON upc.user_id = u.id
             JOIN plug_cards pc ON upc.plug_card_id = pc.id
             ORDER BY upc.created_at DESC
         `);
 
         // Stats summary
-        const statsResult = await pool.query(`
+        const statsResult = await supabasePool.query(`
             SELECT 
                 COUNT(*) as total_cards,
                 COUNT(CASE WHEN status = 'active' THEN 1 END) as active_cards,
@@ -2873,7 +2937,7 @@ app.get('/api/plug-cards/admin', async (req, res) => {
 // PATCH /api/plug-cards/admin/toggle/:id — Admin: activate/deactivate catalog card
 app.patch('/api/plug-cards/admin/toggle/:id', async (req, res) => {
     try {
-        const result = await pool.query(
+        const result = await supabasePool.query(
             'UPDATE plug_cards SET is_active = NOT is_active WHERE id = $1 RETURNING *',
             [req.params.id]
         );
@@ -2890,7 +2954,7 @@ app.put('/api/plug-cards/:id', async (req, res) => {
     const { name, tier, total_volume, max_chips, max_campaigns, priority_level, speed, anti_ban_level, features, copy, price, is_active } = req.body;
 
     try {
-        const result = await pool.query(`
+        const result = await supabasePool.query(`
             UPDATE plug_cards 
             SET 
                 name = $1, 

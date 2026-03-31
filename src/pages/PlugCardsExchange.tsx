@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, Zap, Shield, Cpu, TrendingUp, Check, Plus, ShoppingCart, Loader, ArrowRight, ChevronRight, Sparkles, Building, Rocket, Crown, Star, ShieldCheck, Gem, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface CatalogCard {
     id: number;
@@ -58,27 +59,38 @@ export default function PlugCardsExchange() {
 
     useEffect(() => {
         setLoading(true);
-        fetch('/api/plug-cards')
-            .then(r => r.json())
-            .then(data => { setCatalog(Array.isArray(data) ? data : []); setLoading(false); })
-            .catch(() => setLoading(false));
+        supabase
+            .from('plug_cards')
+            .select('*')
+            .neq('is_active', false)
+            .order('price', { ascending: true })
+            .then(({ data, error }) => {
+                if (!error && data) setCatalog(data as CatalogCard[]);
+                setLoading(false);
+            });
     }, []);
 
     const handleBuy = async () => {
         if (!user || !checkoutCard) return;
         setBuyingId(checkoutCard.id);
         try {
-            const res = await fetch('/api/plug-cards/buy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id, cardId: checkoutCard.id, paymentMethod })
+            // Insert directly into Supabase user_plug_cards
+            const { error } = await supabase.from('user_plug_cards').insert({
+                user_id: user.id,
+                plug_card_id: checkoutCard.id,
+                total_volume: checkoutCard.total_volume,
+                used_volume: 0,
+                remaining_volume: checkoutCard.total_volume,
+                status: 'active',
+                payment_method: paymentMethod,
+                payment_ref: `PCG-${Date.now()}-${Math.random().toString(36).substring(2,8).toUpperCase()}`,
+                purchased_price: parseFloat(checkoutCard.price)
             });
-            const data = await res.json();
-            if (data.success) {
+            if (!error) {
                 alert(`Sucesso! Você adquiriu o card ${checkoutCard.name}. Ele já está disponível na sua wallet.`);
                 window.location.href = '/my-cards';
             } else {
-                alert("Erro na transação: " + data.error);
+                alert('Erro na transação: ' + error.message);
             }
         } finally {
             setBuyingId(null);
