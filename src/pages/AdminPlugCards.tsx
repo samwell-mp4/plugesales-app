@@ -87,7 +87,7 @@ export default function AdminPlugCards() {
 
     const fetchCatalog = () => {
         setLoading(true);
-        fetch('/api/plug-cards')
+        fetch('/api/plug-cards/admin/catalog')
             .then(r => r.json())
             .then(data => {
                 setCatalog(Array.isArray(data) ? data : []);
