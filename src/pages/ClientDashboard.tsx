@@ -125,19 +125,16 @@ const ClientDashboard = () => {
         if (!user?.id) return;
         setIsLoading(true);
         try {
-            // Fetch own submissions
-            // The API /api/client/submissions now returns BOTH own and referral submissions
-            // with a flag `is_referral`
             const ownSubmissions = await dbService.getClientSubmissionsByUserId(user.id);
             let allSubmissions = [...(Array.isArray(ownSubmissions) ? ownSubmissions : [])];
             
-            // Normalize the referral flag (API uses snake_case, frontend uses camelCase)
+            // Normalize the referral flag
             allSubmissions = allSubmissions.map(s => ({
                 ...s,
                 isReferral: s.isReferral || s.is_referral
             }));
 
-            // Optional: Deduplicate just in case `allSubmissions` had overlapping entries
+            // Deduplicate
             const uniqueMap = new Map();
             allSubmissions.forEach(sub => uniqueMap.set(sub.id, sub));
             allSubmissions = Array.from(uniqueMap.values());
@@ -145,24 +142,16 @@ const ClientDashboard = () => {
             // Sort by timestamp descending
             allSubmissions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             
-            // STRICT FILTER: Client only sees what they or their referrals created
+            // FIREWALL: Secondary client-side filter as defense-in-depth
+            // The backend already filters, but this guards against edge-cases
             const filteredSubmissions = allSubmissions.filter((s: any) => {
-                // Keep referrals (parents see child submissions)
+                // Always allow referrals (submissions from child/referred clients)
                 if (s.isReferral) return true;
                 
-                // EXCLUDE anything created by Admin/Employee for this client
-                const isManagement = s.submitted_role === 'ADMIN' || s.submitted_role === 'EMPLOYEE';
-                if (isManagement) return false;
-
-                // For older submissions that don't have submitted_role, check submitted_by
-                // If submitted_by is an external admin/employee name (not the user or "cliente")
-                if (s.submitted_by) {
-                    const by = s.submitted_by.toLowerCase();
-                    const uName = user.name?.toLowerCase() || '';
-                    if (by !== uName && by !== 'cliente (externo)' && by !== 'cliente') {
-                        return false; // It was submitted by an Admin/Employee
-                    }
-                }
+                // BLOCK anything explicitly created by Admin or Employee
+                // IS DISTINCT FROM NULL is handled: if submitted_role is NULL but user_id
+                // belongs to the client (already guaranteed by backend), it's safe to show.
+                if (s.submitted_role === 'ADMIN' || s.submitted_role === 'EMPLOYEE') return false;
 
                 return true;
             });
@@ -174,6 +163,7 @@ const ClientDashboard = () => {
             setIsLoading(false);
         }
     };
+
 
     const fetchSubClients = async () => {
         if (!user?.id) return;

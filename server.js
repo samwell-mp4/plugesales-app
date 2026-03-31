@@ -1035,31 +1035,54 @@ app.get('/api/client/submissions', async (req, res) => {
         const userRes = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
         const userRole = userRes.rows[0]?.role || 'CLIENT';
 
-        let query = `
+        // For CLIENTs: get all direct children (referrals) of this user
+        const childrenRes = await pool.query('SELECT id FROM users WHERE parent_id = $1', [userId]);
+        const childIds = childrenRes.rows.map(r => r.id);
+        const allAllowedUserIds = [parseInt(userId), ...childIds];
+
+        if (userRole === 'CLIENT') {
+            const idPlaceholders = allAllowedUserIds.map((_, i) => `$${i + 1}`).join(', ');
+            const parentParam = `$${allAllowedUserIds.length + 1}`;
+
+            const query = `
+                SELECT c.*, u.name as child_name 
+                FROM client_submissions c
+                LEFT JOIN users u ON c.user_id = u.id
+                WHERE c.user_id IN (${idPlaceholders})
+                  AND c.submitted_role IS DISTINCT FROM 'ADMIN'
+                  AND c.submitted_role IS DISTINCT FROM 'EMPLOYEE'
+                  AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = ${parentParam})
+                ORDER BY c.timestamp DESC
+            `;
+            const params = [...allAllowedUserIds, parseInt(userId)];
+            const result = await pool.query(query, params);
+
+            const submissions = result.rows.map(s => ({
+                ...s,
+                is_referral: s.user_id && Number(s.user_id) !== Number(userId)
+            }));
+            return res.json(submissions || []);
+        }
+
+        // Non-CLIENT roles (admin/employee): show all linked to user (no filtering needed)
+        const result = await pool.query(`
             SELECT c.*, u.name as child_name 
             FROM client_submissions c
             LEFT JOIN users u ON c.user_id = u.id
             WHERE (c.user_id = $1 OR u.parent_id = $1)
-        `;
-
-        if (userRole === 'CLIENT') {
-            query += ` AND (c.submitted_role NOT IN ('ADMIN', 'EMPLOYEE') OR c.submitted_role IS NULL)`;
-            query += ` AND (c.status != 'AGUARDANDO_APROVACAO_PAI' OR u.parent_id = $1)`;
-        }
-
-        query += ` ORDER BY c.timestamp DESC`;
-        const result = await pool.query(query, [userId]);
+            ORDER BY c.timestamp DESC
+        `, [userId]);
 
         const submissions = result.rows.map(s => ({
             ...s,
             is_referral: s.user_id && Number(s.user_id) !== Number(userId)
         }));
-
         res.json(submissions || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 app.get('/api/client-submissions/:id', async (req, res) => {
     try {
