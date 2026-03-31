@@ -132,19 +132,6 @@ const EngineExecution = () => {
             return { ...s, contacts };
         }));
 
-        // --- PLUG CARDS VALIDATION ---
-        if (user?.id) {
-            try {
-                const validation = await dbService.validatePlugCard(user.id, totalRecords, uniqueChips);
-                if (validation.error) {
-                    setIsRunning(false);
-                    return alert(`🚫 Bloqueio Plug Cards: ${validation.error}`);
-                }
-            } catch (vErr) {
-                console.error("Validation error:", vErr);
-            }
-        }
-
         for (let sIdx = 0; sIdx < enrichedSteps.length; sIdx++) {
             if (!isRunning && processed > 0) break;
             setCurrentStepIndex(specificIndex !== undefined ? specificIndex : sIdx);

@@ -455,18 +455,6 @@ const TemplateCreator = () => {
 
         const totalTotal = campaigns.reduce((acc, c) => acc + c.rows.length, 0);
 
-        // --- PLUG CARDS VALIDATION ---
-        setIsGenerating(true);
-        try {
-            const validation = await dbService.validatePlugCard(Number(selectedClientId), totalTotal);
-            if (validation.error) {
-                setIsGenerating(false);
-                return alert(`🚫 Bloqueio Plug Cards: ${validation.error}`);
-            }
-        } catch (vErr) {
-            console.error("Validation error:", vErr);
-        }
-
         const confirmBulk = window.confirm(`Isso irá disparar ${totalTotal} chamadas de API em ${campaigns.length} campanhas. Continuar?`);
         if (!confirmBulk) {
             setIsGenerating(false);
