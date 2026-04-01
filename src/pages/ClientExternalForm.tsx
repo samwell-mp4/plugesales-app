@@ -312,25 +312,27 @@ const ClientExternalForm = () => {
                 }
 
                 .photo-uploader {
-                    width: 180px;
-                    height: 180px;
-                    border-radius: 40px;
-                    border: 2px dashed rgba(255, 255, 255, 0.1);
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 35px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
                     background: rgba(255, 255, 255, 0.02);
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
-                    transition: all 0.3s ease;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                     overflow: hidden;
                     flex-shrink: 0;
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
                 }
                 .photo-uploader:hover {
                     border-color: #acf800;
                     background: rgba(172, 248, 0, 0.05);
-                    transform: scale(1.02);
+                    transform: translateY(-5px);
+                    box-shadow: 0 15px 30px rgba(172, 248, 0, 0.1);
                 }
                 .photo-uploader img {
                     width: 100%;
@@ -579,9 +581,9 @@ const ClientExternalForm = () => {
                             )}
 
                             {step === 1 && (
-                                <div className="glass-card animate-fade-in space-y-12">
-                                    <div className="flex flex-col md:flex-row gap-16 items-center md:items-start text-center md:text-left">
-                                        <div className="flex flex-col items-center gap-6">
+                                <div className="glass-card animate-fade-in space-y-16">
+                                    <div className="flex flex-col md:flex-row gap-20 items-center md:items-start text-center md:text-left">
+                                        <div className="flex flex-col items-center gap-8">
                                             <div 
                                                 className="photo-uploader group"
                                                 onClick={() => document.getElementById('photo-upload')?.click()}
@@ -591,15 +593,15 @@ const ClientExternalForm = () => {
                                                     <img src={formData.profile_photo} />
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-3 opacity-30 group-hover:opacity-100 transition-opacity">
-                                                        <ImageIcon size={32} />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">Enviar Foto</span>
+                                                        <ImageIcon size={24} />
+                                                        <span className="text-[9px] font-black uppercase tracking-widest">Enviar</span>
                                                     </div>
                                                 )}
                                             </div>
-                                            <span className="text-[10px] font-black uppercase tracking-[4px] opacity-40">Identidade Visual</span>
+                                            <span className="text-[9px] font-black uppercase tracking-[3px] opacity-40">Identidade Visual</span>
                                         </div>
                                         
-                                        <div className="flex-1 w-full space-y-10 pt-4">
+                                        <div className="flex-1 w-full space-y-12 pt-4">
                                             <div className="space-y-4">
                                                 <label className="text-[11px] font-black uppercase tracking-[3px] opacity-40 ml-1">Nome do Atendimento</label>
                                                 <input className="input-premium" placeholder="Ex: Suporte VIP" value={formData.profile_name} onChange={e => setFormData(p => ({ ...p, profile_name: e.target.value }))} />
@@ -610,7 +612,7 @@ const ClientExternalForm = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="pt-12 border-t border-white/5 flex gap-6">
+                                    <div className="pt-16 border-t border-white/5 flex gap-8">
                                         <button onClick={prevStep} className="nav-btn nav-btn-secondary flex-1 justify-center">VOLTAR</button>
                                         <button onClick={nextStep} className="nav-btn nav-btn-primary flex-2 justify-center">PRÓXIMO PASSO <ArrowRight size={18} /></button>
                                     </div>
@@ -618,8 +620,8 @@ const ClientExternalForm = () => {
                             )}
 
                             {step === 2 && (
-                                <div className="glass-card animate-fade-in space-y-8">
-                                    <div className="flex justify-between items-center mb-6">
+                                <div className="glass-card animate-fade-in space-y-12">
+                                    <div className="flex justify-between items-center mb-10">
                                         <div className="relative">
                                             <div className="ad-selector-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
                                                 <LayoutGrid size={18} className="text-[#acf800]" />
@@ -674,8 +676,8 @@ const ClientExternalForm = () => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-10">
-                                        <div className="space-y-4">
+                                    <div className="space-y-12">
+                                        <div className="space-y-6">
                                             <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 ml-1">Tipo de Criativo</label>
                                             <div className="flex flex-wrap gap-4">
                                                 {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => {
@@ -873,7 +875,7 @@ const ClientExternalForm = () => {
                                         </div>
                                     </div>
 
-                                    <div className="pt-8 border-t border-white/5 flex gap-4">
+                                    <div className="pt-12 border-t border-white/5 flex gap-6">
                                         <button onClick={prevStep} className="nav-btn nav-btn-secondary">VOLTAR</button>
                                         <button onClick={nextStep} className="nav-btn nav-btn-primary flex-1 justify-center">CONFERIR RESUMO <ChevronRight size={18} /></button>
                                     </div>
@@ -881,8 +883,8 @@ const ClientExternalForm = () => {
                             )}
 
                             {step === 3 && (
-                                <div className="glass-card animate-fade-in space-y-8">
-                                    <div className="space-y-4">
+                                <div className="glass-card animate-fade-in space-y-12">
+                                    <div className="space-y-6">
                                         <h2 className="section-title">RESUMO DA CAMPANHA</h2>
                                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                             {formData.ads.map((ad, idx) => (
@@ -899,7 +901,7 @@ const ClientExternalForm = () => {
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="pt-8 border-t border-white/5 flex gap-4">
+                                    <div className="pt-12 border-t border-white/5 flex gap-6">
                                         <button onClick={prevStep} className="nav-btn nav-btn-secondary">VOLTAR</button>
                                         <button onClick={handleSubmit} disabled={isSubmitting} className="nav-btn nav-btn-primary flex-1 justify-center neon-glow">
                                             {isSubmitting ? <Activity className="animate-spin" size={18} /> : <>FINALIZAR E ENVIAR <Send size={18} /></>}
