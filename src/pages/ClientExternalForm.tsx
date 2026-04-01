@@ -226,110 +226,129 @@ const ClientExternalForm = () => {
     if (!user) return <ClientAuth />;
 
     return (
-        <div className="min-h-screen form-container-wrapper" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        <div className="min-h-screen form-container-wrapper" style={{ background: '#020617', color: '#fff' }}>
             <style>{`
-                .glass-card {
-                    margin-top: 20px;
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    backdrop-filter: blur(20px);
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-                    border-radius: 32px;
-                    padding: 48px;
-                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-                .glass-card:hover {
-                    background: rgba(255, 255, 255, 0.03);
-                    border-color: rgba(172, 248, 0, 0.1);
-                }
                 .form-container-wrapper {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    padding: 60px 20px;
+                    padding: 80px 20px;
                     width: 100%;
+                    min-height: 100vh;
                     box-sizing: border-box;
-                    background: radial-gradient(circle at 0% 0%, rgba(172, 248, 0, 0.03) 0%, transparent 50%),
-                                radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+                    background: radial-gradient(circle at 0% 0%, rgba(172, 248, 0, 0.05) 0%, transparent 40%),
+                                radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                                #020617;
+                }
+                .glass-card {
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    backdrop-filter: blur(40px);
+                    box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+                    border-radius: 40px;
+                    padding: 50px;
+                    max-width: 850px;
+                    width: 100%;
+                    transition: all 0.4s ease;
+                }
+                .glass-card:hover {
+                    border-color: rgba(172, 248, 0, 0.2);
+                    background: rgba(255, 255, 255, 0.03);
                 }
                 .whatsapp-grid { 
                     display: grid; 
-                    grid-template-columns: 1fr 380px;
+                    grid-template-columns: 1.1fr 380px;
                     gap: 60px; 
-                    max-width: 1300px; 
+                    max-width: 1350px; 
                     width: 100%;
                 }
                 .header-title { 
-                    font-size: 4rem; 
-                    font-weight: 900; 
-                    margin-bottom: 8px; 
-                    letter-spacing: -4px; 
-                    line-height: 0.9;
+                    font-size: 4.5rem; 
+                    font-weight: 950; 
+                    margin-bottom: 12px; 
+                    letter-spacing: -5px; 
+                    line-height: 0.85;
+                    color: #fff;
                 }
                 .header-subtitle { 
                     font-size: 11px; 
-                    opacity: 0.4; 
-                    font-weight: 800; 
-                    letter-spacing: 4px;
+                    opacity: 0.5; 
+                    font-weight: 900; 
+                    letter-spacing: 5px;
                     text-transform: uppercase;
+                    color: #fff;
                 }
                 .section-title {
-                    font-size: 1.5rem;
-                    font-weight: 900;
-                    letter-spacing: -1px;
-                    margin-bottom: 4px;
-                    text-transform: uppercase;
+                    font-size: 1.8rem;
+                    font-weight: 950;
+                    letter-spacing: -1.5px;
+                    margin-bottom: 8px;
+                    color: #fff;
                 }
                 .section-subtitle {
-                    font-size: 13px;
+                    font-size: 14px;
                     opacity: 0.5;
                     font-weight: 500;
                     margin-bottom: 40px;
+                    color: #fff;
                 }
 
                 .input-premium {
-                    background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    background: rgba(255, 255, 255, 0.04);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
                     color: #fff;
-                    padding: 16px 20px;
-                    border-radius: 16px;
+                    padding: 20px 24px;
+                    border-radius: 20px;
                     width: 100%;
-                    font-size: 14px;
-                    font-weight: 500;
-                    transition: all 0.3s ease;
+                    font-size: 15px;
+                    font-weight: 600;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    outline: none;
                 }
                 .input-premium:focus { 
-                    border-color: var(--primary-color); 
-                    background: rgba(255, 255, 255, 0.05); 
-                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.1); 
-                    outline: none; 
+                    border-color: #acf800; 
+                    background: rgba(255, 255, 255, 0.07); 
+                    box-shadow: 0 0 30px rgba(172, 248, 0, 0.15); 
                 }
 
-                .upload-zone {
+                .photo-uploader {
+                    width: 180px;
+                    height: 180px;
+                    border-radius: 40px;
                     border: 2px dashed rgba(255, 255, 255, 0.1);
-                    border-radius: 20px;
-                    padding: 40px;
-                    text-align: center;
+                    background: rgba(255, 255, 255, 0.02);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
                     cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    background: rgba(255, 255, 255, 0.01);
+                    transition: all 0.3s ease;
+                    position: relative;
+                    overflow: hidden;
+                    flex-shrink: 0;
                 }
-                .upload-zone:hover { 
-                    border-color: var(--primary-color); 
-                    background: rgba(172, 248, 0, 0.05); 
-                    transform: translateY(-4px); 
+                .photo-uploader:hover {
+                    border-color: #acf800;
+                    background: rgba(172, 248, 0, 0.05);
+                    transform: scale(1.02);
+                }
+                .photo-uploader img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
                 }
 
                 .iphone-mockup {
-                    width: 320px;
-                    height: 640px;
+                    width: 340px;
+                    height: 680px;
                     background: #000;
-                    border: 12px solid #1a1c1e;
-                    border-radius: 48px;
+                    border: 14px solid #1a1c1e;
+                    border-radius: 54px;
                     position: relative;
                     margin: 0 auto;
                     overflow: hidden;
-                    box-shadow: 0 30px 60px -12px rgba(0,0,0,0.7);
+                    box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8);
+                    border-bottom: 16px solid #1a1c1e;
                 }
                 .iphone-screen {
                     width: 100%;
@@ -342,103 +361,63 @@ const ClientExternalForm = () => {
                 }
                 .chat-header {
                     background: #202c33;
-                    padding: 40px 16px 12px 16px;
+                    padding: 45px 20px 15px;
                     display: flex;
                     align-items: center;
-                    gap: 12px;
+                    gap: 15px;
                     border-bottom: 1px solid rgba(255,255,255,0.05);
+                }
+                .chat-avatar {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    background: rgba(255,255,255,0.1);
+                    overflow: hidden;
+                    flex-shrink: 0;
                 }
                 .chat-bubble {
                     align-self: flex-start;
                     background: #202c33;
                     color: #fff;
-                    padding: 10px 14px;
-                    border-radius: 0 12px 12px 12px;
-                    margin: 12px;
+                    padding: 12px 16px;
+                    border-radius: 0 16px 16px 16px;
+                    margin: 15px;
                     max-width: 85%;
-                    font-size: 13.5px;
+                    font-size: 14px;
                     position: relative;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                    animation: fadeInUp 0.3s ease-out;
-                }
-                .chat-bubble::before {
-                    content: "";
-                    position: absolute;
-                    top: 0;
-                    left: -8px;
-                    width: 8px;
-                    height: 13px;
-                    background: #202c33;
-                    clip-path: polygon(100% 0, 0 0, 100% 100%);
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                    line-height: 1.5;
                 }
                 .chat-button {
-                    margin-top: 10px;
-                    padding: 10px;
+                    margin-top: 12px;
+                    padding: 12px;
                     background: rgba(255,255,255,0.05);
-                    border-top: 1px solid rgba(255,255,255,0.05);
                     color: #53bdeb;
                     text-align: center;
-                    font-weight: 600;
-                    border-radius: 8px;
-                    font-size: 13px;
-                }
-
-                .glass-card {
-                    margin-top: 40px;
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    backdrop-filter: blur(40px);
-                    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
-                    border-radius: 40px;
-                    padding: 64px;
-                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-                .glass-card:hover {
-                    background: rgba(255, 255, 255, 0.03);
-                    border-color: rgba(172, 248, 0, 0.15);
-                }
-
-                .creative-card {
-                    background: rgba(255, 255, 255, 0.02);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    padding: 24px 20px;
-                    border-radius: 20px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 14px;
-                    flex: 1;
-                    min-width: 140px;
-                    justify-content: center;
-                    color: rgba(255,255,255,0.4);
-                }
-                .creative-card.active {
-                    background: rgba(172, 248, 0, 0.1);
-                    border-color: var(--primary-color);
-                    color: var(--primary-color);
-                    box-shadow: 0 10px 30px rgba(172, 248, 0, 0.1);
-                    transform: translateY(-2px);
+                    font-weight: 700;
+                    border-radius: 12px;
+                    font-size: 14px;
+                    border: 1px solid rgba(83, 189, 235, 0.1);
                 }
 
                 .mode-toggle {
                     background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 14px;
-                    padding: 4px;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 16px;
+                    padding: 5px;
                     display: inline-flex;
-                    gap: 4px;
                 }
                 .mode-btn {
-                    padding: 10px 20px;
-                    border-radius: 11px;
-                    font-size: 11px;
-                    font-weight: 800;
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-size: 12px;
+                    font-weight: 900;
                     text-transform: uppercase;
-                    transition: all 0.3s ease;
-                    color: rgba(255,255,255,0.4);
+                    transition: all 0.2s ease;
+                    color: #64748b;
                     border: none;
                     background: transparent;
+                    cursor: pointer;
                 }
                 .mode-btn.active {
                     background: #fff;
@@ -446,48 +425,48 @@ const ClientExternalForm = () => {
                 }
 
                 .nav-btn {
-                    padding: 16px 32px;
-                    border-radius: 18px;
-                    font-weight: 900;
+                    padding: 20px 40px;
+                    border-radius: 22px;
+                    font-weight: 950;
                     text-transform: uppercase;
-                    letter-spacing: 1px;
-                    font-size: 12px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    letter-spacing: 2px;
+                    font-size: 13px;
+                    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                     display: flex;
                     align-items: center;
-                    gap: 10px;
+                    gap: 12px;
+                    border: none;
+                    cursor: pointer;
                 }
                 .nav-btn-primary {
-                    background: var(--primary-gradient);
+                    background: #acf800;
                     color: #000;
-                    box-shadow: 0 10px 25px -5px rgba(172, 248, 0, 0.3);
+                    box-shadow: 0 15px 30px rgba(172, 248, 0, 0.2);
                 }
                 .nav-btn-primary:hover {
-                    transform: translateY(-3px);
-                    box-shadow: 0 15px 30px -5px rgba(172, 248, 0, 0.4);
+                    transform: translateY(-4px);
+                    box-shadow: 0 20px 40px rgba(172, 248, 0, 0.3);
                 }
                 .nav-btn-secondary {
-                    background: rgba(255,255,255,0.03);
-                    color: rgba(255,255,255,0.6);
-                    border: 1px solid rgba(255,255,255,0.05);
+                    background: rgba(255,255,255,0.04);
+                    color: #fff;
+                    border: 1px solid rgba(255,255,255,0.08);
                 }
                 .nav-btn-secondary:hover {
-                    background: rgba(255,255,255,0.07);
-                    color: #fff;
+                    background: rgba(255,255,255,0.08);
                 }
 
                 .custom-switch {
                     position: relative;
                     display: inline-block;
-                    width: 52px;
-                    height: 28px;
+                    width: 60px;
+                    height: 32px;
                     flex-shrink: 0;
                 }
-                .custom-switch input { opacity: 0; width: 0; height: 0; }
                 .switch-slider {
                     position: absolute;
                     cursor: pointer;
-                    top: 0; left: 0; right: 0; bottom: 0;
+                    inset: 0;
                     background: rgba(255,255,255,0.1);
                     transition: .4s;
                     border-radius: 34px;
@@ -495,63 +474,45 @@ const ClientExternalForm = () => {
                 .switch-slider:before {
                     position: absolute;
                     content: "";
-                    height: 20px; width: 20px;
+                    height: 24px; width: 24px;
                     left: 4px; bottom: 4px;
                     background: white;
                     transition: .4s;
                     border-radius: 50%;
                 }
-                input:checked + .switch-slider { background: var(--primary-color); }
-                input:checked + .switch-slider:before { transform: translateX(24px); }
+                input:checked + .switch-slider { background: #acf800; }
+                input:checked + .switch-slider:before { transform: translateX(28px); }
                 
-                @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 @media (max-width: 1024px) {
                     .whatsapp-grid { grid-template-columns: 1fr; gap: 40px; }
-                    .preview-side { display: none !important; }
+                    .iphone-mockup { display: none !important; }
+                    .header-title { font-size: 3rem; letter-spacing: -3px; }
                 }
-
-                .ad-selector-btn {
-                    background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    padding: 12px 20px;
-                    border-radius: 16px;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                }
-                .ad-selector-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--primary-color); }
 
                 .ad-dropdown {
                     position: absolute;
                     top: 110%;
-                    right: 0;
-                    width: 300px;
-                    background: rgba(20, 20, 20, 0.95);
-                    backdrop-filter: blur(20px);
+                    left: 0;
+                    width: 320px;
+                    background: #0a0f1a;
                     border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 20px;
-                    padding: 12px;
+                    border-radius: 24px;
+                    padding: 16px;
                     z-index: 100;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+                    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
                 }
                 .ad-item {
-                    padding: 10px 14px;
-                    border-radius: 12px;
+                    padding: 12px 16px;
+                    border-radius: 14px;
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
                     cursor: pointer;
                     transition: all 0.2s;
-                    margin-bottom: 4px;
+                    margin-bottom: 6px;
                 }
                 .ad-item:hover { background: rgba(255,255,255,0.05); }
-                .ad-item.active { background: rgba(172, 248, 0, 0.1); color: var(--primary-color); }
-
-                .neon-glow {
-                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.2);
-                }
+                .ad-item.active { background: rgba(172, 248, 0, 0.1); color: #acf800; }
             `}</style>
 
             <div className="max-w-7xl w-full">
@@ -560,7 +521,7 @@ const ClientExternalForm = () => {
                         <div className="form-side animate-fade-in">
                             <div className="mb-12 text-center sm:text-left">
                                 <h1 className="header-title">
-                                    Configurar <span style={{ color: 'var(--primary-color)' }}>Marca</span>
+                                    Configurar <span style={{ color: '#acf800' }}>Marca</span>
                                 </h1>
                                 <p className="header-subtitle">DETALHES DA CAMPANHA E IDENTIDADE VISUAL</p>
                             </div>
@@ -572,7 +533,7 @@ const ClientExternalForm = () => {
                                             key={i} 
                                             onClick={() => i < step && setStep(i)}
                                             className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-all cursor-pointer ${
-                                                step === i ? 'bg-primary text-black shadow-lg scale-110' : step > i ? 'bg-primary/20 text-primary' : 'bg-white/5 text-white/20'
+                                                step === i ? 'bg-[#acf800] text-black shadow-lg scale-110' : step > i ? 'bg-[#acf800]/20 text-[#acf800]' : 'bg-white/5 text-white/20'
                                             }`}
                                         >
                                             {step > i ? <CheckCircle size={16} /> : idx + 1}
@@ -598,7 +559,7 @@ const ClientExternalForm = () => {
                                                     <option value="">Selecione um cliente...</option>
                                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
                                                 </select>
-                                                <button onClick={() => setIsCreatingClient(true)} className="text-primary text-[10px] font-black tracking-widest uppercase hover:underline">+ Cadastrar Novo Cliente</button>
+                                                <button onClick={() => setIsCreatingClient(true)} className="text-[#acf800] text-[10px] font-black tracking-widest uppercase hover:underline">+ Cadastrar Novo Cliente</button>
                                             </div>
                                         ) : (
                                             <form onSubmit={handleCreateClient} className="grid grid-cols-2 gap-4 bg-white/5 p-6 rounded-2xl">
@@ -619,31 +580,39 @@ const ClientExternalForm = () => {
 
                             {step === 1 && (
                                 <div className="glass-card animate-fade-in space-y-12">
-                                    <div className="flex flex-col md:flex-row gap-12 items-center md:items-start">
+                                    <div className="flex flex-col md:flex-row gap-16 items-center md:items-start text-center md:text-left">
                                         <div className="flex flex-col items-center gap-6">
                                             <div 
-                                                className="w-40 h-40 rounded-full border-4 border-dashed border-white/10 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-all overflow-hidden bg-white/5 shadow-2xl"
+                                                className="photo-uploader group"
                                                 onClick={() => document.getElementById('photo-upload')?.click()}
                                             >
                                                 <input id="photo-upload" type="file" hidden accept="image/*" onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'profile_photo')} />
-                                                {formData.profile_photo ? <img src={formData.profile_photo} className="w-full h-full object-cover" /> : <ImageIcon size={40} className="opacity-20" />}
+                                                {formData.profile_photo ? (
+                                                    <img src={formData.profile_photo} />
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-3 opacity-30 group-hover:opacity-100 transition-opacity">
+                                                        <ImageIcon size={32} />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">Enviar Foto</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <span className="text-[10px] font-black uppercase tracking-[3px] opacity-50">Foto do Perfil</span>
+                                            <span className="text-[10px] font-black uppercase tracking-[4px] opacity-40">Identidade Visual</span>
                                         </div>
-                                        <div className="flex-1 w-full space-y-10">
-                                            <div className="space-y-3">
-                                                <label className="text-[11px] font-black uppercase tracking-widest opacity-50 ml-1">Nome do Atendimento</label>
-                                                <input className="input-premium py-5 px-6 text-base" placeholder="Ex: Suporte VIP" value={formData.profile_name} onChange={e => setFormData(p => ({ ...p, profile_name: e.target.value }))} />
+                                        
+                                        <div className="flex-1 w-full space-y-10 pt-4">
+                                            <div className="space-y-4">
+                                                <label className="text-[11px] font-black uppercase tracking-[3px] opacity-40 ml-1">Nome do Atendimento</label>
+                                                <input className="input-premium" placeholder="Ex: Suporte VIP" value={formData.profile_name} onChange={e => setFormData(p => ({ ...p, profile_name: e.target.value }))} />
                                             </div>
-                                            <div className="space-y-3">
-                                                <label className="text-[11px] font-black uppercase tracking-widest opacity-50 ml-1">DDD Regional</label>
-                                                <input className="input-premium py-5 px-6 text-base" placeholder="Ex: 11" maxLength={2} value={formData.ddd} onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))} />
+                                            <div className="space-y-4">
+                                                <label className="text-[11px] font-black uppercase tracking-[3px] opacity-40 ml-1">DDD Regional</label>
+                                                <input className="input-premium" placeholder="Ex: 11" maxLength={2} value={formData.ddd} onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))} />
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="pt-10 border-t border-white/5 flex gap-6">
-                                        <button onClick={prevStep} className="nav-btn nav-btn-secondary px-10">VOLTAR</button>
-                                        <button onClick={nextStep} className="nav-btn nav-btn-primary flex-1 justify-center py-5">PRÓXIMO PASSO <ArrowRight size={18} /></button>
+                                    <div className="pt-12 border-t border-white/5 flex gap-6">
+                                        <button onClick={prevStep} className="nav-btn nav-btn-secondary flex-1 justify-center">VOLTAR</button>
+                                        <button onClick={nextStep} className="nav-btn nav-btn-primary flex-2 justify-center">PRÓXIMO PASSO <ArrowRight size={18} /></button>
                                     </div>
                                 </div>
                             )}
@@ -653,7 +622,7 @@ const ClientExternalForm = () => {
                                     <div className="flex justify-between items-center mb-6">
                                         <div className="relative">
                                             <div className="ad-selector-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
-                                                <LayoutGrid size={18} className="text-primary" />
+                                                <LayoutGrid size={18} className="text-[#acf800]" />
                                                 <span className="text-xs font-black uppercase tracking-widest">Anúncio #{formData.currentAdIndex + 1}</span>
                                                 <ChevronDown size={14} className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
                                             </div>
@@ -668,7 +637,7 @@ const ClientExternalForm = () => {
                                                                 currentAdIndex: p.ads.length
                                                             }));
                                                             setDropdownOpen(false);
-                                                        }} className="text-primary"><PlusCircle size={18} /></button>
+                                                        }} className="text-[#acf800]"><PlusCircle size={18} /></button>
                                                     </div>
                                                     {formData.ads.map((ad, idx) => (
                                                         <div 
@@ -748,8 +717,8 @@ const ClientExternalForm = () => {
                                                     <input id="media-upload" type="file" hidden accept={formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'image/*' : 'video/*'} onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'media_url')} />
                                                     {formData.ads[formData.currentAdIndex].media_url ? (
                                                         <div className="flex flex-col items-center gap-2">
-                                                            <CheckCircle size={32} className="text-primary" />
-                                                            <span className="text-[10px] font-black text-primary uppercase">Arquivo Carregado</span>
+                                                            <CheckCircle size={32} className="text-[#acf800]" />
+                                                            <span className="text-[10px] font-black text-[#acf800] uppercase">Arquivo Carregado</span>
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col items-center gap-2 opacity-30">

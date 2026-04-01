@@ -1,43 +1,23 @@
-import { useState, useEffect } from 'react';
-import { CreditCard, Zap, Shield, Cpu, TrendingUp, Check, Plus, ShoppingCart, Loader, ArrowRight, ChevronRight, Sparkles, Building, Rocket, Crown, Star, ShieldCheck, Gem, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { 
+    CreditCard, Zap, Shield, Cpu, TrendingUp, Check, 
+    Loader, ArrowRight, Sparkles, Building, Rocket, 
+    Crown, Star, ShieldCheck, Gem, X, ShoppingCart,
+    Trash2, ChevronRight, Package, Plus, Minus, AlertTriangle, Layers, Target, BarChart
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
-interface CatalogCard {
-    id: number;
-    name: string;
-    tier: string;
-    total_volume: number;
-    max_chips: number;
-    max_campaigns: number;
-    priority_level: string;
-    speed: string;
-    anti_ban_level: string;
-    features: { resources?: string[] };
-    copy: string;
-    price: string;
-    is_active: boolean;
-}
-
-const TIER_UI: Record<string, { 
-    id: string;
-    color: string; 
-    bg: string; 
-    border: string; 
-    glow: string; 
-    emoji: string; 
-    icon: any;
-    label: string;
-    accent: string;
-}> = {
-    foundation:  { id: 'foundation',  color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.3)', glow: 'rgba(148,163,184,0.2)', emoji: '🧱', icon: Building,    label: 'Foundation',  accent: '#64748b' },
-    growth:      { id: 'growth',      color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.3)',  glow: 'rgba(59,130,246,0.2)',  emoji: '📈', icon: TrendingUp,  label: 'Growth',      accent: '#1d4ed8' },
-    performance: { id: 'performance', color: '#acf800', bg: 'rgba(172,248,0,0.1)',   border: 'rgba(172,248,0,0.3)',   glow: 'rgba(172,248,0,0.2)',   emoji: '⚡', icon: Zap,         label: 'Performance', accent: '#84c000' },
-    velocity:    { id: 'velocity',    color: '#06b6d4', bg: 'rgba(6,182,212,0.1)',   border: 'rgba(6,182,212,0.3)',   glow: 'rgba(6,182,212,0.2)',   emoji: '🚀', icon: Rocket,      label: 'Velocity',    accent: '#0891b2' },
-    dominance:   { id: 'dominance',   color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.3)',  glow: 'rgba(139,92,246,0.2)',  emoji: '👑', icon: Crown,       label: 'Dominance',   accent: '#7c3aed' },
-    elite:       { id: 'elite',       color: '#eab308', bg: 'rgba(234,179,8,0.1)',   border: 'rgba(234,179,8,0.3)',   glow: 'rgba(234,179,8,0.2)',   emoji: '🌟', icon: Star,        label: 'Elite',       accent: '#ca8a04' },
-    sovereign:   { id: 'sovereign',   color: '#f97316', bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.3)',  glow: 'rgba(249,115,22,0.2)',  emoji: '🔱', icon: ShieldCheck, label: 'Sovereign',   accent: '#ea580c' },
-    apex:        { id: 'apex',        color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   glow: 'rgba(239,68,68,0.2)',   emoji: '💎', icon: Gem,         label: 'Apex',        accent: '#dc2626' },
+// High-End TIER UI Configuration
+const TIER_UI: Record<string, any> = {
+    foundation:  { color: '#94a3b8', bg: 'rgba(148,163,184,0.05)', border: 'rgba(148,163,184,0.2)', glow: 'rgba(148,163,184,0.15)', icon: Building,    label: 'Foundation',  accent: '#64748b' },
+    growth:      { color: '#3b82f6', bg: 'rgba(59,130,246,0.05)',  border: 'rgba(59,130,246,0.2)',  glow: 'rgba(59,130,246,0.2)',  icon: TrendingUp,  label: 'Growth',      accent: '#1d4ed8' },
+    performance: { color: '#acf800', bg: 'rgba(172,248,0,0.05)',   border: 'rgba(172,248,0,0.2)',   glow: 'rgba(172,248,0,0.4)',   icon: Zap,         label: 'Performance', accent: '#84c000' },
+    velocity:    { color: '#06b6d4', bg: 'rgba(6,182,212,0.05)',   border: 'rgba(6,182,212,0.2)',   glow: 'rgba(6,182,212,0.2)',   icon: Rocket,      label: 'Velocity',    accent: '#0891b2' },
+    dominance:   { color: '#8b5cf6', bg: 'rgba(139,92,246,0.05)',  border: 'rgba(139,92,246,0.2)',  glow: 'rgba(139,92,246,0.2)',  icon: Crown,       label: 'Dominance',   accent: '#7c3aed' },
+    elite:       { color: '#eab308', bg: 'rgba(234,179,8,0.05)',   border: 'rgba(234,179,8,0.2)',   glow: 'rgba(234,179,8,0.2)',   icon: Star,        label: 'Elite',       accent: '#ca8a04' },
+    sovereign:   { color: '#f97316', bg: 'rgba(249,115,22,0.05)',  border: 'rgba(249,115,22,0.2)',  glow: 'rgba(249,115,22,0.2)',  icon: ShieldCheck, label: 'Sovereign',   accent: '#ea580c' },
+    apex:        { color: '#ef4444', bg: 'rgba(239,68,68,0.05)',   border: 'rgba(239,68,68,0.2)',   glow: 'rgba(239,68,68,0.4)',   icon: Gem,         label: 'Apex',        accent: '#dc2626' },
 };
 
 const formatVolume = (v: number) => {
@@ -49,314 +29,351 @@ const formatVolume = (v: number) => {
 const formatPrice = (p: string | number) =>
     parseFloat(String(p)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-export default function PlugCardsExchange() {
-    const { user } = useAuth();
-    const [catalog, setCatalog] = useState<CatalogCard[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [buyingId, setBuyingId] = useState<number | null>(null);
-    const [checkoutCard, setCheckoutCard] = useState<CatalogCard | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'debit_card' | 'pix'>('pix');
+// --- Interactive Card Component ---
+function InteractiveCard({ card, onClick, onAddToCart }: { card: any, onClick: () => void, onAddToCart: (e: any) => void }) {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const spotlightRef = useRef<HTMLDivElement>(null);
+    const ui = TIER_UI[card.tier?.toLowerCase()] || TIER_UI.foundation;
+    const Icon = ui.icon;
 
-    useEffect(() => {
-        setLoading(true);
-        supabase
-            .from('plug_cards')
-            .select('*')
-            .neq('is_active', false)
-            .order('price', { ascending: true })
-            .then(({ data, error }) => {
-                if (!error && data) setCatalog(data as CatalogCard[]);
-                setLoading(false);
-            });
-    }, []);
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!cardRef.current || !spotlightRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        spotlightRef.current.style.background = `radial-gradient(circle at ${x}px ${y}px, ${ui.color}25, transparent 80%)`;
+    };
 
-    const handleBuy = async () => {
-        if (!user || !checkoutCard) return;
-        setBuyingId(checkoutCard.id);
-        try {
-            // Insert directly into Supabase user_plug_cards
-            const { error } = await supabase.from('user_plug_cards').insert({
-                user_id: user.id,
-                plug_card_id: checkoutCard.id,
-                total_volume: checkoutCard.total_volume,
-                used_volume: 0,
-                remaining_volume: checkoutCard.total_volume,
-                status: 'active',
-                payment_method: paymentMethod,
-                payment_ref: `PCG-${Date.now()}-${Math.random().toString(36).substring(2,8).toUpperCase()}`,
-                purchased_price: parseFloat(checkoutCard.price)
-            });
-            if (!error) {
-                alert(`Sucesso! Você adquiriu o card ${checkoutCard.name}. Ele já está disponível na sua wallet.`);
-                window.location.href = '/my-cards';
-            } else {
-                alert('Erro na transação: ' + error.message);
-            }
-        } finally {
-            setBuyingId(null);
-        }
+    const handleMouseLeave = () => {
+        if (spotlightRef.current) spotlightRef.current.style.background = 'transparent';
     };
 
     return (
-        <div style={{ fontFamily: 'var(--font-family)', maxWidth: 1200, margin: '0 auto', paddingBottom: 100 }}>
+        <div 
+            ref={cardRef}
+            className="premium-card-lift"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            onClick={onClick}
+            style={{
+                background: '#0a0f1a', borderRadius: 44, padding: '44px', position: 'relative', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', border: `1px solid ${ui.border}`, display: 'flex', flexDirection: 'column', height: '100%', minHeight: '740px'
+            }}
+        >
+            <div ref={spotlightRef} style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', transition: 'background 0.1s ease' }} />
+            <div className="card-sweep" style={{ background: `linear-gradient(90deg, transparent, ${ui.color}15, transparent)` }} />
 
-            {/* Hero Header */}
-            <div style={{ textAlign: 'center', marginBottom: 60, marginTop: 20 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(172,248,0,0.08)', padding: '8px 20px', borderRadius: 100, border: '1px solid rgba(172,248,0,0.2)', marginBottom: 20 }}>
-                    <Sparkles size={16} color="#acf800" />
-                    <span style={{ color: '#acf800', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Exchange Oficial Plug & Sales</span>
+            <div style={{ position: 'relative', zIndex: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
+                    <div style={{ background: ui.bg, border: `1px solid ${ui.border}`, padding: 14, borderRadius: 20, color: ui.color }}>
+                        <Icon size={28} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 950, color: ui.color, textTransform: 'uppercase', letterSpacing: 3 }}>Tier {ui.label}</div>
+                        <h3 style={{ margin: 0, color: '#fff', fontSize: '1.7rem', fontWeight: 950, letterSpacing: '-0.8px' }}>{card.name.split(' | ')[0]}</h3>
+                    </div>
                 </div>
-                <h1 style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 16px', letterSpacing: '-2px', lineHeight: 0.9 }}>
-                    Potencialize seu <span style={{ color: '#acf800' }}>Ecossistema</span>
-                </h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: 600, margin: '0 auto', lineHeight: 1.6 }}>
-                    Adquira capacidade de disparo inteligente com performance acelerada, <br />
-                    proteção anti-ban avançada e prioridade máxima na rede.
+
+                <p style={{ color: '#94a3b8', fontSize: '1rem', marginBottom: 35, lineHeight: 1.6, fontWeight: 500, opacity: 0.8 }}>
+                    {card.copy || "Performance enterprise para operações que demandam estabilidade e alta escala."}
                 </p>
-            </div>
 
-            {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                    <Loader size={48} color="#acf800" style={{ animation: 'spin 1.5s linear infinite' }} />
+                <div style={{ 
+                    background: 'rgba(255,255,255,0.03)', borderRadius: 36, padding: '44px 20px', textAlign: 'center', marginBottom: 40, border: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden'
+                }}>
+                    <div style={{ color: ui.color, fontSize: '4.5rem', fontWeight: 950, letterSpacing: '-4px', lineHeight: 0.9, marginBottom: 8 }}>{formatVolume(card.total_volume)}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', fontWeight: 950, textTransform: 'uppercase', letterSpacing: 4, marginBottom: 28 }}>envios por card</div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 24, fontSize: '0.85rem', fontWeight: 900, color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Cpu size={18} color={ui.color} /> {card.max_chips === 999 ? '∞' : card.max_chips} Chips</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Layers size={18} color={ui.color} /> {card.max_campaigns === 999 ? '∞' : card.max_campaigns} Camps</div>
+                    </div>
                 </div>
-            ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 20 }}>
-                    {catalog.filter(c => c.is_active).map(card => {
-                        const ui = TIER_UI[card.tier] || TIER_UI.foundation;
-                        const Icon = ui.icon;
-                        const resources = card.features?.resources || [];
 
-                        return (
-                            <div 
-                                key={card.id}
-                                style={{
-                                    background: 'rgba(15,23,42,0.8)',
-                                    backdropFilter: 'blur(20px)',
-                                    border: `1px solid ${ui.border}`,
-                                    borderRadius: 30,
-                                    padding: '32px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                                    position: 'relative',
-                                    overflow: 'hidden',
-                                    cursor: 'pointer'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-10px)';
-                                    e.currentTarget.style.boxShadow = `0 20px 60px ${ui.glow}`;
-                                    e.currentTarget.style.borderColor = ui.color;
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = 'none';
-                                    e.currentTarget.style.borderColor = ui.border;
-                                }}
-                            >
-                                {/* Glow Corner */}
-                                <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: ui.glow, filter: 'blur(40px)', pointerEvents: 'none' }} />
-
-                                <div style={{ marginBottom: 24 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                                        <div style={{ background: ui.bg, border: `1px solid ${ui.border}`, padding: 12, borderRadius: 16, display: 'flex', color: ui.color }}>
-                                            <Icon size={24} strokeWidth={2.5} />
-                                        </div>
-                                        <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: ui.color, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 2 }}>Tier {ui.label}</div>
-                                            <h3 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.3px' }}>{card.name.split(' | ')[0]}</h3>
-                                        </div>
-                                    </div>
-                                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5, minHeight: 40 }}>
-                                        {card.copy || "Capacidade estratégica para sua operação."}
-                                    </p>
+                <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {(card.features?.resources || [
+                            'Smart Delivery (IA)',
+                            'Tracking de Conversão VIP',
+                            'Suporte Prioritário 24/7'
+                        ]).slice(0, 3).map((feat: any, i: number) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'start', gap: 12, fontSize: '0.95rem', color: '#fff', fontWeight: 600 }}>
+                                <div style={{ minWidth: 20, height: 20, borderRadius: '50%', background: `${ui.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Check size={14} color={ui.color} strokeWidth={4} />
                                 </div>
-
-                                {/* Main Specs */}
-                                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
-                                    <div style={{ color: ui.color, fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', marginBottom: 4 }}>
-                                        {formatVolume(card.total_volume)}
-                                        <span style={{ fontSize: '1rem', marginLeft: 6, fontWeight: 700, color: 'var(--text-muted)' }}>envios</span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-secondary)', fontSize: '0.72rem', fontWeight: 600 }}>
-                                            <Cpu size={12} /> {card.max_chips === 99 ? '∞' : card.max_chips} Chips
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-secondary)', fontSize: '0.72rem', fontWeight: 600 }}>
-                                            <Zap size={12} /> {card.max_campaigns === 99 ? '∞' : card.max_campaigns} Camps
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-secondary)', fontSize: '0.72rem', fontWeight: 600 }}>
-                                            <Shield size={12} /> {card.anti_ban_level} Ban
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Features List */}
-                                <div style={{ flex: 1, marginBottom: 30 }}>
-                                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Recursos Inclusos:</div>
-                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                                        {resources.map((res: string, idx: number) => (
-                                            <li key={idx} style={{ display: 'flex', alignItems: 'start', gap: 10, color: 'var(--text-secondary)', fontSize: '0.78rem', marginBottom: 10, lineHeight: 1.3 }}>
-                                                <div style={{ background: 'rgba(172,248,0,0.1)', borderRadius: 4, padding: 2, display: 'flex', marginTop: 1 }}>
-                                                    <Check size={12} color="#acf800" strokeWidth={3} />
-                                                </div>
-                                                {res}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-
-                                {/* Action */}
-                                <div style={{ marginTop: 'auto' }}>
-                                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'line-through', opacity: 0.5 }}>De {formatPrice(parseFloat(card.price) * 1.5)}</div>
-                                        <div style={{ color: 'var(--text-primary)', fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.5px' }}>{formatPrice(card.price)}</div>
-                                    </div>
-                                    <button 
-                                        onClick={() => setCheckoutCard(card)}
-                                        style={{
-                                            width: '100%',
-                                            background: `linear-gradient(135deg, ${ui.color}, ${ui.accent})`,
-                                            color: card.tier === 'foundation' || card.tier === 'growth' ? '#fff' : '#000',
-                                            border: 'none',
-                                            borderRadius: 16,
-                                            padding: '16px',
-                                            fontWeight: 900,
-                                            fontSize: '0.9rem',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: 8,
-                                            boxShadow: `0 10px 30px ${ui.glow}`,
-                                            transition: 'transform 0.2s'
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                    >
-                                        Adquirir Capacidade <ArrowRight size={18} />
-                                    </button>
-                                </div>
+                                <span>{feat}</span>
                             </div>
-                        );
-                    })}
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 40 }}>
+                    <div style={{ textDecoration: 'line-through', color: 'rgba(255,255,255,0.15)', fontSize: '0.9rem', fontWeight: 900, marginBottom: 4 }}>De {formatPrice(parseFloat(card.price) * 1.5)}</div>
+                    <div style={{ color: '#fff', fontSize: '3rem', fontWeight: 950, letterSpacing: '-2px', lineHeight: 1, marginBottom: 28 }}>{formatPrice(card.price)}</div>
+
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onAddToCart(card); }}
+                        className="adquirir-btn"
+                        style={{
+                            width: '100%', background: ui.color, color: '#000', border: 'none', padding: '24px', borderRadius: 24, fontWeight: 950, fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 15, cursor: 'pointer', transition: 'all 0.4s', boxShadow: `0 15px 40px ${ui.glow}`
+                        }}
+                    >
+                        ADQUIRIR AGORA <ChevronRight size={28} strokeWidth={4} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Main Page Component ---
+export default function PlugCardsExchange() {
+    const { user } = useAuth();
+    const [catalog, setCatalog] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedCard, setSelectedCard] = useState<any>(null);
+    const [cart, setCart] = useState<any[]>([]);
+    const [showCart, setShowCart] = useState(false);
+    const [isBuying, setIsBuying] = useState(false);
+
+    const fetchCatalog = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('plug_cards')
+            .select('*')
+            .neq('is_active', false)
+            .order('price', { ascending: true });
+        if (!error && data) setCatalog(data);
+        setLoading(false);
+    };
+
+    useEffect(() => { fetchCatalog(); }, []);
+
+    const addToCart = (card: any) => {
+        setCart(prev => {
+            const exists = prev.find(item => item.id === card.id);
+            if (exists) return prev.map(item => item.id === card.id ? { ...item, quantity: item.quantity + 1 } : item);
+            return [...prev, { ...card, quantity: 1 }];
+        });
+        setShowCart(true);
+    };
+
+    const handleCheckout = async () => {
+        if (!user || cart.length === 0) {
+            alert("Faça login para realizar a compra.");
+            return;
+        }
+        setIsBuying(true);
+        try {
+            // Processing all items in cart
+            for (const item of cart) {
+                for (let i = 0; i < item.quantity; i++) {
+                    const { error } = await supabase.from('user_plug_cards').insert({
+                        user_id: user.id,
+                        plug_card_id: item.id,
+                        total_volume: item.total_volume,
+                        used_volume: 0,
+                        remaining_volume: item.total_volume,
+                        status: 'active',
+                        payment_method: 'pix', // Standard for this elite design
+                        payment_ref: `PCG-${Date.now()}-${Math.random().toString(36).substring(2,8).toUpperCase()}`,
+                        purchased_price: parseFloat(item.price)
+                    });
+                    if (error) throw error;
+                }
+            }
+            alert("Sucesso! Seus cards foram ativados na sua wallet.");
+            window.location.href = '/my-cards';
+        } catch (error: any) {
+            alert("Erro na transação: " + error.message);
+        } finally {
+            setIsBuying(false);
+        }
+    };
+
+    const cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+
+    if (loading) return (
+        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#020617' }}>
+            <Loader size={48} color="#acf800" style={{ animation: 'spin 1.5s linear infinite' }} />
+        </div>
+    );
+
+    return (
+        <div style={{ background: '#020617', minHeight: '100vh', color: '#fff', fontFamily: 'Outfit, sans-serif' }}>
+            
+            {/* Global Styles */}
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;400;700;900&display=swap');
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(40px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+                
+                .premium-card-lift:hover { border-color: rgba(255,255,255,0.3) !important; transform: translateY(-16px) !important; box-shadow: 0 40px 120px -20px rgba(172,248,0,0.2), 0 30px 60px -30px rgba(0,0,0,1) !important; }
+                .premium-card-lift:hover .card-sweep { left: 200%; }
+                .card-sweep { position: absolute; top: 0; bottom: 0; left: -150%; width: 100%; z-index: 1; transform: skewX(-25deg); transition: left 1s cubic-bezier(0.19, 1, 0.22, 1); pointer-events: none; }
+                
+                ::-webkit-scrollbar { width: 12px; }
+                ::-webkit-scrollbar-track { background: #020617; }
+                ::-webkit-scrollbar-thumb { background: #1a202c; borderRadius: 6px; border: 3px solid #020617; }
+            `}</style>
+
+            <nav style={{ 
+                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(2,6,23,0.92)', backdropFilter: 'blur(35px)', padding: '24px 44px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ background: '#acf800', width: 42, height: 42, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 25px rgba(172,248,0,0.25)' }}>
+                        <Rocket size={26} color="#000" strokeWidth={3} />
+                    </div>
+                    <span style={{ fontWeight: 950, fontSize: '1.5rem', letterSpacing: '-1.8px' }}>PLUG <span style={{ color: '#acf800' }}>CARDS</span></span>
+                </div>
+                
+                <button 
+                    onClick={() => setShowCart(!showCart)}
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 32px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 18, cursor: 'pointer', transition: 'all 0.3s', color: '#fff' }}
+                >
+                    <ShoppingCart size={24} color="#acf800" />
+                    <span style={{ fontWeight: 900, fontSize: '1rem' }}>{cart.length} itens</span>
+                    <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.15)' }} />
+                    <span style={{ color: '#acf800', fontWeight: 950, fontSize: '1.1rem' }}>{formatPrice(cartTotal)}</span>
+                </button>
+            </nav>
+
+            <header style={{ paddingTop: 220, paddingBottom: 110, textAlign: 'center', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: -350, left: '50%', transform: 'translateX(-50%)', width: '100%', height: '700px', background: 'radial-gradient(circle, rgba(172,248,0,0.05) 0%, transparent 75%)', filter: 'blur(130px)', pointerEvents: 'none' }} />
+                <div style={{ position: 'relative', zIndex: 1, padding: '0 24px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, background: 'rgba(172,248,0,0.08)', padding: '14px 36px', borderRadius: 100, border: '1px solid rgba(172,248,0,0.25)', marginBottom: 44 }}>
+                        <Sparkles size={20} color="#acf800" />
+                        <span style={{ color: '#acf800', fontWeight: 950, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: 5 }}>Marketplace de Infraestrutura</span>
+                    </div>
+                    <h1 style={{ fontSize: '6.5rem', fontWeight: 950, letterSpacing: '-7px', lineHeight: 0.8, margin: '0 0 40px' }}>Potencialize seu <span style={{ color: '#acf800' }}>Ecossistema</span></h1>
+                    <p style={{ color: '#94a3b8', fontSize: '1.6rem', maxWidth: 950, margin: '0 auto', lineHeight: 1.6, fontWeight: 500, opacity: 0.9 }}>Alta Escala com Proteção Blindada. Escolha seu Tier, <br /> Ative o Disparo e Domine o Mercado.</p>
+                </div>
+            </header>
+
+            <main style={{ maxWidth: 1450, margin: '0 auto', padding: '0 44px 200px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 40 }}>
+                {catalog.map(card => (
+                    <InteractiveCard key={card.id} card={card} onClick={() => setSelectedCard(card)} onAddToCart={addToCart} />
+                ))}
+            </main>
+
+            {/* Shopping Cart Sidebar */}
+            {showCart && (
+                <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '560px', background: '#0a0f1a', borderLeft: '1px solid rgba(255,255,255,0.06)', zIndex: 200, padding: 50, boxShadow: '-50px 0 150px rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 55 }}>
+                        <h2 style={{ fontSize: '2.6rem', fontWeight: 950, letterSpacing: '-2px' }}>Check-out</h2>
+                        <button onClick={() => setShowCart(false)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: '#fff', padding: 16, borderRadius: 20, cursor: 'pointer' }}><X size={36} /></button>
+                    </div>
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 28, paddingRight: 10 }}>
+                        {cart.length === 0 ? (
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, opacity: 0.15 }}>
+                                <Package size={110} color="#64748b" />
+                                <p style={{ fontWeight: 800, fontSize: '1.6rem' }}>Carrinho vazio.</p>
+                            </div>
+                        ) : cart.map((item, idx) => {
+                            const ui = TIER_UI[item.tier?.toLowerCase()] || TIER_UI.foundation;
+                            return (
+                                <div key={idx} style={{ display: 'flex', gap: 28, background: 'rgba(255,255,255,0.02)', padding: 32, borderRadius: 40, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{ width: 95, height: 95, borderRadius: 24, background: ui.bg, border: `1px solid ${ui.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ui.color }}>
+                                        {(() => { const Icon = ui.icon; return <Icon size={38} /> })()}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                            <span style={{ fontWeight: 950, fontSize: '1.3rem' }}>{item.name.split(' | ')[0]}</span>
+                                            <button onClick={() => setCart(prev => prev.filter(i => i.id !== item.id))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={22} /></button>
+                                        </div>
+                                        <div style={{ fontSize: '0.95rem', color: ui.color, fontWeight: 950, marginBottom: 20 }}>{formatVolume(item.total_volume)} Envios</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ color: '#fff', fontWeight: 950, fontSize: '1.5rem' }}>{formatPrice(item.price)}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 20, background: 'rgba(0,0,0,0.5)', padding: '12px 24px', borderRadius: 16 }}>
+                                                <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i))} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}><Minus size={18} /></button>
+                                                <span style={{ fontWeight: 950 }}>{item.quantity}</span>
+                                                <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}><Plus size={18} /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div style={{ marginTop: 45, background: 'rgba(172,248,0,0.07)', borderRadius: 50, padding: 50, border: '1px solid rgba(172,248,0,0.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
+                            <div>
+                                <span style={{ fontWeight: 800, color: '#475569', fontSize: '1.2rem', display: 'block', marginBottom: 8 }}>Total Consolidado:</span>
+                                <span style={{ fontSize: '3.8rem', fontWeight: 950, color: '#fff', letterSpacing: '-3.5px', lineHeight: 1 }}>{formatPrice(cartTotal)}</span>
+                            </div>
+                        </div>
+                        <button 
+                            disabled={cart.length === 0 || isBuying} 
+                            onClick={handleCheckout}
+                            style={{ width: '100%', background: '#acf800', color: '#000', border: 'none', padding: '28px', borderRadius: 28, fontWeight: 950, fontSize: '1.4rem', cursor: isBuying ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, transition: 'all 0.4s', opacity: (cart.length === 0 || isBuying) ? 0.3 : 1 }}
+                        >
+                            {isBuying ? <Loader size={30} style={{ animation: 'spin 1s linear infinite' }} /> : 'Ativar Ecossistema'}
+                            <ChevronRight size={40} strokeWidth={5} />
+                        </button>
+                    </div>
                 </div>
             )}
 
-            {/* Checkout Modal */}
-            {checkoutCard && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(15px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-                    <div style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: 32, maxWidth: 900, width: '100%', display: 'grid', gridTemplateColumns: '1.2fr 1fr', overflow: 'hidden' }}>
-                        
-                        {/* Details Side */}
-                        <div style={{ padding: 40, background: 'rgba(255,255,255,0.02)', borderRight: '1px solid var(--surface-border)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 30 }}>
-                                <div style={{ background: TIER_UI[checkoutCard.tier].bg, color: TIER_UI[checkoutCard.tier].color, padding: 12, borderRadius: 16 }}>
-                                    <CreditCard size={28} />
+            {/* Selection Modal */}
+            {selectedCard && (
+                <div 
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.98)', backdropFilter: 'blur(50px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+                    onClick={() => setSelectedCard(null)}
+                >
+                    <div 
+                        style={{ background: '#0a0f1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 60, maxWidth: 1150, width: '100%', overflow: 'hidden', position: 'relative', boxShadow: '0 80px 200px rgba(0,0,0,1)', animation: 'modalIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <button onClick={() => setSelectedCard(null)} style={{ position: 'absolute', top: 44, right: 44, background: 'rgba(255,255,255,0.06)', border: 'none', color: '#fff', padding: 18, borderRadius: '50%', cursor: 'pointer', zIndex: 10 }}><X size={34} /></button>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr' }}>
+                            <div style={{ padding: '80px', background: 'rgba(255,255,255,0.015)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 40 }}>
+                                    <div style={{ background: TIER_UI[selectedCard.tier?.toLowerCase()]?.bg, color: TIER_UI[selectedCard.tier?.toLowerCase()]?.color, padding: 24, borderRadius: 32, border: `1px solid ${TIER_UI[selectedCard.tier?.toLowerCase()]?.border}` }}>
+                                        {(() => { const UIcon = TIER_UI[selectedCard.tier?.toLowerCase()]?.icon || Building; return <UIcon size={56} strokeWidth={2.5} /> })()}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 950, color: TIER_UI[selectedCard.tier?.toLowerCase()]?.color, textTransform: 'uppercase', letterSpacing: 6 }}>{selectedCard.tier} GRADE</div>
+                                        <h2 style={{ fontSize: '4.8rem', fontWeight: 950, letterSpacing: '-5px', color: '#fff', margin: 0, lineHeight: 0.9 }}>{selectedCard.name.split(' | ')[0]}</h2>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 900, fontSize: '1.5rem' }}>Confirme sua Compra</h2>
-                                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Ativação imediata em sua conta</p>
-                                </div>
-                            </div>
-
-                            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border)', borderRadius: 24, padding: 24, marginBottom: 30 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Produto selecionado:</span>
-                                    <span style={{ color: TIER_UI[checkoutCard.tier].color, fontWeight: 900 }}>{checkoutCard.name}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Volume de disparo:</span>
-                                    <span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>{formatVolume(checkoutCard.total_volume)} envios</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Nível de prioridade:</span>
-                                    <span style={{ color: 'var(--text-primary)', fontWeight: 800, textTransform: 'capitalize' }}>{checkoutCard.priority_level}</span>
-                                </div>
-                                <div style={{ height: 1, background: 'var(--surface-border)', margin: '15px 0' }} />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ color: 'var(--text-primary)', fontWeight: 800 }}>Valor Total:</span>
-                                    <span style={{ color: '#acf800', fontWeight: 900, fontSize: '1.8rem' }}>{formatPrice(checkoutCard.price)}</span>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: 10 }}>
-                                <div style={{ background: 'rgba(172,248,0,0.05)', padding: 15, borderRadius: 16, display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                                    <ShieldCheck size={20} color="#acf800" />
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.3 }}>Ativação garantida e segura via gateway Plug & Sales.</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Payment Side */}
-                        <div style={{ padding: 40, display: 'flex', flexDirection: 'column' }}>
-                            <h3 style={{ color: 'var(--text-primary)', marginBottom: 20, fontWeight: 800 }}>Método de Pagamento</h3>
-                            
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 40 }}>
-                                {[
-                                    { id: 'pix', label: 'PIX (Aprovação Instantânea)', icon: <Zap size={18} /> },
-                                    { id: 'credit_card', label: 'Cartão de Crédito', icon: <CreditCard size={18} /> },
-                                    { id: 'debit_card', label: 'Cartão de Débito', icon: <Plus size={18} /> },
-                                ].map(m => (
-                                    <button 
-                                        key={m.id}
-                                        onClick={() => setPaymentMethod(m.id as any)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: '16px 20px',
-                                            borderRadius: 16,
-                                            border: `1px solid ${paymentMethod === m.id ? '#acf800' : 'var(--surface-border)'}`,
-                                            background: paymentMethod === m.id ? 'rgba(172,248,0,0.05)' : 'transparent',
-                                            color: paymentMethod === m.id ? '#acf800' : 'var(--text-secondary)',
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            {m.icon}
-                                            {m.label}
+                                <p style={{ color: '#94a3b8', fontSize: '1.25rem', marginBottom: 50, lineHeight: 1.6, fontWeight: 500 }}>{selectedCard.copy || "Solução estratégica de alta disponibilidade para escala de leads ativos."}</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                                    {[
+                                        { label: 'Volume Unitário', value: formatVolume(selectedCard.total_volume), icon: BarChart, color: TIER_UI[selectedCard.tier?.toLowerCase()]?.color },
+                                        { label: 'Escalabilidade', value: selectedCard.max_chips + ' Chips', icon: Cpu, color: '#fff' },
+                                        { label: 'Prioridade Rede', value: 'High-Level', icon: Target, color: '#fff' },
+                                        { label: 'Blindagem', value: selectedCard.anti_ban_level, icon: ShieldCheck, color: '#fff' },
+                                    ].map((s, i) => (
+                                        <div key={i} style={{ background: 'rgba(255,255,255,0.03)', padding: '30px', borderRadius: 32, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                            <s.icon size={28} color={s.color} style={{ marginBottom: 18 }} />
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 950, color: '#64748b', textTransform: 'uppercase', letterSpacing: 2 }}>{s.label}</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 950, color: '#fff' }}>{s.value}</div>
                                         </div>
-                                        {paymentMethod === m.id && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#acf800' }} />}
-                                    </button>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-
-                            <div style={{ marginTop: 'auto' }}>
-                                <button 
-                                    onClick={handleBuy}
-                                    disabled={buyingId !== null}
-                                    style={{
-                                        width: '100%',
-                                        background: '#acf800',
-                                        color: '#000',
-                                        border: 'none',
-                                        borderRadius: 16,
-                                        padding: '18px',
-                                        fontWeight: 900,
-                                        fontSize: '1rem',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: 10,
-                                        marginBottom: 12
-                                    }}
-                                >
-                                    {buyingId !== null ? <Loader size={20} style={{ animation: 'spin 1s linear infinite' }} /> : 'Finalizar e Ativar Agora'}
-                                    <ChevronRight size={20} />
-                                </button>
-                                <button onClick={() => setCheckoutCard(null)} style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', padding: 10 }}>Cancelar Transação</button>
+                            <div style={{ padding: '80px', display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 44, background: 'rgba(172,248,0,0.05)', padding: '14px 28px', borderRadius: 100, width: 'fit-content', border: '1px solid rgba(172,248,0,0.15)' }}><Sparkles size={20} color="#acf800" /><span style={{ fontWeight: 950, color: '#acf800', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: 3 }}>Diferencial Competitivo</span></div>
+                                <div style={{ background: 'rgba(255,255,255,0.015)', borderRadius: 44, padding: '44px', border: '1px solid rgba(255,255,255,0.04)', marginBottom: 50 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 35 }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: 950, color: '#acf800', textTransform: 'uppercase', marginBottom: 28, letterSpacing: 3 }}>PLUG & SALES</div>
+                                            {[ 'Escala sem Limites', 'Proteção Enterprise', 'Entrega Prioritária' ].map((t, i) => (<div key={i} style={{ display: 'flex', gap: 14, color: '#fff', fontSize: '1.1rem', fontWeight: 900, marginBottom: 20 }}><Check size={22} color="#acf800" strokeWidth={5} /> {t}</div>))}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: 950, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: 28, letterSpacing: 3 }}>MERCADO</div>
+                                            {[ 'Delay Massivo', 'Bans Constantes', 'Suporte Lento' ].map((t, i) => (<div key={i} style={{ display: 'flex', gap: 14, color: 'rgba(255,255,255,0.2)', fontSize: '1.05rem', fontWeight: 700, marginBottom: 20 }}><X size={22} color="rgba(255,255,255,0.1)" strokeWidth={4} /> {t}</div>))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{ marginTop: 'auto' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 35 }}><div><span style={{ color: '#64748b', fontWeight: 800, fontSize: '1.1rem', display: 'block', marginBottom: 6 }}>Pay-per-scale (Vitalício):</span><div style={{ color: '#fff', fontSize: '4.5rem', fontWeight: 950, letterSpacing: '-4px', lineHeight: 1 }}>{formatPrice(selectedCard.price)}</div></div></div>
+                                    <button onClick={() => { addToCart(selectedCard); setSelectedCard(null); }} style={{ width: '100%', background: '#acf800', color: '#000', border: 'none', padding: '30px', borderRadius: 32, fontWeight: 950, fontSize: '1.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>ADICIONAR AO CARRINHO <Plus size={36} strokeWidth={6} /></button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
-
-            <style>{`
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
         </div>
     );
 }
