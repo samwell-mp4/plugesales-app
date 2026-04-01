@@ -316,6 +316,12 @@ const ClientExternalForm = () => {
                     box-shadow: 0 0 30px rgba(172, 248, 0, 0.15); 
                 }
 
+                .form-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 14px;
+                }
+
                 .photo-uploader {
                     width: 120px;
                     height: 120px;
@@ -591,15 +597,20 @@ const ClientExternalForm = () => {
 
                 .ad-dropdown {
                     position: absolute;
-                    top: 110%;
+                    top: calc(100% + 12px);
                     left: 0;
                     width: 320px;
                     background: #0a0f1a;
                     border: 1px solid rgba(255, 255, 255, 0.1);
                     border-radius: 24px;
-                    padding: 16px;
-                    z-index: 100;
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+                    padding: 20px;
+                    z-index: 1000;
+                    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+                    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                @keyframes slideUp {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
                 .ad-item {
                     padding: 12px 16px;
@@ -629,12 +640,11 @@ const ClientExternalForm = () => {
                             <div className="flex justify-center sm:justify-start mb-12">
                                 <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5 mb-8">
                                     {(user?.role === 'ADMIN' ? [0, 1, 2, 3] : [1, 2, 3]).map((i, idx) => (
-                                        <div 
-                                            key={i} 
+                                        <div
+                                            key={i}
                                             onClick={() => i < step && setStep(i)}
-                                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-[10px] transition-all cursor-pointer ${
-                                                step === i ? 'bg-[#acf800] text-black shadow-lg scale-110' : step > i ? 'bg-[#acf800]/20 text-[#acf800]' : 'bg-white/5 text-white/10'
-                                            }`}
+                                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-[10px] transition-all cursor-pointer ${step === i ? 'bg-[#acf800] text-black shadow-lg scale-110' : step > i ? 'bg-[#acf800]/20 text-[#acf800]' : 'bg-white/5 text-white/10'
+                                                }`}
                                         >
                                             {step > i ? <CheckCircle size={14} /> : idx + 1}
                                         </div>
@@ -643,31 +653,46 @@ const ClientExternalForm = () => {
                             </div>
 
                             {step === 0 && user?.role === 'ADMIN' && (
-                                <div className="glass-card animate-fade-in space-y-8">
-                                    <div>
+                                <div className="glass-card animate-fade-in space-y-12">
+                                    <div className="space-y-4">
                                         <h2 className="section-title">Selecionar Cliente</h2>
                                         <p className="section-subtitle">Escolha o destinatário desta submissão.</p>
                                     </div>
-                                    <div className="space-y-6">
+                                    <div className="space-y-10">
                                         {!isCreatingClient ? (
-                                            <div className="space-y-4">
-                                                <select
-                                                    className="input-premium py-4"
-                                                    value={formData.user_id || ''}
-                                                    onChange={e => setFormData(p => ({ ...p, user_id: e.target.value }))}
-                                                >
-                                                    <option value="">Selecione um cliente...</option>
-                                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
-                                                </select>
+                                            <div className="space-y-6">
+                                                <div className="form-group">
+                                                    <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Cliente Vinculado</label>
+                                                    <select
+                                                        className="input-premium py-4"
+                                                        value={formData.user_id || ''}
+                                                        onChange={e => setFormData(p => ({ ...p, user_id: e.target.value }))}
+                                                    >
+                                                        <option value="">Selecione um cliente...</option>
+                                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
+                                                    </select>
+                                                </div>
                                                 <button onClick={() => setIsCreatingClient(true)} className="text-[#acf800] text-[10px] font-black tracking-widest uppercase hover:underline">+ Cadastrar Novo Cliente</button>
                                             </div>
                                         ) : (
-                                            <form onSubmit={handleCreateClient} className="grid grid-cols-2 gap-4 bg-white/5 p-6 rounded-2xl">
-                                                <input className="input-premium" placeholder="Nome" value={newClientData.name} onChange={e => setNewClientData(p => ({ ...p, name: e.target.value }))} required />
-                                                <input className="input-premium" placeholder="Email" value={newClientData.email} onChange={e => setNewClientData(p => ({ ...p, email: e.target.value }))} required />
-                                                <input className="input-premium" placeholder="DDD+Tel" value={newClientData.phone} onChange={e => setNewClientData(p => ({ ...p, phone: e.target.value }))} required />
-                                                <input className="input-premium" type="password" placeholder="Senha" value={newClientData.password} onChange={e => setNewClientData(p => ({ ...p, password: e.target.value }))} required />
-                                                <div className="col-span-2 flex gap-4">
+                                            <form onSubmit={handleCreateClient} className="grid grid-cols-2 gap-6 bg-white/5 p-8 rounded-3xl border border-white/5">
+                                                <div className="form-group">
+                                                    <label className="text-[9px] font-black uppercase opacity-40">Nome</label>
+                                                    <input className="input-premium" placeholder="Nome" value={newClientData.name} onChange={e => setNewClientData(p => ({ ...p, name: e.target.value }))} required />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label className="text-[9px] font-black uppercase opacity-40">E-mail</label>
+                                                    <input className="input-premium" placeholder="Email" value={newClientData.email} onChange={e => setNewClientData(p => ({ ...p, email: e.target.value }))} required />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label className="text-[9px] font-black uppercase opacity-40">Telefone</label>
+                                                    <input className="input-premium" placeholder="DDD+Tel" value={newClientData.phone} onChange={e => setNewClientData(p => ({ ...p, phone: e.target.value }))} required />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label className="text-[9px] font-black uppercase opacity-40">Senha</label>
+                                                    <input className="input-premium" type="password" placeholder="Senha" value={newClientData.password} onChange={e => setNewClientData(p => ({ ...p, password: e.target.value }))} required />
+                                                </div>
+                                                <div className="col-span-2 flex gap-6 mt-4">
                                                     <button type="submit" className="nav-btn nav-btn-primary flex-1 justify-center">CADASTRAR</button>
                                                     <button type="button" onClick={() => setIsCreatingClient(false)} className="nav-btn nav-btn-secondary">CANCELAR</button>
                                                 </div>
@@ -682,7 +707,7 @@ const ClientExternalForm = () => {
                                 <div className="glass-card animate-fade-in space-y-16">
                                     <div className="flex flex-col md:flex-row gap-20 items-center md:items-start text-center md:text-left">
                                         <div className="flex flex-col items-center gap-8">
-                                            <div 
+                                            <div
                                                 className="photo-uploader group"
                                                 onClick={() => document.getElementById('photo-upload')?.click()}
                                             >
@@ -698,13 +723,13 @@ const ClientExternalForm = () => {
                                             </div>
                                             <span className="text-[9px] font-black uppercase tracking-[3px] opacity-40">Logo do Perfil</span>
                                         </div>
-                                        
-                                        <div className="flex-1 w-full space-y-12 pt-4">
-                                            <div className="space-y-4">
+
+                                        <div className="flex-1 w-full space-y-16 pt-4">
+                                            <div className="form-group">
                                                 <label className="text-[11px] font-black uppercase tracking-[3px] opacity-40 ml-1">Nome do Atendimento</label>
                                                 <input className="input-premium" placeholder="Ex: Suporte VIP" value={formData.profile_name} onChange={e => setFormData(p => ({ ...p, profile_name: e.target.value }))} />
                                             </div>
-                                            <div className="space-y-4">
+                                            <div className="form-group">
                                                 <label className="text-[11px] font-black uppercase tracking-[3px] opacity-40 ml-1">DDD Regional</label>
                                                 <input className="input-premium" placeholder="Ex: 11" maxLength={2} value={formData.ddd} onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))} />
                                             </div>
@@ -730,7 +755,7 @@ const ClientExternalForm = () => {
                                                 <div className="ad-dropdown">
                                                     <div className="flex justify-between items-center px-2 mb-4">
                                                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Lista de Anúncios</span>
-                                                        <button 
+                                                        <button
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -738,26 +763,26 @@ const ClientExternalForm = () => {
                                                                     const lastAd = p.ads[p.ads.length - 1];
                                                                     return {
                                                                         ...p,
-                                                                        ads: [...p.ads, { 
-                                                                            ...lastAd, 
-                                                                            id: Date.now().toString(), 
-                                                                            ad_name: '', 
-                                                                            variables: ['', '', '', '', ''], 
-                                                                            showFifthVariable: false 
+                                                                        ads: [...p.ads, {
+                                                                            ...lastAd,
+                                                                            id: Date.now().toString(),
+                                                                            ad_name: '',
+                                                                            variables: ['', '', '', '', ''],
+                                                                            showFifthVariable: false
                                                                         }],
                                                                         currentAdIndex: p.ads.length
                                                                     };
                                                                 });
                                                                 setDropdownOpen(false);
-                                                            }} 
+                                                            }}
                                                             className="text-[#acf800] hover:scale-110 transition-transform p-2"
                                                         >
                                                             <PlusCircle size={20} />
                                                         </button>
                                                     </div>
                                                     {formData.ads.map((ad, idx) => (
-                                                        <div 
-                                                            key={ad.id} 
+                                                        <div
+                                                            key={ad.id}
                                                             className={`ad-item ${formData.currentAdIndex === idx ? 'active' : ''}`}
                                                             onClick={() => { setFormData(p => ({ ...p, currentAdIndex: idx })); setDropdownOpen(false); }}
                                                         >
@@ -785,8 +810,8 @@ const ClientExternalForm = () => {
                                             {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => {
                                                 const isSelected = formData.ads[formData.currentAdIndex].template_type === t;
                                                 return (
-                                                    <div 
-                                                        key={t} 
+                                                    <div
+                                                        key={t}
                                                         onClick={() => {
                                                             const newAds = [...formData.ads];
                                                             newAds[formData.currentAdIndex].template_type = t;
@@ -818,8 +843,8 @@ const ClientExternalForm = () => {
                                             <label className="text-[10px] font-black uppercase tracking-[4px] opacity-40 ml-1">
                                                 Midia do Criativo ({formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'Imagem' : 'Vídeo'})
                                             </label>
-                                            <div 
-                                                className={`upload-zone py-16 ${formData.ads[formData.currentAdIndex].media_url ? 'uploaded' : ''}`} 
+                                            <div
+                                                className={`upload-zone py-16 ${formData.ads[formData.currentAdIndex].media_url ? 'uploaded' : ''}`}
                                                 onClick={() => document.getElementById('media-upload')?.click()}
                                             >
                                                 <input id="media-upload" type="file" hidden accept={formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'image/*' : 'video/*'} onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'media_url')} />
@@ -847,21 +872,21 @@ const ClientExternalForm = () => {
                                     <div className="space-y-12">
                                         <div className="flex items-center gap-6 bg-white/[0.03] p-8 rounded-[32px] border border-white/5 shadow-inner">
                                             <label className="custom-switch scale-110">
-                                                <input 
-                                                    type="checkbox" 
+                                                <input
+                                                    type="checkbox"
                                                     checked={formData.ads[formData.currentAdIndex].showFifthVariable}
                                                     onChange={e => {
                                                         const newAds = [...formData.ads];
                                                         const ad = newAds[formData.currentAdIndex];
                                                         ad.showFifthVariable = e.target.checked;
-                                                        
+
                                                         const v = ad.variables;
                                                         const v1 = v[0] || '{{1}}';
                                                         const v2 = v[1] || '{{2}}';
                                                         const v3 = v[2] || '{{3}}';
                                                         const v4 = v[3] || '{{4}}';
                                                         const v5 = v[4] || '{{5}}';
-                                                        
+
                                                         if (e.target.checked) {
                                                             ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\n${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
                                                         } else {
@@ -878,15 +903,15 @@ const ClientExternalForm = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                            <div className="form-group">
                                                 <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Link do Botão (HTTPS)</label>
                                                 <div className="relative group">
                                                     <Globe size={18} className="absolute left-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 group-focus-within:text-[#acf800] transition-all" />
-                                                    <input 
-                                                        className="input-premium py-6 pl-16 pr-8" 
-                                                        placeholder="https://sua-url.com" 
-                                                        value={formData.ads[formData.currentAdIndex].button_link || ''} 
+                                                    <input
+                                                        className="input-premium py-6 pl-16 pr-8"
+                                                        placeholder="https://sua-url.com"
+                                                        value={formData.ads[formData.currentAdIndex].button_link || ''}
                                                         onChange={e => {
                                                             const newAds = [...formData.ads];
                                                             newAds[formData.currentAdIndex].button_link = e.target.value;
@@ -901,10 +926,10 @@ const ClientExternalForm = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-6">
+                                            <div className="form-group">
                                                 <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Planilha de Contatos</label>
-                                                <div 
-                                                    className={`upload-zone h-[76px] ${formData.ads[formData.currentAdIndex].spreadsheet_url ? 'uploaded' : ''}`} 
+                                                <div
+                                                    className={`upload-zone h-[76px] ${formData.ads[formData.currentAdIndex].spreadsheet_url ? 'uploaded' : ''}`}
                                                     onClick={() => document.getElementById('sheet-upload')?.click()}
                                                 >
                                                     <input id="sheet-upload" type="file" hidden accept=".xlsx,.xls,.csv" onChange={e => {
@@ -918,7 +943,7 @@ const ClientExternalForm = () => {
                                                     ) : (
                                                         <div className="flex items-center gap-3 opacity-30 group-hover:opacity-100 transition-all">
                                                             <FileSpreadsheet size={20} />
-                                                            <p className="text-[10px] font-black uppercase tracking-[2px]">Subir Base</p>
+                                                            <p className="text-[10px] font-black uppercase tracking-[2px] padding-4">Subir Base</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -948,30 +973,30 @@ const ClientExternalForm = () => {
                                         </div>
 
                                         {formData.ads[formData.currentAdIndex].message_mode === 'manual' ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-10 pt-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-16 pt-6">
                                                 {[1, 2, 3, 4, 5].map(vNum => {
                                                     if (vNum === 5 && !formData.ads[formData.currentAdIndex].showFifthVariable) return null;
                                                     return (
-                                                        <div key={vNum} className="space-y-4">
+                                                        <div key={vNum} className="form-group">
                                                             <label className="text-[10px] font-black uppercase tracking-[3px] text-[#acf800] ml-1">Variável {vNum}</label>
                                                             <div className="relative group">
                                                                 <div className="absolute left-6 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#acf800] opacity-20 group-focus-within:opacity-100 group-focus-within:scale-150 transition-all"></div>
-                                                                <input 
-                                                                    className="input-premium py-6 pl-14" 
+                                                                <input
+                                                                    className="input-premium py-6 pl-14"
                                                                     placeholder={`Ex: ${vNum === 1 ? 'Nome' : 'Valor'}`}
                                                                     value={formData.ads[formData.currentAdIndex].variables[vNum - 1] || ''}
                                                                     onChange={e => {
                                                                         const newAds = [...formData.ads];
                                                                         const ad = newAds[formData.currentAdIndex];
                                                                         ad.variables[vNum - 1] = e.target.value;
-                                                                        
+
                                                                         const v = ad.variables;
                                                                         const v1 = v[0] || '{{1}}';
                                                                         const v2 = v[1] || '{{2}}';
                                                                         const v3 = v[2] || '{{3}}';
                                                                         const v4 = v[3] || '{{4}}';
                                                                         const v5 = v[4] || '{{5}}';
-                                                                        
+
                                                                         if (ad.showFifthVariable) {
                                                                             ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\n${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
                                                                         } else {
@@ -986,8 +1011,8 @@ const ClientExternalForm = () => {
                                                 })}
                                             </div>
                                         ) : (
-                                            <div 
-                                                className={`upload-zone py-20 ${formData.ads[formData.currentAdIndex].ad_copy_file ? 'uploaded' : ''}`} 
+                                            <div
+                                                className={`upload-zone py-20 ${formData.ads[formData.currentAdIndex].ad_copy_file ? 'uploaded' : ''}`}
                                                 onClick={() => document.getElementById('msg-upload')?.click()}
                                             >
                                                 <input id="msg-upload" type="file" hidden accept=".txt" onChange={e => {
@@ -1066,9 +1091,9 @@ const ClientExternalForm = () => {
                                             {formData.ads[formData.currentAdIndex].template_type === 'IMAGE' && (
                                                 <div className="mb-3 w-full aspect-video bg-black/60 rounded-xl flex items-center justify-center border border-white/10 overflow-hidden relative group">
                                                     {formData.ads[formData.currentAdIndex].media_url ? (
-                                                        <img 
-                                                            src={formData.ads[formData.currentAdIndex].media_url} 
-                                                            className="w-full h-full object-contain" 
+                                                        <img
+                                                            src={formData.ads[formData.currentAdIndex].media_url}
+                                                            className="w-full h-full object-contain"
                                                             alt="Preview"
                                                         />
                                                     ) : (
@@ -1082,8 +1107,8 @@ const ClientExternalForm = () => {
                                             {formData.ads[formData.currentAdIndex].template_type === 'VIDEO' && (
                                                 <div className="mb-3 w-full aspect-video bg-black/60 rounded-xl flex items-center justify-center border border-white/10 overflow-hidden relative group">
                                                     {formData.ads[formData.currentAdIndex].media_url ? (
-                                                        <video 
-                                                            src={formData.ads[formData.currentAdIndex].media_url} 
+                                                        <video
+                                                            src={formData.ads[formData.currentAdIndex].media_url}
                                                             className="w-full h-full object-contain"
                                                         />
                                                     ) : (
@@ -1115,14 +1140,14 @@ const ClientExternalForm = () => {
                                 <p className="text-white/40 font-medium text-sm px-10">Sua campanha foi enviada para processamento com sucesso.</p>
                             </div>
                             <div className="flex flex-col gap-4 mt-12 px-6">
-                                <button 
-                                    onClick={() => window.location.reload()} 
+                                <button
+                                    onClick={() => window.location.reload()}
                                     className="nav-btn nav-btn-primary w-full justify-center"
                                 >
                                     NOVO ANÚNCIO
                                 </button>
-                                <button 
-                                    onClick={() => navigate('/client-dashboard')} 
+                                <button
+                                    onClick={() => navigate('/client-dashboard')}
                                     className="nav-btn nav-btn-secondary w-full justify-center"
                                 >
                                     VOLTAR AO DASHBOARD
