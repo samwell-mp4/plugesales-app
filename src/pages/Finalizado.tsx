@@ -85,10 +85,6 @@ const Finalizado = () => {
                     Nossa equipe entrará em contato em breve pelo <strong>WhatsApp</strong> para alinhar os próximos passos da sua operação.
                 </p>
 
-                <button className="primary-btn" onClick={() => navigate('/')}>
-                    IR PARA O SITE <ArrowRight size={20} />
-                </button>
-
                 <p style={{ marginTop: '30px', color: '#475569', fontSize: '0.85rem', fontWeight: 600 }}>
                     (finalizado)
                 </p>

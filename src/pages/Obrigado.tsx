@@ -107,10 +107,6 @@ const Obrigado = () => {
                     Sua operação foi identificada e agora o próximo passo é escalar com o poder do <br /><strong>Plug & Sales</strong>.
                 </p>
 
-                <button className="cta-btn" onClick={() => navigate('/')}>
-                    COMEÇAR AGORA <Zap size={24} fill="#000" />
-                </button>
-
                 <p style={{ marginTop: '40px', color: '#1e293b', fontSize: '0.9rem', fontWeight: 800, letterSpacing: 2 }}>
                     (OBRIGADO)
                 </p>
