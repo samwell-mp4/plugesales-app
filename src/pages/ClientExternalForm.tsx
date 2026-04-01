@@ -440,6 +440,7 @@ const ClientExternalForm = () => {
                     position: relative;
                     overflow: hidden;
                     width: 100%;
+                    padding: 20px;
                 }
                 .upload-zone:hover {
                     border-color: #acf800;
@@ -847,7 +848,7 @@ const ClientExternalForm = () => {
                                                         <span className="text-[10px] font-black text-[#acf800] uppercase tracking-widest">Arquivo Carregado</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-3 opacity-30 padding-10">
+                                                    <div className="flex items-center gap-3 opacity-30">
                                                         <PlusCircle size={20} />
                                                         <span className="text-[10px] font-black uppercase tracking-[2px]">Clique para carregar mídia</span>
                                                     </div>
