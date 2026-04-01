@@ -263,20 +263,25 @@ const ClientExternalForm = () => {
                     width: 100%;
                 }
                 .header-title { 
-                    font-size: 4.5rem; 
+                    font-size: 2.8rem; 
                     font-weight: 950; 
-                    margin-bottom: 12px; 
-                    letter-spacing: -5px; 
-                    line-height: 0.85;
+                    margin-bottom: 16px; 
+                    letter-spacing: -1.5px; 
+                    line-height: 1.1;
                     color: #fff;
+                    display: block;
+                    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
                 }
                 .header-subtitle { 
-                    font-size: 11px; 
-                    opacity: 0.5; 
+                    font-size: 10px; 
+                    opacity: 0.4; 
                     font-weight: 900; 
-                    letter-spacing: 5px;
+                    letter-spacing: 6px;
                     text-transform: uppercase;
                     color: #fff;
+                    margin-top: -5px;
                 }
                 .section-title {
                     font-size: 1.8rem;
@@ -297,10 +302,10 @@ const ClientExternalForm = () => {
                     background: rgba(255, 255, 255, 0.04);
                     border: 1px solid rgba(255, 255, 255, 0.08);
                     color: #fff;
-                    padding: 20px 24px;
-                    border-radius: 20px;
+                    padding: 16px 20px;
+                    border-radius: 16px;
                     width: 100%;
-                    font-size: 15px;
+                    font-size: 14px;
                     font-weight: 600;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     outline: none;
@@ -337,19 +342,39 @@ const ClientExternalForm = () => {
                 .photo-uploader img {
                     width: 100%;
                     height: 100%;
-                    object-fit: cover;
+                    object-fit: contain;
+                }
+                .ad-selector-btn {
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 16px;
+                    padding: 10px 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                .ad-selector-btn:hover {
+                    background: rgba(255, 255, 255, 0.08);
+                    border-color: #acf800;
                 }
 
+                .preview-side {
+                    position: sticky;
+                    top: 120px;
+                    height: fit-content;
+                }
                 .iphone-mockup {
                     width: 340px;
                     height: 680px;
                     background: #000;
-                    border: 14px solid #1a1c1e;
+                    border: 12px solid #1a1c1e;
                     border-radius: 54px;
                     position: relative;
                     margin: 0 auto;
                     overflow: hidden;
-                    box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8);
+                    box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8), 0 0 40px rgba(172, 248, 0, 0.05);
                     border-bottom: 16px solid #1a1c1e;
                 }
                 .iphone-screen {
@@ -363,10 +388,10 @@ const ClientExternalForm = () => {
                 }
                 .chat-header {
                     background: #202c33;
-                    padding: 45px 20px 15px;
+                    padding: 40px 16px 12px;
                     display: flex;
                     align-items: center;
-                    gap: 15px;
+                    gap: 12px;
                     border-bottom: 1px solid rgba(255,255,255,0.05);
                 }
                 .chat-avatar {
@@ -410,20 +435,22 @@ const ClientExternalForm = () => {
                     display: inline-flex;
                 }
                 .mode-btn {
-                    padding: 12px 24px;
+                    padding: 10px 20px;
                     border-radius: 12px;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 900;
                     text-transform: uppercase;
-                    transition: all 0.2s ease;
-                    color: #64748b;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    color: rgba(255, 255, 255, 0.3);
                     border: none;
                     background: transparent;
                     cursor: pointer;
+                    letter-spacing: 1px;
                 }
                 .mode-btn.active {
                     background: #fff;
                     color: #000;
+                    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
                 }
 
                 .nav-btn {
@@ -529,16 +556,16 @@ const ClientExternalForm = () => {
                             </div>
 
                             <div className="flex justify-center sm:justify-start mb-12">
-                                <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5">
+                                <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5 mb-8">
                                     {(user?.role === 'ADMIN' ? [0, 1, 2, 3] : [1, 2, 3]).map((i, idx) => (
                                         <div 
                                             key={i} 
                                             onClick={() => i < step && setStep(i)}
-                                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs transition-all cursor-pointer ${
-                                                step === i ? 'bg-[#acf800] text-black shadow-lg scale-110' : step > i ? 'bg-[#acf800]/20 text-[#acf800]' : 'bg-white/5 text-white/20'
+                                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-[10px] transition-all cursor-pointer ${
+                                                step === i ? 'bg-[#acf800] text-black shadow-lg scale-110' : step > i ? 'bg-[#acf800]/20 text-[#acf800]' : 'bg-white/5 text-white/10'
                                             }`}
                                         >
-                                            {step > i ? <CheckCircle size={16} /> : idx + 1}
+                                            {step > i ? <CheckCircle size={14} /> : idx + 1}
                                         </div>
                                     ))}
                                 </div>
@@ -598,7 +625,7 @@ const ClientExternalForm = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <span className="text-[9px] font-black uppercase tracking-[3px] opacity-40">Identidade Visual</span>
+                                            <span className="text-[9px] font-black uppercase tracking-[3px] opacity-40">Logo do Perfil</span>
                                         </div>
                                         
                                         <div className="flex-1 w-full space-y-12 pt-4">
@@ -632,14 +659,30 @@ const ClientExternalForm = () => {
                                                 <div className="ad-dropdown">
                                                     <div className="flex justify-between items-center px-2 mb-4">
                                                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Lista de Anúncios</span>
-                                                        <button onClick={() => {
-                                                            setFormData(p => ({
-                                                                ...p,
-                                                                ads: [...p.ads, { ...p.ads[0], id: Date.now().toString(), ad_name: '', variables: ['', '', '', '', ''], showFifthVariable: false }],
-                                                                currentAdIndex: p.ads.length
-                                                            }));
-                                                            setDropdownOpen(false);
-                                                        }} className="text-[#acf800]"><PlusCircle size={18} /></button>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setFormData(p => {
+                                                                        const lastAd = p.ads[p.ads.length - 1];
+                                                                        return {
+                                                                            ...p,
+                                                                            ads: [...p.ads, { 
+                                                                                ...lastAd, 
+                                                                                id: Date.now().toString(), 
+                                                                                ad_name: '', 
+                                                                                variables: ['', '', '', '', ''], 
+                                                                                showFifthVariable: false 
+                                                                            }],
+                                                                            currentAdIndex: p.ads.length
+                                                                        };
+                                                                    });
+                                                                    setDropdownOpen(false);
+                                                                }} 
+                                                                className="text-[#acf800] hover:scale-110 transition-transform p-2"
+                                                            >
+                                                                <PlusCircle size={20} />
+                                                            </button>
                                                     </div>
                                                     {formData.ads.map((ad, idx) => (
                                                         <div 
@@ -676,8 +719,8 @@ const ClientExternalForm = () => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-12">
-                                        <div className="space-y-6">
+                                    <div className="space-y-16">
+                                        <div className="space-y-8">
                                             <label className="text-[10px] font-black uppercase tracking-[2px] opacity-40 ml-1">Tipo de Criativo</label>
                                             <div className="flex flex-wrap gap-4">
                                                 {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => {
@@ -732,8 +775,8 @@ const ClientExternalForm = () => {
                                             </div>
                                         )}
 
-                                        <div className="space-y-8">
-                                            <div className="flex items-center gap-3 bg-white/5 p-5 rounded-2xl border border-white/5 shadow-inner">
+                                        <div className="space-y-10 pt-4 border-t border-white/5">
+                                            <div className="flex items-center gap-3 bg-white/3 p-6 rounded-2xl border border-white/5 shadow-inner">
                                                 <label className="custom-switch">
                                                     <input 
                                                         type="checkbox" 
@@ -916,8 +959,8 @@ const ClientExternalForm = () => {
                             <div className="iphone-mockup">
                                 <div className="iphone-screen">
                                     <div className="chat-header">
-                                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border border-white/10">
-                                            {formData.profile_photo ? <img src={formData.profile_photo} className="w-full h-full object-cover" /> : <User size={20} className="opacity-20" />}
+                                        <div className="w-[40px] h-[40px] rounded-full bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 flex-shrink-0" style={{ maxWidth: '40px', maxHeight: '40px' }}>
+                                            {formData.profile_photo ? <img src={formData.profile_photo} className="w-full h-full object-contain" style={{ maxWidth: '100%', maxHeight: '100%', padding: '2px' }} /> : <User size={20} className="opacity-20" />}
                                         </div>
                                         <div>
                                             <p className="text-[13px] font-bold text-white leading-none mb-1">{formData.profile_name || 'Nome do Atendimento'}</p>
