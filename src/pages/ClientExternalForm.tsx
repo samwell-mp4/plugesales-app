@@ -836,8 +836,8 @@ const ClientExternalForm = () => {
                                             <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">
                                                 Mídia do Criativo ({formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'Imagem' : 'Vídeo'})
                                             </label>
-                                            <div 
-                                                className={`upload-zone py-12 ${formData.ads[formData.currentAdIndex].media_url ? 'uploaded' : ''}`} 
+                                            <div
+                                                className={`upload-zone py-12 ${formData.ads[formData.currentAdIndex].media_url ? 'uploaded' : ''}`}
                                                 onClick={() => document.getElementById('media-upload')?.click()}
                                             >
                                                 <input id="media-upload" type="file" hidden accept={formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'image/*' : 'video/*'} onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'media_url')} />
@@ -847,7 +847,7 @@ const ClientExternalForm = () => {
                                                         <span className="text-[10px] font-black text-[#acf800] uppercase tracking-widest">Arquivo Carregado</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-3 opacity-30">
+                                                    <div className="flex items-center gap-3 opacity-30 padding-10">
                                                         <PlusCircle size={20} />
                                                         <span className="text-[10px] font-black uppercase tracking-[2px]">Clique para carregar mídia</span>
                                                     </div>
@@ -1001,8 +1001,8 @@ const ClientExternalForm = () => {
                                         ) : (
                                             <div className="form-group">
                                                 <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Upload de Mensagens</label>
-                                                <div 
-                                                    className={`upload-zone py-12 ${formData.ads[formData.currentAdIndex].ad_copy_file ? 'uploaded' : ''}`} 
+                                                <div
+                                                    className={`upload-zone py-12 ${formData.ads[formData.currentAdIndex].ad_copy_file ? 'uploaded' : ''}`}
                                                     onClick={() => document.getElementById('msg-upload')?.click()}
                                                 >
                                                     <input id="msg-upload" type="file" hidden accept=".txt" onChange={e => {
