@@ -27,6 +27,9 @@ import CronReport from './pages/CronReport';
 import PlugCardsExchange from './pages/PlugCardsExchange';
 import MyPlugCards from './pages/MyPlugCards';
 import AdminPlugCards from './pages/AdminPlugCards';
+import TestCards from './pages/TestCards';
+import Finalizado from './pages/Finalizado';
+import Obrigado from './pages/Obrigado';
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -42,10 +45,12 @@ function AppContent() {
   const isPublicRoute = 
     location.pathname.startsWith('/landing') || 
     location.pathname === '/obrigado' || 
+    location.pathname === '/finalizado' || 
     location.pathname === '/lead-flow' || 
     location.pathname.startsWith('/l/') || 
     location.pathname.startsWith('/client-add/') ||
-    location.pathname === '/plug-cards';
+    location.pathname === '/plug-cards' ||
+    location.pathname === '/test-cards';
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -119,7 +124,8 @@ function AppContent() {
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/landing:id" element={<LandingPage />} />
           <Route path="/lead-flow" element={<LeadStepForm />} />
-          <Route path="/obrigado" element={<ThankYou />} />
+          <Route path="/obrigado" element={<Obrigado />} />
+          <Route path="/finalizado" element={<Finalizado />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/client-add/:parentId/:submissionId?" element={<ClientForClientForm />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
@@ -130,6 +136,7 @@ function AppContent() {
           <Route path="/plug-cards" element={<PlugCardsExchange />} />
           <Route path="/my-cards" element={<MyPlugCards />} />
           <Route path="/admin/plug-cards" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminPlugCards /> : <Navigate to="/dashboard" />} />
+          <Route path="/test-cards" element={<TestCards />} />
         </Routes>
       </main>
     </div>

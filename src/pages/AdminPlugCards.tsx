@@ -39,14 +39,14 @@ interface CatalogPlugCard {
 }
 
 const TIER_CONFIG: Record<string, { badge: string; label: string; emoji: string }> = {
-    foundation:  { badge: '#94a3b8', label: 'Foundation',  emoji: '🧱' },
-    growth:      { badge: '#3b82f6', label: 'Growth',      emoji: '📈' },
+    foundation: { badge: '#94a3b8', label: 'Foundation', emoji: '🧱' },
+    growth: { badge: '#3b82f6', label: 'Growth', emoji: '📈' },
     performance: { badge: '#acf800', label: 'Performance', emoji: '⚡' },
-    velocity:    { badge: '#06b6d4', label: 'Velocity',    emoji: '🚀' },
-    dominance:   { badge: '#8b5cf6', label: 'Dominance',   emoji: '👑' },
-    elite:       { badge: '#eab308', label: 'Elite',       emoji: '🌟' },
-    sovereign:   { badge: '#f97316', label: 'Sovereign',   emoji: '🔱' },
-    apex:        { badge: '#ef4444', label: 'Apex',        emoji: '💎' },
+    velocity: { badge: '#06b6d4', label: 'Velocity', emoji: '🚀' },
+    dominance: { badge: '#8b5cf6', label: 'Dominance', emoji: '👑' },
+    elite: { badge: '#eab308', label: 'Elite', emoji: '🌟' },
+    sovereign: { badge: '#f97316', label: 'Sovereign', emoji: '🔱' },
+    apex: { badge: '#ef4444', label: 'Apex', emoji: '💎' },
 };
 
 const formatVolume = (v: number) => {
@@ -93,7 +93,7 @@ export default function AdminPlugCards() {
                 .from('plug_cards')
                 .select('*')
                 .order('price', { ascending: true });
-            
+
             if (!error && data) {
                 setCatalog(data as CatalogPlugCard[]);
             }
@@ -113,7 +113,7 @@ export default function AdminPlugCards() {
                 .from('plug_cards')
                 .update({ is_active: !card.is_active })
                 .eq('id', id);
-            
+
             if (!error) fetchCatalog();
         } finally { setToggling(null); }
     };
@@ -122,7 +122,7 @@ export default function AdminPlugCards() {
         if (!editingCard) return;
         setIsSaving(true);
         try {
-            const { data, error } = editingCard.id 
+            const { data, error } = editingCard.id
                 ? await supabase.from('plug_cards').update(editingCard).eq('id', editingCard.id).select()
                 : await supabase.from('plug_cards').insert([editingCard]).select();
 
@@ -325,57 +325,57 @@ export default function AdminPlugCards() {
                     <div style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: 24, padding: 32, maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
                             <h2 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 950 }}>Editar Card: <span style={{ color: '#acf800' }}>{editingCard.name.split(' | ')[0]}</span></h2>
-                            <button onClick={() => setEditingCard(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 50, padding: 8, color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20}/></button>
+                            <button onClick={() => setEditingCard(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 50, padding: 8, color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
-                        
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                             <div className="input-group">
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Nome Comercial</label>
-                                <input className="input-field" value={editingCard.name} onChange={e => setEditingCard({...editingCard, name: e.target.value})} />
+                                <input className="input-field" value={editingCard.name} onChange={e => setEditingCard({ ...editingCard, name: e.target.value })} />
                             </div>
                             <div className="input-group">
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Tier</label>
-                                <select className="input-field" value={editingCard.tier} onChange={e => setEditingCard({...editingCard, tier: e.target.value})}>
+                                <select className="input-field" value={editingCard.tier} onChange={e => setEditingCard({ ...editingCard, tier: e.target.value })}>
                                     {Object.keys(TIER_CONFIG).map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
                                 </select>
                             </div>
                             <div className="input-group">
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Preço (BRL)</label>
-                                <input className="input-field" type="number" value={editingCard.price} onChange={e => setEditingCard({...editingCard, price: e.target.value})} />
+                                <input className="input-field" type="number" value={editingCard.price} onChange={e => setEditingCard({ ...editingCard, price: e.target.value })} />
                             </div>
                             <div className="input-group">
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Volume Total</label>
-                                <input className="input-field" type="number" value={editingCard.total_volume} onChange={e => setEditingCard({...editingCard, total_volume: parseInt(e.target.value)})} />
+                                <input className="input-field" type="number" value={editingCard.total_volume} onChange={e => setEditingCard({ ...editingCard, total_volume: parseInt(e.target.value) })} />
                             </div>
                             <div className="input-group">
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Máx Chips (99=∞)</label>
-                                <input className="input-field" type="number" value={editingCard.max_chips} onChange={e => setEditingCard({...editingCard, max_chips: parseInt(e.target.value)})} />
+                                <input className="input-field" type="number" value={editingCard.max_chips} onChange={e => setEditingCard({ ...editingCard, max_chips: parseInt(e.target.value) })} />
                             </div>
                             <div className="input-group">
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Máx Campanhas (99=∞)</label>
-                                <input className="input-field" type="number" value={editingCard.max_campaigns} onChange={e => setEditingCard({...editingCard, max_campaigns: parseInt(e.target.value)})} />
+                                <input className="input-field" type="number" value={editingCard.max_campaigns} onChange={e => setEditingCard({ ...editingCard, max_campaigns: parseInt(e.target.value) })} />
                             </div>
                         </div>
 
                         <div className="input-group" style={{ marginTop: 20 }}>
                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Marketing Copy (Pitch)</label>
-                            <textarea className="input-field" style={{ height: 80, resize: 'none' }} value={editingCard.copy} onChange={e => setEditingCard({...editingCard, copy: e.target.value})} />
+                            <textarea className="input-field" style={{ height: 80, resize: 'none' }} value={editingCard.copy} onChange={e => setEditingCard({ ...editingCard, copy: e.target.value })} />
                         </div>
 
                         <div className="input-group" style={{ marginTop: 20 }}>
                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Recursos (um por linha)</label>
-                            <textarea 
-                                className="input-field" 
-                                style={{ height: 100, resize: 'none' }} 
-                                value={editingCard.features?.resources?.join('\n') || ''} 
-                                onChange={e => setEditingCard({...editingCard, features: { resources: e.target.value.split('\n') }})} 
+                            <textarea
+                                className="input-field"
+                                style={{ height: 100, resize: 'none' }}
+                                value={editingCard.features?.resources?.join('\n') || ''}
+                                onChange={e => setEditingCard({ ...editingCard, features: { resources: e.target.value.split('\n') } })}
                             />
                         </div>
 
                         <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
                             <button onClick={() => setEditingCard(null)} style={{ flex: 1, padding: '16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: 'none', cursor: 'pointer', fontWeight: 800 }}>Cancelar</button>
-                            <button 
-                                onClick={handleSaveCard} 
+                            <button
+                                onClick={handleSaveCard}
                                 disabled={isSaving}
                                 style={{ flex: 2, padding: '16px', borderRadius: 12, background: 'linear-gradient(135deg,#acf800,#84c000)', color: '#000', border: 'none', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                             >

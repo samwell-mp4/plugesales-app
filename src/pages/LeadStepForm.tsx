@@ -118,8 +118,11 @@ const LeadStepForm = () => {
             }
 
             if (success) {
-                setDirection(1);
-                setCurrentStep(totalSteps); // Jump to success step
+                if (formData.method === 'Ainda não realizo disparos') {
+                    navigate('/finalizado');
+                } else {
+                    navigate('/obrigado');
+                }
             } else {
                 alert("Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.");
             }
