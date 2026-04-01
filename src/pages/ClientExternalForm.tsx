@@ -440,7 +440,7 @@ const ClientExternalForm = () => {
                     position: relative;
                     overflow: hidden;
                     width: 100%;
-                    padding: 20px;
+                    padding: 40px;
                 }
                 .upload-zone:hover {
                     border-color: #acf800;
