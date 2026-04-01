@@ -319,8 +319,10 @@ const ClientExternalForm = () => {
                 .form-group {
                     display: flex;
                     flex-direction: column;
-                    gap: 14px;
+                    gap: 8px;
+                    margin-bottom: 28px;
                 }
+                .form-group:last-child { margin-bottom: 0; }
 
                 .photo-uploader {
                     width: 120px;
@@ -426,27 +428,27 @@ const ClientExternalForm = () => {
                 }
 
                 .upload-zone {
-                    border: 2px dashed rgba(255, 255, 255, 0.08);
-                    border-radius: 24px;
+                    border: 1px dashed rgba(255, 255, 255, 0.1);
+                    border-radius: 20px;
                     background: rgba(255, 255, 255, 0.02);
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
-                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    transition: all 0.3s ease;
                     position: relative;
                     overflow: hidden;
+                    width: 100%;
                 }
                 .upload-zone:hover {
                     border-color: #acf800;
                     background: rgba(172, 248, 0, 0.04);
-                    transform: translateY(-2px);
                 }
                 .upload-zone.uploaded {
                     border-style: solid;
-                    border-color: rgba(172, 248, 0, 0.3);
-                    background: rgba(172, 248, 0, 0.02);
+                    border-color: rgba(172, 248, 0, 0.2);
+                    background: rgba(172, 248, 0, 0.03);
                 }
 
                 .mode-toggle {
@@ -535,59 +537,56 @@ const ClientExternalForm = () => {
                 input:checked + .switch-slider:before { transform: translateX(28px); }
                 
                 .creative-card {
-                    flex: 1;
-                    min-width: 140px;
-                    padding: 30px 20px;
-                    border-radius: 24px;
-                    border: 1px solid rgba(255, 255, 255, 0.06);
-                    background: rgba(255, 255, 255, 0.03);
+                    width: 125px;
+                    height: 125px;
+                    padding: 0;
+                    border-radius: 20px;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    background: rgba(255, 255, 255, 0.02);
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    gap: 15px;
+                    gap: 12px;
                     cursor: pointer;
-                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
-                    overflow: hidden;
                 }
                 .creative-card:hover {
-                    transform: translateY(-5px);
-                    background: rgba(255, 255, 255, 0.06);
+                    background: rgba(255, 255, 255, 0.05);
                     border-color: rgba(255, 255, 255, 0.2);
                 }
                 .creative-card.active {
-                    background: rgba(172, 248, 0, 0.08);
+                    background: rgba(172, 248, 0, 0.06);
                     border-color: #acf800;
-                    box-shadow: 0 20px 40px rgba(172, 248, 0, 0.1);
+                    box-shadow: 0 10px 30px rgba(172, 248, 0, 0.1);
                 }
                 .creative-icon-box {
-                    width: 54px;
-                    height: 54px;
-                    border-radius: 16px;
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 12px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    transition: all 0.4s ease;
+                    transition: all 0.3s ease;
                 }
                 .creative-card.active .creative-icon-box {
                     background: #acf800;
                     color: #000;
-                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.4);
                 }
                 .creative-card:not(.active) .creative-icon-box {
-                    background: rgba(255, 255, 255, 0.05);
-                    color: rgba(255, 255, 255, 0.3);
+                    background: rgba(255, 255, 255, 0.04);
+                    color: rgba(255, 255, 255, 0.2);
                 }
                 .creative-label {
-                    font-size: 11px;
-                    font-weight: 900;
+                    font-size: 10px;
+                    font-weight: 800;
                     text-transform: uppercase;
-                    letter-spacing: 2px;
+                    letter-spacing: 1.5px;
                     transition: all 0.3s ease;
                 }
                 .creative-card.active .creative-label { color: #acf800; }
-                .creative-card:not(.active) .creative-label { color: rgba(255, 255, 255, 0.4); }
+                .creative-card:not(.active) .creative-label { color: rgba(255, 255, 255, 0.3); }
 
                 @media (max-width: 1024px) {
                     .whatsapp-grid { grid-template-columns: 1fr; gap: 40px; }
@@ -597,16 +596,16 @@ const ClientExternalForm = () => {
 
                 .ad-dropdown {
                     position: absolute;
-                    top: calc(100% + 12px);
+                    top: calc(100% + 10px);
                     left: 0;
-                    width: 320px;
+                    width: 280px;
                     background: #0a0f1a;
                     border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 24px;
-                    padding: 20px;
+                    border-radius: 20px;
+                    padding: 15px;
                     z-index: 1000;
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
-                    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+                    animation: slideUp 0.2s ease-out;
                 }
                 @keyframes slideUp {
                     from { opacity: 0; transform: translateY(10px); }
@@ -724,13 +723,13 @@ const ClientExternalForm = () => {
                                             <span className="text-[9px] font-black uppercase tracking-[3px] opacity-40">Logo do Perfil</span>
                                         </div>
 
-                                        <div className="flex-1 w-full space-y-16 pt-4">
+                                        <div className="flex-1 w-full pt-4">
                                             <div className="form-group">
-                                                <label className="text-[11px] font-black uppercase tracking-[3px] opacity-40 ml-1">Nome do Atendimento</label>
+                                                <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Nome do Atendimento</label>
                                                 <input className="input-premium" placeholder="Ex: Suporte VIP" value={formData.profile_name} onChange={e => setFormData(p => ({ ...p, profile_name: e.target.value }))} />
                                             </div>
                                             <div className="form-group">
-                                                <label className="text-[11px] font-black uppercase tracking-[3px] opacity-40 ml-1">DDD Regional</label>
+                                                <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">DDD Regional</label>
                                                 <input className="input-premium" placeholder="Ex: 11" maxLength={2} value={formData.ddd} onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))} />
                                             </div>
                                         </div>
@@ -743,8 +742,8 @@ const ClientExternalForm = () => {
                             )}
 
                             {step === 2 && (
-                                <div className="glass-card animate-fade-in space-y-16">
-                                    <div className="flex justify-between items-center pb-6 border-b border-white/5">
+                                <div className="glass-card animate-fade-in space-y-12">
+                                    <div className="flex justify-between items-center pb-8 border-b border-white/5">
                                         <div className="relative">
                                             <div className="ad-selector-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
                                                 <LayoutGrid size={18} className="text-[#acf800]" />
@@ -803,10 +802,9 @@ const ClientExternalForm = () => {
                                         </div>
                                     </div>
 
-                                    {/* Creative Type Section */}
-                                    <div className="space-y-8">
-                                        <label className="text-[10px] font-black uppercase tracking-[4px] opacity-40 ml-1">Tipo de Criativo</label>
-                                        <div className="flex flex-wrap gap-5">
+                                    <div className="form-group" style={{ marginBottom: '40px' }}>
+                                        <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Tipo de Criativo</label>
+                                        <div className="flex flex-wrap gap-4 pt-2">
                                             {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => {
                                                 const isSelected = formData.ads[formData.currentAdIndex].template_type === t;
                                                 return (
@@ -821,47 +819,37 @@ const ClientExternalForm = () => {
                                                         className={`creative-card ${isSelected ? 'active' : ''}`}
                                                     >
                                                         <div className="creative-icon-box">
-                                                            {t === 'TEXT' ? <MessageSquare size={24} /> : t === 'IMAGE' ? <ImageIcon size={24} /> : <Video size={24} />}
+                                                            {t === 'TEXT' ? <MessageSquare size={18} /> : t === 'IMAGE' ? <ImageIcon size={18} /> : <Video size={18} />}
                                                         </div>
                                                         <span className="creative-label">
-                                                            {t === 'TEXT' ? 'Apenas Texto' : t === 'IMAGE' ? 'Imagem' : 'Vídeo'}
+                                                            {t === 'TEXT' ? 'Texto' : t === 'IMAGE' ? 'Imagem' : 'Vídeo'}
                                                         </span>
-                                                        {isSelected && (
-                                                            <div className="absolute top-4 right-4 animate-scale-in">
-                                                                <CheckCircle size={16} className="text-[#acf800]" />
-                                                            </div>
-                                                        )}
+                                                        {isSelected && <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#acf800]"></div>}
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
 
-                                    {/* Media Upload */}
                                     {formData.ads[formData.currentAdIndex].template_type !== 'TEXT' && (
-                                        <div className="space-y-6 animate-fade-in">
-                                            <label className="text-[10px] font-black uppercase tracking-[4px] opacity-40 ml-1">
-                                                Midia do Criativo ({formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'Imagem' : 'Vídeo'})
+                                        <div className="form-group">
+                                            <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">
+                                                Mídia do Criativo ({formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'Imagem' : 'Vídeo'})
                                             </label>
-                                            <div
-                                                className={`upload-zone py-16 ${formData.ads[formData.currentAdIndex].media_url ? 'uploaded' : ''}`}
+                                            <div 
+                                                className={`upload-zone py-12 ${formData.ads[formData.currentAdIndex].media_url ? 'uploaded' : ''}`} 
                                                 onClick={() => document.getElementById('media-upload')?.click()}
                                             >
                                                 <input id="media-upload" type="file" hidden accept={formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? 'image/*' : 'video/*'} onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'media_url')} />
                                                 {formData.ads[formData.currentAdIndex].media_url ? (
-                                                    <div className="flex flex-col items-center gap-4">
-                                                        <div className="w-16 h-16 rounded-full bg-[#acf800]/20 flex items-center justify-center">
-                                                            <CheckCircle size={32} className="text-[#acf800]" />
-                                                        </div>
-                                                        <span className="text-xs font-black text-[#acf800] uppercase tracking-widest">Arquivo Carregado</span>
-                                                        <span className="text-[8px] opacity-40 hover:opacity-100 transition-opacity uppercase font-bold text-white">Clique para substituir</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <CheckCircle size={18} className="text-[#acf800]" />
+                                                        <span className="text-[10px] font-black text-[#acf800] uppercase tracking-widest">Arquivo Carregado</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col items-center gap-4 opacity-30 hover:opacity-60 transition-all">
-                                                        <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center border border-white/5">
-                                                            {formData.ads[formData.currentAdIndex].template_type === 'IMAGE' ? <ImageIcon size={40} /> : <Video size={40} />}
-                                                        </div>
-                                                        <p className="text-[10px] font-black uppercase tracking-[4px]">Clique para carregar</p>
+                                                    <div className="flex items-center gap-3 opacity-30">
+                                                        <PlusCircle size={20} />
+                                                        <span className="text-[10px] font-black uppercase tracking-[2px]">Clique para carregar mídia</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -973,16 +961,16 @@ const ClientExternalForm = () => {
                                         </div>
 
                                         {formData.ads[formData.currentAdIndex].message_mode === 'manual' ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-16 pt-6">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pt-2">
                                                 {[1, 2, 3, 4, 5].map(vNum => {
                                                     if (vNum === 5 && !formData.ads[formData.currentAdIndex].showFifthVariable) return null;
                                                     return (
                                                         <div key={vNum} className="form-group">
-                                                            <label className="text-[10px] font-black uppercase tracking-[3px] text-[#acf800] ml-1">Variável {vNum}</label>
+                                                            <label className="text-[9px] font-black uppercase tracking-[3px] text-[#acf800] ml-1">Variável {vNum}</label>
                                                             <div className="relative group">
                                                                 <div className="absolute left-6 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#acf800] opacity-20 group-focus-within:opacity-100 group-focus-within:scale-150 transition-all"></div>
                                                                 <input
-                                                                    className="input-premium py-6 pl-14"
+                                                                    className="input-premium py-5 pl-14"
                                                                     placeholder={`Ex: ${vNum === 1 ? 'Nome' : 'Valor'}`}
                                                                     value={formData.ads[formData.currentAdIndex].variables[vNum - 1] || ''}
                                                                     onChange={e => {
@@ -1011,28 +999,27 @@ const ClientExternalForm = () => {
                                                 })}
                                             </div>
                                         ) : (
-                                            <div
-                                                className={`upload-zone py-20 ${formData.ads[formData.currentAdIndex].ad_copy_file ? 'uploaded' : ''}`}
-                                                onClick={() => document.getElementById('msg-upload')?.click()}
-                                            >
-                                                <input id="msg-upload" type="file" hidden accept=".txt" onChange={e => {
-                                                    if (e.target.files?.[0]) handleFileUpload(e.target.files[0], 'ad_copy_file');
-                                                }} />
-                                                {formData.ads[formData.currentAdIndex].ad_copy_file ? (
-                                                    <div className="flex flex-col items-center gap-4">
-                                                        <div className="w-16 h-16 rounded-full bg-[#acf800]/20 flex items-center justify-center">
-                                                            <CheckCircle size={32} className="text-[#acf800]" />
+                                            <div className="form-group">
+                                                <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Upload de Mensagens</label>
+                                                <div 
+                                                    className={`upload-zone py-12 ${formData.ads[formData.currentAdIndex].ad_copy_file ? 'uploaded' : ''}`} 
+                                                    onClick={() => document.getElementById('msg-upload')?.click()}
+                                                >
+                                                    <input id="msg-upload" type="file" hidden accept=".txt" onChange={e => {
+                                                        if (e.target.files?.[0]) handleFileUpload(e.target.files[0], 'ad_copy_file');
+                                                    }} />
+                                                    {formData.ads[formData.currentAdIndex].ad_copy_file ? (
+                                                        <div className="flex items-center gap-3">
+                                                            <CheckCircle size={18} className="text-[#acf800]" />
+                                                            <span className="text-[10px] font-black text-[#acf800] uppercase tracking-widest">Base de Mensagens Ok</span>
                                                         </div>
-                                                        <span className="text-[12px] font-black text-[#acf800] uppercase tracking-widest">Importado</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center gap-6 opacity-30 group-hover:opacity-100 transition-all duration-500">
-                                                        <div className="w-24 h-24 rounded-[32px] bg-white/5 flex items-center justify-center border border-white/5">
-                                                            <Settings size={44} />
+                                                    ) : (
+                                                        <div className="flex items-center gap-3 opacity-30">
+                                                            <FileSpreadsheet size={20} />
+                                                            <span className="text-[10px] font-black uppercase tracking-[2px]">Subir arquivo de mensagens</span>
                                                         </div>
-                                                        <p className="text-[11px] font-black uppercase tracking-[4px]">Carregar TXT</p>
-                                                    </div>
-                                                )}
+                                                    )}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
