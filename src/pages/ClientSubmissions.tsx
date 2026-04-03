@@ -264,15 +264,19 @@ const ClientSubmissions = () => {
             };
         });
 
+        const firstSub = selectedSubmissions[0];
+        const firstAds = Array.isArray(firstSub.ads) ? firstSub.ads : (firstSub.ads ? [firstSub.ads] : []);
+        
         const preFillData = {
-            clientId: selectedSubmissions[0].user_id,
-            clientName: selectedSubmissions[0].client_name,
-            templateType: selectedSubmissions[0].template_type || (Array.isArray(selectedSubmissions[0].ads) ? selectedSubmissions[0].ads[0]?.template_type : selectedSubmissions[0].ads?.template_type) || 'TEXT',
+            clientId: firstSub.user_id,
+            clientName: firstSub.client_name,
+            templateType: firstSub.template_type || firstAds[0]?.template_type || 'TEXT',
             campaigns: campaigns
         };
 
         navigate('/templates', { state: { preFillData, activeTab: 'BULK' } });
     };
+
 
 
     const handleAssign = async (id: number, employeeName: string) => {
