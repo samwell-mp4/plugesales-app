@@ -256,6 +256,7 @@ const ClientSubmissions = () => {
                     var2: ad.variables?.[1] || 'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
                     var3: ad.variables?.[2] || 'O comprovante digital já se encontra disponível para conferência',
                     var4: ad.variables?.[3] || 'acessar o comprovante digital #54333 e verificar a entrega',
+                    buttonUrl: ad.button_link || '',
                     buttonUrls: [ad.button_link || ''],
                     buttonTexts: ['Clique Aqui'],
                     hasButtons: !!ad.button_link
@@ -266,11 +267,13 @@ const ClientSubmissions = () => {
         const preFillData = {
             clientId: selectedSubmissions[0].user_id,
             clientName: selectedSubmissions[0].client_name,
+            templateType: selectedSubmissions[0].template_type || (Array.isArray(selectedSubmissions[0].ads) ? selectedSubmissions[0].ads[0]?.template_type : selectedSubmissions[0].ads?.template_type) || 'TEXT',
             campaigns: campaigns
         };
 
         navigate('/templates', { state: { preFillData, activeTab: 'BULK' } });
     };
+
 
     const handleAssign = async (id: number, employeeName: string) => {
         try {
