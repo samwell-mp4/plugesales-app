@@ -550,22 +550,27 @@ app.get('/api/crm/leads', async (req, res) => {
         if (sheets) {
             const response = await sheets.spreadsheets.values.get({
                 spreadsheetId: CRM_SPREADSHEET_ID,
-                range: 'Página1!A2:I', // Ajuste o nome da página se necessário
+                range: 'Página1!A2:J', // Inclui até a coluna J (Volume)
             });
             const rows = response.data.values;
             if (!rows) return res.json([]);
 
-            const leads = rows.map((row, index) => ({
-                id: index + 1,
-                nome: row[0] || '',
-                numero: row[1] || '',
-                email: row[2] || '',
-                tag: row[3] || '',
-                status: row[4] || 'Sem Status',
-                data_entrada: row[5] || '',
-                responsavel: row[6] || '',
-                value_client: row[7] || '0'
-            }));
+            const leads = rows.map((row, index) => {
+                // console.log("CRM Row:", index, row.length, row); // Debugging mapping
+                return {
+                    id: index + 1,
+                    nome: row[0] || '',
+                    numero: row[1] || '',
+                    email: row[2] || '',
+                    tag: row[3] || '',
+                    status: row[4] || 'Sem Status',
+                    data_entrada: row[5] || '',
+                    responsavel: row[6] || '',
+                    value_client: row[7] || '0',
+                    metodo: row[8] || '',
+                    volume: row[9] || ''
+                };
+            });
             return res.json(leads);
         }
 
@@ -585,7 +590,9 @@ app.get('/api/crm/leads', async (req, res) => {
             status: row[4] || 'Sem Status',
             data_entrada: row[5] || '',
             responsavel: row[6] || '',
-            value_client: row[7] || '0'
+            value_client: row[7] || '0',
+            metodo: row[8] || '',
+            volume: row[9] || ''
         }));
         res.json(leads);
     } catch (err) {
@@ -596,28 +603,33 @@ app.get('/api/crm/leads', async (req, res) => {
 
 app.put('/api/crm/leads/:id', async (req, res) => {
     const { id } = req.params;
-    const updateData = req.body;
-    const rowNumber = parseInt(id) + 1; // +1 porque pulei o cabeçalho no map
-
     try {
+        const updateData = req.body || {};
+        const rowNumber = parseInt(id) + 1;
+        if (!updateData.nome && !updateData.numero) {
+            return res.status(400).json({ error: 'Dados inválidos para atualização.' });
+        }
+
         const sheets = await getSheetsClient();
         if (!sheets) throw new Error('Google API não configurada. Verifique o arquivo service-account.json ou a variável GOOGLE_SERVICE_ACCOUNT_JSON.');
 
-        // Mapear dados para as colunas A-H
+        // Mapear dados para as colunas A-J
         const values = [[
-            updateData.nome,
-            updateData.numero,
-            updateData.email,
-            updateData.tag,
-            updateData.status,
-            updateData.data_entrada,
-            updateData.responsavel,
-            updateData.value_client
+            updateData.nome || '',
+            updateData.numero || '',
+            updateData.email || '',
+            updateData.tag || '',
+            updateData.status || '',
+            updateData.data_entrada || '',
+            updateData.responsavel || '',
+            updateData.value_client || '0',
+            updateData.metodo || '',
+            updateData.volume || ''
         ]];
 
         await sheets.spreadsheets.values.update({
             spreadsheetId: CRM_SPREADSHEET_ID,
-            range: `Página1!A${rowNumber}:H${rowNumber}`,
+            range: `Página1!A${rowNumber}:J${rowNumber}`,
             valueInputOption: 'USER_ENTERED',
             requestBody: { values },
         });

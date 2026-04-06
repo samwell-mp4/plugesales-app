@@ -4,9 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import {
     FileSpreadsheet, Users, DollarSign, Clock, Search,
     Filter, RefreshCw, AlertCircle, User, MessageSquare,
-    Tag, ChevronRight, TrendingUp, ArrowUpRight, List,
-    Trello, Mail, Phone, Edit3, X, Save, Plus, ArrowRight,
-    ExternalLink, Activity
+    Tag, ChevronRight, TrendingUp, List,
+    Trello, Mail, Phone, Save, Plus,
+    Activity, Layers, Database
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
@@ -24,7 +24,6 @@ const CRMDashboard = () => {
     const [selectedLead, setSelectedLead] = useState<any | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
 
-
     useEffect(() => {
         fetchLeads();
     }, []);
@@ -34,6 +33,7 @@ const CRMDashboard = () => {
         setError(null);
         try {
             const data = await dbService.getCRMLeads();
+            console.log("CRM Leads Fetched:", data); // Debug
             setLeads(data);
         } catch (err: any) {
             console.error("CRM Dashboard Error:", err);
@@ -47,23 +47,26 @@ const CRMDashboard = () => {
         setIsUpdating(true);
         try {
             await dbService.updateCRMLead(id, updatedData);
-            await fetchLeads(); // Refresh data
+            await fetchLeads(); // Sincroniza dados da planilha
             if (selectedLead && selectedLead.id === id) {
-                const newLead = { ...selectedLead, ...updatedData };
-                setSelectedLead(newLead);
+                setSelectedLead({ ...selectedLead, ...updatedData });
             }
         } catch (err: any) {
-            alert("Erro ao atualizar: " + err.message);
+            alert("Erro ao salvar: " + err.message);
         } finally {
             setIsUpdating(false);
         }
     };
 
     const filteredLeads = leads.filter(lead => {
+        const name = lead.nome || '';
+        const number = lead.numero || '';
+        const responsavel = lead.responsavel || '';
+        
         const matchesSearch =
-            lead.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            lead.numero.includes(searchTerm) ||
-            lead.responsavel.toLowerCase().includes(searchTerm.toLowerCase());
+            name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            number.includes(searchTerm) ||
+            responsavel.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus = filterStatus === 'Todos' || lead.status === filterStatus;
 
@@ -73,337 +76,271 @@ const CRMDashboard = () => {
     const statusList = Array.from(new Set(leads.map(l => l.status))).filter(Boolean);
     const fullStatusList = ['Todos', ...statusList];
 
-    // Calc Stats
-    const totalLeads = leads.length;
+    // Stats Calculation with robust numeric extraction
     const totalValue = leads.reduce((acc, curr) => {
-        const val = parseFloat(curr.value_client?.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-        return acc + val;
+        const valStr = String(curr.value_client || '0');
+        const numericVal = parseFloat(valStr.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+        return acc + numericVal;
     }, 0);
 
     const stats = [
-        { label: 'Total de Leads', value: totalLeads, icon: <Users size={22} />, color: 'var(--primary-color)', suffix: 'CONTATOS' },
-        { label: 'Valor Total CRM', value: `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <DollarSign size={22} />, color: '#acf800', suffix: 'CONVERTIDO' },
-        { label: 'Tickets Médio', value: `R$ ${(totalLeads > 0 ? totalValue / totalLeads : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <TrendingUp size={22} />, color: '#eab308', suffix: 'MÉDIO/LEAD' },
-        { label: 'Última Sincro', value: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), icon: <Clock size={22} />, color: 'var(--text-muted)', suffix: 'SYNC OK' }
+        { label: 'Base de Leads', value: leads.length, icon: <Users size={20} />, color: '#acf800' },
+        { label: 'Cifrão Total', value: `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <DollarSign size={20} />, color: '#acf800' },
+        { label: 'Ticket Médio', value: `R$ ${(leads.length > 0 ? totalValue / leads.length : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: <TrendingUp size={20} />, color: '#eab308' },
+        { label: 'Sincronização', value: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), icon: <Database size={20} />, color: '#94a3b8' }
     ];
 
-    const getStatusBadgeClass = (status: string) => {
+    const getStatusBadge = (status: string) => {
         const s = (status || '').toLowerCase();
-        if (s.includes('aprov') || s.includes('ganho') || s.includes('feito') || s.includes('conclu')) return 'badge-success';
-        if (s.includes('pend') || s.includes('novo') || s.includes('andamento') || s.includes('espera')) return 'badge-warning';
-        if (s.includes('perd') || s.includes('canc')) return 'badge-danger';
-        return '';
+        if (s.includes('aprov') || s.includes('ganho') || s.includes('conclu')) return 'badge-success';
+        if (s.includes('perd') || s.includes('cancel')) return 'badge-danger';
+        return 'badge-warning';
     };
 
-    const openLeadDetail = (lead: any) => setSelectedLead(lead);
+    const openLeadDetail = (lead: any) => {
+        console.log("Opening lead details:", lead); // Debug
+        setSelectedLead(lead);
+    };
     const closeLeadDetail = () => setSelectedLead(null);
 
-    const renderListView = () => (
-        <div className="table-responsive-wrapper">
-            <table className="crm-premium-table">
-                <thead>
-                    <tr>
-                        <th>CLIENTE / LEADS</th>
-                        <th>STATUS ATUAL</th>
-                        <th>REFERÊNCIA / TAG</th>
-                        <th>RESPONSÁVEL</th>
-                        <th>INVESTIMENTO</th>
-                        <th className="text-center">ENTRADA</th>
-                        <th className="text-right">AÇÕES</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredLeads.map((lead) => (
-                        <tr key={lead.id} onClick={() => openLeadDetail(lead)} className="clickable-row">
-                            <td>
-                                <div className="lead-identity">
-                                    <div className="avatar-mini">{lead.nome.charAt(0)}</div>
-                                    <div className="lead-meta">
-                                        <span className="lead-name">{lead.nome}</span>
-                                        <span className="lead-sub">{lead.numero}</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span className={`badge-pill ${getStatusBadgeClass(lead.status)}`}>
-                                    {lead.status}
-                                </span>
-                            </td>
-                            <td>
-                                <div className="tag-element">
-                                    <Tag size={12} />
-                                    <span>{lead.tag || 'SEM TAG'}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div className="responsavel-box">
-                                    <User size={12} className="text-primary-color" />
-                                    <span>{lead.responsavel || '-'}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span className="investment-value">{lead.value_client || 'R$ 0,00'}</span>
-                            </td>
-                            <td className="text-center font-mono text-[10px] opacity-50">
-                                {lead.data_entrada}
-                            </td>
-                            <td className="text-right">
-                                <button className="row-action-btn" onClick={(e) => { e.stopPropagation(); openLeadDetail(lead); }}>
-                                    <ChevronRight size={18} />
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+    return (
+        <div className="crm-container animate-fade-in">
+            {/* Header com Design Glassmorphism Prêmiun */}
+            <header className="crm-header glass-panel">
+                <div className="header-identity">
+                    <div className="category-tag"><Activity size={12} /> GESTÃO DE PERFORMANCE</div>
+                    <h1 className="text-gradient">Painel CRM Estratégico</h1>
+                    <p className="subtitle">Sincronização em Tempo Real com Google Sheets (API V4)</p>
+                </div>
 
-    const renderKanbanView = () => {
-        // Define columns based on existing statuses or a default set
-        const columns = statusList.length > 0 ? statusList : ['Novo', 'Andamento', 'Ganho', 'Perdido'];
-        
-        return (
-            <div className="kanban-board-container">
-                {columns.map(col => (
-                    <div key={col} className="kanban-column">
-                        <div className="kanban-column-header">
-                            <h3>{col.toUpperCase()}</h3>
-                            <span className="column-count">{leads.filter(l => l.status === col).length}</span>
-                        </div>
-                        <div className="kanban-cards-wrapper">
-                            {filteredLeads.filter(l => l.status === col).map(lead => (
-                                <div key={lead.id} className="kanban-card-glass shadow-hover" onClick={() => openLeadDetail(lead)}>
-                                    <div className="card-top">
-                                        <div className="card-avatar">{lead.nome.charAt(0)}</div>
-                                        <div className="card-main-info">
-                                            <h4>{lead.nome}</h4>
-                                            <p>{lead.numero}</p>
-                                        </div>
-                                    </div>
-                                    <div className="card-tags">
-                                        {lead.tag && <span className="mini-tag"><Tag size={10} /> {lead.tag}</span>}
-                                        <span className="mini-value">{lead.value_client}</span>
-                                    </div>
-                                    <div className="card-footer">
-                                        <span className="card-ref">{lead.responsavel || 'Sem atrito'}</span>
-                                        <ChevronRight size={14} className="arrow-icon" />
-                                    </div>
-                                </div>
-                            ))}
+                <div className="header-actions">
+                    <div className="view-selector glass-panel">
+                        <button className={`view-btn ${viewMode === 'lista' ? 'active' : ''}`} onClick={() => setViewMode('lista')}><List size={18} /></button>
+                        <button className={`view-btn ${viewMode === 'kanban' ? 'active' : ''}`} onClick={() => setViewMode('kanban')}><Trello size={18} /></button>
+                    </div>
+                    
+                    <button className="sync-btn glass-panel" onClick={fetchLeads} disabled={isLoading}>
+                        <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                        {isLoading ? 'MAPEANDO...' : 'SINCRONIZAR'}
+                    </button>
+
+                    <button className="btn-primary" onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${CRM_SPREADSHEET_ID}`, '_blank')}>
+                        <Plus size={18} /> NOVO LEAD
+                    </button>
+                </div>
+            </header>
+
+            {/* Stats Cards Dashboard Estilo Premium */}
+            <div className="stats-grid">
+                {stats.map((stat, i) => (
+                    <div key={i} className="glass-card metric-card shadow-hover">
+                        <div className="metric-icon" style={{ color: stat.color }}>{stat.icon}</div>
+                        <div className="metric-data">
+                            <label>{stat.label.toUpperCase()}</label>
+                            <h2>{stat.value}</h2>
                         </div>
                     </div>
                 ))}
             </div>
-        );
-    };
 
-    return (
-        <div className="crm-advanced-view animate-fade-in-up">
-            <header className="crm-main-header">
-                <div className="header-info">
-                    <div className="badge-category">
-                        <FileSpreadsheet className="text-primary-color" size={14} />
-                        <span>CRM INTELIGENTE</span>
-                    </div>
-                    <h1 className="main-title">Base de Clientes <span className="highlight">Unificada</span></h1>
-                    <p className="subtitle">Gestão avançada de leads sincronizada em tempo real com sua planilha Google.</p>
-                </div>
-
-                <div className="header-actions">
-                    <div className="view-switcher-tabs">
-                        <button 
-                            className={`tab-btn ${viewMode === 'lista' ? 'active' : ''}`}
-                            onClick={() => setViewMode('lista')}
-                        >
-                            <List size={18} />
-                            <span>LISTA</span>
-                        </button>
-                        <button 
-                            className={`tab-btn ${viewMode === 'kanban' ? 'active' : ''}`}
-                            onClick={() => setViewMode('kanban')}
-                        >
-                            <Trello size={18} />
-                            <span>KANBAN</span>
-                        </button>
-                    </div>
-                    <button
-                        onClick={fetchLeads}
-                        className={`refresh-btn ${isLoading ? 'loading' : ''}`}
-                        disabled={isLoading}
-                    >
-                        <RefreshCw size={18} />
-                        <span>{isLoading ? 'SINCRONIZANDO...' : 'ATUALIZAR'}</span>
-                    </button>
-                    <button className="primary-action-btn" onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${CRM_SPREADSHEET_ID}`, '_blank')}>
-                        <Plus size={18} />
-                        <span>NOVO LEAD</span>
-                    </button>
-                    {user?.role !== 'CLIENT' && (
-                        <button 
-                            className="secondary-status-btn" 
-                            onClick={() => navigate('/cron-report')}
-                        >
-                            <Activity size={18} />
-                            <span>MONITOR</span>
-                        </button>
-                    )}
-                </div>
-            </header>
-
-            {/* ERROR HANDLING */}
-            {error && (
-                <div className="auth-error-card">
-                    <AlertCircle size={32} strokeWidth={2.5} />
-                    <div className="error-content">
-                        <h3>FALHA NA CONEXÃO COM O GOOGLE</h3>
-                        <p>{error}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* METRICS - ADVANCED GRID */}
-            <section className="metrics-grid">
-                {stats.map((stat, i) => (
-                    <div key={i} className="metric-glass-card shadow-hover">
-                        <div className="metric-header">
-                            <div className="icon-box" style={{ background: `${stat.color}10`, border: `1px solid ${stat.color}20` }}>
-                                {stat.icon}
-                            </div>
-                            <span className="metric-suffix">{stat.suffix}</span>
-                        </div>
-                        <div className="metric-body">
-                            <label>{stat.label}</label>
-                            <h2 className="text-gradient-primary">{stat.value}</h2>
-                        </div>
-                        <div className="metric-footer-bar" style={{ background: stat.color }}></div>
-                    </div>
-                ))}
-            </section>
-
-            {/* SEARCH & FILTERS BAR */}
-            <div className="crm-search-bar glass-container">
+            {/* Filtros e Busca */}
+            <div className="crm-filters glass-panel">
                 <div className="search-wrapper">
-                    <Search className="search-icon" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Buscar por nome, telefone, responsável..."
+                    <Search className="search-icon" size={16} />
+                    <input 
+                        type="text" 
+                        placeholder="Pesquisar por nome, número ou responsável..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="filters-group">
-                    <div className="select-wrapper">
-                        <Filter size={16} />
-                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                            {fullStatusList.map(s => <option key={s} value={s}>{s === 'Todos' ? 'FILTRAR STATUS' : s.toUpperCase()}</option>)}
-                        </select>
-                    </div>
-                    <button className="shortcut-mini-btn" onClick={() => setFilterStatus('Novo')}>
-                        <Plus size={14} /> NOVOS
-                    </button>
-                    <button className="shortcut-mini-btn" onClick={() => setFilterStatus('Ganho')}>
-                        <DollarSign size={14} /> GANHOS
-                    </button>
+                <div className="status-filter">
+                    <Filter size={16} />
+                    <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                        {fullStatusList.map(s => <option key={s} value={s}>{s === 'Todos' ? 'TODOS OS STATUS' : s.toUpperCase()}</option>)}
+                    </select>
                 </div>
             </div>
 
-            {/* MAIN CONTENT AREA */}
-            <section className="main-crm-content glass-container shadow-2xl">
+            {/* Main Content Area */}
+            <main className="crm-content glass-panel">
                 {isLoading ? (
-                    <div className="table-loader-state">
-                        <div className="loader-spinner"></div>
-                        <p>MAPEANDO DADOS DA PLANILHA...</p>
+                    <div className="loading-overlay">
+                        <div className="loader"></div>
+                        <p>CONECTANDO AO GOOGLE SHEETS...</p>
                     </div>
                 ) : filteredLeads.length === 0 ? (
-                    <div className="table-empty-state">
-                        <Users className="empty-icon" size={48} />
-                        <p>NENHUM RESULTADO ENCONTRADO NA BASE</p>
+                    <div className="empty-state">
+                        <Users size={64} style={{ opacity: 0.1 }} />
+                        <p>NENHUM DADO ENCONTRADO NA PLANILHA</p>
                     </div>
                 ) : (
-                    viewMode === 'lista' ? renderListView() : renderKanbanView()
+                    viewMode === 'lista' ? (
+                        <div className="crm-table-wrapper">
+                            <table className="crm-table">
+                                <thead>
+                                    <tr>
+                                        <th>CLIENTE</th>
+                                        <th>STATUS</th>
+                                        <th>ORIGEM / TAG</th>
+                                        <th>RESPONSÁVEL</th>
+                                        <th>VALOR / LEAD</th>
+                                        <th>VOLUME</th>
+                                        <th className="text-right">AÇÕES</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredLeads.map(lead => (
+                                        <tr key={lead.id} className="crm-row" onClick={() => openLeadDetail(lead)}>
+                                            <td>
+                                                <div className="client-cell">
+                                                    <div className="mini-avatar">{(lead.nome || '?').charAt(0)}</div>
+                                                    <div className="client-info">
+                                                        <span className="client-name">{lead.nome || 'Sem Nome'}</span>
+                                                        <span className="client-sub">{lead.numero}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><span className={`status-badge ${getStatusBadge(lead.status)}`}>{lead.status}</span></td>
+                                            <td>
+                                                <div className="tag-box">
+                                                    <span className="tag-primary"><Tag size={10} /> {lead.tag || '-'}</span>
+                                                    {lead.metodo && <span className="tag-secondary"><Layers size={10} /> {lead.metodo}</span>}
+                                                </div>
+                                            </td>
+                                            <td><div className="responsavel-cell"><User size={12} /> {lead.responsavel || '-'}</div></td>
+                                            <td><span className="value-high">{lead.value_client || '0'}</span></td>
+                                            <td><span className="volume-txt">{lead.volume || '-'}</span></td>
+                                            <td className="text-right">
+                                                <button className="row-action" onClick={(e) => { e.stopPropagation(); openLeadDetail(lead); }}>
+                                                    <ChevronRight size={18} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="kanban-container">
+                            {statusList.length > 0 ? statusList.map(status => (
+                                <div key={status} className="kanban-column">
+                                    <div className="kanban-header">
+                                        <h3>{status}</h3>
+                                        <span className="kanban-count">{leads.filter(l => l.status === status).length}</span>
+                                    </div>
+                                    <div className="kanban-cards">
+                                        {filteredLeads.filter(l => l.status === status).map(lead => (
+                                            <div key={lead.id} className="glass-card kanban-card shadow-hover" onClick={() => openLeadDetail(lead)}>
+                                                <div className="card-top">
+                                                    <span className="card-name">{lead.nome || 'Sem Nome'}</span>
+                                                    <span className="card-val">{lead.value_client}</span>
+                                                </div>
+                                                <div className="card-mid">
+                                                    <span className="card-phone">{lead.numero}</span>
+                                                </div>
+                                                <div className="card-bot">
+                                                    <span className="card-agent">{lead.responsavel}</span>
+                                                    {lead.tag && <span className="card-tag"><Tag size={10} /> {lead.tag}</span>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="empty-kanban">ADICIONE STATUS NA PLANILHA PARA GERAR COLUNAS KANBAN</div>
+                            )}
+                        </div>
+                    )
                 )}
-            </section>
+            </main>
 
-            {/* LEAD DETAIL MODAL */}
+            {/* Lead Details Modal */}
             {selectedLead && (
-                <div className="lead-modal-overlay animate-fade-in" onClick={closeLeadDetail}>
-                    <div className="lead-modal-content glass-container animate-slide-up" onClick={e => e.stopPropagation()}>
+                <div className="modal-overlay" onClick={closeLeadDetail}>
+                    <div className="modal-frame glass-panel animate-slide-up" onClick={e => e.stopPropagation()}>
                         <header className="modal-header">
-                            <div className="lead-header-info">
-                                <div className="avatar-large">{selectedLead.nome.charAt(0)}</div>
+                            <div className="modal-lead-identity">
+                                <div className="lead-avatar">{(selectedLead.nome || '?').charAt(0)}</div>
                                 <div>
-                                    <h2>{selectedLead.nome}</h2>
-                                    <span className={`badge-pill ${getStatusBadgeClass(selectedLead.status)}`}>
-                                        {selectedLead.status}
-                                    </span>
+                                    <h2>{selectedLead.nome || 'Vendedor/Cliente'}</h2>
+                                    <p>{selectedLead.numero} • {selectedLead.email}</p>
                                 </div>
                             </div>
-                            <button className="close-modal-btn" onClick={closeLeadDetail}><X size={24} /></button>
+                            <button className="close-btn" onClick={closeLeadDetail}><Plus size={24} style={{ transform: 'rotate(45deg)' }} /></button>
                         </header>
 
-                        <div className="modal-body-grid">
-                            <div className="info-section">
-                                <h3>DADOS DO CONTATO</h3>
-                                <div className="input-group">
-                                    <label><Phone size={14} /> TELEFONE</label>
-                                    <div className="copy-field">
-                                        <input type="text" value={selectedLead.numero} readOnly />
-                                        <button onClick={() => window.open(`https://wa.me/${selectedLead.numero.replace(/\D/g, '')}`, '_blank')} className="action-link-btn green">
-                                            <MessageSquare size={16} /> WHATSAPP
-                                        </button>
+                        <div className="modal-body">
+                            <div className="modal-form-grid">
+                                <div className="form-section">
+                                    <h3>DADOS COMERCIAIS</h3>
+                                    <div className="field">
+                                        <label>STATUS ATUAL</label>
+                                        <select 
+                                            value={selectedLead.status} 
+                                            onChange={(e) => handleUpdateLead(selectedLead.id, { ...selectedLead, status: e.target.value })}
+                                            className="premium-input"
+                                        >
+                                            {statusList.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="field">
+                                        <label>VALOR (VALUE_CLIENT)</label>
+                                        <input 
+                                            type="text" 
+                                            defaultValue={selectedLead.value_client}
+                                            onBlur={(e) => handleUpdateLead(selectedLead.id, { ...selectedLead, value_client: e.target.value })}
+                                            className="premium-input"
+                                        />
+                                    </div>
+                                    <div className="field">
+                                        <label>ORIGEM / MÉTODO</label>
+                                        <input 
+                                            type="text" 
+                                            defaultValue={selectedLead.metodo}
+                                            onBlur={(e) => handleUpdateLead(selectedLead.id, { ...selectedLead, metodo: e.target.value })}
+                                            className="premium-input"
+                                        />
                                     </div>
                                 </div>
-                                <div className="input-group">
-                                    <label><Mail size={14} /> E-MAIL</label>
-                                    <div className="copy-field">
-                                        <input type="text" value={selectedLead.email} readOnly />
-                                        <button onClick={() => window.location.href = `mailto:${selectedLead.email}`} className="action-link-btn blue">
-                                            <Mail size={16} /> ENVIAR E-MAIL
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="edit-section">
-                                <h3>GERENCIAMENTO</h3>
-                                <div className="input-group">
-                                    <label>STATUS ATUAL</label>
-                                    <select 
-                                        value={selectedLead.status} 
-                                        onChange={(e) => handleUpdateLead(selectedLead.id, { ...selectedLead, status: e.target.value })}
-                                        disabled={isUpdating}
-                                    >
-                                        {statusList.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                                <div className="input-group">
-                                    <label>RESPONSÁVEL</label>
-                                    <input 
-                                        type="text" 
-                                        defaultValue={selectedLead.responsavel} 
-                                        onBlur={(e) => handleUpdateLead(selectedLead.id, { ...selectedLead, responsavel: e.target.value })}
-                                        disabled={isUpdating}
-                                        placeholder="Nome do consultor..."
-                                    />
-                                </div>
-                                <div className="input-group">
-                                    <label>VALOR DO CLIENTE</label>
-                                    <input 
-                                        type="text" 
-                                        defaultValue={selectedLead.value_client} 
-                                        onBlur={(e) => handleUpdateLead(selectedLead.id, { ...selectedLead, value_client: e.target.value })}
-                                        disabled={isUpdating}
-                                        placeholder="R$ 0,00"
-                                    />
+                                <div className="form-section">
+                                    <h3>ATRIBUIÇÃO E VOLUME</h3>
+                                    <div className="field">
+                                        <label>RESPONSÁVEL</label>
+                                        <input 
+                                            type="text" 
+                                            defaultValue={selectedLead.responsavel}
+                                            onBlur={(e) => handleUpdateLead(selectedLead.id, { ...selectedLead, responsavel: e.target.value })}
+                                            className="premium-input"
+                                        />
+                                    </div>
+                                    <div className="field">
+                                        <label>VOLUME DE CONTATOS</label>
+                                        <input 
+                                            type="text" 
+                                            defaultValue={selectedLead.volume}
+                                            onBlur={(e) => handleUpdateLead(selectedLead.id, { ...selectedLead, volume: e.target.value })}
+                                            className="premium-input"
+                                        />
+                                    </div>
+                                    <div className="quick-actions">
+                                        <button className="action-btn wp-link" onClick={() => window.open(`https://wa.me/${selectedLead.numero.replace(/\D/g,'')}`, '_blank')}>
+                                            <MessageSquare size={14} /> CHAMAR WHATSAPP
+                                        </button>
+                                        <button className="action-btn email-link" onClick={() => window.location.href = `mailto:${selectedLead.email}`}>
+                                            <Mail size={14} /> ENVIAR E-MAIL
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <footer className="modal-footer">
-                            <button className="secondary-btn" onClick={closeLeadDetail}>FECHAR</button>
-                            <button className="primary-action-btn" onClick={closeLeadDetail}>
-                                <Save size={18} /> SALVAR ALTERAÇÕES
+                            <button className="cancel-btn" onClick={closeLeadDetail}>VOLTAR</button>
+                            <button className="save-btn" onClick={closeLeadDetail} disabled={isUpdating}>
+                                {isUpdating ? <RefreshCw className="animate-spin" /> : <Save size={18} />}
+                                SALVAR ALTERAÇÕES
                             </button>
                         </footer>
                     </div>
@@ -411,215 +348,114 @@ const CRMDashboard = () => {
             )}
 
             <style>{`
-                /* --- ADVANCED CRM STYLES --- */
-                .crm-advanced-view {
-                    max-width: 1600px;
-                    margin: 0 auto;
-                    padding: 40px;
-                    background: transparent;
-                }
+                .crm-container { max-width: 1300px; margin: 30px auto; padding: 0 20px; }
+                
+                /* Header */
+                .crm-header { display: flex; justify-content: space-between; align-items: center; padding: 25px 35px; border-radius: 20px; margin-bottom: 25px; gap: 20px; flex-wrap: wrap; }
+                .category-tag { font-size: 10px; font-weight: 800; color: var(--primary-color); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; opacity: 0.8; }
+                .text-gradient { font-size: 2.2rem; font-weight: 900; margin: 0; letter-spacing: -1px; }
+                .subtitle { margin: 5px 0 0; color: var(--text-muted); font-size: 12px; }
 
-                .crm-main-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 40px;
-                    gap: 30px;
-                    flex-wrap: wrap;
-                }
+                .header-actions { display: flex; gap: 15px; align-items: center; }
+                .view-selector { display: flex; padding: 4px; border-radius: 12px; }
+                .view-btn { background: transparent; border: none; padding: 8px 12px; border-radius: 8px; color: var(--text-muted); cursor: pointer; transition: 0.3s; }
+                .view-btn.active { background: var(--primary-color); color: #000; }
+                .sync-btn { border: none; padding: 10px 20px; border-radius: 12px; font-weight: 800; font-size: 11px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px; }
 
-                .header-info .main-title {
-                    font-size: 3rem;
-                    font-weight: 900;
-                    letter-spacing: -1.5px;
-                    margin: 10px 0;
-                }
-                .highlight {
-                    background: var(--primary-gradient);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                }
-                .subtitle { color: var(--text-secondary); opacity: 0.7; font-size: 1rem; }
+                /* Stats Grid */
+                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px; }
+                .metric-card { padding: 25px; display: flex; align-items: center; gap: 20px; border-left: 4px solid #acf800; }
+                .metric-icon { background: rgba(0,0,0,0.2); width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+                .metric-data label { font-size: 10px; font-weight: 800; color: var(--text-muted); letter-spacing: 1px; }
+                .metric-data h2 { font-size: 1.6rem; margin: 5px 0 0; font-weight: 900; }
 
-                /* VIEW SWITCHER */
-                .view-switcher-tabs {
-                    display: flex;
-                    background: rgba(255,255,255,0.03);
-                    padding: 4px;
-                    border-radius: 14px;
-                    border: 1px solid rgba(255,255,255,0.05);
-                }
-                .tab-btn {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 10px 20px;
-                    border-radius: 10px;
-                    font-size: 11px;
-                    font-weight: 900;
-                    color: var(--text-muted);
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    border: none;
-                    background: transparent;
-                }
-                .tab-btn.active {
-                    background: var(--primary-color);
-                    color: black;
-                    box-shadow: 0 4px 12px rgba(172, 248, 0, 0.2);
-                }
-
-                .badge-category {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    background: rgba(172, 248, 0, 0.08);
-                    padding: 6px 14px;
-                    border-radius: 50px;
-                    font-size: 10px;
-                    font-weight: 900;
-                    color: var(--primary-color);
-                    border: 1px solid rgba(172, 248, 0, 0.2);
-                }
-
-                .header-actions { display: flex; gap: 12px; align-items: center; }
-                .refresh-btn, .primary-action-btn {
-                    height: 48px;
-                    padding: 0 20px;
-                    border-radius: 14px;
-                    font-weight: 900;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    cursor: pointer;
-                    font-size: 12px;
-                    transition: all 0.2s;
-                }
-                .refresh-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); color: white; }
-                .refresh-btn.loading svg { animation: spin 1s linear infinite; }
-                .primary-action-btn { background: var(--primary-gradient); color: black; border: none; }
-
-                /* METRICS */
-                .metrics-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                    gap: 20px;
-                    margin-bottom: 30px;
-                }
-                .metric-glass-card {
-                    background: rgba(15, 23, 42, 0.4);
-                    backdrop-filter: blur(20px);
-                    border: 1px solid rgba(172, 248, 0, 0.1);
-                    padding: 24px;
-                    border-radius: 24px;
-                    position: relative;
-                }
-                .metric-body h2 { font-size: 1.8rem; font-weight: 900; margin-top: 5px; }
-
-                /* SEARCH BAR */
-                .crm-search-bar {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 15px 30px;
-                    margin-bottom: 25px;
-                    gap: 20px;
-                    flex-wrap: wrap;
-                }
-                .search-wrapper { position: relative; flex: 1; max-width: 500px; }
+                /* Filters */
+                .crm-filters { display: flex; justify-content: space-between; padding: 15px 30px; border-radius: 16px; margin-bottom: 25px; gap: 20px; }
+                .search-wrapper { flex: 1; position: relative; max-width: 500px; }
                 .search-icon { position: absolute; left: 15px; top: 13px; color: var(--primary-color); opacity: 0.5; }
-                .search-wrapper input {
-                    width: 100%; height: 46px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05);
-                    border-radius: 12px; padding: 0 45px; color: white; font-size: 13px;
-                }
-                .filters-group { display: flex; gap: 10px; align-items: center; }
-                .select-wrapper {
-                    display: flex; items-center gap: 8px; background: rgba(0,0,0,0.2);
-                    padding: 0 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); height: 46px;
-                }
-                .select-wrapper select { background: transparent; border: none; color: white; font-weight: 800; font-size: 11px; outline: none; }
-                .shortcut-mini-btn {
-                    padding: 8px 15px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
-                    border-radius: 10px; color: var(--text-muted); font-size: 10px; font-weight: 900; cursor: pointer; display: flex; items-center gap: 6px;
-                }
-                .shortcut-mini-btn:hover { background: rgba(255,255,255,0.07); color: white; }
+                .search-wrapper input { width: 100%; height: 42px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 0 15px 0 45px; color: #fff; outline: none; }
+                .status-filter { display: flex; align-items: center; gap: 10px; }
+                .status-filter select { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 10px; color: #fff; font-weight: 700; font-size: 11px; outline: none; }
 
-                /* LIST VIEW */
-                .crm-premium-table { width: 100%; border-collapse: collapse; min-width: 1000px; }
-                .crm-premium-table th { padding: 20px; font-size: 10px; font-weight: 900; color: var(--text-muted); text-align: left; opacity: 0.6; }
-                .crm-premium-table td { padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.03); }
-                .clickable-row { cursor: pointer; transition: 0.2s; }
-                .clickable-row:hover { background: rgba(172, 248, 0, 0.03); }
-
-                /* KANBAN VIEW */
-                .kanban-board-container {
-                    display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; min-height: 600px;
-                }
-                .kanban-column {
-                    flex: 1; min-width: 320px; background: rgba(255,255,255,0.015); border-radius: 20px; padding: 15px;
-                    display: flex; flex-direction: column; gap: 15px; border: 1px solid rgba(255,255,255,0.03);
-                }
-                .kanban-column-header { display: flex; items-center justify-content: space-between; padding: 5px 10px; }
-                .kanban-column-header h3 { font-size: 11px; font-weight: 900; letter-spacing: 1px; color: var(--text-muted); }
-                .column-count { font-size: 10px; font-weight: 900; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 6px; }
-                .kanban-cards-wrapper { display: flex; flex-direction: column; gap: 12px; }
+                /* Content Area */
+                .crm-content { border-radius: 20px; min-height: 500px; overflow: hidden; position: relative; }
+                .loading-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; gap: 20px; }
+                .loader { width: 40px; height: 40px; border: 3px solid rgba(172, 248, 0, 0.1); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
                 
-                .kanban-card-glass {
-                    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-                    border-radius: 18px; padding: 18px; cursor: pointer; transition: 0.25s;
-                }
-                .kanban-card-glass:hover { transform: translateY(-4px); border-color: var(--primary-color); background: rgba(255,255,255,0.04); }
-                .card-top { display: flex; gap: 12px; align-items: center; margin-bottom: 15px; }
-                .card-avatar { width: 36px; height: 36px; border-radius: 10px; background: rgba(172, 248, 0, 0.1); color: var(--primary-color); display: flex; items-center justify-content: center; font-weight: 900; }
-                .card-main-info h4 { margin: 0; font-size: 14px; font-weight: 900; }
-                .card-main-info p { margin: 2px 0 0 0; font-size: 11px; opacity: 0.5; }
-                .card-tags { display: flex; gap: 8px; margin-bottom: 15px; }
-                .mini-tag { font-size: 9px; font-weight: 800; color: var(--text-muted); display: flex; items-center gap: 4px; padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 6px; }
-                .mini-value { font-size: 10px; font-weight: 900; color: var(--primary-color); margin-left: auto; }
-                .card-footer { display: flex; justify-content: space-between; items-center; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 12px; }
-                .card-ref { font-size: 9px; font-weight: 800; color: var(--text-secondary); opacity: 0.6; }
+                .crm-table-wrapper { overflow-x: auto; }
+                .crm-table { width: 100%; border-collapse: collapse; }
+                .crm-table th { padding: 20px; text-align: left; font-size: 11px; font-weight: 800; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .crm-table td { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+                .crm-row { cursor: pointer; transition: 0.2s; }
+                .crm-row:hover { background: rgba(172, 248, 0, 0.03); }
 
-                /* MODAL */
-                .lead-modal-overlay {
-                    position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-                    z-index: 1000; display: flex; items-center justify-content: center; padding: 20px;
-                }
-                .lead-modal-content {
-                    width: 100%; max-width: 800px; background: #0f172a; border-radius: 30px; padding: 40px;
-                }
-                .modal-header { display: flex; justify-content: space-between; items-center; margin-bottom: 30px; }
-                .lead-header-info { display: flex; gap: 20px; items-center; }
-                .avatar-large { width: 64px; height: 64px; border-radius: 20px; background: var(--primary-color); color: black; font-size: 32px; font-weight: 900; display: flex; items-center justify-content: center; }
-                .modal-body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-                .input-group { margin-bottom: 20px; }
-                .input-group label { display: block; font-size: 10px; font-weight: 900; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; display: flex; items-center gap: 6px; }
-                .copy-field { display: flex; gap: 10px; }
-                .copy-field input { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; color: white; font-weight: 700; }
-                .info-section h3, .edit-section h3 { font-size: 12px; font-weight: 900; color: var(--primary-color); margin-bottom: 25px; letter-spacing: 2px; }
+                .client-cell { display: flex; align-items: center; gap: 15px; }
+                .mini-avatar { width: 36px; height: 36px; background: var(--primary-color); color: #000; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+                .client-name { display: block; font-weight: 700; font-size: 14px; }
+                .client-sub { font-size: 11px; color: var(--text-muted); }
+
+                .status-badge { padding: 4px 12px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+                .badge-success { background: var(--success-bg); color: var(--primary-color); }
+                .badge-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+                .badge-warning { background: rgba(234, 179, 8, 0.1); color: #eab308; }
+
+                .tag-box { display: flex; flex-direction: column; gap: 4px; }
+                .tag-primary, .tag-secondary { font-size: 10px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+                .tag-secondary { opacity: 0.6; font-size: 9px; }
                 
-                .edit-section select, .edit-section input {
-                    width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
-                    padding: 12px; border-radius: 10px; color: white; font-weight: 700; outline: none;
-                }
-                .edit-section select option { background: #1e293b; }
+                .responsavel-cell { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+                .value-high { font-weight: 800; color: var(--primary-color); font-size: 13px; }
+                .volume-txt { font-weight: 600; opacity: 0.8; font-size: 12px; }
+                .row-action { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 5px; }
 
-                .action-link-btn {
-                    padding: 0 15px; border-radius: 10px; border: none; font-size: 10px; font-weight: 900; cursor: pointer; display: flex; items-center gap: 8px; color: white;
-                }
-                .action-link-btn.green { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e30; }
-                .action-link-btn.blue { background: #3b82f620; color: #3b82f6; border: 1px solid #3b82f630; }
+                /* Kanban */
+                .kanban-container { display: flex; gap: 20px; padding: 25px; overflow-x: auto; min-height: 600px; }
+                .kanban-column { min-width: 300px; flex: 1; background: rgba(255,255,255,0.01); border-radius: 16px; padding: 15px; border: 1px solid rgba(255,255,255,0.03); }
+                .kanban-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 5px; }
+                .kanban-header h3 { font-size: 12px; font-weight: 900; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+                .kanban-count { background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 5px; font-size: 10px; font-weight: 800; }
+                .kanban-card { padding: 18px; margin-bottom: 12px; cursor: pointer; transition: 0.3s; }
+                .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+                .card-name { font-weight: 800; font-size: 13px; }
+                .card-val { color: var(--primary-color); font-weight: 900; font-size: 12px; }
+                .card-mid { margin-bottom: 12px; }
+                .card-phone { font-size: 11px; opacity: 0.5; }
+                .card-bot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; }
+                .card-agent { font-size: 10px; border: 1px solid rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
+                .card-tag { font-size: 10px; display: flex; align-items: center; gap: 4px; color: var(--primary-color); }
 
-                .modal-footer { display: flex; justify-content: flex-end; gap: 15px; margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.05); }
-                .secondary-btn { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 12px 24px; border-radius: 12px; font-weight: 900; cursor: pointer; }
+                /* Modal Prêmiun */
+                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+                .modal-frame { width: 100%; max-width: 800px; border-radius: 28px; overflow: hidden; position: relative; z-index: 1001; background: #0a0a0b; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+                .modal-header { padding: 35px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+                .modal-lead-identity { display: flex; gap: 20px; align-items: center; }
+                .lead-avatar { width: 60px; height: 60px; background: var(--primary-color); color: #000; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; }
+                .modal-header h2 { margin: 0; font-size: 1.8rem; letter-spacing: -1px; }
+                .modal-header p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
+                .close-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; transition: 0.3s; }
+                .close-btn:hover { color: #fff; }
 
-                /* ANIMATIONS */
+                .modal-body { padding: 35px; }
+                .modal-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+                .form-section h3 { font-size: 12px; font-weight: 900; letter-spacing: 1.5px; border-bottom: 1px solid rgba(172,248,0,0.2); padding-bottom: 10px; margin-bottom: 25px; color: var(--primary-color); }
+                .field { margin-bottom: 20px; }
+                .field label { display: block; font-size: 10px; font-weight: 800; color: var(--text-muted); margin-bottom: 8px; }
+                .premium-input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 12px 15px; border-radius: 12px; color: #fff; font-weight: 700; outline: none; transition: 0.3s; }
+                .premium-input:focus { border-color: var(--primary-color); background: rgba(172,248,0,0.02); }
+
+                .quick-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 25px; }
+                .action-btn { border: none; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
+                .wp-link { background: #25d36620; color: #25d366; }
+                .wp-link:hover { background: #25d36640; }
+                .email-link { background: #3b82f620; color: #3b82f6; }
+                .email-link:hover { background: #3b82f640; }
+
+                .modal-footer { padding: 25px 35px; background: rgba(0,0,0,0.2); display: flex; justify-content: flex-end; gap: 15px; }
+                .cancel-btn { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 10px 25px; border-radius: 10px; font-weight: 800; cursor: pointer; }
+                .save-btn { background: var(--primary-color); color: #000; border: none; padding: 10px 30px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+
                 @keyframes spin { to { transform: rotate(360deg); } }
-                @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes slide-up { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-                
-                .animate-fade-in { animation: fade-in 0.3s ease forwards; }
-                .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-                .animate-fade-in-up { animation: slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-spin { animation: spin 1s linear infinite; }
             `}</style>
         </div>
     );
