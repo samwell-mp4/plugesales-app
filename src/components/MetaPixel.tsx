@@ -23,8 +23,9 @@ const MetaPixel = () => {
     const normalizedAgent = agent?.replace(/\+/g, ' ') || '';
     const isRicardoLanding = location.pathname === '/landing/1';
     const isRicardoLeadFlow = location.pathname === '/lead-flow' && normalizedAgent === 'Ricardo Willer';
+    const isRicardoThankYou = location.pathname === '/obrigado/1';
 
-    const shouldTrack = isRicardoLanding || isRicardoLeadFlow;
+    const shouldTrack = isRicardoLanding || isRicardoLeadFlow || isRicardoThankYou;
 
     if (shouldTrack) {
       console.log("Meta Pixel: Condição atendida para Ricardo Willer. Inicializando/Rastreando...");

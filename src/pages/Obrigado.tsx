@@ -1,9 +1,26 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, ShoppingCart, ArrowRight, Zap, Target } from 'lucide-react';
 
 const Obrigado = () => {
     const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+
+    // Mapeamento oficial idêntico à Landing Page
+    const agentMap: Record<string, string> = {
+        '1': 'Ricardo Willer',
+        '2': 'Otávio Augusto',
+        '3': 'Augusto Fagundes',
+        '4': 'Luis Henrique',
+        '5': 'Gabriel Martins',
+        '6': 'Italo Clovis',
+        '7': 'Samwell Souza',
+        '8': 'Thales Henrique',
+        '9': 'Ramon Gomes'
+    };
+
+    const agentName = id ? agentMap[id] : null;
+    const isExcluded = id === '2'; // Otávio Augusto não terá página personalizada
 
     return (
         <div style={{
@@ -69,6 +86,10 @@ const Obrigado = () => {
                     margin-left: auto;
                     margin-right: auto;
                 }
+                .highlight-agent {
+                    color: #acf800;
+                    font-weight: 800;
+                }
                 .cta-btn {
                     width: 100%;
                     background: #fff;
@@ -103,12 +124,19 @@ const Obrigado = () => {
                 </div>
                 
                 <h1 className="title">Tudo Pronto!</h1>
-                <p className="subtitle">
-                    Sua operação foi identificada e agora o próximo passo é escalar com o poder do <br /><strong>Plug & Sales</strong>.
-                </p>
+                
+                {id && !isExcluded ? (
+                    <p className="subtitle">
+                        Suas informações foram recebidas. Um consultor entrará em contato em breve para alinhar os próximos passos da sua operação.
+                    </p>
+                ) : (
+                    <p className="subtitle">
+                        Sua operação foi identificada e agora o próximo passo é escalar com o poder do <br /><strong>Plug & Sales</strong>.
+                    </p>
+                )}
 
                 <p style={{ marginTop: '40px', color: '#1e293b', fontSize: '0.9rem', fontWeight: 800, letterSpacing: 2 }}>
-                    (OBRIGADO)
+                    (OBRIGADO{id && !isExcluded ? `-${id}` : ''})
                 </p>
             </div>
         </div>

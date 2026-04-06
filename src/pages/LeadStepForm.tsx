@@ -140,7 +140,17 @@ const LeadStepForm = () => {
                 if (formData.method === 'Ainda não realizo disparos') {
                     navigate('/finalizado');
                 } else {
-                    navigate('/obrigado');
+                    // Mapeamento inverso para achar ID pelo nome do agente
+                    const routeId = id?.replace('landing', '');
+                    const foundAgentEntry = Object.entries(agentMap).find(([_, name]) => name === formData.agent_name);
+                    const agentId = routeId || (foundAgentEntry ? foundAgentEntry[0] : null);
+
+                    // Se for o ID 2 (Otávio) ou não tiver ID, vai para a página de obrigado geral
+                    if (!agentId || agentId === '2') {
+                        navigate('/obrigado');
+                    } else {
+                        navigate(`/obrigado/${agentId}`);
+                    }
                 }
             } else {
                 alert("Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.");

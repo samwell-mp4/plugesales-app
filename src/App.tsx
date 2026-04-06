@@ -46,7 +46,7 @@ function AppContent() {
 
   const isPublicRoute = 
     location.pathname.startsWith('/landing') || 
-    location.pathname === '/obrigado' || 
+    location.pathname.startsWith('/obrigado') || 
     location.pathname === '/finalizado' || 
     location.pathname === '/lead-flow' || 
     location.pathname.startsWith('/l/') || 
@@ -128,6 +128,7 @@ function AppContent() {
           <Route path="/landing/:id" element={<LandingPage />} />
           <Route path="/lead-flow" element={<LeadStepForm />} />
           <Route path="/obrigado" element={<Obrigado />} />
+          <Route path="/obrigado/:id" element={<Obrigado />} />
           <Route path="/finalizado" element={<Finalizado />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/client-add/:parentId/:submissionId?" element={<ClientForClientForm />} />
