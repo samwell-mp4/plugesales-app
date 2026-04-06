@@ -62,7 +62,7 @@ const LandingPage = () => {
         if (id) {
             const numericId = id.replace('landing', '');
             const agentName = agentMap[numericId];
-            
+
             sessionStorage.setItem('landing_ref', `landing${numericId}`);
             if (agentName) {
                 sessionStorage.setItem('landing_agent', agentName);
@@ -124,8 +124,8 @@ const LandingPage = () => {
                         Sem bloqueios e sem limite de escala. Para empresas com bases acima de 10 mil contatos que querem estrutura profissional, estabilidade e alta entrega.
                     </p>
                     <div className="lp-cta-group">
-                        <Link 
-                            to={currentAgentParam ? `/lead-flow?agent=${currentAgentParam}` : "/lead-flow"} 
+                        <Link
+                            to={currentAgentParam ? `/lead-flow?agent=${currentAgentParam}` : "/lead-flow"}
                             className="lp-btn lp-btn-primary ripple"
                         >
                             👉 Quero Agendar Um Disparo em Massa
@@ -135,7 +135,7 @@ const LandingPage = () => {
 
                 <div className="lp-hero-mockup">
                     <img
-                        src="https://plug-sales-dispatch-app-test-dispatch.hx8235.easypanel.host/uploads/1775499716368-676214869.jpg"
+                        src="https://iili.io/BRvLRPS.jpg"
                         alt="Dashboard Mockup"
                         className="lp-mockup-frame"
                     />
@@ -318,8 +318,8 @@ const LandingPage = () => {
                         Se sua operação já passou dos 10 mil contatos, continuar usando WhatsApp comum está limitando diretamente seu crescimento.
                     </p>
                     <h3 className='test'>Quanto mais você demora para estruturar isso, mais dinheiro deixa na mesa.</h3>
-                    <Link 
-                        to={currentAgentParam ? `/lead-flow?agent=${currentAgentParam}` : "/lead-flow"} 
+                    <Link
+                        to={currentAgentParam ? `/lead-flow?agent=${currentAgentParam}` : "/lead-flow"}
                         className="lp-btn lp-btn-primary lp-btn-large mt-6"
                     >
                         👉 Quero ativar minha estrutura agora
