@@ -31,6 +31,7 @@ import MyWallet from './pages/MyWallet';
 import TestCards from './pages/TestCards';
 import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
+import MetaPixel from './components/MetaPixel'; // Importando o Rastreador Condicional
 import './index.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -101,6 +102,7 @@ function AppContent() {
 
   return (
     <div className={`app-layout ${theme === 'light' ? 'light-theme' : ''}`}>
+      <MetaPixel /> {/* Rastreador Condicional para Ricardo Willer */}
       {!isPublicRoute && <Sidebar />}
       <main className={`main-content ${isPublicRoute ? 'no-padding' : ''}`}>
         <Routes>
