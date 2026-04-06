@@ -556,7 +556,6 @@ app.get('/api/crm/leads', async (req, res) => {
             if (!rows) return res.json([]);
 
             const leads = rows.map((row, index) => {
-                // console.log("CRM Row:", index, row.length, row); // Debugging mapping
                 return {
                     id: index + 1,
                     nome: row[0] || '',
@@ -570,7 +569,7 @@ app.get('/api/crm/leads', async (req, res) => {
                     metodo: row[8] || '',
                     volume: row[9] || ''
                 };
-            });
+            }).filter(l => l.nome || l.numero || l.email); // Filtra linhas vazias
             return res.json(leads);
         }
 
@@ -581,7 +580,7 @@ app.get('/api/crm/leads', async (req, res) => {
         const csvText = await response.text();
         const rows = csvText.split('\n').map(row => row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim()));
         const dataRows = rows.slice(1);
-        const leads = dataRows.filter(row => row.length >= 2 && row[0]).map((row, index) => ({
+        const leads = dataRows.map((row, index) => ({
             id: index + 1,
             nome: row[0] || '',
             numero: row[1] || '',
@@ -593,7 +592,7 @@ app.get('/api/crm/leads', async (req, res) => {
             value_client: row[7] || '0',
             metodo: row[8] || '',
             volume: row[9] || ''
-        }));
+        })).filter(l => l.nome || l.numero || l.email); // Filtra linhas vazias
         res.json(leads);
     } catch (err) {
         console.error("CRM Leads Error:", err.message);
@@ -606,10 +605,7 @@ app.put('/api/crm/leads/:id', async (req, res) => {
     try {
         const updateData = req.body || {};
         const rowNumber = parseInt(id) + 1;
-        if (!updateData.nome && !updateData.numero) {
-            return res.status(400).json({ error: 'Dados inválidos para atualização.' });
-        }
-
+        
         const sheets = await getSheetsClient();
         if (!sheets) throw new Error('Google API não configurada. Verifique o arquivo service-account.json ou a variável GOOGLE_SERVICE_ACCOUNT_JSON.');
 

@@ -46,7 +46,7 @@ const LandingPage = () => {
     // Mapeamento para os PARÂMETROS de URL específicos solicitados
     const agentParamMap: Record<string, string> = {
         '1': 'Ricardo+Willer',
-        '2': 'Otavio+Augusto',
+        '2': 'Ot%C3%A1vio+Augusto',
         '3': 'Augusto+Fagundes',
         '4': 'Luis-Henrique',
         '5': 'Gabriel+Martins',
