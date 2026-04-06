@@ -123,7 +123,7 @@ function AppContent() {
           <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />
-          <Route path="/landing:id" element={<LandingPage />} />
+          <Route path="/landing/:id" element={<LandingPage />} />
           <Route path="/lead-flow" element={<LeadStepForm />} />
           <Route path="/obrigado" element={<Obrigado />} />
           <Route path="/finalizado" element={<Finalizado />} />

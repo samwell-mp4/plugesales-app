@@ -30,14 +30,47 @@ const LandingPage = () => {
 
     const { id } = useParams<{ id: string }>();
 
+    // Mapeamento oficial de IDs para Funcionários (Agents) - Nomes Reais
+    const agentMap: Record<string, string> = {
+        '1': 'Ricardo Willer',
+        '2': 'Otávio Augusto',
+        '3': 'Augusto Fagundes',
+        '4': 'Luis Henrique',
+        '5': 'Gabriel Martins',
+        '6': 'Italo Clovis',
+        '7': 'Samwell Souza',
+        '8': 'Thales Henrique',
+        '9': 'Ramon Gomes'
+    };
+
+    // Mapeamento para os PARÂMETROS de URL específicos solicitados
+    const agentParamMap: Record<string, string> = {
+        '1': 'Ricardo+Willer',
+        '2': 'Otavio+Augusto',
+        '3': 'Augusto+Fagundes',
+        '4': 'Luis-Henrique',
+        '5': 'Gabriel+Martins',
+        '6': 'Italo-Clovis',
+        '7': 'Samwell+Souza',
+        '8': 'Thales+Henrique',
+        '9': 'Ramon+Gomes'
+    };
+
+    const currentAgentParam = id ? (agentParamMap[id.replace('landing', '')] || '') : '';
+
     useEffect(() => {
         if (id) {
-            // Se o ID existir (ex: /landing1), salvamos como 'landing1'
-            sessionStorage.setItem('landing_ref', `landing${id}`);
+            const numericId = id.replace('landing', '');
+            const agentName = agentMap[numericId];
+            
+            sessionStorage.setItem('landing_ref', `landing${numericId}`);
+            if (agentName) {
+                sessionStorage.setItem('landing_agent', agentName);
+            }
         } else {
-            // Caso seja apenas /landing, podemos salvar como padrao ou ignorar
             if (!sessionStorage.getItem('landing_ref')) {
                 sessionStorage.setItem('landing_ref', 'landing_original');
+                sessionStorage.removeItem('landing_agent');
             }
         }
     }, [id]);
@@ -91,7 +124,10 @@ const LandingPage = () => {
                         Sem bloqueios e sem limite de escala. Para empresas com bases acima de 10 mil contatos que querem estrutura profissional, estabilidade e alta entrega.
                     </p>
                     <div className="lp-cta-group">
-                        <Link to="/lead-flow" className="lp-btn lp-btn-primary ripple">
+                        <Link 
+                            to={currentAgentParam ? `/lead-flow?agent=${currentAgentParam}` : "/lead-flow"} 
+                            className="lp-btn lp-btn-primary ripple"
+                        >
                             👉 Quero Agendar Um Disparo em Massa
                         </Link>
                     </div>
@@ -282,7 +318,10 @@ const LandingPage = () => {
                         Se sua operação já passou dos 10 mil contatos, continuar usando WhatsApp comum está limitando diretamente seu crescimento.
                     </p>
                     <h3 className='test'>Quanto mais você demora para estruturar isso, mais dinheiro deixa na mesa.</h3>
-                    <Link to="/lead-flow" className="lp-btn lp-btn-primary lp-btn-large mt-6">
+                    <Link 
+                        to={currentAgentParam ? `/lead-flow?agent=${currentAgentParam}` : "/lead-flow"} 
+                        className="lp-btn lp-btn-primary lp-btn-large mt-6"
+                    >
                         👉 Quero ativar minha estrutura agora
                     </Link>
                 </div>

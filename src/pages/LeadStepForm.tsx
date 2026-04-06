@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import {
     ChevronRight, ChevronLeft, Send, CheckCircle2,
     MessageSquare, User, Mail, Briefcase, BarChart3,
@@ -22,6 +22,7 @@ const STEPS = [
 const LeadStepForm = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const { id } = useParams<{ id: string }>();
     const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const submitLock = useRef(false);
@@ -39,18 +40,36 @@ const LeadStepForm = () => {
 
     const totalSteps = STEPS.length - 1; // Success is outside the main loop
 
+    // Mapeamento oficial idêntico à Landing Page
+    const agentMap: Record<string, string> = {
+        '1': 'Ricardo Willer',
+        '2': 'Otávio Augusto',
+        '3': 'Augusto Fagundes',
+        '4': 'Luis Henrique',
+        '5': 'Gabriel Martins',
+        '6': 'Italo Clovis',
+        '7': 'Samwell Souza',
+        '8': 'Thales Henrique',
+        '9': 'Ramon Gomes'
+    };
+
     useEffect(() => {
         const ref = sessionStorage.getItem('landing_ref');
-        const agent = searchParams.get('agent');
+        const landingAgent = sessionStorage.getItem('landing_agent');
+        const agentParam = searchParams.get('agent');
         
-        if (agent || ref) {
+        // Resolve o agente através do ID na URL (/lead-flow/:id) ou parâmetro
+        const routeId = id?.replace('landing', '');
+        const routeAgent = routeId ? agentMap[routeId] : null;
+
+        if (agentParam || routeAgent || landingAgent || ref) {
             setFormData(prev => ({ 
                 ...prev, 
-                referral_source: ref || '',
-                agent_name: agent || '' 
+                referral_source: ref || (routeId ? `direct_id_${routeId}` : ''),
+                agent_name: agentParam || routeAgent || landingAgent || '' 
             }));
         }
-    }, [searchParams]);
+    }, [searchParams, id]);
 
     const nextStep = () => {
         if (currentStep < totalSteps) {

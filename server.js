@@ -2640,7 +2640,11 @@ app.post('/api/step-leads', async (req, res) => {
     try {
         let agentPhone = null;
         if (agent_name) {
-            const agentRes = await pool.query("SELECT notification_number, phone FROM users WHERE name = $1 LIMIT 1", [agent_name]);
+            // Normaliza tanto o nome no banco quanto o parâmetro recebido (remove espaços, hifens e coloca em lowercase)
+            const agentRes = await pool.query(
+                "SELECT notification_number, phone FROM users WHERE LOWER(REPLACE(REPLACE(name, ' ', ''), '-', '')) = LOWER(REPLACE(REPLACE($1, ' ', ''), '-', '')) LIMIT 1", 
+                [agent_name.replace(/\+/g, '')]
+            );
             agentPhone = agentRes.rows[0]?.notification_number || agentRes.rows[0]?.phone || null;
         }
 
