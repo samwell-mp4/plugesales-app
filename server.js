@@ -181,6 +181,94 @@ const initDB = async () => {
                 latitude DOUBLE PRECISION,
                 longitude DOUBLE PRECISION,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            // --- WALLET & ECONOMY TABLES (V2) ---
+            `CREATE TABLE IF NOT EXISTS user_wallets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) UNIQUE,
+                total_credits_acquired BIGINT DEFAULT 0,
+                total_credits_available BIGINT DEFAULT 0,
+                total_credits_reserved BIGINT DEFAULT 0,
+                total_credits_used BIGINT DEFAULT 0,
+                total_credits_refunded BIGINT DEFAULT 0,
+                total_credits_gifted_out BIGINT DEFAULT 0,
+                total_credits_gifted_in BIGINT DEFAULT 0,
+                transfer_blocked BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS user_card_purchases (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                plug_card_id INTEGER REFERENCES plug_cards(id),
+                purchase_reference TEXT,
+                card_code TEXT,
+                card_name TEXT,
+                credits_origin_total BIGINT,
+                credits_available BIGINT,
+                credits_reserved BIGINT DEFAULT 0,
+                credits_used BIGINT DEFAULT 0,
+                credits_refunded BIGINT DEFAULT 0,
+                price_paid NUMERIC(10,2),
+                purchase_status TEXT DEFAULT 'pending',
+                refund_status TEXT DEFAULT 'none',
+                purchased_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                refund_deadline_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS credit_ledger (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                wallet_id INTEGER REFERENCES user_wallets(id),
+                purchase_id INTEGER REFERENCES user_card_purchases(id),
+                related_gift_card_id INTEGER,
+                entry_type TEXT, 
+                direction TEXT,
+                amount BIGINT,
+                balance_before BIGINT,
+                balance_after BIGINT,
+                reserved_before BIGINT,
+                reserved_after BIGINT,
+                metadata_json JSONB,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS campaign_credit_reservations (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                campaign_reference TEXT,
+                purchase_id INTEGER REFERENCES user_card_purchases(id),
+                requested_credits BIGINT,
+                reserved_credits BIGINT,
+                reservation_status TEXT DEFAULT 'reserved',
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS gift_cards (
+                id SERIAL PRIMARY KEY,
+                code TEXT UNIQUE,
+                creator_user_id INTEGER REFERENCES users(id),
+                recipient_user_id INTEGER REFERENCES users(id),
+                source_wallet_id INTEGER REFERENCES user_wallets(id),
+                amount BIGINT,
+                final_locked_amount BIGINT,
+                recipient_email TEXT,
+                gift_status TEXT DEFAULT 'active',
+                redeemed_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS refund_requests (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                purchase_id INTEGER REFERENCES user_card_purchases(id),
+                requested_credits BIGINT,
+                eligible_credits BIGINT,
+                refund_fee_credits BIGINT,
+                refundable_credits BIGINT,
+                refund_value_money NUMERIC(10,2),
+                reason TEXT,
+                request_status TEXT DEFAULT 'pending',
+                processed_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                requested_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
@@ -541,7 +629,7 @@ app.put('/api/crm/leads/:id', async (req, res) => {
     }
 });
 
-initDB();
+
 
 // Configuração de CORS
 app.use(cors());
@@ -2255,6 +2343,130 @@ ${text.substring(0, 15000)}
     }
 });
 
+
+// ============================================================
+// PLUG CARDS V2 — CREDIT ECONOMY ENGINE
+// ============================================================
+
+// --- NEW PLUG CARDS API ROUTES V2 ---
+
+app.get('/api/v2/wallet', async (req, res) => {
+    const { userId } = req.query;
+    try {
+        const wallet = await CardEconomyService.getOrCreateWallet(userId, pool);
+        const ledger = await pool.query('SELECT * FROM credit_ledger WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50', [userId]);
+        const purchases = await pool.query(`
+            SELECT p.*, c.name as card_name, c.tier 
+            FROM user_card_purchases p 
+            JOIN plug_cards c ON p.plug_card_id = c.id 
+            WHERE p.user_id = $1 
+            ORDER BY p.created_at DESC
+        `, [userId]);
+        const gifts = await pool.query('SELECT * FROM gift_cards WHERE creator_user_id = $1 OR recipient_user_id = $1 ORDER BY created_at DESC', [userId]);
+        const refunds = await pool.query('SELECT * FROM refund_requests WHERE user_id = $1 ORDER BY requested_at DESC', [userId]);
+        
+        res.json({ 
+            wallet, 
+            ledger: ledger.rows, 
+            purchases: purchases.rows,
+            gifts: gifts.rows,
+            refunds: refunds.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/v2/purchase', async (req, res) => {
+    const { userId, cardId, pricePaid, reference } = req.body;
+    try {
+        const purchase = await CardEconomyService.activatePurchase(userId, cardId, pricePaid, reference);
+        res.json({ success: true, purchase });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/v2/gifts/create', async (req, res) => {
+    const { userId, amount, recipientEmail } = req.body;
+    try {
+        const gift = await CardEconomyService.createGiftCard(userId, parseInt(amount), recipientEmail);
+        res.json({ success: true, gift });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/v2/gifts/redeem', async (req, res) => {
+    const { userId, code } = req.body;
+    try {
+        const gift = await CardEconomyService.redeemGiftCard(userId, code);
+        res.json({ success: true, gift });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/v2/refund/eligibility/:purchaseId', async (req, res) => {
+    try {
+        const purchase = await pool.query('SELECT * FROM user_card_purchases WHERE id = $1', [req.params.purchaseId]);
+        if (purchase.rows.length === 0) return res.status(404).json({ error: 'Compra não encontrada' });
+        const p = purchase.rows[0];
+        
+        const now = new Date();
+        const deadline = new Date(p.refund_deadline_at);
+        const expired = now > deadline;
+        const eligible = p.credits_available > 0 && !expired && p.credits_used === 0;
+        
+        res.json({ 
+            eligible, 
+            credits: p.credits_available, 
+            deadline: p.refund_deadline_at,
+            expired,
+            valueEstimated: (p.credits_available / p.credits_origin_total) * p.price_paid
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/v2/refund/request', async (req, res) => {
+    const { userId, purchaseId, reason } = req.body;
+    try {
+        const refund = await CardEconomyService.requestRefund(userId, purchaseId, reason);
+        res.json({ success: true, refund });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/v2/admin/wallets', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT w.*, u.name, u.email 
+            FROM user_wallets w 
+            JOIN users u ON w.user_id = u.id
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/v2/admin/refunds', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT r.*, u.name, u.email 
+            FROM refund_requests r 
+            JOIN users u ON r.user_id = u.id
+            ORDER BY r.requested_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -2640,7 +2852,7 @@ app.post('/api/admin/seed-cards', async (req, res) => {
                 price = EXCLUDED.price,
                 features = EXCLUDED.features;
         `;
-        await supabasePool.query(seedSql);
+        await pool.query(seedSql);
         res.json({ success: true, message: 'Catalog seeded successfully.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2671,31 +2883,39 @@ app.post('/api/plug-cards/buy', async (req, res) => {
         }
 
         // 2. Gateway BASE — Simulação de processamento de pagamento
-        // Em produção, aqui entraria Stripe, MercadoPago, etc.
+        // --- TEST MODE ENABLED BY DEFAULT ---
         const GATEWAY_SIMULATION = {
             process: async (method, amount, cardData) => {
                 // Simular latência de processamento
-                await new Promise(resolve => setTimeout(resolve, 1200));
+                await new Promise(resolve => setTimeout(resolve, 800));
 
-                // Validação básica para teste
+                // TEST MODE LOGIC:
+                // Card "4242..." always succeeds
+                // Card "5000..." always fails
+                const num = (cardData?.cardNumber || '').replace(/\s/g, '');
+                
+                if (num.startsWith('5000')) {
+                    return { success: false, error: 'Pagamento recusado pelo emissor (Simulação).' };
+                }
+
                 if (method === 'credit_card' || method === 'debit_card') {
-                    const num = (cardData?.cardNumber || '').replace(/\s/g, '');
                     if (num.length < 13) {
-                        return { success: false, error: 'Número de cartão inválido.' };
+                        return { success: false, error: 'Número de cartão inválido (Simulação).' };
                     }
                     if (!cardData?.cvv || cardData.cvv.length < 3) {
-                        return { success: false, error: 'CVV inválido.' };
+                        return { success: false, error: 'CVV inválido (Simulação).' };
                     }
                 }
 
                 // Gerar referência de transação (simulada)
-                const ref = `PCG-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+                const ref = `TEST-PCG-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
                 return {
                     success: true,
                     transactionId: ref,
                     amount,
                     method,
-                    processedAt: new Date().toISOString()
+                    processedAt: new Date().toISOString(),
+                    isTest: true
                 };
             }
         };
@@ -2750,20 +2970,6 @@ app.post('/api/plug-cards/buy', async (req, res) => {
     }
 });
 
-// GET /api/plug-cards — Catalog for exchange (Only active ones)
-app.get('/api/plug-cards', async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('plug_cards')
-            .select('*')
-            .neq('is_active', false)
-            .order('price', { ascending: true });
-        if (error) throw error;
-        res.json(data || []);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 
 
@@ -2941,9 +3147,6 @@ app.put('/api/plug-cards/:id', async (req, res) => {
 // ============================================================
 
 // Call database initialization
-// ============================================================
-// PLUG CARDS V2 — CREDIT ECONOMY ENGINE
-// ============================================================
 
 const CardEconomyService = {
     // Helper to get or create wallet
@@ -3348,39 +3551,9 @@ app.post('/api/v2/refund/request', async (req, res) => {
     }
 });
 
-// Admin routes for credits
-app.get('/api/v2/admin/wallets', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT w.*, u.name, u.email 
-            FROM user_wallets w 
-            JOIN users u ON w.user_id = u.id
-        `);
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/v2/admin/refunds', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT r.*, u.name, u.email 
-            FROM refund_requests r 
-            JOIN users u ON r.user_id = u.id
-            ORDER BY r.requested_at DESC
-        `);
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 initDB();
 
-
 app.listen(port, '0.0.0.0', () => {
-
     console.log(`Server running at http://0.0.0.0:${port}`);
-    console.log(`Uploads directory: ${uploadDir}`);
 });

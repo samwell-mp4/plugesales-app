@@ -92,14 +92,14 @@ const LandingPage = () => {
                     </p>
                     <div className="lp-cta-group">
                         <Link to="/lead-flow" className="lp-btn lp-btn-primary ripple">
-                             👉 Quero Agendar Um Disparo em Massa
+                            👉 Quero Agendar Um Disparo em Massa
                         </Link>
                     </div>
                 </div>
 
                 <div className="lp-hero-mockup">
                     <img
-                        src="https://iili.io/qshz9nt.jpg"
+                        src="https://plug-sales-dispatch-app-test-dispatch.hx8235.easypanel.host/uploads/1775499716368-676214869.jpg"
                         alt="Dashboard Mockup"
                         className="lp-mockup-frame"
                     />
