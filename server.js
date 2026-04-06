@@ -2941,7 +2941,443 @@ app.put('/api/plug-cards/:id', async (req, res) => {
 // ============================================================
 
 // Call database initialization
+// ============================================================
+// PLUG CARDS V2 — CREDIT ECONOMY ENGINE
+// ============================================================
+
+const CardEconomyService = {
+    // Helper to get or create wallet
+    async getOrCreateWallet(userId, clientOrPool) {
+        let res = await clientOrPool.query('SELECT * FROM user_wallets WHERE user_id = $1', [userId]);
+        if (res.rows.length === 0) {
+            res = await clientOrPool.query('INSERT INTO user_wallets (user_id) VALUES ($1) RETURNING *', [userId]);
+        }
+        return res.rows[0];
+    },
+
+    // 1. Purchase Activation
+    async activatePurchase(userId, cardId, pricePaid, reference) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            const cardRes = await client.query('SELECT * FROM plug_cards WHERE id = $1', [cardId]);
+            if (cardRes.rows.length === 0) throw new Error('Card not found');
+            const card = cardRes.rows[0];
+
+            const wallet = await this.getOrCreateWallet(userId, client);
+
+            // Create Purchase record (V2)
+            const purchaseRes = await client.query(`
+                INSERT INTO user_card_purchases (
+                    user_id, plug_card_id, purchase_reference, card_code, card_name, 
+                    credits_origin_total, credits_available, price_paid, 
+                    purchase_status, purchased_at, refund_deadline_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $6, $7, 'activated', NOW(), NOW() + interval '${card.refund_window_hours || 168} hours')
+                RETURNING *
+            `, [userId, cardId, reference, card.code, card.name, card.credits_amount, pricePaid]);
+            const purchase = purchaseRes.rows[0];
+
+            // Legacy Compatibility: Insert into user_plug_cards
+            await client.query(`
+                INSERT INTO user_plug_cards (
+                    user_id, plug_card_id, total_volume, used_volume, remaining_volume, 
+                    status, payment_method, payment_ref, purchased_price
+                ) VALUES ($1, $2, $3, 0, $3, 'active', 'pix', $4, $5)
+            `, [userId, cardId, card.credits_amount, reference, pricePaid]);
+
+            // Update Wallet
+            await client.query(`
+                UPDATE user_wallets SET 
+                    total_credits_acquired = total_credits_acquired + $1,
+                    total_credits_available = total_credits_available + $1,
+                    updated_at = NOW()
+                WHERE id = $2
+            `, [card.credits_amount, wallet.id]);
+
+            // Ledger entry
+            await client.query(`
+                INSERT INTO credit_ledger (
+                    user_id, wallet_id, purchase_id, entry_type, direction, amount, 
+                    balance_before, balance_after, metadata_json
+                ) VALUES ($1, $2, $3, 'purchase_credit', 'in', $4, $5, $5 + $4, $6)
+            `, [userId, wallet.id, purchase.id, card.credits_amount, wallet.total_credits_available, JSON.stringify({ card_name: card.name })]);
+
+            await client.query('COMMIT');
+            return purchase;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    },
+
+    // 2. Credit Reservation (for future campaigns)
+    async reserveCredits(userId, amount, campaignRef) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const wallet = await this.getOrCreateWallet(userId, client);
+
+            if (wallet.total_credits_available < amount) throw new Error('Saldo insuficiente');
+
+            // Find valid purchases to take credits from (FIFO)
+            const purchasesRes = await client.query(`
+                SELECT * FROM user_card_purchases 
+                WHERE user_id = $1 AND credits_available > 0 
+                ORDER BY purchased_at ASC
+            `, [userId]);
+            
+            let remainingToReserve = amount;
+            for (const p of purchasesRes.rows) {
+                const take = Math.min(remainingToReserve, p.credits_available);
+                await client.query(`
+                    UPDATE user_card_purchases SET 
+                        credits_available = credits_available - $1,
+                        credits_reserved = credits_reserved + $1
+                    WHERE id = $2
+                `, [take, p.id]);
+                
+                await client.query(`
+                    INSERT INTO campaign_credit_reservations (
+                        user_id, campaign_reference, purchase_id, requested_credits, reserved_credits, reservation_status
+                    ) VALUES ($1, $2, $3, $4, $4, 'reserved')
+                `, [userId, campaignRef, p.id, take]);
+
+                remainingToReserve -= take;
+                if (remainingToReserve <= 0) break;
+            }
+
+            if (remainingToReserve > 0) throw new Error('Falha catastrófica: saldo disponível divergiu durante reserva');
+
+            // Update Wallet
+            await client.query(`
+                UPDATE user_wallets SET 
+                    total_credits_available = total_credits_available - $1,
+                    total_credits_reserved = total_credits_reserved + $1,
+                    updated_at = NOW()
+                WHERE id = $2
+            `, [amount, wallet.id]);
+
+            // Ledger
+            await client.query(`
+                INSERT INTO credit_ledger (
+                    user_id, wallet_id, entry_type, direction, amount, 
+                    balance_before, balance_after, reserved_before, reserved_after
+                ) VALUES ($1, $2, 'reserve_credit', 'hold', $3, $4, $4 - $3, $5, $5 + $3)
+            `, [userId, wallet.id, amount, wallet.total_credits_available, wallet.total_credits_reserved]);
+
+            await client.query('COMMIT');
+            return true;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    },
+
+    // 3. Gift Card Creation
+    async createGiftCard(userId, amount, recipientEmail) {
+        const code = `GIFT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const wallet = await this.getOrCreateWallet(userId, client);
+
+            if (wallet.transfer_blocked) throw new Error('Transferências bloqueadas nesta conta');
+            if (wallet.total_credits_available < amount) throw new Error('Saldo insuficiente');
+
+            // Deduct from wallet and purchases (FIFO)
+            const purchasesRes = await client.query(`
+                SELECT * FROM user_card_purchases 
+                WHERE user_id = $1 AND credits_available > 0 
+                ORDER BY purchased_at ASC
+            `, [userId]);
+
+            let remaining = amount;
+            for (const p of purchasesRes.rows) {
+                const take = Math.min(remaining, p.credits_available);
+                await client.query('UPDATE user_card_purchases SET credits_available = credits_available - $1 WHERE id = $2', [take, p.id]);
+                remaining -= take;
+                if (remaining <= 0) break;
+            }
+
+            await client.query(`
+                UPDATE user_wallets SET 
+                    total_credits_available = total_credits_available - $1,
+                    total_credits_gifted_out = total_credits_gifted_out + $1,
+                    updated_at = NOW()
+                WHERE id = $2
+            `, [amount, wallet.id]);
+
+            const giftRes = await client.query(`
+                INSERT INTO gift_cards (code, creator_user_id, source_wallet_id, amount, final_locked_amount, recipient_email, gift_status)
+                VALUES ($1, $2, $3, $4, $4, $5, 'active') RETURNING *
+            `, [code, userId, wallet.id, amount, recipientEmail]);
+
+            await client.query(`
+                INSERT INTO credit_ledger (user_id, wallet_id, related_gift_card_id, entry_type, direction, amount, balance_before, balance_after)
+                VALUES ($1, $2, $3, 'gift_issue', 'out', $4, $5, $5 - $4)
+            `, [userId, wallet.id, giftRes.rows[0].id, amount, wallet.total_credits_available]);
+
+            await client.query('COMMIT');
+            return giftRes.rows[0];
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    },
+
+    // 4. Gift Card Redemption
+    async redeemGiftCard(userId, code) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const giftRes = await client.query('SELECT * FROM gift_cards WHERE code = $1 AND gift_status = \'active\'', [code]);
+            if (giftRes.rows.length === 0) throw new Error('Código inválido ou já resgatado');
+            const gift = giftRes.rows[0];
+
+            if (gift.creator_user_id == userId) throw new Error('Você não pode resgatar seu próprio Gift Card');
+
+            const wallet = await this.getOrCreateWallet(userId, client);
+
+            await client.query('UPDATE gift_cards SET gift_status = \'redeemed\', recipient_user_id = $1, redeemed_at = NOW() WHERE id = $2', [userId, gift.id]);
+
+            await client.query(`
+                UPDATE user_wallets SET 
+                    total_credits_available = total_credits_available + $1,
+                    total_credits_gifted_in = total_credits_gifted_in + $1,
+                    updated_at = NOW()
+                WHERE id = $2
+            `, [gift.amount, wallet.id]);
+
+            await client.query(`
+                INSERT INTO credit_ledger (user_id, wallet_id, related_gift_card_id, entry_type, direction, amount, balance_before, balance_after)
+                VALUES ($1, $2, $3, 'gift_redeem', 'in', $4, $5, $5 + $4)
+            `, [userId, wallet.id, gift.id, gift.amount, wallet.total_credits_available]);
+
+            await client.query('COMMIT');
+            return gift;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    },
+
+    // 5. Refund Request
+    async requestRefund(userId, purchaseId, reason) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const purchaseRes = await client.query('SELECT * FROM user_card_purchases WHERE id = $1 AND user_id = $2', [purchaseId, userId]);
+            if (purchaseRes.rows.length === 0) throw new Error('Compra não encontrada');
+            const p = purchaseRes.rows[0];
+
+            if (p.credits_available === 0) throw new Error('Nenhum crédito disponível para reembolso');
+            if (new Date() > new Date(p.refund_deadline_at)) throw new Error('Prazo de reembolso expirado');
+
+            // Calculate value
+            const refundValue = (p.credits_available / p.credits_origin_total) * p.price_paid;
+            const fee = p.credits_available * 0.1; // 10% de taxa exemplo
+
+            const refundReq = await client.query(`
+                INSERT INTO refund_requests (
+                    user_id, purchase_id, requested_credits, eligible_credits, refund_fee_credits, 
+                    refundable_credits, refund_value_money, reason, request_status
+                ) VALUES ($1, $2, $3, $3, $4, $5, $6, $7, 'pending') RETURNING *
+            `, [userId, purchaseId, p.credits_available, fee, p.credits_available - fee, refundValue, reason]);
+
+            // Lock credits in purchase
+            await client.query('UPDATE user_card_purchases SET credits_available = 0, credits_refunded = $1, refund_status = \'partial\' WHERE id = $2', [p.credits_available, purchaseId]);
+
+            // Update Wallet
+            const wallet = await this.getOrCreateWallet(userId, client);
+            await client.query('UPDATE user_wallets SET total_credits_available = total_credits_available - $1, total_credits_refunded = total_credits_refunded + $1 WHERE id = $2', [p.credits_available, wallet.id]);
+
+            // Ledger
+            await client.query(`
+                INSERT INTO credit_ledger (user_id, wallet_id, purchase_id, entry_type, direction, amount, balance_before, balance_after)
+                VALUES ($1, $2, $3, 'refund_credit', 'out', $4, $5, $5 - $4)
+            `, [userId, wallet.id, purchaseId, p.credits_available, wallet.total_credits_available]);
+
+            await client.query('COMMIT');
+            return refundReq.rows[0];
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    },
+
+    // 6. Consume Credits (Execution time)
+    async consumeCredits(userId, amount, campaignRef) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const wallet = await this.getOrCreateWallet(userId, client);
+
+            // Move from reserved to used
+            const toConsume = Math.min(amount, wallet.total_credits_reserved);
+            const remaining = amount - toConsume;
+
+            await client.query(`
+                UPDATE user_wallets SET 
+                    total_credits_reserved = total_credits_reserved - $1,
+                    total_credits_available = total_credits_available - $2,
+                    total_credits_used = total_credits_used + $3,
+                    updated_at = NOW()
+                WHERE id = $4
+            `, [toConsume, remaining, amount, wallet.id]);
+
+            // Simple FIFO consumption on individual purchases for accounting
+            // (In a real system we would track exactly which reservation was consumed)
+
+            // Ledger
+            await client.query(`
+                INSERT INTO credit_ledger (user_id, wallet_id, entry_type, direction, amount, metadata_json)
+                VALUES ($1, $2, 'consume_credit', 'out', $3, $4)
+            `, [userId, wallet.id, amount, JSON.stringify({ campaign: campaignRef })]);
+
+            await client.query('COMMIT');
+            return true;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    }
+};
+
+// --- NEW PLUG CARDS API ROUTES V2 ---
+
+app.get('/api/v2/wallet', async (req, res) => {
+    const { userId } = req.query;
+    try {
+        const wallet = await CardEconomyService.getOrCreateWallet(userId, pool);
+        const ledger = await pool.query('SELECT * FROM credit_ledger WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50', [userId]);
+        const purchases = await pool.query(`
+            SELECT p.*, c.name as card_name, c.tier 
+            FROM user_card_purchases p 
+            JOIN plug_cards c ON p.plug_card_id = c.id 
+            WHERE p.user_id = $1 
+            ORDER BY p.created_at DESC
+        `, [userId]);
+        const gifts = await pool.query('SELECT * FROM gift_cards WHERE creator_user_id = $1 OR recipient_user_id = $1 ORDER BY created_at DESC', [userId]);
+        const refunds = await pool.query('SELECT * FROM refund_requests WHERE user_id = $1 ORDER BY requested_at DESC', [userId]);
+        
+        res.json({ 
+            wallet, 
+            ledger: ledger.rows, 
+            purchases: purchases.rows,
+            gifts: gifts.rows,
+            refunds: refunds.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/v2/purchase', async (req, res) => {
+    const { userId, cardId, pricePaid, reference } = req.body;
+    try {
+        const purchase = await CardEconomyService.activatePurchase(userId, cardId, pricePaid, reference);
+        res.json({ success: true, purchase });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/v2/gifts/create', async (req, res) => {
+    const { userId, amount, recipientEmail } = req.body;
+    try {
+        const gift = await CardEconomyService.createGiftCard(userId, parseInt(amount), recipientEmail);
+        res.json({ success: true, gift });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/v2/gifts/redeem', async (req, res) => {
+    const { userId, code } = req.body;
+    try {
+        const gift = await CardEconomyService.redeemGiftCard(userId, code);
+        res.json({ success: true, gift });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/v2/refund/eligibility/:purchaseId', async (req, res) => {
+    try {
+        const purchase = await pool.query('SELECT * FROM user_card_purchases WHERE id = $1', [req.params.purchaseId]);
+        if (purchase.rows.length === 0) return res.status(404).json({ error: 'Compra não encontrada' });
+        const p = purchase.rows[0];
+        
+        const now = new Date();
+        const deadline = new Date(p.refund_deadline_at);
+        const expired = now > deadline;
+        const eligible = p.credits_available > 0 && !expired && p.credits_used === 0;
+        
+        res.json({ 
+            eligible, 
+            credits: p.credits_available, 
+            deadline: p.refund_deadline_at,
+            expired,
+            valueEstimated: (p.credits_available / p.credits_origin_total) * p.price_paid
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/v2/refund/request', async (req, res) => {
+    const { userId, purchaseId, reason } = req.body;
+    try {
+        const refund = await CardEconomyService.requestRefund(userId, purchaseId, reason);
+        res.json({ success: true, refund });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin routes for credits
+app.get('/api/v2/admin/wallets', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT w.*, u.name, u.email 
+            FROM user_wallets w 
+            JOIN users u ON w.user_id = u.id
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/v2/admin/refunds', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT r.*, u.name, u.email 
+            FROM refund_requests r 
+            JOIN users u ON r.user_id = u.id
+            ORDER BY r.requested_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 initDB();
+
 
 app.listen(port, '0.0.0.0', () => {
 

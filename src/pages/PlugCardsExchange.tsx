@@ -164,25 +164,26 @@ export default function PlugCardsExchange() {
         }
         setIsBuying(true);
         try {
-            // Processing all items in cart
+            // Processing all items in cart via NEW V2 API
             for (const item of cart) {
                 for (let i = 0; i < item.quantity; i++) {
-                    const { error } = await supabase.from('user_plug_cards').insert({
-                        user_id: user.id,
-                        plug_card_id: item.id,
-                        total_volume: item.total_volume,
-                        used_volume: 0,
-                        remaining_volume: item.total_volume,
-                        status: 'active',
-                        payment_method: 'pix', // Standard for this elite design
-                        payment_ref: `PCG-${Date.now()}-${Math.random().toString(36).substring(2,8).toUpperCase()}`,
-                        purchased_price: parseFloat(item.price)
+                    const ref = `PCG-${Date.now()}-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
+                    const res = await fetch('/api/v2/purchase', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: user.id,
+                            cardId: item.id,
+                            pricePaid: parseFloat(item.price),
+                            reference: ref
+                        })
                     });
-                    if (error) throw error;
+                    const result = await res.json();
+                    if (!result.success) throw new Error(result.error || 'Erro na ativação');
                 }
             }
-            alert("Sucesso! Seus cards foram ativados na sua wallet.");
-            window.location.href = '/my-cards';
+            alert("Sucesso! Seus créditos foram ativados na sua wallet.");
+            window.location.href = '/my-wallet';
         } catch (error: any) {
             alert("Erro na transação: " + error.message);
         } finally {

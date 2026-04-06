@@ -27,6 +27,7 @@ import CronReport from './pages/CronReport';
 import PlugCardsExchange from './pages/PlugCardsExchange';
 import MyPlugCards from './pages/MyPlugCards';
 import AdminPlugCards from './pages/AdminPlugCards';
+import MyWallet from './pages/MyWallet';
 import TestCards from './pages/TestCards';
 import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
@@ -135,6 +136,7 @@ function AppContent() {
           {/* PLUG CARDS MODULE — isolated, no impact on existing routes */}
           <Route path="/plug-cards" element={<PlugCardsExchange />} />
           <Route path="/my-cards" element={<MyPlugCards />} />
+          <Route path="/my-wallet" element={<MyWallet />} />
           <Route path="/admin/plug-cards" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminPlugCards /> : <Navigate to="/dashboard" />} />
           <Route path="/test-cards" element={<TestCards />} />
         </Routes>

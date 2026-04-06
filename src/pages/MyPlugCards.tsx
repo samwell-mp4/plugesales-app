@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Zap, Shield, Cpu, TrendingUp, ShoppingCart, RefreshCw, Loader, Check } from 'lucide-react';
+import { CreditCard, Zap, Shield, Cpu, TrendingUp, ShoppingCart, RefreshCw, Loader, Check, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -131,6 +131,9 @@ export default function MyPlugCards() {
                     </button>
                     <a href="/plug-cards" style={{ background: 'linear-gradient(135deg,#acf800,#84c000)', color: '#000', borderRadius: 10, padding: '10px 18px', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
                         <ShoppingCart size={14} /> Comprar Cards
+                    </a>
+                    <a href="/my-wallet" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--surface-border)', color: '#fff', borderRadius: 10, padding: '10px 18px', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
+                        <Wallet size={14} color="#acf800" /> Minha Wallet
                     </a>
                 </div>
             </div>

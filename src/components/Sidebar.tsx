@@ -15,7 +15,8 @@ import {
     Sun,
     Moon,
     Users,
-    CreditCard
+    CreditCard,
+    Wallet
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,6 +32,7 @@ const Sidebar = () => {
         { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet size={20} /> },
         { name: 'Plug Cards', path: '/plug-cards', icon: <LayoutDashboard size={20} />, special: true }, // Marketplace
         { name: 'Meus Cards', path: '/my-cards', icon: <CreditCard size={20} /> },
+        { name: 'Minha Wallet', path: '/my-wallet', icon: <Wallet size={20} /> },
     ] : [
         { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
         { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
@@ -41,6 +43,7 @@ const Sidebar = () => {
         { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet size={20} /> },
         { name: 'Plug Cards', path: '/plug-cards', icon: <LayoutDashboard size={20} />, special: true },
         { name: 'Meus Cards', path: '/my-cards', icon: <CreditCard size={20} /> },
+        { name: 'Minha Wallet', path: '/my-wallet', icon: <Wallet size={20} /> },
         { name: 'Gerenciar Cards', path: '/admin/plug-cards', icon: <Layers size={20} /> },
     ];
 
