@@ -312,7 +312,7 @@ select option {
 
 .main-content {
   flex: 1;
-  padding: 32px;
+  padding: 32px 32px 32px calc(var(--sidebar-width) + 60px);
   height: 100vh;
   overflow-y: auto;
 }
