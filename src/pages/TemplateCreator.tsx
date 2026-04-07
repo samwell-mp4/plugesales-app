@@ -1000,6 +1000,25 @@ const TemplateCreator = () => {
                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                             </div>
+
+                            <div className="flex flex-col gap-3">
+                                <label>Idioma do Template</label>
+                                <div className="flex gap-2">
+                                    {[
+                                        { code: 'pt_BR', label: 'Português (BR)' },
+                                        { code: 'en_US', label: 'Inglês (US)' }
+                                    ].map(lang => (
+                                        <button
+                                            key={lang.code}
+                                            onClick={() => setLanguage(lang.code)}
+                                            className={`global-tile-btn ${language === lang.code ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
+                                            style={{ flex: 1, height: '44px' }}
+                                        >
+                                            {lang.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="tab-btns flex gap-4" style={{ marginBottom: '32px', padding: '5px 0' }}>
@@ -1018,17 +1037,10 @@ const TemplateCreator = () => {
                                         <label>Remetentes Oficiais</label>
                                         <textarea value={senderNumbers} onChange={e => setSenderNumbers(e.target.value)} placeholder="5511999999999..." className="input-field" style={{ minHeight: '80px', fontFamily: 'monospace' }} />
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                                         <div className="flex flex-col gap-2">
                                             <label>Nome Técnico</label>
                                             <input className="input-field" value={modelName} onChange={e => setModelName(e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'))} />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label>Idioma</label>
-                                            <select className="input-field" value={language} onChange={e => setLanguage(e.target.value)}>
-                                                <option value="pt_BR">Português (BR)</option>
-                                                <option value="en_US">Inglês (US)</option>
-                                            </select>
                                         </div>
                                     </div>
                                 </div>
