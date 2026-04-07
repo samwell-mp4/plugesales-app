@@ -129,7 +129,7 @@ const TemplateCreator = () => {
                 if (initializedRows[0]?.buttonUrl) {
                     setButtons([{ type: 'url', text: 'Clique Aqui', url: initializedRows[0].buttonUrl }]);
                 }
-                
+
                 // Set global variables from the first row for preview/MODEL mode
                 if (initializedRows[0]?.variables && initializedRows[0].variables.length > 0) {
                     _setVariablesExample(initializedRows[0].variables);
@@ -143,7 +143,7 @@ const TemplateCreator = () => {
     const [language, setLanguage] = useState('pt_BR');
 
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
-    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/qLZLRgs.jpg');
+    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/B7sl2Kg.jpg');
 
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
@@ -195,9 +195,9 @@ const TemplateCreator = () => {
         const uniqueIndices = [...new Set(tagMatches.map(m => m.match(/\d+/)![0]))]
             .map(Number)
             .sort((a, b) => a - b);
-        
+
         const varCount = uniqueIndices.length;
-        
+
         // --- STANDARD UTILITY EXAMPLES ---
         const standardExamples = [
             "Leandro", // {{1}}
@@ -210,7 +210,7 @@ const TemplateCreator = () => {
         const examples = standardExamples.slice(0, varCount);
 
         const structure: any = {
-            body: { 
+            body: {
                 text: bodyText,
                 examples: examples // Plural 'examples' as array of strings (matches user's base structure)
             }
@@ -220,7 +220,7 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
-            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/qLZLRgs.jpg";
+            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/B7sl2Kg.jpg";
             structure.header = {
                 format: format,
                 example: mediaUrlValue // Singular 'example' as string (matches user's base structure)
@@ -488,8 +488,8 @@ const TemplateCreator = () => {
                     const payload = buildInfobipPayload(name, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
-                    const extendedPayload = { 
-                        ...payload, 
+                    const extendedPayload = {
+                        ...payload,
                         sender: rowSender,
                         original_button_link: (row.originalButtonUrls && row.originalButtonUrls.length > 0) ? row.originalButtonUrls[0] : ''
                     };
@@ -504,7 +504,7 @@ const TemplateCreator = () => {
                             ad_name: name,
                             template_type: row.headerType,
                             message_mode: 'manual',
-                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/qLZLRgs.jpg") : '',
+                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/B7sl2Kg.jpg") : '',
                             ad_copy: bodyText,
                             button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                             original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
@@ -953,15 +953,15 @@ const TemplateCreator = () => {
                                 <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '12px', borderRadius: '16px' }}><Plus size={24} color="var(--primary-color)" /></div>
                                 <h3 style={{ margin: 0, fontWeight: 900 }}>Estrutura Básica</h3>
                             </div>
-                            
+
                             <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
                                 <div className="flex flex-col">
                                     <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Modo 5 Variáveis</span>
                                     <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Ativar template estendido</span>
                                 </div>
                                 <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         style={{ opacity: 0, width: 0, height: 0 }}
                                         checked={isFiveVars}
                                         onChange={(e) => {
@@ -980,8 +980,8 @@ const TemplateCreator = () => {
                                             }
                                         }}
                                     />
-                                    <span style={{ 
-                                        position: 'absolute', cursor: 'pointer', inset: 0, 
+                                    <span style={{
+                                        position: 'absolute', cursor: 'pointer', inset: 0,
                                         backgroundColor: isFiveVars ? 'var(--primary-color)' : '#333',
                                         transition: '.4s', borderRadius: '34px'
                                     }}>
@@ -1005,10 +1005,10 @@ const TemplateCreator = () => {
                                 <label>Categoria do Template</label>
                                 <div className="flex gap-2">
                                     {(['MARKETING', 'UTILITY'] as const).map(cat => (
-                                        <button 
-                                            key={cat} 
-                                            onClick={() => setTemplateCategory(cat)} 
-                                            className={`global-tile-btn ${templateCategory === cat ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} 
+                                        <button
+                                            key={cat}
+                                            onClick={() => setTemplateCategory(cat)}
+                                            className={`global-tile-btn ${templateCategory === cat ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
                                             style={{ flex: 1, height: '44px' }}
                                         >
                                             {cat === 'MARKETING' ? 'MARKETING (Anúncio)' : 'UTILITY (Serviço)'}
@@ -1072,7 +1072,7 @@ const TemplateCreator = () => {
                                         </div>
                                     )}
                                     <div className="mt-4 flex flex-col gap-2"><label>Corpo da Mensagem (Body)</label><textarea className="input-field" style={{ minHeight: '120px' }} value={bodyText} onChange={e => _setBodyText(e.target.value)} /></div>
-                                    
+
                                     <div className="mt-4 flex flex-col gap-4">
                                         <div className="flex items-center justify-between">
                                             <label>Configuração de Variáveis (Visualização no Card)</label>
@@ -1082,15 +1082,15 @@ const TemplateCreator = () => {
                                             {Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => (
                                                 <div key={i} className="flex flex-col gap-1">
                                                     <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', opacity: 0.6 }}>VAR {i + 1}</span>
-                                                    <input 
-                                                        className="input-field" 
-                                                        value={variablesExample[i] || ''} 
+                                                    <input
+                                                        className="input-field"
+                                                        value={variablesExample[i] || ''}
                                                         onChange={e => {
                                                             const newVars = [...variablesExample];
                                                             newVars[i] = e.target.value;
                                                             _setVariablesExample(newVars);
                                                         }}
-                                                        placeholder={`Valor para {{${i+1}}}`}
+                                                        placeholder={`Valor para {{${i + 1}}}`}
                                                     />
                                                 </div>
                                             ))}
