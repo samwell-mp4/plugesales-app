@@ -1000,6 +1000,25 @@ const TemplateCreator = () => {
                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                             </div>
+
+                            <div className="flex flex-col gap-3">
+                                <label>Categoria do Template</label>
+                                <div className="flex gap-2">
+                                    {(['MARKETING', 'UTILITY'] as const).map(cat => (
+                                        <button 
+                                            key={cat} 
+                                            onClick={() => setTemplateCategory(cat)} 
+                                            className={`global-tile-btn ${templateCategory === cat ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} 
+                                            style={{ flex: 1, height: '44px' }}
+                                        >
+                                            {cat === 'MARKETING' ? 'MARKETING (Anúncio)' : 'UTILITY (Serviço)'}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '-4px', fontStyle: 'italic' }}>
+                                    * Templates de Marketing são para promoções. Utility são para avisos transacionais.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="tab-btns flex gap-4" style={{ marginBottom: '32px', padding: '5px 0' }}>

@@ -128,6 +128,13 @@ const LeadStepForm = () => {
         let success = false;
 
         try {
+            // Se for o Ricardo Willer, dispara o evento de Lead no clique do botão (Finalizar)
+            const isRicardo = formData.agent_name === 'Ricardo Willer' || id === 'landing1';
+            if (isRicardo && window.fbq) {
+                window.fbq('track', 'Lead');
+                console.log("Meta Pixel: Tracked Lead event for Ricardo Willer (Button Click)");
+            }
+
             // Enviar para o Backend (O backend gerencia o Webhook centralizado)
             try {
                 const res = await dbService.addStepLead(formData);

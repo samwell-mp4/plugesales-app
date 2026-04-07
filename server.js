@@ -73,7 +73,7 @@ console.log('Redis connection source:', process.env.REDIS_URL ? 'env' : (redisUr
 console.log('PG URL (masked):', pgUrl.replace(/:[^:@]+@/, ':****@'));
 
 const { Pool } = pg;
-const pool = new Pool({ connectionString: pgUrl });
+const pool = new Pool({ connectionString: pgUrl, connectionTimeoutMillis: 5000 });
 
 // ============================================================
 // SUPABASE CLIENT — Used EXCLUSIVELY for Plug Cards routes
@@ -82,9 +82,6 @@ const SUPABASE_URL = 'https://hpwahwsbtqvfyutosfyr.supabase.co';
 // Obscured to pass GitHub push protection without touching Easypanel Env vars for now
 const SUPABASE_KEY = process.env.SUPABASE_KEY || ('sb_secret' + '_' + 'HJC03zRAxo1uh0IwC_QQXg_irLxg9hI');
 const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
-
-// Supabase initialization handled via dashboard/migration scripts
-// initSupabase removed to avoid postgres connection pool issues on VPS
 
 
 
@@ -269,6 +266,15 @@ const initDB = async () => {
                 processed_at TIMESTAMPTZ,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 requested_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS pro_rotators (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                title TEXT,
+                slug TEXT UNIQUE NOT NULL,
+                targets JSONB NOT NULL,
+                total_clicks INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
@@ -1599,6 +1605,46 @@ app.put('/api/shortener/:id', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// --- PRO Rotator API ---
+app.post('/api/pro-links', async (req, res) => {
+    const { user_id, title, slug, targets } = req.body;
+    try {
+        const finalSlug = slug || Math.random().toString(36).substring(2, 8);
+        const result = await pool.query(
+            `INSERT INTO pro_rotators (user_id, title, slug, targets) 
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [user_id, title || 'Rotacionador sem título', finalSlug, JSON.stringify(targets)]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ error: 'Este slug já está em uso.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/pro-links', async (req, res) => {
+    const { user_id } = req.query;
+    try {
+        const result = await pool.query(
+            'SELECT * FROM pro_rotators WHERE user_id = $1 ORDER BY created_at DESC', 
+            [user_id]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/pro-links/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM pro_rotators WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/shortener/links', async (req, res) => {
     const { user_id, client_id, role, startDate, endDate, page = 1, limit = 20, search } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -1929,6 +1975,55 @@ app.get('/api/shortener/test-protocol', (req, res) => {
         normalized = `https://${normalized}`;
     }
     res.json({ original, normalized });
+});
+
+// PRO ROTATOR REDIRECTION
+app.get('/r/:slug', async (req, res) => {
+    const { slug } = req.params;
+    try {
+        const result = await pool.query('SELECT * FROM pro_rotators WHERE LOWER(slug) = LOWER($1)', [slug]);
+        if (result.rows.length === 0) {
+            return res.redirect('/?error=rotator_not_found');
+        }
+
+        const rotator = result.rows[0];
+        const targets = typeof rotator.targets === 'string' ? JSON.parse(rotator.targets) : rotator.targets;
+
+        if (!targets || targets.length === 0) {
+            return res.redirect('/?error=no_targets');
+        }
+
+        // Weighted Random Algorithm
+        const totalWeight = targets.reduce((sum, t) => sum + (parseFloat(t.weight) || 1), 0);
+        let random = Math.random() * totalWeight;
+        let selectedUrl = targets[0].url;
+
+        for (const target of targets) {
+            random -= (parseFloat(target.weight) || 1);
+            if (random <= 0) {
+                selectedUrl = target.url;
+                break;
+            }
+        }
+
+        // Increment Global clicks
+        pool.query('UPDATE pro_rotators SET total_clicks = total_clicks + 1 WHERE id = $1', [rotator.id]).catch(console.error);
+
+        // Protocol Normalization
+        let finalUrl = selectedUrl.trim();
+        if (!/^https?:\/\//i.test(finalUrl)) {
+            finalUrl = `https://${finalUrl}`;
+        }
+
+        res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.set("Pragma", "no-cache");
+        res.set("Expires", "0");
+        return res.redirect(finalUrl);
+
+    } catch (err) {
+        console.error('PRO Redirect Error:', err);
+        res.redirect('/?error=server_error');
+    }
 });
 
 // Redirection Global Endpoint

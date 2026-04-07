@@ -14,6 +14,7 @@ import ClientSubmissionAdd from './pages/ClientSubmissionAdd';
 import ClientExternalForm from './pages/ClientExternalForm';
 import ClientDashboard from './pages/ClientDashboard';
 import LinkShortener from './pages/LinkShortener';
+import LinkRotator from './pages/LinkRotator';
 import LinkStats from './pages/LinkStats';
 import ClientReports from './pages/ClientReportsPage';
 import LandingPage from './pages/LandingPage';
@@ -50,8 +51,8 @@ function AppContent() {
     location.pathname === '/finalizado' || 
     location.pathname === '/lead-flow' || 
     location.pathname.startsWith('/l/') || 
+    location.pathname.startsWith('/r/') || 
     location.pathname.startsWith('/client-add/') ||
-    location.pathname === '/plug-cards' ||
     location.pathname === '/test-cards';
 
   if (!user && !isPublicRoute) {
@@ -122,6 +123,7 @@ function AppContent() {
           <Route path="/media" element={<MediaHosting />} />
           <Route path="/dispatch" element={<TemplateDispatch />} />
           <Route path="/link-shortener" element={<LinkShortener />} />
+          <Route path="/link-rotator" element={<LinkRotator />} />
           <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />

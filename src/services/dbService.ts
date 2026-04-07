@@ -608,6 +608,43 @@ export const dbService = {
             return { error: err.message };
         }
     },
+    // --- PRO Rotator ---
+    getProLinks: async (userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/pro-links?user_id=${userId}`);
+            if (!res.ok) throw new Error("Erro ao buscar rotacionadores");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching pro links:", err);
+            return [];
+        }
+    },
+    createProLink: async (data: { user_id: number; title: string; slug?: string; targets: any[] }) => {
+        try {
+            const res = await fetch(`${API_BASE}/pro-links`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || "Erro ao criar rotacionador");
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error creating pro link:", err);
+            return { error: err.message };
+        }
+    },
+    deleteProLink: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/pro-links/${id}`, { method: 'DELETE' });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error deleting pro link:", err);
+            return { error: err.message };
+        }
+    },
     trackTemplate: async (name: string, userId: number) => {
         try {
             await fetch(`${API_BASE}/templates/track`, {

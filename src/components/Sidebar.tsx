@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     MessageSquare,
@@ -14,291 +15,383 @@ import {
     Layers,
     Sun,
     Moon,
-    Users,
     CreditCard,
-    Wallet
+    Wallet,
+    Zap,
+    ChevronDown,
+    Settings,
+    Activity
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
+// --- Submenu Component ---
+const SubMenu = ({ item, activePath, isMobile }: { item: any, activePath: string, isMobile: boolean }) => {
+    const hasActiveChild = useMemo(() => 
+        item.children?.some((child: any) => activePath === child.path || (child.path !== '/' && activePath.startsWith(child.path))),
+        [item.children, activePath]
+    );
+    
+    const [isOpen, setIsOpen] = useState(hasActiveChild);
+
+    // Sync only when a child becomes active and it's not currently open
+    useEffect(() => {
+        if (hasActiveChild) setIsOpen(true);
+    }, [hasActiveChild]);
+
+    if (isMobile) {
+        return (
+            <>
+                {item.children.map((child: any) => (
+                    <NavLink
+                        key={child.path}
+                        to={child.path}
+                        className={({ isActive }) => `nav-link-mobile ${isActive ? 'active' : ''}`}
+                    >
+                        {child.icon && React.cloneElement(child.icon as React.ReactElement<any>, { size: 18 })}
+                        <span>{child.name}</span>
+                    </NavLink>
+                ))}
+            </>
+        );
+    }
+
+    return (
+        <div className="submenu-container">
+            <div 
+                className={`nav-link-group ${hasActiveChild ? 'active-parent' : ''}`}
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className="flex items-center gap-3">
+                    <div className={`icon-box ${hasActiveChild ? 'text-primary' : 'text-white/40'}`}>
+                        {React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
+                    </div>
+                    <span className="text-[13.5px] font-semibold">{item.name}</span>
+                </div>
+                <ChevronDown size={14} className={`transition-transform duration-300 opacity-20 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+            
+            <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="ml-5 flex flex-col gap-1 border-l border-white/10 pl-4 py-1 mt-1">
+                    {item.children.map((child: any) => (
+                        <NavLink
+                            key={child.path}
+                            to={child.path}
+                            className={({ isActive }) => `sub-link-item ${isActive ? 'active' : ''}`}
+                        >
+                            {child.name}
+                        </NavLink>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const Sidebar = () => {
     const { user, logout, theme, toggleTheme } = useAuth();
+    const location = useLocation();
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>({});
+
+    // --- Menu Definition ---
+    const menuData = [
+        {
+            id: 'OPERACIONAL',
+            label: 'OPERACIONAL',
+            items: [
+                { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, role: 'ADMIN' },
+                { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, role: 'ADMIN' },
+                { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, role: 'ADMIN' },
+                { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, role: 'ANY' },
+                { name: 'Hospedagem', path: '/media', icon: <Layers />, role: 'ADMIN' },
+                { name: 'Dashboard Client', path: '/client-dashboard', icon: <LayoutDashboard />, role: 'CLIENT' },
+                { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
+            ]
+        },
+        {
+            id: 'PÁGINAS',
+            label: 'PÁGINAS & ENCURTADOR',
+            items: [
+                {
+                    name: 'Ferramentas de Link',
+                    icon: <Zap />,
+                    children: [
+                        { name: 'Encurtador', path: '/link-shortener', icon: <Link /> },
+                        { name: 'Rotacionador PRO', path: '/link-rotator', icon: <Zap /> },
+                        { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet /> },
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'CARDS',
+            label: 'PLUG CARDS',
+            items: [
+                {
+                    name: 'Gestão de Cards',
+                    icon: <CreditCard />,
+                    children: [
+                        { name: 'Marketplace', path: '/plug-cards', icon: <LayoutDashboard /> },
+                        { name: 'Meus Cards', path: '/my-cards', icon: <CreditCard /> },
+                        { name: 'Minha Wallet', path: '/my-wallet', icon: <Wallet /> },
+                        { name: 'Gerenciar Cards', path: '/admin/plug-cards', icon: <Layers />, role: 'ADMIN' },
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'SISTEMA',
+            label: 'SISTEMA',
+            items: [
+                ...(user?.role === 'ADMIN' ? [{ name: 'Controle Adm', path: '/control', icon: <ShieldCheck /> }] : []),
+                { name: 'Meu Perfil', path: '/profile', icon: <User /> },
+            ]
+        }
+    ];
+
+    const filteredCats = useMemo(() => {
+        return menuData.map(cat => ({
+            ...cat,
+            items: cat.items.filter((item: any) => {
+                if (item.role === 'ADMIN' && user?.role !== 'ADMIN') return false;
+                if (item.role === 'CLIENT' && user?.role !== 'CLIENT') return false;
+                return true;
+            })
+        })).filter(cat => cat.items.length > 0);
+    }, [user?.role]);
+
+    // Initialize/Sync collapsed states based on current URL
+    useEffect(() => {
+        const initialStates: Record<string, boolean> = {};
+        filteredCats.forEach(cat => {
+            const hasActive = cat.items.some((item: any) => {
+                if (item.children) return item.children.some((c: any) => location.pathname === c.path || (c.path !== '/' && location.pathname.startsWith(c.path)));
+                return location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+            });
+            initialStates[cat.id] = !hasActive; // Collapse if not active
+        });
+        setCollapsedCats(initialStates);
+    }, [location.pathname, user?.role]); // Re-sync on path change
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     if (user?.role === 'PENDING_CLIENT') return null;
 
-    const menuItems: any[] = user?.role === 'CLIENT' ? [
-        { name: 'Meu Painel', path: '/client-dashboard', icon: <Home size={20} /> },
-        { name: 'Meus Links', path: '/link-shortener', icon: <Link size={20} /> },
-        { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet size={20} /> },
-        { name: 'Plug Cards', path: '/plug-cards', icon: <LayoutDashboard size={20} />, special: true }, // Marketplace
-        { name: 'Meus Cards', path: '/my-cards', icon: <CreditCard size={20} /> },
-        { name: 'Minha Wallet', path: '/my-wallet', icon: <Wallet size={20} /> },
-    ] : [
-        { name: 'Contas & Monitor', path: '/accounts', icon: <LayoutDashboard size={20} /> },
-        { name: 'Criar Template', path: '/templates', icon: <MessageSquare size={20} /> },
-        { name: 'Upload de Clientes', path: '/client-submissions', icon: <FileUp size={20} /> },
-        { name: 'Preparar Planilha', path: '/upload', icon: <FileSpreadsheet size={20} /> },
-        { name: 'Hospedagem', path: '/media', icon: <Layers size={21} /> },
-        { name: 'Encurtador', path: '/link-shortener', icon: <Link size={20} /> },
-        { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet size={20} /> },
-        { name: 'Plug Cards', path: '/plug-cards', icon: <LayoutDashboard size={20} />, special: true },
-        { name: 'Meus Cards', path: '/my-cards', icon: <CreditCard size={20} /> },
-        { name: 'Minha Wallet', path: '/my-wallet', icon: <Wallet size={20} /> },
-        { name: 'Gerenciar Cards', path: '/admin/plug-cards', icon: <Layers size={20} /> },
-    ];
-
-
-    // Add SuperAdmin Control
-    if (user?.role === 'ADMIN') {
-        menuItems.push({ name: 'Controle', path: '/control', icon: <ShieldCheck size={20} color="var(--primary-color)" /> });
-    }
-
-    // Always put Profile at the end
-    menuItems.push({ name: 'Meu Perfil', path: '/profile', icon: <User size={20} /> });
-
-    const handleLogout = () => {
-        if (window.confirm('Deseja realmente sair?')) {
-            logout();
-        }
-    };
-
     return (
-        <aside className="sidebar flex-col glass-sidebar">
+        <aside className="sidebar-container">
             <style>{`
-                .sidebar {
+                .sidebar-container {
+                    position: fixed;
+                    left: 20px;
+                    top: 20px;
+                    bottom: 20px;
                     width: var(--sidebar-width);
-                    margin: 16px 0 16px 16px;
-                    padding: 24px 16px;
+                    z-index: 500;
+                    background: rgba(10, 15, 25, 0.88);
+                    backdrop-filter: blur(24px) saturate(180%);
+                    border-radius: 24px;
                     display: flex;
                     flex-direction: column;
-                    justify-content: space-between;
-                    border-radius: 24px;
+                    padding: 24px 16px;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
                     transition: all 0.3s ease;
                 }
-                .glass-sidebar { 
-                    background: var(--surface-color); 
-                    backdrop-filter: blur(20px); 
-                    border: 1px solid var(--surface-border);
-                    box-shadow: var(--shadow-md);
-                }
-                .nav-link:hover { background: rgba(172, 248, 0, 0.05) !important; color: white !important; }
-                .nav-link.active { 
-                    background: rgba(172, 248, 0, 0.1) !important; 
-                    color: var(--text-primary) !important;
-                    border-left-color: var(--primary-color) !important;
-                }
                 
-                @media (max-width: 768px) {
-                    .sidebar {
-                        width: 100% !important;
-                        margin: 0 !important;
-                        border-radius: 0 !important;
-                        flex-direction: row !important;
-                        height: 70px !important;
-                        padding: 0 10px !important;
-                        position: fixed;
-                        bottom: 0;
-                        left: 0;
-                        right: 0;
-                        z-index: 1000;
-                        border-top: 1px solid var(--surface-border);
-                    }
-                    .logo-container { display: none !important; }
-                    .sidebar-content {
-                        width: 100%;
-                        height: 100%;
-                    }
-                    .sidebar nav {
-                        flex-direction: row !important;
-                        height: 100%;
-                        width: 100%;
-                        justify-content: space-around;
-                        align-items: center;
-                        margin-top: 0 !important;
-                        display: flex !important;
-                    }
-                    .nav-link {
-                        flex: 1;
-                        flex-direction: column !important;
-                        gap: 4px !important;
-                        padding: 8px 4px !important;
-                        font-size: 0.6rem !important;
-                        border-left: none !important;
-                        border-bottom: 3px solid transparent;
-                        justify-content: center;
-                    }
-                    .nav-link span {
-                        font-size: 9px !important;
-                        text-align: center;
-                        white-space: nowrap;
-                    }
-                    .nav-link.active {
-                        border-bottom: 3px solid var(--primary-color) !important;
-                        border-left: none !important;
-                    }
-                    .user-info-section, .logout-btn { display: none !important; }
+                .nav-scroll {
+                    flex: 1;
+                    overflow-y: auto;
+                    margin-top: 20px;
+                    padding-right: 4px;
                 }
+                .nav-scroll::-webkit-scrollbar { width: 3px; }
+                .nav-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 10px; }
 
-                @keyframes nav-pulse {
-                    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0.4); }
-                    70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(172, 248, 0, 0); }
-                    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(172, 248, 0, 0); }
-                }
-
-                .special-nav {
-                    background: var(--primary-color) !important;
-                    color: black !important;
-                    font-weight: 800 !important;
-                    margin-top: 16px !important;
-                    animation: nav-pulse 2s infinite;
-                    box-shadow: 0 4px 15px rgba(172, 248, 0, 0.3);
-                }
+                .category-block { margin-bottom: 20px; }
                 
-                @media (max-width: 768px) {
-                    .special-nav {
-                        margin-top: 0 !important;
-                        border-radius: 8px !important;
-                    }
-                }
-
-                .special-nav:hover {
-                    background: #c3ff5c !important;
-                    transform: translateY(-2px);
-                }
-                .special-nav span { color: black !important; font-weight: 900 !important; }
-                .special-nav svg { color: black !important; }
-
-                .user-info-section {
-                    background: var(--card-bg-subtle);
-                    backdrop-filter: blur(10px);
-                    border: 1px solid var(--surface-border-subtle);
-                    box-shadow: var(--shadow-sm);
-                }
-                .user-avatar-container {
-                    background: var(--bg-primary);
-                    border: 2px solid rgba(172, 248, 0, 0.2);
-                }
-
-                .user-avatar-container.admin {
-                    background: var(--primary-gradient);
-                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.15);
-                    color: black;
-                }
-                .user-status-dot {
-                    position: absolute;
-                    bottom: -2px;
-                    right: -2px;
-                    width: 14px;
-                    height: 14px;
-                    border-radius: 50%;
-                    background: var(--primary-color);
-                    border: 3px solid #0f172a;
-                    box-shadow: 0 0 10px var(--primary-color);
-                }
-                .user-name { font-size: 0.9rem; font-weight: 900; color: var(--text-primary); letter-spacing: -0.2px; }
-                .user-role { 
-                    font-size: 0.6rem; 
-                    font-weight: 800; 
-                    text-transform: uppercase; 
-                    letter-spacing: 1px; 
-                    color: var(--primary-color); 
-                    opacity: 0.9; 
-                    margin-top: 1px; 
-                }
-                .logout-btn {
-                    background: rgba(255, 77, 77, 0.05);
-                    border: 1px solid rgba(255, 77, 77, 0.1);
-                    color: #ff4d4d;
-                    cursor: pointer;
-                    font-weight: 700;
-                    font-size: 0.8rem;
+                .category-toggle {
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    justify-content: space-between;
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    margin-bottom: 6px;
+                    border-radius: 8px;
+                    transition: all 0.2s;
+                    user-select: none;
+                }
+                .category-toggle:hover { background: rgba(255,255,255,0.03); }
+                .category-title {
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    color: rgba(255,255,255,0.3);
+                    letter-spacing: 1.5px;
+                }
+
+                .nav-link-item, .nav-link-group {
+                    padding: 10px 14px;
+                    border-radius: 12px;
+                    color: rgba(255,255,255,0.5);
+                    text-decoration: none;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    margin-bottom: 2px;
+                    display: flex;
+                    align-items: center;
                     gap: 12px;
-                    transition: all 0.2s ease;
+                    cursor: pointer;
                 }
-                .logout-btn:hover {
-                    background: rgba(255, 77, 77, 0.1);
-                    color: #ff6666;
+                
+                .nav-link-item:hover, .nav-link-group:hover {
+                    background: rgba(255,255,255,0.04);
+                    color: white;
                 }
+
+                .nav-link-item.active {
+                    background: rgba(172, 248, 0, 0.1);
+                    color: var(--primary-color);
+                    font-weight: 700;
+                    border-left: 3px solid var(--primary-color);
+                    border-radius: 4px 12px 12px 4px;
+                }
+                
+                .sub-link-item {
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    color: rgba(255,255,255,0.35);
+                    text-decoration: none;
+                    font-size: 0.8rem;
+                    font-weight: 500;
+                    transition: all 0.2s;
+                    display: block;
+                }
+                .sub-link-item:hover { color: white; background: rgba(255,255,255,0.02); }
+                .sub-link-item.active { 
+                    color: var(--primary-color); 
+                    font-weight: 750;
+                    background: rgba(172, 248, 0, 0.05);
+                }
+
+                @media (max-width: 768px) {
+                    .sidebar-container {
+                        width: 100% !important;
+                        height: 76px !important;
+                        left: 0 !important; right: 0 !important; bottom: 0 !important; top: auto !important;
+                        margin: 0 !important; border-radius: 0 !important;
+                        padding: 0 12px !important;
+                        background: rgba(10, 15, 25, 0.98) !important;
+                        border: none;
+                        border-top: 1px solid rgba(255,255,255,0.1);
+                        flex-direction: row !important;
+                    }
+                    .logo-header, .user-footer, .category-toggle, .category-title, .sub-link-item { display: none !important; }
+                    .nav-scroll {
+                        margin-top: 0 !important;
+                        display: flex !important;
+                        flex-direction: row !important;
+                        align-items: center;
+                        gap: 12px;
+                        overflow-x: auto;
+                        padding-right: 0;
+                        width: 100%;
+                    }
+                    .category-block { margin-bottom: 0; }
+                    .nav-link-item, .nav-link-mobile {
+                        flex: 0 0 auto;
+                        flex-direction: column !important;
+                        min-width: 72px;
+                        padding: 8px !important;
+                        gap: 2px !important;
+                        font-size: 0.65rem !important;
+                        margin-bottom: 0;
+                        border-left: none !important;
+                        color: rgba(255,255,255,0.4);
+                        text-align: center;
+                    }
+                    .nav-link-item.active, .nav-link-mobile.active {
+                        background: transparent !important;
+                        color: var(--primary-color) !important;
+                        border-bottom: 2px solid var(--primary-color) !important;
+                        border-radius: 0;
+                    }
+                    .nav-link-mobile { display: flex; align-items: center; text-decoration: none; }
+                }
+
+                .user-footer {
+                    margin-top: auto;
+                    padding-top: 20px;
+                    border-top: 1px solid rgba(255,255,255,0.06);
+                }
+                .logout-btn {
+                    margin-top: 12px;
+                    background: rgba(255,255,255,0.03);
+                    color: rgba(255,255,255,0.3);
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    transition: all 0.2s;
+                    border-radius: 12px;
+                }
+                .logout-btn:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
             `}</style>
 
-            <div className="sidebar-content">
-                <div className="logo-container mb-6 flex items-center justify-center gap-2">
-                    <div style={{ background: 'var(--primary-gradient)', padding: '7px', borderRadius: '15px', display: 'flex', boxShadow: '0 0 20px rgba(172, 248, 0, 0.3)' }}>
-                        <MessageSquare color="white" size={24} />
+            <div className="logo-header flex items-center justify-between px-2 mb-2">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-black shadow-lg shadow-primary/20">
+                        <MessageSquare size={19} />
                     </div>
-                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>Plug & Sales</h2>
-                    <button 
-                        onClick={toggleTheme}
-                        className="theme-toggle-btn"
-                        style={{
-                            marginLeft: 'auto',
-                            background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid var(--surface-border)',
-                            color: 'var(--primary-color)',
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '10px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                    </button>
+                    <span className="font-black text-white text-base tracking-tighter">Plug & Sales</span>
                 </div>
-
-
-                <nav className="flex flex-col gap-1 mt-6">
-                    {menuItems.map((item: any) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={({ isActive }) =>
-                                `nav-link flex items-center gap-4 ${isActive ? 'active' : ''} ${item.special ? 'special-nav' : ''}`
-                            }
-                            style={{
-                                padding: '12px 16px',
-                                borderRadius: '12px',
-                                color: 'var(--text-secondary)',
-                                background: 'transparent',
-                                textDecoration: 'none',
-                                fontWeight: 500,
-                                transition: 'all 0.2s ease',
-                                borderLeft: item.special ? 'none' : '3px solid transparent',
-                                marginBottom: item.special ? '8px' : '2px'
-                            }}
-                        >
-                            {item.icon}
-                            <span style={{ fontSize: '0.85rem' }}>{item.name}</span>
-                        </NavLink>
-                    ))}
-                </nav>
+                <button onClick={toggleTheme} className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-primary/80 hover:bg-white/10 transition-colors">
+                    {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+                </button>
             </div>
 
-            <div className="mt-auto flex flex-col gap-2">
-                <div className="user-info-section mx-2 mb-2 p-4 rounded-[24px]">
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <div className={`user-avatar-container flex items-center justify-center h-12 w-12 rounded-2xl overflow-hidden ${user?.role === 'ADMIN' ? 'admin' : ''}`}>
-                                <UserCircle size={28} strokeWidth={1.5} />
+            <nav className="nav-scroll">
+                {filteredCats.map(cat => (
+                    <div key={cat.id} className="category-block">
+                        <div className="category-toggle" onClick={() => setCollapsedCats(p => ({ ...p, [cat.id]: !p[cat.id] }))}>
+                            <span className="category-title">{cat.label}</span>
+                            <ChevronDown size={10} className={`opacity-20 transition-transform ${collapsedCats[cat.id] ? '-rotate-90' : ''}`} />
+                        </div>
+                        {!collapsedCats[cat.id] && (
+                            <div className="flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                                {cat.items.map((item: any) => (
+                                    item.children ? (
+                                        <SubMenu key={item.name} item={item} activePath={location.pathname} isMobile={isMobile} />
+                                    ) : (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            className={({ isActive }) => `nav-link-item ${isActive ? 'active' : ''}`}
+                                        >
+                                            <div className={`${location.pathname === item.path ? 'text-primary' : 'opacity-40'}`}>
+                                                {React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
+                                            </div>
+                                            <span className="font-semibold">{item.name}</span>
+                                        </NavLink>
+                                    )
+                                ))}
                             </div>
-                            <div className="user-status-dot"></div>
-                        </div>
+                        )}
+                    </div>
+                ))}
+            </nav>
 
-                        <div className="flex flex-col min-w-0">
-                            <span className="user-name">{user?.name}</span>
-                            <span className="user-role">{user?.role}</span>
-                        </div>
+            <div className="user-footer">
+                <div className="bg-white/5 border border-white/5 p-3 rounded-2xl flex items-center gap-3 shadow-inner">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 border border-white/5">
+                        <UserCircle size={26} strokeWidth={1.5} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-white truncate">{user?.name}</span>
+                        <span className="text-[10px] font-black text-primary opacity-70 tracking-tighter uppercase">{user?.role}</span>
                     </div>
                 </div>
-
-                <button onClick={handleLogout} className="logout-btn mx-2 mb-4 p-3 rounded-xl">
-                    <LogOut size={16} /> Entrar com outra conta
+                <button onClick={() => { if(window.confirm('Sair da conta?')) logout(); }} className="logout-btn w-full py-2.5 flex items-center justify-center gap-2 cursor-pointer border border-white/5">
+                    <LogOut size={15} /> SAIR
                 </button>
             </div>
         </aside>
