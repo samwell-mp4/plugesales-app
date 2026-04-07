@@ -168,7 +168,11 @@ const Sidebar = () => {
                 if (item.children) return item.children.some((c: any) => location.pathname === c.path || (c.path !== '/' && location.pathname.startsWith(c.path)));
                 return location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
             });
-            initialStates[cat.id] = !hasActive; // Collapse if not active
+            if (cat.id === 'OPERACIONAL') {
+                initialStates[cat.id] = false;
+            } else {
+                initialStates[cat.id] = !hasActive; // Collapse if not active
+            }
         });
         setCollapsedCats(initialStates);
     }, [location.pathname, user?.role]); // Re-sync on path change
@@ -352,9 +356,15 @@ const Sidebar = () => {
             <nav className="nav-scroll">
                 {filteredCats.map(cat => (
                     <div key={cat.id} className="category-block">
-                        <div className="category-toggle" onClick={() => setCollapsedCats(p => ({ ...p, [cat.id]: !p[cat.id] }))}>
+                        <div 
+                            className="category-toggle" 
+                            onClick={() => { if(cat.id !== 'OPERACIONAL') setCollapsedCats(p => ({ ...p, [cat.id]: !p[cat.id] })); }}
+                            style={{ cursor: cat.id === 'OPERACIONAL' ? 'default' : 'pointer' }}
+                        >
                             <span className="category-title">{cat.label}</span>
-                            <ChevronDown size={10} className={`opacity-20 transition-transform ${collapsedCats[cat.id] ? '-rotate-90' : ''}`} />
+                            {cat.id !== 'OPERACIONAL' && (
+                                <ChevronDown size={10} className={`opacity-20 transition-transform ${collapsedCats[cat.id] ? '-rotate-90' : ''}`} />
+                            )}
                         </div>
                         {!collapsedCats[cat.id] && (
                             <div className="flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
