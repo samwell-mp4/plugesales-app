@@ -162,7 +162,7 @@ const TemplateCreator = () => {
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
     const [queueSize, setQueueSize] = useState(5);
     const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
-    const [templateCategory, setTemplateCategory] = useState<'MARKETING' | 'UTILITY'>('UTILITY');
+    const templateCategory = 'UTILITY';
 
 
     const handleFileUpload = async (file: File) => {
@@ -423,7 +423,7 @@ const TemplateCreator = () => {
                         lastError = res.error || 'Erro desconhecido';
                     }
 
-                    if (currentOp < totalOps) await new Promise(r => setTimeout(r, 2000));
+                    if (currentOp < totalOps) await new Promise(r => setTimeout(r, 4000));
                 }
             }
         } catch (err: any) {
@@ -516,7 +516,7 @@ const TemplateCreator = () => {
                         errors.push(`${name}: ${res.error}`);
                     }
 
-                    if (currentOpTotal < totalTotal) await new Promise(r => setTimeout(r, 2500));
+                    if (currentOpTotal < totalTotal) await new Promise(r => setTimeout(r, 5000));
                 }
             }
 
@@ -999,25 +999,6 @@ const TemplateCreator = () => {
                                     <option value="">Selecione um cliente...</option>
                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
-                            </div>
-
-                            <div className="flex flex-col gap-3">
-                                <label>Categoria do Template</label>
-                                <div className="flex gap-2">
-                                    {(['MARKETING', 'UTILITY'] as const).map(cat => (
-                                        <button
-                                            key={cat}
-                                            onClick={() => setTemplateCategory(cat)}
-                                            className={`global-tile-btn ${templateCategory === cat ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
-                                            style={{ flex: 1, height: '44px' }}
-                                        >
-                                            {cat === 'MARKETING' ? 'MARKETING (Anúncio)' : 'UTILITY (Serviço)'}
-                                        </button>
-                                    ))}
-                                </div>
-                                <p style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '-4px', fontStyle: 'italic' }}>
-                                    * Templates de Marketing são para promoções. Utility são para avisos transacionais.
-                                </p>
                             </div>
                         </div>
 
