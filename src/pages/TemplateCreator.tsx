@@ -140,7 +140,7 @@ const TemplateCreator = () => {
 
     // --- MODEL STATE ---
     const [modelName, setModelName] = useState('pagamento_confirmado');
-    const [language, setLanguage] = useState('pt_BR');
+    const [selectedPayloadLanguage, setSelectedPayloadLanguage] = useState('pt_BR');
 
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
     const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/B7sl2Kg.jpg');
@@ -251,7 +251,7 @@ const TemplateCreator = () => {
 
         return {
             name: name,
-            language: overrideLanguage || language,
+            language: overrideLanguage || selectedPayloadLanguage,
             category: templateCategory,
             structure: structure
         };
@@ -383,7 +383,7 @@ const TemplateCreator = () => {
                     const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
                     setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
 
-                    const payload = buildInfobipPayload(currentName, language);
+                    const payload = buildInfobipPayload(currentName, selectedPayloadLanguage);
                     const res = await callInfobipAPI(payload, sender);
                     if (res.success) {
                         totalSuccess++;
@@ -485,7 +485,7 @@ const TemplateCreator = () => {
                         row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
                     }
 
-                    const payload = buildInfobipPayload(name, language, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
+                    const payload = buildInfobipPayload(name, selectedPayloadLanguage, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
                     const extendedPayload = {
@@ -1010,8 +1010,8 @@ const TemplateCreator = () => {
                                     ].map(lang => (
                                         <button
                                             key={lang.code}
-                                            onClick={() => setLanguage(lang.code)}
-                                            className={`global-tile-btn ${language === lang.code ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
+                                            onClick={() => setSelectedPayloadLanguage(lang.code)}
+                                            className={`global-tile-btn ${selectedPayloadLanguage === lang.code ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
                                             style={{ flex: 1, height: '44px' }}
                                         >
                                             {lang.label}
@@ -1250,7 +1250,7 @@ const TemplateCreator = () => {
                                 <h4 style={{ color: 'var(--text-secondary)', marginBottom: '10px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
                                 <div style={{ background: 'var(--code-bg)', padding: '12px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
                                     <pre style={{ margin: 0, fontSize: '0.65rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
-                                        <code>{JSON.stringify(buildInfobipPayload(modelName, language), null, 2)}</code>
+                                        <code>{JSON.stringify(buildInfobipPayload(modelName, selectedPayloadLanguage), null, 2)}</code>
                                     </pre>
                                 </div>
                             </div>
