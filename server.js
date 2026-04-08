@@ -2679,38 +2679,55 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
     if (!userId) return res.status(400).json({ error: 'userId é obrigatório' });
 
     try {
+        console.log(`[INFOBIP] Resolving number: ${number} for user: ${userId}`);
         const userRes = await pool.query('SELECT infobip_key FROM users WHERE id = $1', [userId]);
-        if (userRes.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
+        if (userRes.rows.length === 0) {
+            console.log('[INFOBIP] User not found');
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
         
         const apiKey = userRes.rows[0].infobip_key;
-        if (!apiKey) return res.status(400).json({ error: 'Chave Infobip não configurada para este usuário' });
+        if (!apiKey) {
+            console.log('[INFOBIP] API Key missing');
+            return res.status(400).json({ error: 'Chave Infobip não configurada para este usuário' });
+        }
+
+        // Helper to clean numbers for comparison
+        const clean = (n) => n?.replace(/\D/g, '');
+        const targetClean = clean(number);
 
         // 1. Check if the number is a SENDER (WABA)
+        console.log('[INFOBIP] Checking if sender...');
         const sendersResponse = await fetch(`${INFOBIP_BASE_URL}/whatsapp/1/senders`, {
-            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(10000)
         });
 
         if (sendersResponse.ok) {
             const sendersData = await sendersResponse.json();
-            const sender = sendersData.senders?.find((s) => s.address === number || s.number === number);
+            const sender = sendersData.senders?.find((s) => clean(s.address) === targetClean || clean(s.number) === targetClean);
             
             if (sender && sender.channelApplicationId) {
-                // It is a WABA! Fetch conversations for this WABA
+                console.log(`[INFOBIP] Found WABA sender: ${sender.channelApplicationId}`);
                 const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?channelApplicationId=${sender.channelApplicationId}`, {
-                    headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+                    headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' },
+                    signal: AbortSignal.timeout(10000)
                 });
                 
                 if (convResponse.ok) {
                     const convData = await convResponse.json();
                     const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
+                    console.log(`[INFOBIP] Found ${conversations.length} conversations for WABA`);
                     return res.json({ isWaba: true, sender, conversations });
                 }
             }
         }
 
         // 2. Fallback: Search as a CUSTOMER (Participant)
+        console.log('[INFOBIP] Searching as customer...');
         const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?participantIdentity=${number}&participantType=CUSTOMER`, {
-            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(10000)
         });
 
         if (convResponse.ok) {
@@ -2718,15 +2735,22 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
             const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
 
             if (conversations.length > 0) {
+                console.log(`[INFOBIP] Found conversation for customer: ${conversations[0].id}`);
                 return res.json({ isWaba: false, person: conversations[0].person || { id: number }, conversations: conversations });
             }
+        } else {
+            const errData = await convResponse.json().catch(() => ({}));
+            console.error('[INFOBIP] Conv error:', errData);
         }
 
-        res.status(404).json({ error: 'Nenhuma conversa ou remetente encontrado para este número.' });
+        console.log('[INFOBIP] Nothing found');
+        return res.status(404).json({ error: 'Nenhuma conversa ou remetente oficial encontrado para este número.' });
 
     } catch (err) {
-        console.error('Error resolving Infobip number:', err);
-        res.status(500).json({ error: err.message });
+        console.error('[INFOBIP] Fatal error:', err);
+        if (!res.headersSent) {
+            res.status(500).json({ error: err.message });
+        }
     }
 });
 
