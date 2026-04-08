@@ -11,6 +11,7 @@ import { google } from 'googleapis';
 import cron from 'node-cron';
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { pool } from './backend/database/db.js';
 import chatRoutes from './backend/routes/chatRoutes.js';
 
 
@@ -29,23 +30,10 @@ const addCronLog = (log) => {
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- DB CONFIG ---
-// Priority: 1. ENV vars, 2. Easypanel fallbacks (if in Docker), 3. Local individual fallbacks
-const DEFAULT_PG = "postgres://postgres:Marketing@plugsales2026!@plug_sales_dispatch_app_plug_sales_postgress:5432/plug_sales_dispatch_app?sslmode=disable";
+// --- REDIS CONFIG ---
 const DEFAULT_REDIS = "redis://default:Marketing@plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379";
-const LOCAL_PG = "postgres://postgres:Marketing@plugsales2026!@72.62.138.244:5432/plug_sales_dispatch_app?sslmode=disable";
 const LOCAL_REDIS = "redis://localhost:6379";
-
-let pgUrl = process.env.DATABASE_URL;
 let redisUrl = process.env.REDIS_URL;
-
-if (!pgUrl) {
-    if (fs.existsSync('/.dockerenv')) {
-        pgUrl = DEFAULT_PG;
-    } else {
-        pgUrl = LOCAL_PG;
-    }
-}
 
 if (!redisUrl) {
     if (fs.existsSync('/.dockerenv')) {
@@ -55,27 +43,14 @@ if (!redisUrl) {
     }
 }
 
-// CORREÇÃO CRÍTICA DE VPS/DOCKER: 
-// Se detectarmos que estamos dentro de um contêiner (Docker), mas a URL capturada 
-// for localhost/127.0.0.1, ignoramos e forçamos o hostname interno do Docker. 
-// Isso resolve o erro de REDIS_URL/DATABASE_URL errados no painel do Easypanel.
 if (fs.existsSync('/.dockerenv')) {
-    if (pgUrl.includes('localhost') || pgUrl.includes('127.0.0.1')) {
-        console.warn('⚠️ VPS DETECTADA: Corrigindo PG_URL de localhost para host interno do Docker.');
-        pgUrl = DEFAULT_PG;
-    }
     if (redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1')) {
-        console.warn('⚠️ VPS DETECTADA: Corrigindo REDIS_URL de localhost para host interno do Docker.');
         redisUrl = DEFAULT_REDIS;
     }
 }
 
-console.log('Postgres connection source:', process.env.DATABASE_URL ? 'env' : (pgUrl === DEFAULT_PG ? 'docker fallback' : 'local fallback'));
+console.log('Postgres pool initialized from backend/database/db.js');
 console.log('Redis connection source:', process.env.REDIS_URL ? 'env' : (redisUrl === DEFAULT_REDIS ? 'docker fallback' : 'local fallback'));
-console.log('PG URL (masked):', pgUrl.replace(/:[^:@]+@/, ':****@'));
-
-const { Pool } = pg;
-export const pool = new Pool({ connectionString: pgUrl, connectionTimeoutMillis: 5000 });
 
 // ============================================================
 // SUPABASE CLIENT — Used EXCLUSIVELY for Plug Cards routes
