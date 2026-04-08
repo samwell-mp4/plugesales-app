@@ -2674,6 +2674,113 @@ app.get('*', (req, res) => {
 });
 
 // --- BACKGROUND MONITORING: INFOBIP TEMPLATES ---
+// --- Infobip Live Chat Proxy Endpoints ---
+
+const INFOBIP_BASE_URL = 'https://8k6xv1.api-us.infobip.com';
+
+app.get('/api/infobip/resolve-number/:number', async (req, res) => {
+    const { number } = req.params;
+    const { userId } = req.query;
+
+    if (!userId) return res.status(400).json({ error: 'userId é obrigatório' });
+
+    try {
+        const userRes = await pool.query('SELECT infobip_key FROM users WHERE id = $1', [userId]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
+        
+        const apiKey = userRes.rows[0].infobip_key;
+        if (!apiKey) return res.status(400).json({ error: 'Chave Infobip não configurada para este usuário' });
+
+        // Step 1: Resolve Phone to Person ID
+        const personResponse = await fetch(`${INFOBIP_BASE_URL}/people/1/persons?type=PHONE&identifier=${number}`, {
+            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+        });
+
+        if (!personResponse.ok) {
+            const errData = await personResponse.json().catch(() => ({}));
+            return res.status(personResponse.status).json({ error: 'Erro ao buscar pessoa na Infobip', details: errData });
+        }
+
+        const personData = await personResponse.json();
+        const personId = personData.id;
+
+        if (!personId) return res.status(404).json({ error: 'Pessoa não encontrada na Infobip' });
+
+        // Step 2: Get active conversation for this person
+        // We attempt to filter by personId in query param
+        const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?personId=${personId}`, {
+            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+        });
+
+        if (!convResponse.ok) {
+            return res.status(convResponse.status).json({ error: 'Erro ao buscar conversas na Infobip' });
+        }
+
+        const convData = await convResponse.json();
+        // Return the first active conversation or just the details
+        res.json({ person: personData, conversations: convData });
+
+    } catch (err) {
+        console.error('Error resolving Infobip number:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/infobip/conversations/:id/messages', async (req, res) => {
+    const { id } = req.params;
+    const { userId } = req.query;
+
+    try {
+        const userRes = await pool.query('SELECT infobip_key FROM users WHERE id = $1', [userId]);
+        const apiKey = userRes.rows[0]?.infobip_key;
+        if (!apiKey) return res.status(400).json({ error: 'Chave Infobip não configurada' });
+
+        const response = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations/${id}/messages`, {
+            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) return res.status(response.status).json({ error: 'Erro ao buscar mensagens' });
+
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/infobip/conversations/:id/messages', async (req, res) => {
+    const { id } = req.params;
+    const { userId, text } = req.body;
+
+    try {
+        const userRes = await pool.query('SELECT infobip_key FROM users WHERE id = $1', [userId]);
+        const apiKey = userRes.rows[0]?.infobip_key;
+        if (!apiKey) return res.status(400).json({ error: 'Chave Infobip não configurada' });
+
+        const response = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations/${id}/messages`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `App ${apiKey}`, 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                content: { text }
+            })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            return res.status(response.status).json({ error: 'Erro ao enviar mensagem', details: errData });
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const startTemplateMonitoring = () => {
     console.log('🚀 [MONITOR] Inciando monitoramento de templates (45s interval)...');
 

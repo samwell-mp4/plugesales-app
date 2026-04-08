@@ -100,6 +100,7 @@ const Sidebar = () => {
             label: 'OPERACIONAL',
             items: [
                 { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, role: 'ADMIN' },
+                { name: 'LIVE CHAT', path: '/live-chat', icon: <MessageSquare />, role: 'ADMIN' },
                 { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, role: 'ADMIN' },
                 { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, role: 'ADMIN' },
                 { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, role: 'ANY' },

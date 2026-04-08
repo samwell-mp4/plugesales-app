@@ -2,6 +2,7 @@ import { useLocation, BrowserRouter as Router, Routes, Route, Navigate } from 'r
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
+import LiveChat from './pages/LiveChat';
 import TemplateCreator from './pages/TemplateCreator';
 import UploadContacts from './pages/UploadContacts';
 import CampaignPlanner from './pages/CampaignPlanner';
@@ -111,6 +112,7 @@ function AppContent() {
           <Route path="/" element={<Navigate to={isClient ? "/client-dashboard" : "/dashboard"} replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
+          <Route path="/live-chat" element={<LiveChat />} />
           <Route path="/templates" element={<TemplateCreator />} />
           <Route path="/client-submissions" element={<ClientSubmissions />} />
           <Route path="/client-submissions/:id" element={<ClientSubmissionDetail />} />
