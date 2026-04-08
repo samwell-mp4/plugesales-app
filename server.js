@@ -11,6 +11,8 @@ import { google } from 'googleapis';
 import cron from 'node-cron';
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import chatRoutes from './backend/routes/chatRoutes.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,7 +75,7 @@ console.log('Redis connection source:', process.env.REDIS_URL ? 'env' : (redisUr
 console.log('PG URL (masked):', pgUrl.replace(/:[^:@]+@/, ':****@'));
 
 const { Pool } = pg;
-const pool = new Pool({ connectionString: pgUrl, connectionTimeoutMillis: 5000 });
+export const pool = new Pool({ connectionString: pgUrl, connectionTimeoutMillis: 5000 });
 
 // ============================================================
 // SUPABASE CLIENT — Used EXCLUSIVELY for Plug Cards routes
@@ -287,7 +289,32 @@ const initDB = async () => {
                 country TEXT,
                 city TEXT,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )`
+            )`,
+            // --- LIVE CHAT TABLES ---
+            `CREATE TABLE IF NOT EXISTS conversations (
+                id SERIAL PRIMARY KEY,
+                customer_phone TEXT NOT NULL,
+                conversation_id_infobip TEXT,
+                last_message TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_phone ON conversations(customer_phone)`,
+            `CREATE TABLE IF NOT EXISTS messages (
+                id SERIAL PRIMARY KEY,
+                conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE,
+                message_id_infobip TEXT UNIQUE,
+                from_number TEXT,
+                to_number TEXT,
+                direction TEXT,
+                content JSONB,
+                status TEXT DEFAULT 'pending',
+                sent_at TIMESTAMP,
+                delivered_at TIMESTAMP,
+                seen_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE INDEX IF NOT EXISTS idx_messages_conv_id ON messages(conversation_id)`
         ];
 
         for (const sql of tables) {
@@ -2671,6 +2698,9 @@ app.get('/api/v2/admin/refunds', async (req, res) => {
 
 // --- Infobip Live Chat Proxy Endpoints ---
 const INFOBIP_BASE_URL = 'https://8k6xv1.api-us.infobip.com';
+
+// --- NEW CHAT & WEBHOOK ROUTES ---
+app.use('/api', chatRoutes);
 
 app.get('/api/infobip/resolve-number/:number', async (req, res) => {
     const { number } = req.params;
