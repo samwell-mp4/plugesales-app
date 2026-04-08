@@ -2685,29 +2685,44 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
         const apiKey = userRes.rows[0].infobip_key;
         if (!apiKey) return res.status(400).json({ error: 'Chave Infobip não configurada para este usuário' });
 
-        // Direct search: Find conversations where the participant (customer) has this phone number
+        // 1. Check if the number is a SENDER (WABA)
+        const sendersResponse = await fetch(`${INFOBIP_BASE_URL}/whatsapp/1/senders`, {
+            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+        });
+
+        if (sendersResponse.ok) {
+            const sendersData = await sendersResponse.json();
+            const sender = sendersData.senders?.find((s) => s.address === number || s.number === number);
+            
+            if (sender && sender.channelApplicationId) {
+                // It is a WABA! Fetch conversations for this WABA
+                const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?channelApplicationId=${sender.channelApplicationId}`, {
+                    headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+                });
+                
+                if (convResponse.ok) {
+                    const convData = await convResponse.json();
+                    const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
+                    return res.json({ isWaba: true, sender, conversations });
+                }
+            }
+        }
+
+        // 2. Fallback: Search as a CUSTOMER (Participant)
         const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?participantIdentity=${number}&participantType=CUSTOMER`, {
             headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
         });
 
-        if (!convResponse.ok) {
-            const errData = await convResponse.json().catch(() => ({}));
-            return res.status(convResponse.status).json({ error: 'Erro ao buscar conversas na Infobip', details: errData });
+        if (convResponse.ok) {
+            const convData = await convResponse.json();
+            const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
+
+            if (conversations.length > 0) {
+                return res.json({ isWaba: false, person: conversations[0].person || { id: number }, conversations: conversations });
+            }
         }
 
-        const convData = await convResponse.json();
-        
-        // Find the conversation from the list (the API might return multiple, we usually want the most recent or active)
-        // Infobip returns an object with a 'conversations' array or similar. 
-        // Based on research, it's often an array directly or { conversations: [] }
-        const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
-
-        if (conversations.length === 0) {
-            return res.status(404).json({ error: 'Nenhuma conversa encontrada para este número.' });
-        }
-
-        // Return the first one (most recent usually)
-        res.json({ person: conversations[0].person || { id: number }, conversations: conversations });
+        res.status(404).json({ error: 'Nenhuma conversa ou remetente encontrado para este número.' });
 
     } catch (err) {
         console.error('Error resolving Infobip number:', err);

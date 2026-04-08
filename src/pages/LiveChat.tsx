@@ -49,6 +49,9 @@ const LiveChat = () => {
         };
     }, [activeConversation?.id]);
 
+    const [isWaba, setIsWaba] = useState(false);
+    const [wabaConversations, setWabaConversations] = useState<any[]>([]);
+
     const handleSearch = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (!phoneNumber) return;
@@ -58,6 +61,8 @@ const LiveChat = () => {
         setPerson(null);
         setActiveConversation(null);
         setMessages([]);
+        setIsWaba(false);
+        setWabaConversations([]);
 
         try {
             const cleanNumber = phoneNumber.replace(/\D/g, '');
@@ -68,21 +73,31 @@ const LiveChat = () => {
                 return;
             }
 
-            setPerson(result.person);
-            
-            // Find active conversation
-            const active = result.conversations?.find((c: any) => c.status === 'OPEN' || c.status === 'WAITING');
-            if (active) {
-                setActiveConversation(active);
-                fetchMessages(active.id);
+            if (result.isWaba) {
+                setIsWaba(true);
+                setWabaConversations(result.conversations || []);
             } else {
-                setError('Nenhuma conversa aberta encontrada para este número.');
+                setPerson(result.person);
+                // Find active conversation
+                const active = result.conversations?.find((c: any) => c.status === 'OPEN' || c.status === 'WAITING' || c.status === 'CLOSED');
+                if (active) {
+                    setActiveConversation(active);
+                    fetchMessages(active.id);
+                } else {
+                    setError('Nenhuma conversa encontrada para este número.');
+                }
             }
         } catch (err: any) {
             setError('Falha ao conectar com o servidor.');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const selectConversation = (conv: any) => {
+        setPerson(conv.person);
+        setActiveConversation(conv);
+        fetchMessages(conv.id);
     };
 
     const fetchMessages = async (id: string, showLoading = true) => {
@@ -239,41 +254,84 @@ const LiveChat = () => {
             </div>
 
             {!activeConversation ? (
-                <div className="search-hero">
-                    <div className={`mb-8 p-6 rounded-full bg-white/5 border border-white/10 ${isLoading ? 'pulse-loader' : ''}`}>
-                        <Search size={48} className="text-primary-color" />
-                    </div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '8px' }}>Puxar Conversa</h2>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '14px' }}>
-                        Insira o número do WhatsApp (DDI + DDD + Número) para abrir o chat em tempo real.
-                    </p>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+                    {!isWaba ? (
+                        <div className="search-hero">
+                             <div className={`mb-8 p-6 rounded-full bg-white/5 border border-white/10 ${isLoading ? 'pulse-loader' : ''}`}>
+                                <Search size={48} className="text-primary-color" />
+                            </div>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '8px' }}>Puxar Conversa</h2>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '14px' }}>
+                                Insira o número do WhatsApp (DDI + DDD + Número) para abrir o chat em tempo real.
+                            </p>
 
-                    <form onSubmit={handleSearch} style={{ width: '100%', position: 'relative' }}>
-                        <input 
-                            type="text" 
-                            placeholder="Ex: 5511999999999"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            disabled={isLoading}
-                            style={{ 
-                                width: '100%', padding: '18px 24px', borderRadius: '18px', 
-                                background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)',
-                                color: 'white', fontSize: '16px', fontWeight: 700, outline: 'none'
-                            }}
-                        />
-                        <button 
-                            type="submit" 
-                            disabled={isLoading || !phoneNumber}
-                            style={{ 
-                                position: 'absolute', right: '8px', top: '8px', bottom: '8px',
-                                padding: '0 20px', borderRadius: '14px', background: 'var(--primary-color)',
-                                color: 'black', fontWeight: 900, border: 'none', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '8px'
-                            }}
-                        >
-                            {isLoading ? <Loader2 className="animate-spin" size={20} /> : <><Search size={20} /> BUSCAR</>}
-                        </button>
-                    </form>
+                            <form onSubmit={handleSearch} style={{ width: '100%', position: 'relative' }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Ex: 5511999999999"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    disabled={isLoading}
+                                    style={{ 
+                                        width: '100%', padding: '18px 24px', borderRadius: '18px', 
+                                        background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)',
+                                        color: 'white', fontSize: '16px', fontWeight: 700, outline: 'none'
+                                    }}
+                                />
+                                <button 
+                                    type="submit" 
+                                    disabled={isLoading || !phoneNumber}
+                                    style={{ 
+                                        position: 'absolute', right: '8px', top: '8px', bottom: '8px',
+                                        padding: '0 20px', borderRadius: '14px', background: 'var(--primary-color)',
+                                        color: 'black', fontWeight: 900, border: 'none', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '8px'
+                                    }}
+                                >
+                                    {isLoading ? <Loader2 className="animate-spin" size={20} /> : <><Search size={20} /> BUSCAR</>}
+                                </button>
+                            </form>
+                        </div>
+                    ) : (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--card-bg-subtle)', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)', padding: '24px', overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <button onClick={() => setIsWaba(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                        <ArrowLeft size={20} />
+                                    </button>
+                                    <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Conversas do Remetente</h2>
+                                </div>
+                                <span style={{ fontSize: '11px', padding: '4px 10px', background: 'var(--primary-color)', color: 'black', borderRadius: '20px', fontWeight: 800 }}>WABA: {phoneNumber}</span>
+                            </div>
+
+                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {wabaConversations.map((conv: any) => (
+                                    <div 
+                                        key={conv.id} 
+                                        onClick={() => selectConversation(conv)}
+                                        style={{ 
+                                            padding: '16px', borderRadius: '16px', background: 'var(--bg-primary)', 
+                                            border: '1px solid var(--surface-border-subtle)', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s'
+                                        }}
+                                        className="hover:bg-white/5"
+                                    >
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--card-bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <User size={20} className="text-primary-color" />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: 800, fontSize: '14px' }}>{conv.person?.firstName || 'Lead'} {conv.person?.lastName || ''}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {conv.person?.id} • Status: {conv.status}</div>
+                                        </div>
+                                        <div style={{ fontSize: '10px', opacity: 0.5 }}>{formatTime(conv.updatedAt)}</div>
+                                    </div>
+                                ))}
+                                {wabaConversations.length === 0 && (
+                                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Nenhuma conversa encontrada neste remetente.</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {error && (
                         <div style={{ marginTop: '24px', padding: '12px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 700 }}>

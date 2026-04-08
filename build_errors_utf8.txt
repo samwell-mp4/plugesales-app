@@ -1,7 +1,0 @@
-﻿
-> plug---sales@0.0.0 build
-> node node_modules/typescript/bin/tsc -b && node node_modules/vite/bin/vite.js build
-
-src/pages/LiveChat.tsx(64,44): error TS2339: Property 'resolveInfobipNumber' does not exist on type '{ getSettings: () => Promise<Record<string, string>>; saveSetting: (key: string, value: string) => Promise<void>; getLogs: (type?: string | undefined, userId?: number | undefined) => Promise<...>; ... 76 more ...; buyPlugCard: (data: any) => Promise<...>; }'.
-src/pages/LiveChat.tsx(91,42): error TS2339: Property 'fetchInfobipMessages' does not exist on type '{ getSettings: () => Promise<Record<string, string>>; saveSetting: (key: string, value: string) => Promise<void>; getLogs: (type?: string | undefined, userId?: number | undefined) => Promise<...>; ... 76 more ...; buyPlugCard: (data: any) => Promise<...>; }'.
-src/pages/LiveChat.tsx(114,44): error TS2339: Property 'sendInfobipMessage' does not exist on type '{ getSettings: () => Promise<Record<string, string>>; saveSetting: (key: string, value: string) => Promise<void>; getLogs: (type?: string | undefined, userId?: number | undefined) => Promise<...>; ... 76 more ...; buyPlugCard: (data: any) => Promise<...>; }'.
