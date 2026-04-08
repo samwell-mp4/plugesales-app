@@ -103,7 +103,7 @@ const Sidebar = () => {
                 { name: 'LIVE CHAT', path: '/live-chat', icon: <MessageSquare />, role: 'ADMIN' },
                 { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, role: 'ADMIN' },
                 { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, role: 'ADMIN' },
-                { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, role: 'ANY' },
+                { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
                 { name: 'Hospedagem', path: '/media', icon: <Layers />, role: 'ADMIN' },
                 { name: 'Dashboard Client', path: '/client-dashboard', icon: <LayoutDashboard />, role: 'CLIENT' },
                 { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
@@ -119,7 +119,7 @@ const Sidebar = () => {
                     children: [
                         { name: 'Encurtador', path: '/link-shortener', icon: <Link /> },
                         { name: 'Rotacionador PRO', path: '/link-rotator', icon: <Zap /> },
-                        { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet /> },
+                        { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
                     ]
                 }
             ]
@@ -154,8 +154,25 @@ const Sidebar = () => {
         return menuData.map(cat => ({
             ...cat,
             items: cat.items.filter((item: any) => {
-                if (item.role === 'ADMIN' && user?.role !== 'ADMIN') return false;
-                if (item.role === 'CLIENT' && user?.role !== 'CLIENT') return false;
+                const userRole = user?.role || '';
+                
+                // If item has an 'excludeRole', hide if user has that role
+                if (item.excludeRole && userRole === item.excludeRole) return false;
+                
+                // Standard role logic
+                if (item.role === 'ADMIN' && userRole !== 'ADMIN') return false;
+                if (item.role === 'CLIENT' && userRole !== 'CLIENT') return false;
+                
+                // Children check (for submenus)
+                if (item.children) {
+                    item.children = item.children.filter((child: any) => {
+                        if (child.excludeRole && userRole === child.excludeRole) return false;
+                        if (child.role === 'ADMIN' && userRole !== 'ADMIN') return false;
+                        return true;
+                    });
+                    return item.children.length > 0;
+                }
+
                 return true;
             })
         })).filter(cat => cat.items.length > 0);
