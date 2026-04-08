@@ -85,12 +85,7 @@ const TemplateCreator = () => {
                         headerType: row.headerType || data.templateType || 'TEXT',
                         buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
                         buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : []),
-                        variables: [
-                            'Leandro',
-                            'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
-                            'O comprovante digital já se encontra disponível para conferência',
-                            'acessar o comprovante digital #54333 e verificar a entrega'
-                        ]
+                        variables: row.variables || []
                     }))
                 }));
                 setCampaigns(initializedCampaigns);
@@ -112,12 +107,7 @@ const TemplateCreator = () => {
                     headerType: row.headerType || data.templateType || 'TEXT',
                     buttonUrls: row.buttonUrls || (row.buttonUrl ? [row.buttonUrl] : []),
                     buttonTexts: row.buttonTexts || (row.buttonUrl ? ['Clique Aqui'] : []),
-                    variables: [
-                        'Leandro',
-                        'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
-                        'O comprovante digital já se encontra disponível para conferência',
-                        'acessar o comprovante digital #54333 e verificar a entrega'
-                    ]
+                    variables: row.variables || []
                 }));
                 setCampaigns([{
                     id: Date.now().toString(),
@@ -148,7 +138,7 @@ const TemplateCreator = () => {
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
 
-    const defaultVars = ['Leandro', 'recebemos a confirmação do pagamento referente ao protocolo n° 7164427, realizado em 12/10/2025', 'O comprovante digital já se encontra disponível para conferência', 'acessar o comprovante digital #54333 e verificar a entrega'];
+    const defaultVars = ['', '', '', ''];
     const [variablesExample, _setVariablesExample] = useState(defaultVars);
     const [isFiveVars, setIsFiveVars] = useState(false);
 
@@ -610,12 +600,7 @@ const TemplateCreator = () => {
                     hasButtons: buttons.length > 0,
                     buttonUrls: urlButtons.map(b => b.url || ''),
                     buttonTexts: urlButtons.map(b => b.text || ''),
-                    variables: [
-                        'Leandro',
-                        'recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025',
-                        'O comprovante digital já se encontra disponível para conferência',
-                        'acessar o comprovante digital #54333 e verificar a entrega'
-                    ]
+                    variables: []
                 });
             }
             return { ...c, rows: [...c.rows, ...newRows] };
