@@ -595,35 +595,59 @@ const ClientExternalForm = () => {
                     .header-title { font-size: 2.8rem; letter-spacing: -3px; }
                 }
 
-                .ad-dropdown {
-                    position: absolute;
-                    top: calc(100% + 10px);
-                    left: 0;
-                    width: 280px;
-                    background: #0a0f1a;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 20px;
-                    padding: 15px;
-                    z-index: 1000;
-                    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-                    animation: slideUp 0.2s ease-out;
+                .ad-dropdown {  /* This will be removed, replaced with chips */
+                    display: none;
                 }
                 @keyframes slideUp {
                     from { opacity: 0; transform: translateY(10px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
-                .ad-item {
-                    padding: 12px 16px;
+                .ad-chip {
+                    padding: 10px 18px;
                     border-radius: 14px;
                     display: flex;
                     align-items: center;
-                    justify-content: space-between;
+                    gap: 10px;
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    background: rgba(255,255,255,0.03);
+                    border: 1px solid rgba(255,255,255,0.06);
+                    font-size: 10px;
+                    font-weight: 900;
+                    letter-spacing: 1px;
+                    text-transform: uppercase;
+                    color: rgba(255,255,255,0.4);
+                }
+                .ad-chip:hover { 
+                    background: rgba(255,255,255,0.06); 
+                    border-color: rgba(172, 248, 0, 0.3);
+                    color: #fff;
+                }
+                .ad-chip.active { 
+                    background: rgba(172, 248, 0, 0.1); 
+                    border-color: #acf800;
+                    color: #acf800;
+                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.05);
+                }
+                .add-ad-btn {
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(172, 248, 0, 0.05);
+                    border: 1px dashed rgba(172, 248, 0, 0.3);
+                    color: #acf800;
                     cursor: pointer;
                     transition: all 0.2s;
-                    margin-bottom: 6px;
                 }
-                .ad-item:hover { background: rgba(255,255,255,0.05); }
-                .ad-item.active { background: rgba(172, 248, 0, 0.1); color: #acf800; }
+                .add-ad-btn:hover {
+                    background: #acf800;
+                    color: #000;
+                    transform: scale(1.1);
+                    border-style: solid;
+                }
             `}</style>
 
             <div className="max-w-7xl w-full">
@@ -637,18 +661,9 @@ const ClientExternalForm = () => {
                                 <p className="header-subtitle">DETALHES DA CAMPANHA E IDENTIDADE VISUAL</p>
                             </div>
 
-                            <div className="flex justify-center sm:justify-start mb-12">
-                                <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5 mb-8">
-                                    {(user?.role === 'ADMIN' ? [0, 1, 2, 3] : [1, 2, 3]).map((i, idx) => (
-                                        <div
-                                            key={i}
-                                            onClick={() => i < step && setStep(i)}
-                                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-[10px] transition-all cursor-pointer ${step === i ? 'bg-[#acf800] text-black shadow-lg scale-110' : step > i ? 'bg-[#acf800]/20 text-[#acf800]' : 'bg-white/5 text-white/10'
-                                                }`}
-                                        >
-                                            {step > i ? <CheckCircle size={14} /> : idx + 1}
-                                        </div>
-                                    ))}
+                            <div className="flex justify-center sm:justify-start mb-16">
+                                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden max-w-[400px]">
+                                    <div className="h-full bg-[#acf800] transition-all duration-700" style={{ width: `${(step / 3) * 100}%` }}></div>
                                 </div>
                             </div>
 
@@ -744,63 +759,53 @@ const ClientExternalForm = () => {
 
                             {step === 2 && (
                                 <div className="glass-card animate-fade-in space-y-12">
-                                    <div className="flex justify-between items-center pb-8 border-b border-white/5">
-                                        <div className="relative">
-                                            <div className="ad-selector-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
-                                                <LayoutGrid size={18} className="text-[#acf800]" />
-                                                <span className="text-xs font-black uppercase tracking-widest text-white/90">Anúncio #{formData.currentAdIndex + 1}</span>
-                                                <ChevronDown size={14} className={`transition-transform text-white/40 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                                    <div className="flex items-center gap-4 pb-10 mb-8 border-b border-white/5 overflow-x-auto custom-scrollbar no-scrollbar">
+                                        {formData.ads.map((ad, idx) => (
+                                            <div
+                                                key={ad.id}
+                                                className={`ad-chip ${formData.currentAdIndex === idx ? 'active' : ''}`}
+                                                onClick={() => setFormData(p => ({ ...p, currentAdIndex: idx }))}
+                                            >
+                                                <span>ANÚNCIO {idx + 1}</span>
+                                                {formData.ads.length > 1 && (
+                                                    <Trash2 
+                                                        size={12} 
+                                                        className="text-rose-500 hover:scale-125 ml-2" 
+                                                        onClick={e => {
+                                                            e.stopPropagation();
+                                                            setFormData(p => {
+                                                                const newAds = p.ads.filter((_, i) => i !== idx);
+                                                                return { ...p, ads: newAds, currentAdIndex: 0 };
+                                                            });
+                                                        }} 
+                                                    />
+                                                )}
                                             </div>
-                                            {dropdownOpen && (
-                                                <div className="ad-dropdown">
-                                                    <div className="flex justify-between items-center px-2 mb-4">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Lista de Anúncios</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setFormData(p => {
-                                                                    const lastAd = p.ads[p.ads.length - 1];
-                                                                    return {
-                                                                        ...p,
-                                                                        ads: [...p.ads, {
-                                                                            ...lastAd,
-                                                                            id: Date.now().toString(),
-                                                                            ad_name: '',
-                                                                            variables: ['', '', '', '', ''],
-                                                                            showFifthVariable: false
-                                                                        }],
-                                                                        currentAdIndex: p.ads.length
-                                                                    };
-                                                                });
-                                                                setDropdownOpen(false);
-                                                            }}
-                                                            className="text-[#acf800] hover:scale-110 transition-transform p-2"
-                                                        >
-                                                            <PlusCircle size={20} />
-                                                        </button>
-                                                    </div>
-                                                    {formData.ads.map((ad, idx) => (
-                                                        <div
-                                                            key={ad.id}
-                                                            className={`ad-item ${formData.currentAdIndex === idx ? 'active' : ''}`}
-                                                            onClick={() => { setFormData(p => ({ ...p, currentAdIndex: idx })); setDropdownOpen(false); }}
-                                                        >
-                                                            <span className="text-[11px] font-bold">Anúncio #{idx + 1}</span>
-                                                            {formData.ads.length > 1 && (
-                                                                <Trash2 size={12} className="text-rose-500 hover:scale-125" onClick={e => {
-                                                                    e.stopPropagation();
-                                                                    setFormData(p => {
-                                                                        const newAds = p.ads.filter((_, i) => i !== idx);
-                                                                        return { ...p, ads: newAds, currentAdIndex: 0 };
-                                                                    });
-                                                                }} />
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFormData(p => {
+                                                    const lastAd = p.ads[p.ads.length - 1];
+                                                    return {
+                                                        ...p,
+                                                        ads: [...p.ads, {
+                                                            ...lastAd,
+                                                            id: Date.now().toString(),
+                                                            ad_name: '',
+                                                            variables: ['', '', '', '', ''],
+                                                            showFifthVariable: false
+                                                        }],
+                                                        currentAdIndex: p.ads.length
+                                                    };
+                                                });
+                                            }}
+                                            className="add-ad-btn"
+                                            title="Adicionar Anúncio"
+                                        >
+                                            <PlusCircle size={20} />
+                                        </button>
                                     </div>
 
                                     <div className="form-group" style={{ marginBottom: '40px' }}>
@@ -962,23 +967,23 @@ const ClientExternalForm = () => {
                                         </div>
 
                                         {formData.ads[formData.currentAdIndex].message_mode === 'manual' ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pt-2">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6 pt-4">
                                                 {[1, 2, 3, 4, 5].map(vNum => {
                                                     if (vNum === 5 && !formData.ads[formData.currentAdIndex].showFifthVariable) return null;
                                                     return (
                                                         <div key={vNum} className="form-group">
-                                                            <label className="text-[9px] font-black uppercase tracking-[3px] text-[#acf800] ml-1">Variável {vNum}</label>
+                                                            <label className="text-[10px] font-black uppercase tracking-[4px] text-[#acf800] ml-1 mb-3">Variável {vNum}</label>
                                                             <div className="relative group">
-                                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#acf800] opacity-20 group-focus-within:opacity-100 group-focus-within:scale-150 transition-all"></div>
+                                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#acf800] opacity-20 group-focus-within:opacity-100 group-focus-within:scale-150 transition-all"></div>
                                                                 <input
-                                                                    className="input-premium py-5 pl-14"
+                                                                    className="input-premium py-7 pl-16 text-base"
                                                                     placeholder={`Ex: ${vNum === 1 ? 'Nome' : 'Valor'}`}
                                                                     value={formData.ads[formData.currentAdIndex].variables[vNum - 1] || ''}
                                                                     onChange={e => {
                                                                         const newAds = [...formData.ads];
                                                                         const ad = newAds[formData.currentAdIndex];
                                                                         ad.variables[vNum - 1] = e.target.value;
-
+                                                                        
                                                                         const v = ad.variables;
                                                                         const v1 = v[0] || '{{1}}';
                                                                         const v2 = v[1] || '{{2}}';

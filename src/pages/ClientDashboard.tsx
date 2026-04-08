@@ -496,16 +496,6 @@ const ClientDashboard = () => {
                     
                     <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <button
-                            onClick={() => {
-                                const link = `${window.location.origin}/client-add/${user.id}`;
-                                copyToClipboard(link, 'Link de Indicação');
-                            }}
-                            className="action-btn ghost-btn"
-                            style={{ height: 48, padding: '0 24px' }}
-                        >
-                            <Users size={18} /> INDICAR CLIENTE
-                        </button>
-                        <button
                             onClick={() => navigate('/client-form')}
                             className="action-btn primary-btn"
                             style={{ height: 48, padding: '0 24px' }}
@@ -552,7 +542,6 @@ const ClientDashboard = () => {
                     <button className={`nav-tab ${activeTab === 'submissions' ? 'active' : ''}`} onClick={() => setActiveTab('submissions')}>MINHAS SUBMISSÕES</button>
                     <button className={`nav-tab ${activeTab === 'links' ? 'active' : ''}`} onClick={() => setActiveTab('links')}>MEUS LINKS</button>
                     <button className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => setActiveTab('activity')}>REGISTRO DE ATIVIDADE</button>
-                    <button className={`nav-tab ${activeTab === 'referrals' ? 'active' : ''}`} onClick={() => setActiveTab('referrals')}>MINHAS INDICAÇÕES</button>
                 </div>
 
                 <div className="control-card" style={{ animationDelay: '0.4s', padding: '24px' }}>
@@ -698,105 +687,8 @@ const ClientDashboard = () => {
                                 ))}
                             </div>
                         </div>
-                    ) : activeTab === 'referrals' ? (
-                        <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
-                            <div style={{ marginBottom: '32px', padding: '32px', background: 'rgba(172,248,0,0.02)', borderRadius: '24px', border: '1px solid rgba(172,248,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px' }}>
-                                <div style={{ flex: 1, minWidth: '300px' }}>
-                                    <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-1px' }}>Seu Link de <span className="text-primary-color">Indicação</span></h3>
-                                    <p style={{ margin: '8px 0 20px 0', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>GANHE BENEFÍCIOS INDICANDO NOVOS CLIENTES PARA A PLATAFORMA</p>
-                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                        <div style={{ flex: 1, background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', fontSize: '13px', fontWeight: 700, color: 'var(--primary-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {window.location.origin}/client-add/{user?.id}
-                                        </div>
-                                        <button onClick={() => copyToClipboard(`${window.location.origin}/client-add/${user?.id}`, 'Link de Indicação')} className="action-btn primary-btn" style={{ height: 52, padding: '0 24px' }}><CopyIcon size={18} /> COPIAR LINK</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Indicados Registrados</h3>
-                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>{subClients.length} INDICAÇÕES</div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', marginBottom: '48px' }}>
-                                {subClients.map((sc: any) => (
-                                    <div key={sc.id} className="control-card" style={{ padding: '24px', border: sc.approved ? '1px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: sc.approved ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={20} className={sc.approved ? "text-primary-color" : ""} /></div>
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900 }}>{sc.data?.name || 'Cliente'}</h4>
-                                                <span style={{ fontSize: '9px', fontWeight: 900, color: sc.approved ? 'var(--primary-color)' : 'var(--text-muted)' }}>{sc.approved ? 'CONTA ATIVA' : 'AGUARDANDO APROVAÇÃO'}</span>
-                                            </div>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                            {!sc.approved && <button onClick={() => handleApproveSubClient(sc.id)} className="action-btn primary-btn" style={{ flex: 1, height: 40, fontSize: '9px' }}>APROVAR</button>}
-                                            <button onClick={() => handleDeleteSubClient(sc.id)} className="action-btn ghost-btn" style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}><Trash2 size={16} /></button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid var(--surface-border-subtle)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                    <div>
-                                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Campanhas de Indicados</h3>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>APROVE OU REPROVE OS TEMPLATES DOS SEUS CLIENTES INDICADOS</p>
-                                    </div>
-                                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>{referralSubmissions.length} SOLICITAÇÕES</div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-                                    {referralSubmissions.map((rs: any) => {
-                                        const isPendingParent = rs.status === 'AGUARDANDO_APROVACAO_PAI';
-                                        return (
-                                            <div key={rs.id} className="control-card" style={{ padding: '24px', position: 'relative', borderColor: isPendingParent ? 'var(--primary-color)' : 'var(--surface-border-subtle)' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                        <div style={{ width: 40, height: 40, borderRadius: '10px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={18} style={{ opacity: 0.5 }} /></div>
-                                                        <div>
-                                                            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900 }}>{rs.profile_name}</h4>
-                                                            <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)' }}>POR: {rs.child_name || 'Cliente'}</span>
-                                                        </div>
-                                                    </div>
-                                                    <span className="info-chip" style={{ fontSize: '8px', padding: '2px 8px', background: rs.status === 'REPROVADA_PELO_PAI' ? 'rgba(239,68,68,0.1)' : 'rgba(172,248,0,0.1)', color: rs.status === 'REPROVADA_PELO_PAI' ? '#ef4444' : 'var(--primary-color)' }}>{rs.status.replace(/_/g, ' ')}</span>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={(e) => { 
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            navigate(`/client-submissions/${rs.id}`);
-                                                        }} 
-                                                        className="action-btn ghost-btn" 
-                                                        style={{ flex: 1, height: 40, fontSize: '9px' }}
-                                                    >
-                                                        VER DETALHES
-                                                    </button>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={(e) => { e.stopPropagation(); handleDeleteSubmission(rs.id); }}
-                                                        className="action-btn ghost-btn" 
-                                                        style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                    {isPendingParent && (
-                                                        <>
-                                                            <button type="button" onClick={() => handleApproveReferralSubmission(rs.id, true)} className="action-btn primary-btn" style={{ width: 40, height: 40, padding: 0 }}><CheckCircle2 size={16} /></button>
-                                                            <button type="button" onClick={() => handleApproveReferralSubmission(rs.id, false)} className="action-btn ghost-btn" style={{ width: 40, height: 40, padding: 0, color: '#ef4444' }}><X size={16} /></button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
                     ) : null}
                 </div>
-            </div>
 
             {showSubDetailModal && selectedSubDetail && (
                 <div className="modal-overlay" onClick={() => setShowSubDetailModal(false)}>
@@ -888,6 +780,7 @@ const ClientDashboard = () => {
                 </div>
             )}
         </div>
+    </div>
     );
 };
 

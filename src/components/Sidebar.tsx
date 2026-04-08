@@ -116,8 +116,8 @@ const Sidebar = () => {
             id: 'CRM',
             label: 'CRM E GESTÃO',
             items: [
-                { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users /> },
-                { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar /> },
+                { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar />, roles: ['ADMIN', 'EMPLOYEE'] },
             ]
         },
         {

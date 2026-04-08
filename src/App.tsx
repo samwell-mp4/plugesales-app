@@ -140,7 +140,7 @@ function AppContent() {
           <Route path="/obrigado/:id" element={<Obrigado />} />
           <Route path="/finalizado" element={<Finalizado />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/client-add/:parentId/:submissionId?" element={<ClientForClientForm />} />
+          <Route path="/client-add/:parentId/:submissionId?" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <ClientForClientForm /> : <Navigate to="/dashboard" />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
           <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/dashboard" />} />
           <Route path="/crm/analise" element={<CRMAnalise />} />
