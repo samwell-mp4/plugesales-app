@@ -931,5 +931,25 @@ export const dbService = {
             console.error("Error buying plug card:", err);
             return { error: "Falha ao processar compra do Plug Card." };
         }
+    },
+
+    // --- Infobip Live Chat Proxy Methods ---
+    resolveInfobipNumber: async (number: string, userId: number) => {
+        const response = await fetch(`${API_BASE}/infobip/resolve-number/${number}?userId=${userId}`);
+        return await response.json();
+    },
+
+    fetchInfobipMessages: async (threadId: string, userId: number) => {
+        const response = await fetch(`${API_BASE}/infobip/conversations/${threadId}/messages?userId=${userId}`);
+        return await response.json();
+    },
+
+    sendInfobipMessage: async (threadId: string, text: string, userId: number) => {
+        const response = await fetch(`${API_BASE}/infobip/conversations/${threadId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, text })
+        });
+        return await response.json();
     }
 };

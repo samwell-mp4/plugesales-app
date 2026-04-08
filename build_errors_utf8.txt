@@ -2,10 +2,6 @@
 > plug---sales@0.0.0 build
 > node node_modules/typescript/bin/tsc -b && node node_modules/vite/bin/vite.js build
 
-src/App.tsx(63,9): error TS6133: 'clientAllowedRoutes' is declared but its value is never read.
-src/pages/ClientReports.tsx(17,5): error TS6133: 'Smartphone' is declared but its value is never read.
-src/pages/ClientReports.tsx(18,5): error TS6133: 'ExternalLink' is declared but its value is never read.
-src/pages/ClientReports.tsx(19,5): error TS6133: 'Layers' is declared but its value is never read.
-src/pages/ClientReports.tsx(25,11): error TS6133: 'navigate' is declared but its value is never read.
-src/pages/ClientReports.tsx(75,21): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
-  Type 'undefined' is not assignable to type 'number'.
+src/pages/LiveChat.tsx(64,44): error TS2339: Property 'resolveInfobipNumber' does not exist on type '{ getSettings: () => Promise<Record<string, string>>; saveSetting: (key: string, value: string) => Promise<void>; getLogs: (type?: string | undefined, userId?: number | undefined) => Promise<...>; ... 76 more ...; buyPlugCard: (data: any) => Promise<...>; }'.
+src/pages/LiveChat.tsx(91,42): error TS2339: Property 'fetchInfobipMessages' does not exist on type '{ getSettings: () => Promise<Record<string, string>>; saveSetting: (key: string, value: string) => Promise<void>; getLogs: (type?: string | undefined, userId?: number | undefined) => Promise<...>; ... 76 more ...; buyPlugCard: (data: any) => Promise<...>; }'.
+src/pages/LiveChat.tsx(114,44): error TS2339: Property 'sendInfobipMessage' does not exist on type '{ getSettings: () => Promise<Record<string, string>>; saveSetting: (key: string, value: string) => Promise<void>; getLogs: (type?: string | undefined, userId?: number | undefined) => Promise<...>; ... 76 more ...; buyPlugCard: (data: any) => Promise<...>; }'.
