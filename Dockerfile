@@ -17,6 +17,7 @@ RUN npm install --production
 # Copy build and server files
 COPY --from=build /app/dist ./dist
 COPY server.js ./
+COPY backend ./backend/
 
 # Create uploads directory
 RUN mkdir -p uploads
