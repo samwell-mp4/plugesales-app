@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Search, Filter, RefreshCw, User as UserIcon, 
-    MessageSquare, Tag, List, Trello, 
+    MessageSquare, Tag, List, Trello, Star,
     Save, Plus, Trash2, Edit3, X, DollarSign,
-    Phone, Mail, Calendar, MapPin, TrendingUp, Target, PieChart, Zap
+    Phone, Mail, Calendar, MapPin, TrendingUp, Target, PieChart, Zap,
+    ChevronRight, Briefcase, Globe, Info, Clock, CheckCircle
 } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { dbService } from '../services/dbService';
 
 const CRMFunil = () => {
@@ -25,10 +27,11 @@ const CRMFunil = () => {
         numero: '',
         email: '',
         tag: '',
-        status: 'Novo',
+        status: 'Aguardando Atendimento',
         responsavel: user?.name || '',
         metodo: '',
-        volume: ''
+        volume: '',
+        nicho: ''
     });
 
     useEffect(() => {
@@ -65,10 +68,11 @@ const CRMFunil = () => {
                 numero: '',
                 email: '',
                 tag: '',
-                status: 'Novo',
+                status: 'Aguardando Atendimento',
                 responsavel: user?.name || '',
                 metodo: '',
-                volume: ''
+                volume: '',
+                nicho: ''
             });
         } catch (err: any) {
             alert("Erro ao adicionar: " + err.message);
@@ -101,6 +105,40 @@ const CRMFunil = () => {
             alert("Erro ao excluir: " + err.message);
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    const toggleFavorite = async (lead: any) => {
+        const updated = { ...lead, is_favorite: !lead.is_favorite };
+        // Optimistic update
+        setLeads(leads.map(l => l.id === lead.id ? updated : l));
+        try {
+            await dbService.updateCRMLead(lead.id, { is_favorite: updated.is_favorite });
+        } catch (err) {
+            console.error("Error toggling favorite:", err);
+            fetchLeads(); // rollback
+        }
+    };
+
+    const onDragEnd = async (result: DropResult) => {
+        const { source, destination, draggableId } = result;
+        if (!destination) return;
+        if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+        const leadId = draggableId;
+        const newStatus = destination.droppableId;
+
+        // Optimistic update
+        const updatedLeads = leads.map(l => 
+            l.id.toString() === leadId ? { ...l, status: newStatus } : l
+        );
+        setLeads(updatedLeads);
+
+        try {
+            await dbService.updateCRMLead(leadId, { status: newStatus });
+        } catch (err) {
+            console.error("Error updating status on drag:", err);
+            fetchLeads(); // rollback
         }
     };
 
@@ -274,6 +312,7 @@ const CRMFunil = () => {
                             <table className="crm-premium-table">
                                 <thead>
                                     <tr>
+                                        <th className="w-[40px]"></th>
                                         <th>CLIENTE</th>
                                         <th>MÉTODO</th>
                                         <th>VOLUME</th>
@@ -288,6 +327,14 @@ const CRMFunil = () => {
                                     {filteredLeads.map(lead => (
                                         <tr key={lead.id} className="crm-table-row group">
                                             <td>
+                                                <button 
+                                                    className={`lead-favorite-btn ${lead.is_favorite ? 'active' : ''}`}
+                                                    onClick={(e) => { e.stopPropagation(); toggleFavorite(lead); }}
+                                                >
+                                                    <Star size={16} fill={lead.is_favorite ? 'currentColor' : 'none'} />
+                                                </button>
+                                            </td>
+                                            <td onClick={() => setSelectedLead(lead)} className="cursor-pointer">
                                                 <div className="flex items-center gap-4">
                                                     <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
                                                     <span className="font-bold text-white text-[14px]">{lead.nome || 'Sem Nome'}</span>
@@ -302,7 +349,7 @@ const CRMFunil = () => {
                                             <td className="text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <button 
-                                                        onClick={() => window.open(`https://wa.me/${(lead.numero || '').replace(/\D/g,'')}`, '_blank')} 
+                                                        onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${(lead.numero || '').replace(/\D/g,'')}`, '_blank'); }} 
                                                         className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all"
                                                         title="WhatsApp"
                                                     >
@@ -317,234 +364,328 @@ const CRMFunil = () => {
                             </table>
                         </div>
                     ) : (
-                        <div className="kanban-view scrollbar-hide">
-                            {statusList.map(status => (
-                                <div key={status} className="kanban-col">
-                                    <div className="kanban-col-header-premium">
-                                        <div className="kanban-col-title-row">
-                                            <div className="kanban-col-title">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-primary-color shadow-[0_0_8px_var(--primary-color)]"></div>
-                                                {status}
-                                            </div>
-                                            <span className="kanban-col-badge">
-                                                {filteredLeads.filter(l => l.status === status).length}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="kanban-cards-container">
-                                        {filteredLeads.filter(l => l.status === status).map(lead => (
-                                            <div key={lead.id} className="lead-card-glass group" onClick={() => setSelectedLead(lead)}>
-                                                <div className="lead-card-header">
-                                                    <div className="lead-name-group">
-                                                        <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
-                                                        <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
-                                                    </div>
-                                                    <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
-                                                </div>
-
-                                                <div className="lead-info-grid">
-                                                    <div className="lead-info-item text-primary-color">
-                                                        <Zap size={11} fill="currentColor" /> 
-                                                        {lead.metodo || 'Sem Método'} | {lead.volume || '0'}
-                                                    </div>
-                                                    <div className="lead-info-item">
-                                                        <Phone size={11} /> 
-                                                        {lead.numero}
-                                                    </div>
-                                                    <div className="lead-info-item">
-                                                        <UserIcon size={11} />
-                                                        {lead.responsavel}
+                        <DragDropContext onDragEnd={onDragEnd}>
+                            <div className="kanban-view scrollbar-hide">
+                                {statusList.map(status => (
+                                    <Droppable key={status} droppableId={status}>
+                                        {(provided, snapshot) => (
+                                            <div 
+                                                ref={provided.innerRef} 
+                                                {...provided.droppableProps}
+                                                className={`kanban-col ${snapshot.isDraggingOver ? 'drop-indicator-active' : ''}`}
+                                            >
+                                                <div className="kanban-col-header-premium">
+                                                    <div className="kanban-col-title-row">
+                                                        <div className="kanban-col-title">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary-color shadow-[0_0_8px_var(--primary-color)]"></div>
+                                                            {status}
+                                                        </div>
+                                                        <span className="kanban-col-badge">
+                                                            {filteredLeads.filter(l => l.status === status).length}
+                                                        </span>
                                                     </div>
                                                 </div>
 
-                                                <div className="lead-footer-actions">
-                                                    <div className="lead-date-badge">
-                                                        <Calendar size={10} />
-                                                        {formatDate(lead.created_at)}
-                                                    </div>
-                                                    <div className="lead-quick-actions">
-                                                        <button 
-                                                            className="btn-card-action whatsapp" 
-                                                            onClick={(e) => { 
-                                                                e.stopPropagation(); 
-                                                                window.open(`https://wa.me/${(lead.numero || '').replace(/\D/g,'')}`, '_blank'); 
-                                                            }}
-                                                            title="WhatsApp"
-                                                        >
-                                                            <MessageSquare size={14} />
-                                                        </button>
-                                                        <button 
-                                                            className="btn-card-action" 
-                                                            onClick={(e) => { 
-                                                                e.stopPropagation(); 
-                                                                setSelectedLead(lead); 
-                                                            }}
-                                                            title="Editar"
-                                                        >
-                                                            <Edit3 size={14} />
-                                                        </button>
-                                                        <button 
-                                                            className="btn-card-action delete" 
-                                                            onClick={(e) => { 
-                                                                e.stopPropagation(); 
-                                                                handleDeleteLead(lead.id); 
-                                                            }}
-                                                            title="Excluir"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                                <div className="kanban-cards-container">
+                                                    {filteredLeads.filter(l => l.status === status).map((lead, index) => (
+                                                        <Draggable key={lead.id} draggableId={lead.id.toString()} index={index}>
+                                                            {(provided, snapshot) => (
+                                                                <div 
+                                                                    ref={provided.innerRef}
+                                                                    {...provided.draggableProps}
+                                                                    {...provided.dragHandleProps}
+                                                                    className={`lead-card-glass group ${snapshot.isDragging ? 'dragging-card' : ''}`} 
+                                                                    onClick={() => setSelectedLead(lead)}
+                                                                >
+                                                                    <div className="lead-card-header">
+                                                                        <div className="lead-name-group">
+                                                                            <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
+                                                                            <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
+                                                                        </div>
+                                                                        <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
+                                                                    </div>
 
-                                        {filteredLeads.filter(l => l.status === status).length === 0 && (
-                                            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/5 rounded-[20px] opacity-20">
-                                                <Zap size={24} className="mb-2" />
-                                                <span className="text-[10px] font-black tracking-widest uppercase">Sem Leads</span>
+                                                                    <div className="lead-info-grid">
+                                                                        <div className="lead-info-item text-primary-color">
+                                                                            <Zap size={11} fill="currentColor" /> 
+                                                                            {lead.metodo || 'Sem Método'} | {lead.volume || '0'}
+                                                                        </div>
+                                                                        <div className="lead-info-item">
+                                                                            <Phone size={11} /> 
+                                                                            {lead.numero}
+                                                                        </div>
+                                                                        <div className="lead-info-item">
+                                                                            <UserIcon size={11} />
+                                                                            {lead.responsavel}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="lead-footer-actions">
+                                                                        <div className="lead-date-badge">
+                                                                            <Calendar size={10} />
+                                                                            {formatDate(lead.created_at)}
+                                                                        </div>
+                                                                        <div className="lead-quick-actions">
+                                                                            <button 
+                                                                                className={`lead-favorite-btn ${lead.is_favorite ? 'active' : ''}`}
+                                                                                onClick={(e) => { e.stopPropagation(); toggleFavorite(lead); }}
+                                                                            >
+                                                                                <Star size={14} fill={lead.is_favorite ? 'currentColor' : 'none'} />
+                                                                            </button>
+                                                                            <button 
+                                                                                className="btn-card-action whatsapp" 
+                                                                                onClick={(e) => { 
+                                                                                    e.stopPropagation(); 
+                                                                                    window.open(`https://wa.me/${(lead.numero || '').replace(/\D/g,'')}`, '_blank'); 
+                                                                                }}
+                                                                                title="WhatsApp"
+                                                                            >
+                                                                                <MessageSquare size={14} />
+                                                                            </button>
+                                                                            <button 
+                                                                                className="btn-card-action delete" 
+                                                                                onClick={(e) => { 
+                                                                                    e.stopPropagation(); 
+                                                                                    handleDeleteLead(lead.id); 
+                                                                                }}
+                                                                                title="Excluir"
+                                                                            >
+                                                                                <Trash2 size={14} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </Draggable>
+                                                    ))}
+
+                                                    {provided.placeholder}
+
+                                                    {filteredLeads.filter(l => l.status === status).length === 0 && !snapshot.isDraggingOver && (
+                                                        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/5 rounded-[24px] opacity-10">
+                                                            <Zap size={24} className="mb-2" />
+                                                            <span className="text-[10px] font-black tracking-widest uppercase">Sem Leads</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    </Droppable>
+                                ))}
+                            </div>
+                        </DragDropContext>
                     )
                 )}
             </main>
 
-            {/* MODAL ADICIONAR LEAD */}
+            {/* MODAL ADICIONAR LEAD SUPREME */}
             {isAddModalOpen && (
-                <div className="crm-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
-                    <div className="crm-modal-content" onClick={e => e.stopPropagation()}>
-                        <header className="p-10 border-b border-white/5 flex justify-between items-center bg-white/2">
+                <div className="supreme-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
+                    <div className="crm-modal-content p-0" style={{ maxWidth: '800px', background: 'linear-gradient(135deg, #1e293b, #0f172a)' }} onClick={e => e.stopPropagation()}>
+                        <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
                             <div className="flex items-center gap-5">
-                                <div className="w-16 h-16 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-xl shadow-primary-color/20"><Plus size={32} strokeWidth={3} /></div>
+                                <div className="w-14 h-14 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-xl shadow-primary-color/20"><Plus size={28} strokeWidth={3} /></div>
                                 <div>
-                                    <h2 className="text-2xl font-black text-white leading-none mb-2">Novo Lead</h2>
-                                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">Registro Centralizado de Prospectos</p>
+                                    <h2 className="text-xl font-black text-white leading-none mb-1 text-primary-color italic">SUPREME LEAD ENTRY</h2>
+                                    <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em]">Registro Centralizado de Prospectos</p>
                                 </div>
                             </div>
-                            <button className="btn-icon-only" style={{ width: '48px', height: '48px', borderRadius: '14px' }} onClick={() => setIsAddModalOpen(false)}><X size={24} /></button>
+                            <button className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white" onClick={() => setIsAddModalOpen(false)}><X size={20} /></button>
                         </header>
 
                         <div className="p-10">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="crm-input-group">
-                                    <label>Nome do Lead</label>
-                                    <input type="text" className="crm-input" value={newLead.nome} onChange={e => setNewLead({...newLead, nome: e.target.value})} placeholder="Ex: João Silva" />
+                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Identificação</label>
+                                    <input type="text" className="crm-input" value={newLead.nome} onChange={e => setNewLead({...newLead, nome: e.target.value})} placeholder="Nome do Cliente" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label>WhatsApp / Celular</label>
+                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Contato WhatsApp</label>
                                     <input type="text" className="crm-input" value={newLead.numero} onChange={e => setNewLead({...newLead, numero: e.target.value})} placeholder="5511999999999" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label>Status no Funil</label>
-                                    <select className="crm-input" style={{ appearance: 'auto' }} value={newLead.status} onChange={e => setNewLead({...newLead, status: e.target.value})}>
-                                        {statusList.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
+                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">E-mail</label>
+                                    <input type="email" className="crm-input" value={newLead.email} onChange={e => setNewLead({...newLead, email: e.target.value})} placeholder="email@exemplo.com" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label>Método de Trabalho</label>
-                                    <input type="text" className="crm-input" value={newLead.metodo} onChange={e => setNewLead({...newLead, metodo: e.target.value})} placeholder="Ex: Tráfego Pago, Orgânico..." />
+                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Nicho de Atuação</label>
+                                    <input type="text" className="crm-input" value={newLead.nicho} onChange={e => setNewLead({...newLead, nicho: e.target.value})} placeholder="Ex: Estética, Imobiliário..." />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label>Volume de Mensagens</label>
-                                    <input type="text" className="crm-input" value={newLead.volume} onChange={e => setNewLead({...newLead, volume: e.target.value})} placeholder="Ex: 100/dia" />
+                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Método</label>
+                                    <input type="text" className="crm-input" value={newLead.metodo} onChange={e => setNewLead({...newLead, metodo: e.target.value})} placeholder="Ex: Tráfego Pago" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label>Consultor Responsável</label>
-                                    <input type="text" className="crm-input" value={newLead.responsavel} onChange={e => setNewLead({...newLead, responsavel: e.target.value})} />
-                                </div>
-                                <div className="crm-input-group">
-                                    <label>Origem / Campanha</label>
-                                    <input type="text" className="crm-input" value={newLead.tag} onChange={e => setNewLead({...newLead, tag: e.target.value})} placeholder="Anúncios, Orgânico..." />
+                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Volume Estimado</label>
+                                    <input type="text" className="crm-input" value={newLead.volume} onChange={e => setNewLead({...newLead, volume: e.target.value})} placeholder="Ex: 50/semana" />
                                 </div>
                             </div>
 
-                            <button className="btn-supreme w-full mt-10 py-5" onClick={handleAddLead} disabled={isUpdating}>
-                                {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={22} /> SALVAR LEAD NO SUPABASE</>} 
+                            <button className="btn-supreme w-full mt-10 py-5 text-sm tracking-widest font-black" onClick={handleAddLead} disabled={isUpdating}>
+                                {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={20} /> FINALIZAR CADASTRO SUPREME</>} 
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* MODAL EDITAR LEAD */}
+            {/* SUPREME MODAL DETALHES LEAD */}
             {selectedLead && (
-                <div className="crm-modal-overlay" onClick={() => setSelectedLead(null)}>
-                    <div className="crm-modal-content" onClick={e => e.stopPropagation()}>
-                        <header className="p-10 border-b border-white/5 flex justify-between items-center bg-white/2">
-                            <div className="flex items-center gap-5">
-                                <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-primary-color font-black text-2xl shadow-lg">{getInitials(selectedLead.nome)}</div>
+                <div className="supreme-modal-overlay" onClick={() => setSelectedLead(null)}>
+                    <div className="supreme-modal-content" onClick={e => e.stopPropagation()}>
+                        {/* Sidebar */}
+                        <aside className="supreme-modal-sidebar">
+                            <div className="flex flex-col items-center text-center gap-4 mb-8">
+                                <div className="w-24 h-24 rounded-3xl bg-primary-color flex items-center justify-center text-black text-4xl font-black shadow-2xl shadow-primary-color/30">
+                                    {getInitials(selectedLead.nome)}
+                                </div>
                                 <div>
-                                    <h2 className="text-2xl font-black text-white leading-none mb-2">{selectedLead.nome || 'Editar Lead'}</h2>
-                                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{selectedLead.numero} • {selectedLead.tag || 'Sem Tag'}</p>
-                                </div>
-                            </div>
-                            <button className="btn-icon-only" style={{ width: '48px', height: '48px', borderRadius: '14px' }} onClick={() => setSelectedLead(null)}><X size={24} /></button>
-                        </header>
-
-                        <div className="p-10">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="crm-input-group">
-                                    <label>Status Comercial</label>
-                                    <select 
-                                        className="crm-input"
-                                        style={{ appearance: 'auto' }}
-                                        value={selectedLead.status}
-                                        onChange={(e) => setSelectedLead({ ...selectedLead, status: e.target.value })}
-                                    >
-                                        {statusList.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                                <div className="crm-input-group">
-                                    <label>Responsável</label>
-                                    <input 
-                                        type="text" 
-                                        className="crm-input"
-                                        value={selectedLead.responsavel}
-                                        onChange={(e) => setSelectedLead({ ...selectedLead, responsavel: e.target.value })}
-                                    />
-                                </div>
-                                <div className="crm-input-group">
-                                    <label>Tag / Origem</label>
-                                    <input 
-                                        type="text" 
-                                        className="crm-input"
-                                        value={selectedLead.tag}
-                                        onChange={(e) => setSelectedLead({ ...selectedLead, tag: e.target.value })}
-                                    />
-                                </div>
-                                <div className="crm-input-group">
-                                    <label>Método</label>
-                                    <input 
-                                        type="text" 
-                                        className="crm-input"
-                                        value={selectedLead.metodo}
-                                        onChange={(e) => setSelectedLead({ ...selectedLead, metodo: e.target.value })}
-                                    />
-                                </div>
-                                <div className="crm-input-group">
-                                    <label>Volume</label>
-                                    <input 
-                                        type="text" 
-                                        className="crm-input"
-                                        value={selectedLead.volume}
-                                        onChange={(e) => setSelectedLead({ ...selectedLead, volume: e.target.value })}
-                                    />
+                                    <h2 className="text-xl font-black text-white">{selectedLead.nome}</h2>
+                                    <p className="text-[10px] text-primary-color font-black uppercase tracking-widest">{selectedLead.status}</p>
                                 </div>
                             </div>
 
-                            <div className="mt-10 flex gap-4">
-                                <button className="flex-1 btn-supreme py-5" onClick={() => handleUpdateLead(selectedLead.id, selectedLead)}>
-                                    <Save size={20} /> SALVAR ALTERAÇÕES
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    className="btn-supreme py-4 justify-center" 
+                                    onClick={() => window.open(`https://wa.me/${(selectedLead.numero || '').replace(/\D/g,'')}`, '_blank')}
+                                >
+                                    <MessageSquare size={18} /> ABRIR WHATSAPP
                                 </button>
-                                <button className="p-5 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 transition-all border border-red-500/20 hover:text-white" onClick={() => handleDeleteLead(selectedLead.id)}>
-                                    <Trash2 size={24} />
+                                
+                                <button className="p-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl flex items-center justify-center gap-3 transition-all font-bold text-sm"
+                                    onClick={() => toggleFavorite(selectedLead)}
+                                >
+                                    <Star size={18} fill={selectedLead.is_favorite ? '#fbbf24' : 'none'} color={selectedLead.is_favorite ? '#fbbf24' : 'currentColor'} /> 
+                                    {selectedLead.is_favorite ? 'REMOVER DOS FAVORITOS' : 'ADICIONAR AOS FAVORITOS'}
+                                </button>
+
+                                <button 
+                                    className="p-4 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center gap-3 transition-all font-bold text-sm border border-red-500/20"
+                                    onClick={() => handleDeleteLead(selectedLead.id)}
+                                >
+                                    <Trash2 size={18} /> EXCLUIR REGISTRO
                                 </button>
                             </div>
-                        </div>
+
+                            <div className="mt-auto p-6 bg-white/2 rounded-3xl border border-white/5">
+                                <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-4">Ações Rápidas</p>
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center gap-3 text-xs text-white/50 font-bold">
+                                        <Clock size={14} className="text-primary-color" />
+                                        Entrada: {formatDate(selectedLead.created_at)}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs text-white/50 font-bold">
+                                        <UserIcon size={14} className="text-primary-color" />
+                                        Resp: {selectedLead.responsavel}
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+
+                        {/* Main Content */}
+                        <main className="supreme-modal-main">
+                            <div className="flex justify-between items-center mb-12">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-2 h-12 bg-primary-gradient rounded-full"></div>
+                                    <div>
+                                        <h3 className="text-2xl font-black text-white italic tracking-tight">DETALHES DO LEAD</h3>
+                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em]">Lead Captured via Step Landing Page</p>
+                                    </div>
+                                </div>
+                                <button className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white hover:bg-white/10 transition-all" onClick={() => setSelectedLead(null)}>
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <section className="supreme-detail-section">
+                                <h4 className="supreme-section-title"><UserIcon size={14} /> Informações de Contato</h4>
+                                <div className="supreme-info-grid">
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Nome Completo</span>
+                                        <input 
+                                            className="bg-transparent border-none text-white font-black text-lg p-0 focus:ring-0 w-full"
+                                            value={selectedLead.nome}
+                                            onChange={(e) => setSelectedLead({...selectedLead, nome: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">WhatsApp / Telefone</span>
+                                        <input 
+                                            className="bg-transparent border-none text-white font-black text-lg p-0 focus:ring-0 w-full"
+                                            value={selectedLead.numero}
+                                            onChange={(e) => setSelectedLead({...selectedLead, numero: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">E-mail</span>
+                                        <input 
+                                            className="bg-transparent border-none text-white/80 font-bold text-sm p-0 focus:ring-0 w-full"
+                                            value={selectedLead.email || ''}
+                                            onChange={(e) => setSelectedLead({...selectedLead, email: e.target.value})}
+                                            placeholder="Não informado"
+                                        />
+                                    </div>
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Status no Funil</span>
+                                        <select 
+                                            className="bg-transparent border-none text-primary-color font-black text-sm p-0 focus:ring-0 w-full cursor-pointer uppercase"
+                                            value={selectedLead.status}
+                                            onChange={(e) => setSelectedLead({...selectedLead, status: e.target.value})}
+                                        >
+                                            {statusList.map(s => <option key={s} value={s} className="bg-[#0f172a]">{s}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section className="supreme-detail-section">
+                                <h4 className="supreme-section-title"><Globe size={14} /> Dados da Captura (Step Landing Page)</h4>
+                                <div className="supreme-info-grid">
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Método de Trabalho</span>
+                                        <input 
+                                            className="bg-transparent border-none text-white font-black text-lg p-0 focus:ring-0 w-full"
+                                            value={selectedLead.metodo || ''}
+                                            onChange={(e) => setSelectedLead({...selectedLead, metodo: e.target.value})}
+                                            placeholder="-"
+                                        />
+                                    </div>
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Volume de Mensagens</span>
+                                        <input 
+                                            className="bg-transparent border-none text-white font-black text-lg p-0 focus:ring-0 w-full"
+                                            value={selectedLead.volume || ''}
+                                            onChange={(e) => setSelectedLead({...selectedLead, volume: e.target.value})}
+                                            placeholder="-"
+                                        />
+                                    </div>
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Origem / Tag</span>
+                                        <input 
+                                            className="bg-transparent border-none text-white/60 font-bold text-sm p-0 focus:ring-0 w-full"
+                                            value={selectedLead.tag || ''}
+                                            onChange={(e) => setSelectedLead({...selectedLead, tag: e.target.value})}
+                                            placeholder="Anúncios, Orgânico..."
+                                        />
+                                    </div>
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Consultor Atribuído</span>
+                                        <input 
+                                            className="bg-transparent border-none text-white/60 font-bold text-sm p-0 focus:ring-0 w-full"
+                                            value={selectedLead.responsavel}
+                                            onChange={(e) => setSelectedLead({...selectedLead, responsavel: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div className="flex justify-end gap-4 mt-8">
+                                <button className="btn-supreme py-5 px-10" onClick={() => handleUpdateLead(selectedLead.id, selectedLead)}>
+                                    <Save size={20} /> SALVAR ALTERAÇÕES SUPREME
+                                </button>
+                            </div>
+                        </main>
                     </div>
                 </div>
             )}
