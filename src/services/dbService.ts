@@ -715,7 +715,7 @@ export const dbService = {
             throw err;
         }
     },
-    updateCRMLead: async (id: number, data: any) => {
+    updateCRMLead: async (id: string | number, data: any) => {
         try {
             const res = await fetch(`${API_BASE}/crm/leads/${id}`, {
                 method: 'PUT',
@@ -724,11 +724,31 @@ export const dbService = {
             });
             if (!res.ok) {
                 const errData = await res.json();
-                throw new Error(errData.error || 'Erro ao atualizar lead na planilha.');
+                throw new Error(errData.error || 'Erro ao atualizar lead no Supabase.');
             }
             return await res.json();
         } catch (err: any) {
             console.error("CRM Update Error:", err);
+            throw err;
+        }
+    },
+    deleteCRMLead: async (id: string | number) => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/leads/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Erro ao excluir lead.');
+            return await res.json();
+        } catch (err: any) {
+            console.error("CRM Delete Error:", err);
+            throw err;
+        }
+    },
+    migrateCRM: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/migrate`, { method: 'POST' });
+            if (!res.ok) throw new Error('Falha na migração.');
+            return await res.json();
+        } catch (err: any) {
+            console.error("Migration Error:", err);
             throw err;
         }
     },
@@ -759,7 +779,7 @@ export const dbService = {
             return null;
         }
     },
-    updateConsultativeAction: async (id: number, data: any) => {
+    updateConsultativeAction: async (id: string | number, data: any) => {
         try {
             const res = await fetch(`${API_BASE}/crm/consultiva/${id}`, {
                 method: 'PUT',
@@ -773,7 +793,7 @@ export const dbService = {
             return null;
         }
     },
-    deleteConsultativeAction: async (id: number) => {
+    deleteConsultativeAction: async (id: string | number) => {
         try {
             const res = await fetch(`${API_BASE}/crm/consultiva/${id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Erro ao excluir ação consultiva.');

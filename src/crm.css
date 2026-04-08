@@ -1,0 +1,304 @@
+/* CRM Premium Design System */
+
+.crm-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 40px 60px;
+    animation: fadeIn 0.5s ease-out;
+    box-sizing: border-box;
+}
+
+.metrics-grid-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+@media (max-width: 1024px) {
+    .metrics-grid-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Premium Header */
+.crm-header-premium {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32px;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(172, 248, 0, 0.1);
+    border-radius: 24px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+}
+
+.crm-header-premium::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -10%;
+    width: 40%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(172, 248, 0, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.crm-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.crm-badge-small {
+    font-size: 10px;
+    font-weight: 900;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.crm-main-title {
+    font-size: 2.2rem;
+    font-weight: 950;
+    letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #fff 30%, var(--primary-color) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Glass Cards 2.0 */
+.crm-card {
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border: 1px solid rgba(172, 248, 0, 0.08);
+    border-radius: 28px;
+    padding: 28px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.crm-card:hover {
+    border-color: rgba(172, 248, 0, 0.4);
+    transform: translateY(-5px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(172, 248, 0, 0.1);
+}
+
+/* Buttons Glow */
+.btn-glow {
+    background: var(--primary-gradient);
+    color: #000 !important;
+    font-weight: 800;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(172, 248, 0, 0.2);
+}
+
+.btn-glow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(172, 248, 0, 0.4);
+    filter: brightness(1.1);
+}
+
+.btn-icon-only {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-icon-only:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Modals */
+.crm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.crm-modal-content {
+    background: rgba(10, 15, 25, 0.9);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(172, 248, 0, 0.2);
+    border-radius: 32px;
+    width: 100%;
+    max-width: 650px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 0 100px rgba(0, 0, 0, 0.8), 0 0 50px rgba(172, 248, 0, 0.05);
+    animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Inputs */
+.crm-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.crm-input-group label {
+    font-size: 11px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.crm-input {
+    background: rgba(2, 6, 23, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.crm-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(172, 248, 0, 0.1);
+}
+
+/* Kanban System */
+.kanban-view {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    min-height: 700px;
+}
+
+.kanban-col {
+    min-width: 320px;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.kanban-col-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8px;
+}
+
+.kanban-col-header h3 {
+    font-size: 13px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+}
+
+.kanban-card-premium {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 20px;
+    cursor: grab;
+}
+
+.kanban-card-premium:hover {
+    border-color: var(--primary-color);
+    background: rgba(172, 248, 0, 0.03);
+}
+
+/* Tables */
+.crm-table-container {
+    width: 100%;
+    overflow-x: auto;
+    background: rgba(15, 23, 42, 0.2);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.crm-premium-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.crm-premium-table th {
+    text-align: left;
+    padding: 20px;
+    font-size: 11px;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.crm-premium-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.crm-table-row:hover {
+    background: rgba(172, 248, 0, 0.03);
+}
+
+/* Global Input / Select Resets for CRM */
+.crm-container input, 
+.crm-container select, 
+.crm-container textarea {
+    background-color: transparent !important;
+    background: transparent !important;
+    color: white !important;
+    border: none;
+    outline: none;
+}
+
+.crm-container select option {
+    background-color: #0f172a !important;
+    color: white !important;
+}
+
+/* Force dark panels for inputs that look like white bars */
+.glass-panel input, .glass-panel select {
+    background-color: transparent !important;
+    background: transparent !important;
+    color: white !important;
+}

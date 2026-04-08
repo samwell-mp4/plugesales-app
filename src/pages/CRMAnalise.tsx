@@ -53,10 +53,10 @@ const CRMAnalise = () => {
     const avgTicket = convertedLeads > 0 ? totalValue / convertedLeads : (totalLeads > 0 ? totalValue / totalLeads : 0);
 
     const metrics = [
-        { label: 'Conversão', value: `${conversionRate.toFixed(1)}%`, trend: '+2.4%', up: true, icon: <Target className="text-secondary" /> },
-        { label: 'Valor Total', value: `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, trend: '+12%', up: true, icon: <DollarSign className="text-primary" /> },
-        { label: 'Leads Ativos', value: totalLeads, trend: '-3', up: false, icon: <Users className="text-blue-400" /> },
-        { label: 'Ticket Médio', value: `R$ ${avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, trend: '+5%', up: true, icon: <TrendingUp className="text-purple-400" /> },
+        { label: 'Taxa de Conversão', value: `${conversionRate.toFixed(1)}%`, trend: '+2.4%', up: true, icon: <Target size={24} />, color: 'var(--primary-color)' },
+        { label: 'Pipeline Total', value: `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, trend: '+12%', up: true, icon: <DollarSign size={24} />, color: '#10b981' },
+        { label: 'Leads no Funil', value: totalLeads, trend: '-3', up: false, icon: <Users size={24} />, color: '#3b82f6' },
+        { label: 'Ticket Médio', value: `R$ ${avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, trend: '+5%', up: true, icon: <TrendingUp size={24} />, color: '#f59e0b' },
     ];
 
     // Status Distribution
@@ -69,18 +69,17 @@ const CRMAnalise = () => {
     const statusData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
 
     return (
-        <div className="crm-container animate-fade-in">
-            <header className="crm-header glass-panel">
-                <div className="header-identity">
-                    <div className="category-tag"><BarChart3 size={12} /> BUSINESS INTELLIGENCE</div>
-                    <h1 className="text-gradient">Análise Geral CRM</h1>
-                    <p className="subtitle">Métricas de performance e funil de conversão</p>
+        <div className="crm-container">
+            <header className="crm-header-premium">
+                <div className="crm-title-group">
+                    <div className="crm-badge-small"><BarChart3 size={12} /> BUSINESS INTELLIGENCE</div>
+                    <h1 className="crm-main-title">Análise de Performance</h1>
                 </div>
 
-                <div className="header-actions">
-                    <div className="time-selector glass-panel">
-                        <Calendar size={14} className="opacity-40" />
-                        <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
+                <div className="flex gap-4">
+                    <div className="glass-panel flex items-center px-4 rounded-xl border-white/5 bg-white/5">
+                        <Calendar size={14} className="text-primary-color mr-3" />
+                        <select className="bg-transparent border-none outline-none text-white font-bold text-xs cursor-pointer py-2" value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
                             <option>Hoje</option>
                             <option>Esta Semana</option>
                             <option>Este Mês</option>
@@ -88,56 +87,70 @@ const CRMAnalise = () => {
                         </select>
                     </div>
                     
-                    <button className="sync-btn glass-panel" onClick={fetchLeads} disabled={isLoading}>
-                        <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                    <button className="btn-icon-only" onClick={fetchLeads} disabled={isLoading}>
+                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
 
-                    <button className="btn-secondary">
-                        <Download size={16} /> EXPORTAR
+                    <button className="btn-glow">
+                        <Download size={16} /> Exportar
                     </button>
                 </div>
             </header>
 
-            <div className="metrics-grid">
+            <div className="metrics-grid-row">
                 {metrics.map((m, i) => (
-                    <div key={i} className="glass-card metric-card">
-                        <div className="metric-header">
-                            <div className="m-icon-box">{m.icon}</div>
-                            <div className={`trend-tag ${m.up ? 'trend-up' : 'trend-down'}`}>
-                                {m.up ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                    <div key={i} className="crm-card relative group overflow-hidden border-t-2" style={{ borderTopColor: m.color }}>
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-all transform group-hover:scale-110">
+                            {m.icon}
+                        </div>
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="p-3 rounded-xl bg-white/5 border border-white/5 text-primary-color">
+                                {m.icon}
+                            </div>
+                            <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-full ${m.up ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                                {m.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                                 {m.trend}
                             </div>
                         </div>
-                        <div className="metric-body">
-                            <h3>{m.label}</h3>
-                            <h2>{m.value}</h2>
-                        </div>
-                        <div className="metric-footer">
-                            <div className="progress-bar-bg">
-                                <div className="progress-bar-fill" style={{ width: m.up ? '75%' : '40%', background: m.up ? 'var(--primary-color)' : '#ef4444' }}></div>
-                            </div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">{m.label}</span>
+                        <h2 className="text-3xl font-black text-white">{m.value}</h2>
+                        <div className="mt-4 w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full transition-all duration-1000" style={{ width: m.up ? '75%' : '40%', background: m.color }}></div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="charts-flex">
-                <div className="glass-card chart-container flex-1">
-                    <div className="chart-header">
-                        <h3><Activity size={16} /> Distribuição de Status</h3>
-                        <Filter size={16} className="opacity-30" />
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
+                <div className="crm-card p-10">
+                    <div className="flex justify-between items-center mb-10">
+                        <div className="flex flex-col">
+                            <h3 className="text-lg font-black text-white flex items-center gap-3">
+                                <Activity size={20} className="text-primary-color" /> 
+                                Fluxo do Funil de Vendas
+                            </h3>
+                            <p className="text-xs text-gray-500 font-bold mt-1 uppercase tracking-tighter">Volume de leads por estágio de negociação</p>
+                        </div>
+                        <Filter size={18} className="text-gray-600" />
                     </div>
-                    <div className="status-bars">
+                    
+                    <div className="flex flex-col gap-6">
                         {statusData.sort((a,b) => b.value - a.value).map((item, i) => {
                             const percentage = (item.value / (totalLeads || 1)) * 100;
                             return (
-                                <div key={i} className="status-row">
-                                    <div className="status-info">
-                                        <span className="status-name">{item.name}</span>
-                                        <span className="status-count">{item.value} leads</span>
+                                <div key={i} className="group cursor-default">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: `hsl(${172 + i * 30}, 80%, 50%)` }}></div>
+                                            <span className="text-xs font-black text-gray-300 uppercase">{item.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-xs font-black text-white">{item.value} <span className="text-gray-600 ml-1">leads</span></span>
+                                            <span className="text-[10px] font-black text-primary-color px-2 py-0.5 bg-primary-color/10 rounded">{percentage.toFixed(0)}%</span>
+                                        </div>
                                     </div>
-                                    <div className="status-bar-bg">
-                                        <div className="status-bar-fill" style={{ width: `${percentage}%`, background: `hsl(${100 - i * 20}, 80%, 60%)` }}></div>
+                                    <div className="w-full h-3 bg-white/[0.03] rounded-full overflow-hidden border border-white/5 group-hover:border-primary-color/20 transition-all">
+                                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${percentage}%`, background: `linear-gradient(90deg, hsl(${172 + i * 30}, 80%, 50%), hsl(${172 + i * 30 + 20}, 70%, 40%))` }}></div>
                                     </div>
                                 </div>
                             );
@@ -145,78 +158,46 @@ const CRMAnalise = () => {
                     </div>
                 </div>
 
-                <div className="glass-card performance-summary">
-                    <div className="chart-header">
-                        <h3><PieChart size={16} /> Resumo de Eficiência</h3>
-                    </div>
-                    <div className="efficiency-circle">
-                        <div className="circle-inner">
-                            <span className="efficiency-val">{conversionRate.toFixed(0)}%</span>
-                            <span className="efficiency-label">TAXA DE ÊXITO</span>
+                <div className="crm-card performance-summary flex flex-col items-center justify-center p-10 text-center relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary-color/5 filter blur-3xl rounded-full"></div>
+                    
+                    <div className="mb-8">
+                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[4px] mb-2">Health Score</h3>
+                        <div className="flex items-center gap-4">
+                            <PieChart size={24} className="text-primary-color" />
+                            <h2 className="text-xl font-black">Eficiência de Fechamento</h2>
                         </div>
                     </div>
-                    <div className="eff-stats">
-                        <div className="eff-item">
-                            <span className="marker" style={{ background: 'var(--primary-color)' }}></span>
-                            <span className="lbl">Concluídos</span>
-                            <span className="val">{convertedLeads}</span>
+
+                    <div className="relative w-52 h-52 flex items-center justify-center mb-10">
+                        <svg className="w-full h-full transform -rotate-90">
+                            <circle cx="104" cy="104" r="90" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="12" />
+                            <circle cx="104" cy="104" r="90" fill="transparent" stroke="var(--primary-color)" strokeWidth="12" strokeDasharray={565.48} strokeDashoffset={565.48 * (1 - conversionRate / 100)} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                        </svg>
+                        <div className="absolute flex flex-col items-center">
+                            <span className="text-5xl font-black text-white tracking-tighter">{conversionRate.toFixed(0)}%</span>
+                            <span className="text-[10px] font-black text-gray-500 tracking-widest mt-1">SUCCESS RATE</span>
                         </div>
-                        <div className="eff-item">
-                            <span className="marker" style={{ background: 'rgba(255,255,255,0.1)' }}></span>
-                            <span className="lbl">Em Aberto</span>
-                            <span className="val">{totalLeads - convertedLeads}</span>
+                    </div>
+
+                    <div className="w-full flex flex-col gap-3">
+                        <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-primary-color"></div>
+                                <span className="text-xs font-bold text-gray-400">Leads Convertidos</span>
+                            </div>
+                            <span className="text-sm font-black text-white">{convertedLeads}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-gray-700"></div>
+                                <span className="text-xs font-bold text-gray-400">Leads Perdidos/Em Aberto</span>
+                            </div>
+                            <span className="text-sm font-black text-white">{totalLeads - convertedLeads}</span>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <style>{`
-                .crm-container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
-                .crm-header { display: flex; justify-content: space-between; align-items: center; padding: 25px 35px; border-radius: 20px; margin-bottom: 25px; }
-                .text-gradient { font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, #fff 0%, var(--primary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; }
-                .category-tag { font-size: 10px; font-weight: 800; color: var(--primary-color); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; opacity: 0.8; }
-                
-                .header-actions { display: flex; gap: 15px; align-items: center; }
-                .time-selector { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 12px; }
-                .time-selector select { background: transparent; border: none; color: #fff; font-weight: 700; font-size: 12px; outline: none; }
-                
-                .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px; }
-                .metric-card { padding: 25px; border-radius: 24px; }
-                .metric-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-                .m-icon-box { width: 42px; height: 42px; background: rgba(255,255,255,0.03); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); }
-                .trend-tag { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; }
-                .trend-up { background: rgba(172, 248, 0, 0.1); color: var(--primary-color); }
-                .trend-down { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-                .metric-body h3 { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.4); margin: 0; }
-                .metric-body h2 { font-size: 1.8rem; font-weight: 900; margin: 8px 0 15px; letter-spacing: -0.5px; }
-                .progress-bar-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
-                .progress-bar-fill { height: 100%; border-radius: 10px; }
-
-                .charts-flex { display: flex; gap: 20px; }
-                .chart-container { padding: 30px; border-radius: 24px; }
-                .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-                .chart-header h3 { font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
-                
-                .status-bars { display: flex; flex-direction: column; gap: 18px; }
-                .status-row { display: flex; flex-direction: column; gap: 8px; }
-                .status-info { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
-                .status-name { color: rgba(255,255,255,0.6); }
-                .status-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.03); border-radius: 10px; overflow: hidden; }
-                .status-bar-fill { height: 100%; border-radius: 10px; }
-
-                .performance-summary { width: 350px; padding: 30px; display: flex; flex-direction: column; align-items: center; }
-                .efficiency-circle { width: 180px; height: 180px; border-radius: 50%; border: 12px solid rgba(172, 248, 0, 0.1); display: flex; align-items: center; justify-content: center; margin: 20px 0 35px; position: relative; }
-                .efficiency-circle::after { content: ''; position: absolute; inset: -12px; border-radius: 50%; border: 12px solid var(--primary-color); border-bottom-color: transparent; border-right-color: transparent; transform: rotate(45deg); }
-                .circle-inner { display: flex; flex-direction: column; align-items: center; }
-                .efficiency-val { font-size: 2.5rem; font-weight: 950; line-height: 1; }
-                .efficiency-label { font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.3); letter-spacing: 1px; margin-top: 5px; }
-                
-                .eff-stats { width: 100%; display: flex; flex-direction: column; gap: 12px; }
-                .eff-item { display: flex; align-items: center; gap: 12px; font-size: 12px; }
-                .marker { width: 8px; height: 8px; border-radius: 50%; }
-                .lbl { flex: 1; color: rgba(255,255,255,0.5); font-weight: 600; }
-                .val { font-weight: 800; }
-            `}</style>
         </div>
     );
 };

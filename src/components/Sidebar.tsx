@@ -20,7 +20,10 @@ import {
     Zap,
     ChevronDown,
     Settings,
-    Activity
+    Activity,
+    BarChart3,
+    Users,
+    Calendar
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -111,22 +114,22 @@ const Sidebar = () => {
         },
         {
             id: 'CRM',
-            label: 'CRM & GESTÃO',
+            label: 'CRM & GESTÃO ESTRATÉGICA',
             items: [
                 {
-                    name: 'Dashboard CRM',
+                    name: 'Pipeline de Vendas',
                     icon: <Activity />,
                     children: [
-                        { name: 'Análise Geral', path: '/crm/analise' },
-                        { name: 'Clientes & Funil', path: '/crm/funil' },
-                        { name: 'Gestão Consultiva', path: '/crm/consultiva' },
+                        { name: 'Análise Geral', path: '/crm/analise', icon: <BarChart3 /> },
+                        { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users /> },
+                        { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar /> },
                     ]
                 }
             ]
         },
         {
             id: 'PÁGINAS',
-            label: 'PÁGINAS & ENCURTADOR',
+            label: 'CONVERSÃO & LINKS',
             items: [
                 {
                     name: 'Ferramentas de Link',
@@ -389,11 +392,11 @@ const Sidebar = () => {
                 {filteredCats.map(cat => (
                     <div key={cat.id} className="category-block">
                         <div 
-                            className="category-toggle" 
+                            className="bg-white/[0.03] px-3 py-2 rounded-lg flex items-center justify-between group hover:bg-white/[0.05] transition-all cursor-pointer mb-2" 
                             onClick={() => { if(cat.id !== 'OPERACIONAL') setCollapsedCats(p => ({ ...p, [cat.id]: !p[cat.id] })); }}
                             style={{ cursor: cat.id === 'OPERACIONAL' ? 'default' : 'pointer' }}
                         >
-                            <span className="category-title">{cat.label}</span>
+                            <span className="text-[10px] font-black text-white/40 uppercase tracking-[2px] group-hover:text-primary transition-colors">{cat.label}</span>
                             {cat.id !== 'OPERACIONAL' && (
                                 <ChevronDown size={10} className={`opacity-20 transition-transform ${collapsedCats[cat.id] ? '-rotate-90' : ''}`} />
                             )}
@@ -409,10 +412,10 @@ const Sidebar = () => {
                                             to={item.path}
                                             className={({ isActive }) => `nav-link-item ${isActive ? 'active' : ''}`}
                                         >
-                                            <div className={`${location.pathname === item.path ? 'text-primary' : 'opacity-40'}`}>
-                                                {React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
+                                            <div className={`${location.pathname === item.path ? 'text-primary' : 'text-white/30'}`}>
+                                                {item.icon && React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
                                             </div>
-                                            <span className="font-semibold">{item.name}</span>
+                                            <span className="font-semibold text-white/70">{item.name}</span>
                                         </NavLink>
                                     )
                                 ))}

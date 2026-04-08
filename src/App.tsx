@@ -38,6 +38,7 @@ import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
 import MetaPixel from './components/MetaPixel'; // Importando o Rastreador Condicional
 import './index.css';
+import './crm.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';

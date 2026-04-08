@@ -584,42 +584,37 @@ const getSheetsClient = async () => {
 
 app.get('/api/crm/leads', async (req, res) => {
     try {
-        const sheets = await getSheetsClient();
-        if (sheets) {
-            const response = await sheets.spreadsheets.values.get({
-                spreadsheetId: CRM_SPREADSHEET_ID,
-                range: 'Página1!A2:J', // Inclui até a coluna J (Volume)
-            });
-            const rows = response.data.values;
-            if (!rows) return res.json([]);
-
-            const leads = rows.map((row, index) => {
-                return {
-                    id: index + 1,
-                    nome: row[0] || '',
-                    numero: row[1] || '',
-                    email: row[2] || '',
-                    tag: row[3] || '',
-                    status: row[4] || 'Sem Status',
-                    data_entrada: row[5] || '',
-                    responsavel: row[6] || '',
-                    value_client: row[7] || '0',
-                    metodo: row[8] || '',
-                    volume: row[9] || ''
-                };
-            }).filter(l => l.nome || l.numero || l.email); // Filtra linhas vazias
-            return res.json(leads);
+        const { responsavel } = req.query;
+        let query = supabase.from('crm_leads').select('*').order('created_at', { ascending: false });
+        
+        if (responsavel) {
+            query = query.eq('responsavel', responsavel);
         }
 
-        // Fallback para CSV público
-        const csvUrl = `https://docs.google.com/spreadsheets/d/${CRM_SPREADSHEET_ID}/export?format=csv&gid=0`;
-        const response = await fetch(csvUrl);
-        if (!response.ok) throw new Error('Falha ao acessar a planilha pública.');
-        const csvText = await response.text();
-        const rows = csvText.split('\n').map(row => row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim()));
-        const dataRows = rows.slice(1);
-        const leads = dataRows.map((row, index) => ({
-            id: index + 1,
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        res.json(data || []);
+    } catch (err) {
+        console.error("CRM Leads Error (Supabase):", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// MIGRATION ENDPOINT: Google Sheets -> Supabase
+app.post('/api/crm/migrate', async (req, res) => {
+    try {
+        const sheets = await getSheetsClient();
+        if (!sheets) throw new Error('Google Sheets client not available.');
+
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: CRM_SPREADSHEET_ID,
+            range: 'Página1!A2:J',
+        });
+        const rows = response.data.values;
+        if (!rows) return res.json({ message: 'No data to migrate.' });
+
+        const leads = rows.map((row) => ({
             nome: row[0] || '',
             numero: row[1] || '',
             email: row[2] || '',
@@ -630,10 +625,14 @@ app.get('/api/crm/leads', async (req, res) => {
             value_client: row[7] || '0',
             metodo: row[8] || '',
             volume: row[9] || ''
-        })).filter(l => l.nome || l.numero || l.email); // Filtra linhas vazias
-        res.json(leads);
+        })).filter(l => l.nome || l.numero || l.email);
+
+        const { error } = await supabase.from('crm_leads').insert(leads);
+        if (error) throw error;
+
+        res.json({ success: true, count: leads.length });
     } catch (err) {
-        console.error("CRM Leads Error:", err.message);
+        console.error("Migration Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });
@@ -641,70 +640,64 @@ app.get('/api/crm/leads', async (req, res) => {
 app.put('/api/crm/leads/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const updateData = req.body || {};
-        const rowNumber = parseInt(id) + 1;
-
-        const sheets = await getSheetsClient();
-        if (!sheets) throw new Error('Google API não configurada. Verifique o arquivo service-account.json ou a variável GOOGLE_SERVICE_ACCOUNT_JSON.');
-
-        // Mapear dados para as colunas A-J
-        const values = [[
-            updateData.nome || '',
-            updateData.numero || '',
-            updateData.email || '',
-            updateData.tag || '',
-            updateData.status || '',
-            updateData.data_entrada || '',
-            updateData.responsavel || '',
-            updateData.value_client || '0',
-            updateData.metodo || '',
-            updateData.volume || ''
-        ]];
-
-        await sheets.spreadsheets.values.update({
-            spreadsheetId: CRM_SPREADSHEET_ID,
-            range: `Página1!A${rowNumber}:J${rowNumber}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values },
-        });
-
-        res.json({ success: true, message: `Lead na linha ${rowNumber} atualizado.` });
+        const { error } = await supabase
+            .from('crm_leads')
+            .update(req.body)
+            .eq('id', id);
+        
+        if (error) throw error;
+        res.json({ success: true });
     } catch (err) {
-        console.error("CRM Update Error:", err.message);
+        console.error("CRM Update Error (Supabase):", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/crm/leads/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase
+            .from('crm_leads')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        console.error("CRM Delete Error (Supabase):", err.message);
         res.status(500).json({ error: err.message });
     }
 });
 
 
 
-// --- CRM / GESTÃO CONSULTIVA ENDPOINTS ---
+// --- CRM / GESTÃO CONSULTIVA ENDPOINTS (SUPABASE) ---
 app.get('/api/crm/consultiva', async (req, res) => {
     try {
         const { responsavel } = req.query;
-        let query = 'SELECT * FROM consultative_actions';
-        const params = [];
+        let query = supabase.from('consultative_actions').select('*').order('action_date', { ascending: true });
         
         if (responsavel) {
-            query += ' WHERE responsavel = $1';
-            params.push(responsavel);
+            query = query.eq('responsavel', responsavel);
         }
-        
-        query += ' ORDER BY action_date ASC, created_at DESC';
-        const result = await pool.query(query, params);
-        res.json(result.rows);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        res.json(data || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 app.post('/api/crm/consultiva', async (req, res) => {
-    const { client_name, action_date, priority, status, responsavel, notes } = req.body;
     try {
-        const result = await pool.query(
-            'INSERT INTO consultative_actions (client_name, action_date, priority, status, responsavel, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [client_name, action_date, priority || 'MÉDIA', status || 'PENDENTE', responsavel, notes]
-        );
-        res.json(result.rows[0]);
+        const { data, error } = await supabase
+            .from('consultative_actions')
+            .insert([req.body])
+            .select();
+        
+        if (error) throw error;
+        res.json(data[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -712,20 +705,15 @@ app.post('/api/crm/consultiva', async (req, res) => {
 
 app.put('/api/crm/consultiva/:id', async (req, res) => {
     const { id } = req.params;
-    const { client_name, action_date, priority, status, responsavel, notes } = req.body;
     try {
-        const result = await pool.query(
-            `UPDATE consultative_actions 
-             SET client_name = COALESCE($1, client_name), 
-                 action_date = COALESCE($2, action_date), 
-                 priority = COALESCE($3, priority), 
-                 status = COALESCE($4, status), 
-                 responsavel = COALESCE($5, responsavel), 
-                 notes = COALESCE($6, notes)
-             WHERE id = $7 RETURNING *`,
-            [client_name, action_date, priority, status, responsavel, notes, id]
-        );
-        res.json(result.rows[0]);
+        const { data, error } = await supabase
+            .from('consultative_actions')
+            .update(req.body)
+            .eq('id', id)
+            .select();
+        
+        if (error) throw error;
+        res.json(data[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -734,7 +722,12 @@ app.put('/api/crm/consultiva/:id', async (req, res) => {
 app.delete('/api/crm/consultiva/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        await pool.query('DELETE FROM consultative_actions WHERE id = $1', [id]);
+        const { error } = await supabase
+            .from('consultative_actions')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

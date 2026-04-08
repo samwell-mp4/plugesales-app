@@ -3,7 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import {
     Calendar as CalendarIcon, ChevronLeft, ChevronRight,
     Plus, Search, Filter, AlertTriangle, CheckCircle2,
-    Clock, MoreHorizontal, User, Layout, MessageSquare
+    Clock, MoreHorizontal, User, Layout, MessageSquare,
+    Trash2, Edit3, X, Save, RefreshCw
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
@@ -13,8 +14,10 @@ const GestaoConsultiva = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<'mes' | 'semana' | 'lista'>('mes');
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [newAction, setNewAction] = useState({
+    const [selectedAction, setSelectedAction] = useState<any | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
+    
+    const [actionForm, setActionForm] = useState({
         client_name: '',
         action_date: new Date().toISOString().split('T')[0],
         priority: 'MÉDIA',
@@ -29,7 +32,6 @@ const GestaoConsultiva = () => {
     const fetchActions = async () => {
         setIsLoading(true);
         try {
-            // If user is employee, filter by their name
             const responsavel = user?.role === 'EMPLOYEE' ? user.name : undefined;
             const data = await dbService.getConsultativeActions(responsavel);
             setActions(data);
@@ -40,27 +42,37 @@ const GestaoConsultiva = () => {
         }
     };
 
-    const handleAddAction = async () => {
+    const handleSaveAction = async () => {
+        setIsUpdating(true);
         try {
-            await dbService.addConsultativeAction({
-                ...newAction,
-                responsavel: user?.name
-            });
-            setShowAddModal(false);
+            if (activeModal === 'edit' && selectedAction) {
+                await dbService.updateConsultativeAction(selectedAction.id, actionForm);
+            } else {
+                await dbService.addConsultativeAction({
+                    ...actionForm,
+                    responsavel: user?.name
+                });
+            }
+            setActiveModal(null);
             fetchActions();
-            setNewAction({
-                client_name: '',
-                action_date: new Date().toISOString().split('T')[0],
-                priority: 'MÉDIA',
-                status: 'PENDENTE',
-                notes: ''
-            });
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleDeleteAction = async (id: string | number) => {
+        if (!window.confirm("Deseja excluir esta ação permanentemente?")) return;
+        try {
+            await dbService.deleteConsultativeAction(id);
+            fetchActions();
         } catch (err) {
             console.error(err);
         }
     };
 
-    const handleUpdateStatus = async (id: number, status: string) => {
+    const handleUpdateStatus = async (id: string | number, status: string) => {
         try {
             await dbService.updateConsultativeAction(id, { status });
             fetchActions();
@@ -69,10 +81,46 @@ const GestaoConsultiva = () => {
         }
     };
 
+    const [activeModal, setActiveModal] = useState<'add' | 'edit' | null>(null);
+
+    const openEditModal = (action: any) => {
+        setSelectedAction(action);
+        setActionForm({
+            client_name: action.client_name,
+            action_date: action.action_date.split('T')[0],
+            priority: action.priority,
+            status: action.status,
+            notes: action.notes || ''
+        });
+        setActiveModal('edit');
+    };
+
+    const openAddModal = () => {
+        setActionForm({
+            client_name: '',
+            action_date: new Date().toISOString().split('T')[0],
+            priority: 'MÉDIA',
+            status: 'PENDENTE',
+            notes: ''
+        });
+        setActiveModal('add');
+    };
+
     // --- Stats calculation ---
-    const totalActionsMonth = actions.filter(a => new Date(a.action_date).getMonth() === currentDate.getMonth()).length;
-    const completedActions = actions.filter(a => a.status === 'CONCLUÍDA').length;
-    const delayedActions = actions.filter(a => a.status === 'PENDENTE' && new Date(a.action_date) < new Date()).length;
+    const monthActions = actions.filter(a => {
+        if (!a || !a.action_date) return false;
+        try {
+            return new Date(a.action_date).getMonth() === currentDate.getMonth();
+        } catch (e) { return false; }
+    });
+    const totalActionsMonth = monthActions.length;
+    const completedActions = monthActions.filter(a => a.status === 'CONCLUÍDA').length;
+    const delayedActions = monthActions.filter(a => {
+        if (!a || !a.action_date) return false;
+        try {
+            return a.status === 'PENDENTE' && new Date(a.action_date) < new Date();
+        } catch (e) { return false; }
+    }).length;
     const effectiveness = totalActionsMonth > 0 ? (completedActions / totalActionsMonth) * 100 : 0;
 
     // --- Calendar helpers ---
@@ -87,83 +135,70 @@ const GestaoConsultiva = () => {
     };
 
     return (
-        <div className="consultiva-container animate-fade-in">
-            <header className="page-header">
-                <h1>Gestão Consultiva</h1>
+        <div className="crm-container">
+            <header className="crm-header-premium">
+                <div className="crm-title-group">
+                    <div className="crm-badge-small"><CalendarIcon size={12} /> GESTÃO DE PERFORMANCE</div>
+                    <h1 className="crm-main-title">Gestão Consultiva</h1>
+                </div>
+
+                <div className="flex gap-4">
+                    <button className="sync-btn glass-panel p-3 rounded-xl border-white/5" onClick={fetchActions}><RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} /></button>
+                    <button className="btn-glow" onClick={openAddModal}><Plus size={18} /> Nova Ação</button>
+                </div>
             </header>
 
-            {/* Metrics Cards */}
-            <div className="metrics-row">
-                <div className="glass-card stat-card border-l-blue">
-                    <label>AÇÕES DE {currentDate.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase()}</label>
-                    <h2>{totalActionsMonth}</h2>
+            <div className="metrics-grid-row">
+                <div className="crm-card border-l-4 border-l-blue-500 hover:scale-[1.02]">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">AÇÕES DE {currentDate.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase()}</span>
+                    <h2 className="text-3xl font-black">{totalActionsMonth}</h2>
                 </div>
-                <div className="glass-card stat-card border-l-green">
-                    <label>CONCLUÍDAS</label>
-                    <h2>{completedActions}</h2>
+                <div className="crm-card border-l-4 border-l-green-500 hover:scale-[1.02]">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">CONCLUÍDAS</span>
+                    <h2 className="text-3xl font-black text-primary-color">{completedActions}</h2>
                 </div>
-                <div className="glass-card stat-card border-l-red">
-                    <label>EM ATRASO</label>
-                    <h2>{delayedActions}</h2>
+                <div className="crm-card border-l-4 border-l-red-500 hover:scale-[1.02]">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">EM ATRASO</span>
+                    <h2 className="text-3xl font-black text-red-500">{delayedActions}</h2>
                 </div>
-                <div className="glass-card stat-card border-l-orange">
-                    <label>EFETIVIDADE</label>
-                    <h2>{effectiveness.toFixed(0)}%</h2>
+                <div className="crm-card border-l-4 border-l-orange-500 hover:scale-[1.02]">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">EFETIVIDADE</span>
+                    <h2 className="text-3xl font-black">{effectiveness.toFixed(0)}%</h2>
                 </div>
             </div>
 
-            {/* Filters Bar */}
-            <div className="filters-bar glass-panel">
-                <div className="filter-group">
-                    <div className="select-wrapper">
-                        <User size={14} />
-                        <select><option>Filtrar por Cliente</option></select>
-                    </div>
-                </div>
-                <div className="filter-group flex-1">
-                    <div className="select-wrapper">
-                        <Filter size={14} />
-                        <select><option>Prioridade (Toda)</option></select>
-                    </div>
-                </div>
-                <button className="new-btn" onClick={() => setShowAddModal(true)}><Plus size={16} /> Nova Ação</button>
-            </div>
-
-            <div className="main-grid">
-                {/* Calendar Area */}
-                <div className="calendar-area glass-panel">
-                    <div className="cal-header">
-                        <div className="cal-nav">
-                            <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth()-1)))}><ChevronLeft size={18} /></button>
-                            <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth()+1)))}><ChevronRight size={18} /></button>
-                            <button className="today-btn" onClick={() => setCurrentDate(new Date())}>Hoje</button>
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_380px] gap-8">
+                {/* CALENDAR SECTION */}
+                <div className="crm-card p-8">
+                    <div className="flex justify-between items-center mb-8">
+                        <div className="flex items-center gap-4">
+                            <button className="btn-icon-only" onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth()-1)))}><ChevronLeft size={20} /></button>
+                            <h2 className="text-xl font-black uppercase tracking-tight min-w-[180px] text-center">{currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h2>
+                            <button className="btn-icon-only" onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth()+1)))}><ChevronRight size={20} /></button>
                         </div>
-                        <h2 className="current-month-label">
-                            {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                        </h2>
-                        <div className="view-modes">
-                            <button className={viewMode === 'mes' ? 'active' : ''} onClick={() => setViewMode('mes')}>Mês</button>
-                            <button className={viewMode === 'semana' ? 'active' : ''} onClick={() => setViewMode('semana')}>Semana</button>
-                            <button className={viewMode === 'lista' ? 'active' : ''} onClick={() => setViewMode('lista')}>Lista</button>
+                        <div className="view-modes bg-white/5 p-1 rounded-xl">
+                            {['mes', 'semana', 'lista'].map(mode => (
+                                <button key={mode} className={`px-4 py-2 rounded-lg text-xs font-black uppercase transition-all ${viewMode === mode ? 'primary-gradient text-black shadow-lg shadow-primary-glow' : 'text-gray-500'}`} onClick={() => setViewMode(mode as any)}>{mode}</button>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="cal-grid">
-                        {['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'].map(d => (
-                            <div key={d} className="weekday-label">{d}</div>
+                    <div className="grid grid-cols-7 gap-3">
+                        {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'].map(d => (
+                            <div key={d} className="text-center text-[10px] font-black text-gray-600 uppercase mb-4">{d}</div>
                         ))}
                         {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                            <div key={`empty-${i}`} className="cal-day empty"></div>
+                            <div key={`empty-${i}`} className="aspect-square rounded-2xl bg-white/[0.01] border border-white/5 border-dashed"></div>
                         ))}
                         {days.map(day => {
                             const dayActions = getActionsByDay(day);
                             const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth();
                             return (
-                                <div key={day} className={`cal-day ${isToday ? 'today' : ''}`}>
-                                    <span className="day-num">{day}</span>
-                                    <div className="day-actions">
+                                <div key={day} className={`aspect-square rounded-2xl border transition-all p-3 group relative overflow-hidden ${isToday ? 'bg-primary-color/5 border-primary-color/30' : 'bg-white/[0.02] border-white/5 hover:border-white/10'}`}>
+                                    <span className={`text-xs font-black ${isToday ? 'text-primary-color' : 'text-gray-500'}`}>{day}</span>
+                                    <div className="mt-2 flex flex-col gap-1">
                                         {dayActions.map((act, i) => (
-                                            <div key={i} className={`act-pill prio-${act.priority.toLowerCase()}`} title={act.notes}>
+                                            <div key={i} className={`text-[8px] font-black px-2 py-1 rounded-md truncate cursor-pointer hover:scale-105 transition-transform ${act.priority === 'ALTA' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : act.priority === 'MÉDIA' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`} onClick={() => openEditModal(act)}>
                                                 {act.client_name}
                                             </div>
                                         ))}
@@ -174,31 +209,45 @@ const GestaoConsultiva = () => {
                     </div>
                 </div>
 
-                {/* Side Panels */}
-                <div className="side-panels">
-                    <div className="glass-panel info-panel border-red">
-                        <div className="panel-header">
-                            <AlertTriangle size={16} className="text-red-500" />
-                            <h3>PENDÊNCIAS CRÍTICAS</h3>
+                {/* SIDEBAR PANELS */}
+                <div className="flex flex-col gap-8">
+                    <div className="crm-card border-t-4 border-t-red-500">
+                        <div className="flex items-center gap-3 mb-6">
+                            <AlertTriangle size={18} className="text-red-500" />
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest">Pendências Críticas</h3>
                         </div>
-                        <div className="panel-content empty">
-                             <span className="opacity-20"><AlertTriangle size={32} /></span>
+                        <div className="flex flex-col gap-4">
+                            {actions.filter(a => a.priority === 'ALTA' && a.status === 'PENDENTE').slice(0, 3).map((act, i) => (
+                                <div key={i} className="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-red-500/30 transition-all cursor-pointer" onClick={() => openEditModal(act)}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-xs font-black text-white">{act.client_name}</span>
+                                        <Clock size={12} className="text-red-500" />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase">{new Date(act.action_date).toLocaleDateString()}</span>
+                                </div>
+                            ))}
+                            {actions.filter(a => a.priority === 'ALTA' && a.status === 'PENDENTE').length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-10 gap-3 opacity-20">
+                                    <CheckCircle2 size={32} />
+                                    <span className="text-[10px] font-black">SEM PENDÊNCIAS</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <div className="glass-panel info-panel border-blue">
-                        <div className="panel-header">
-                            <CheckCircle2 size={16} className="text-blue-500" />
-                            <h3>ENTREGAS DA SEMANA</h3>
+                    <div className="crm-card border-t-4 border-t-blue-500">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Clock size={18} className="text-blue-500" />
+                            <h3 className="text-xs font-black text-white uppercase tracking-widest">Entregas da Semana</h3>
                         </div>
-                        <div className="deliveries-list mt-2">
-                            {actions.slice(0, 3).map((act, i) => (
-                                <div key={i} className="delivery-item">
-                                    <div className="d-info">
-                                        <span className="d-name">{act.client_name}</span>
-                                        <span className="d-meta">{new Date(act.action_date).toLocaleDateString()} - {act.status.toLowerCase()}</span>
+                        <div className="flex flex-col gap-4">
+                            {actions.filter(a => a.status === 'PENDENTE').sort((a,b) => new Date(a.action_date).getTime() - new Date(b.action_date).getTime()).slice(0, 5).map((act, i) => (
+                                <div key={i} className="bg-white/5 p-4 rounded-xl border border-white/5 flex items-center justify-between group">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-black text-white">{act.client_name}</span>
+                                        <span className="text-[9px] font-bold text-gray-500 uppercase">{new Date(act.action_date).toLocaleDateString()}</span>
                                     </div>
-                                    <button className="check-btn" onClick={() => handleUpdateStatus(act.id, 'CONCLUÍDA')}><CheckCircle2 size={14} /></button>
+                                    <button className="w-8 h-8 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white transition-all flex items-center justify-center" onClick={() => handleUpdateStatus(act.id, 'CONCLUÍDA')}><CheckCircle2 size={14} /></button>
                                 </div>
                             ))}
                         </div>
@@ -206,102 +255,53 @@ const GestaoConsultiva = () => {
                 </div>
             </div>
 
-            {/* Modal de Nova Ação */}
-            {showAddModal && (
-                <div className="modal-overlay">
-                    <div className="glass-panel modal-content-small">
-                        <h3>NOVA AÇÃO CONSULTIVA</h3>
-                        <div className="form-group">
-                            <label>CLIENTE</label>
-                            <input type="text" value={newAction.client_name} onChange={e => setNewAction({...newAction, client_name: e.target.value})} />
-                        </div>
-                        <div className="form-group">
-                            <label>DATA</label>
-                            <input type="date" value={newAction.action_date} onChange={e => setNewAction({...newAction, action_date: e.target.value})} />
-                        </div>
-                        <div className="form-group">
-                            <label>PRIORIDADE</label>
-                            <select value={newAction.priority} onChange={e => setNewAction({...newAction, priority: e.target.value})}>
-                                <option>BAIXA</option>
-                                <option>MÉDIA</option>
-                                <option>ALTA</option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label>NOTAS</label>
-                            <textarea value={newAction.notes} onChange={e => setNewAction({...newAction, notes: e.target.value})}></textarea>
-                        </div>
-                        <div className="modal-actions">
-                            <button className="cancel-btn" onClick={() => setShowAddModal(false)}>Cancelar</button>
-                            <button className="save-btn" onClick={handleAddAction}>Criar Ação</button>
+            {/* MODAL SISTEMA */}
+            {activeModal && (
+                <div className="crm-modal-overlay" onClick={() => setActiveModal(null)}>
+                    <div className="crm-modal-content max-w-[500px]" onClick={e => e.stopPropagation()}>
+                        <header className="p-8 border-b border-white/5 flex justify-between items-center">
+                            <h2 className="text-xl font-black text-white uppercase tracking-tight">{activeModal === 'add' ? 'Nova Ação Consultiva' : 'Editar Ação'}</h2>
+                            <button className="p-2 hover:bg-white/5 rounded-lg text-gray-400" onClick={() => setActiveModal(null)}><X size={20} /></button>
+                        </header>
+                        <div className="p-8">
+                            <div className="crm-input-group">
+                                <label>Nome do Cliente</label>
+                                <input type="text" className="crm-input" placeholder="Ex: Cliente Alpha" value={actionForm.client_name} onChange={e => setActionForm({...actionForm, client_name: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="crm-input-group">
+                                    <label>Data Agenda</label>
+                                    <input type="date" className="crm-input" value={actionForm.action_date} onChange={e => setActionForm({...actionForm, action_date: e.target.value})} />
+                                </div>
+                                <div className="crm-input-group">
+                                    <label>Prioridade</label>
+                                    <select className="crm-input" value={actionForm.priority} onChange={e => setActionForm({...actionForm, priority: e.target.value})}>
+                                        <option>BAIXA</option>
+                                        <option>MÉDIA</option>
+                                        <option>ALTA</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="crm-input-group">
+                                <label>Observações</label>
+                                <textarea className="crm-input h-24 resize-none" placeholder="..." value={actionForm.notes} onChange={e => setActionForm({...actionForm, notes: e.target.value})}></textarea>
+                            </div>
+                            
+                            <div className="mt-8 flex gap-4">
+                                <button className="flex-1 py-4 bg-primary-color text-black font-black text-sm rounded-xl flex items-center justify-center gap-3 active:scale-95 transition-all" onClick={handleSaveAction} disabled={isUpdating}>
+                                    {isUpdating ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+                                    {activeModal === 'add' ? 'Criar Ação' : 'Salvar Alterações'}
+                                </button>
+                                {activeModal === 'edit' && (
+                                    <button className="p-4 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-red-500/20" onClick={() => handleDeleteAction(selectedAction.id)}>
+                                        <Trash2 size={20} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
-
-            <style>{`
-                .consultiva-container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
-                .page-header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 25px; }
-
-                .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
-                .stat-card { padding: 25px; border-radius: 20px; }
-                .stat-card label { display: block; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
-                .stat-card h2 { font-size: 1.8rem; font-weight: 900; margin: 0; }
-                .border-l-blue { border-left: 4px solid #3b82f6; }
-                .border-l-green { border-left: 4px solid #10b981; }
-                .border-l-red { border-left: 4px solid #ef4444; }
-                .border-l-orange { border-left: 4px solid #f59e0b; }
-
-                .filters-bar { display: flex; align-items: center; gap: 15px; padding: 12px 20px; border-radius: 16px; margin-bottom: 25px; }
-                .select-wrapper { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 15px; border-radius: 12px; min-width: 200px; }
-                .select-wrapper select { background: transparent; border: none; color: #fff; font-weight: 600; font-size: 12px; width: 100%; outline: none; }
-                
-                .new-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 8px 20px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 10px; }
-                .new-btn:hover { background: rgba(255,255,255,0.1); }
-
-                .main-grid { display: grid; grid-template-columns: 1fr 340px; gap: 25px; }
-                .calendar-area { padding: 25px; border-radius: 24px; }
-                .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-                .cal-nav { display: flex; align-items: center; gap: 10px; }
-                .cal-nav button { background: rgba(255,255,255,0.05); border: none; color: #fff; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-                .today-btn { width: auto !important; padding: 0 15px !important; font-size: 12px; font-weight: 700; }
-                .current-month-label { font-size: 1.5rem; font-weight: 900; text-transform: capitalize; }
-                
-                .view-modes { background: rgba(0,0,0,0.2); padding: 4px; border-radius: 10px; display: flex; }
-                .view-modes button { background: transparent; border: none; padding: 6px 15px; border-radius: 6px; color: rgba(255,255,255,0.4); font-size: 12px; font-weight: 800; cursor: pointer; }
-                .view-modes button.active { background: #3b8dff20; color: #3b8dff; }
-
-                .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-                .weekday-label { text-align: center; font-size: 12px; font-weight: 900; color: rgba(255,255,255,0.2); padding-bottom: 15px; }
-                .cal-day { background: rgba(255,255,255,0.01); aspect-ratio: 1; border-radius: 12px; border: 1px solid rgba(255,255,255,0.03); padding: 10px; position: relative; }
-                .cal-day.today { background: rgba(59, 141, 255, 0.05); border-color: rgba(59, 141, 255, 0.2); }
-                .day-num { font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.2); }
-                .today .day-num { color: #3b8dff; }
-                .day-actions { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
-                .act-pill { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                .prio-alta { background: #ef444420; color: #ef4444; border-left: 2px solid #ef4444; }
-                .prio-média { background: #3b82f620; color: #3b82f6; border-left: 2px solid #3b82f6; }
-                .prio-baixa { background: #10b98120; color: #10b981; border-left: 2px solid #10b981; }
-
-                .side-panels { display: flex; flex-direction: column; gap: 20px; }
-                .info-panel { padding: 20px; border-radius: 20px; }
-                .panel-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-                .panel-header h3 { font-size: 11px; font-weight: 950; letter-spacing: 1px; }
-                .panel-content.empty { height: 80px; display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(255,255,255,0.05); border-radius: 12px; margin-top: 10px; }
-                
-                .delivery-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-                .d-info { display: flex; flex-direction: column; }
-                .d-name { font-size: 12px; font-weight: 800; color: #fff; }
-                .d-meta { font-size: 10px; color: rgba(255,255,255,0.4); }
-                .check-btn { background: transparent; border: none; color: rgba(255,255,255,0.1); cursor: pointer; transition: 0.3s; }
-                .check-btn:hover { color: #10b981; }
-
-                .modal-content-small { padding: 30px; width: 400px; }
-                .form-group { margin-bottom: 15px; }
-                .form-group label { display: block; font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
-                .form-group input, .form-group select, .form-group textarea { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; color: #fff; outline: none; }
-                .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-            `}</style>
         </div>
     );
 };
