@@ -2692,26 +2692,30 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
             return res.status(400).json({ error: 'Chave Infobip não configurada para este usuário' });
         }
 
-        // Helper to clean numbers for comparison
-        const clean = (n) => n?.replace(/\D/g, '');
+        const clean = (n) => (n && typeof n === 'string') ? n.replace(/\D/g, '') : '';
         const targetClean = clean(number);
 
         // 1. Check if the number is a SENDER (WABA)
         console.log('[INFOBIP] Checking if sender...');
-        const sendersResponse = await fetch(`${INFOBIP_BASE_URL}/whatsapp/1/senders`, {
-            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
-        });
+        let sendersData = { senders: [] };
+        try {
+            const sendersResponse = await fetch(`${INFOBIP_BASE_URL}/whatsapp/1/senders`, {
+                headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+            });
+            if (sendersResponse.ok) {
+                sendersData = await sendersResponse.json();
+            }
+        } catch (e) {
+            console.error('[INFOBIP] Senders fetch failed:', e.message);
+        }
 
-        if (sendersResponse.ok) {
-            const sendersData = await sendersResponse.json();
-            const sender = sendersData.senders?.find((s) => clean(s.address) === targetClean || clean(s.number) === targetClean);
-            
-            if (sender && sender.channelApplicationId) {
-                console.log(`[INFOBIP] Found WABA sender: ${sender.channelApplicationId}`);
+        const sender = sendersData.senders?.find((s) => clean(s.address) === targetClean || clean(s.number) === targetClean);
+        
+        if (sender && sender.channelApplicationId) {
+            console.log(`[INFOBIP] Found WABA sender: ${sender.channelApplicationId}`);
+            try {
                 const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?channelApplicationId=${sender.channelApplicationId}`, {
-                    headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' },
-                    signal: AbortSignal.timeout(10000)
+                    headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
                 });
                 
                 if (convResponse.ok) {
@@ -2720,27 +2724,29 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
                     console.log(`[INFOBIP] Found ${conversations.length} conversations for WABA`);
                     return res.json({ isWaba: true, sender, conversations });
                 }
+            } catch (e) {
+                console.error('[INFOBIP] WABA conv fetch failed:', e.message);
             }
         }
 
         // 2. Fallback: Search as a CUSTOMER (Participant)
         console.log('[INFOBIP] Searching as customer...');
-        const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?participantIdentity=${number}&participantType=CUSTOMER`, {
-            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
-        });
+        try {
+            const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?participantIdentity=${number}&participantType=CUSTOMER`, {
+                headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+            });
 
-        if (convResponse.ok) {
-            const convData = await convResponse.json();
-            const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
+            if (convResponse.ok) {
+                const convData = await convResponse.json();
+                const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
 
-            if (conversations.length > 0) {
-                console.log(`[INFOBIP] Found conversation for customer: ${conversations[0].id}`);
-                return res.json({ isWaba: false, person: conversations[0].person || { id: number }, conversations: conversations });
+                if (conversations.length > 0) {
+                    console.log(`[INFOBIP] Found conversation for customer: ${conversations[0].id}`);
+                    return res.json({ isWaba: false, person: conversations[0].person || { id: number }, conversations: conversations });
+                }
             }
-        } else {
-            const errData = await convResponse.json().catch(() => ({}));
-            console.error('[INFOBIP] Conv error:', errData);
+        } catch (e) {
+            console.error('[INFOBIP] Customer conv fetch failed:', e.message);
         }
 
         console.log('[INFOBIP] Nothing found');
@@ -2749,7 +2755,7 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
     } catch (err) {
         console.error('[INFOBIP] Fatal error:', err);
         if (!res.headersSent) {
-            res.status(500).json({ error: err.message });
+            res.status(500).json({ error: err.message || 'Erro interno no servidor' });
         }
     }
 });
