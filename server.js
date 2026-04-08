@@ -2668,14 +2668,8 @@ app.get('/api/v2/admin/refunds', async (req, res) => {
     }
 });
 
-// SPA fallback
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
 
-// --- BACKGROUND MONITORING: INFOBIP TEMPLATES ---
 // --- Infobip Live Chat Proxy Endpoints ---
-
 const INFOBIP_BASE_URL = 'https://8k6xv1.api-us.infobip.com';
 
 app.get('/api/infobip/resolve-number/:number', async (req, res) => {
@@ -2691,7 +2685,6 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
         const apiKey = userRes.rows[0].infobip_key;
         if (!apiKey) return res.status(400).json({ error: 'Chave Infobip não configurada para este usuário' });
 
-        // Step 1: Resolve Phone to Person ID
         const personResponse = await fetch(`${INFOBIP_BASE_URL}/people/1/persons?type=PHONE&identifier=${number}`, {
             headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
         });
@@ -2706,8 +2699,6 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
 
         if (!personId) return res.status(404).json({ error: 'Pessoa não encontrada na Infobip' });
 
-        // Step 2: Get active conversation for this person
-        // We attempt to filter by personId in query param
         const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?personId=${personId}`, {
             headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
         });
@@ -2717,7 +2708,6 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
         }
 
         const convData = await convResponse.json();
-        // Return the first active conversation or just the details
         res.json({ person: personData, conversations: convData });
 
     } catch (err) {
@@ -2781,6 +2771,12 @@ app.post('/api/infobip/conversations/:id/messages', async (req, res) => {
     }
 });
 
+// SPA fallback
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// --- BACKGROUND MONITORING: INFOBIP TEMPLATES ---
 const startTemplateMonitoring = () => {
     console.log('🚀 [MONITOR] Inciando monitoramento de templates (45s interval)...');
 
