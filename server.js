@@ -2685,30 +2685,29 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
         const apiKey = userRes.rows[0].infobip_key;
         if (!apiKey) return res.status(400).json({ error: 'Chave Infobip não configurada para este usuário' });
 
-        const personResponse = await fetch(`${INFOBIP_BASE_URL}/people/1/persons?type=PHONE&identifier=${number}`, {
-            headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
-        });
-
-        if (!personResponse.ok) {
-            const errData = await personResponse.json().catch(() => ({}));
-            return res.status(personResponse.status).json({ error: 'Erro ao buscar pessoa na Infobip', details: errData });
-        }
-
-        const personData = await personResponse.json();
-        const personId = personData.id;
-
-        if (!personId) return res.status(404).json({ error: 'Pessoa não encontrada na Infobip' });
-
-        const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?personId=${personId}`, {
+        // Direct search: Find conversations where the participant (customer) has this phone number
+        const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?participantIdentity=${number}&participantType=CUSTOMER`, {
             headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
         });
 
         if (!convResponse.ok) {
-            return res.status(convResponse.status).json({ error: 'Erro ao buscar conversas na Infobip' });
+            const errData = await convResponse.json().catch(() => ({}));
+            return res.status(convResponse.status).json({ error: 'Erro ao buscar conversas na Infobip', details: errData });
         }
 
         const convData = await convResponse.json();
-        res.json({ person: personData, conversations: convData });
+        
+        // Find the conversation from the list (the API might return multiple, we usually want the most recent or active)
+        // Infobip returns an object with a 'conversations' array or similar. 
+        // Based on research, it's often an array directly or { conversations: [] }
+        const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
+
+        if (conversations.length === 0) {
+            return res.status(404).json({ error: 'Nenhuma conversa encontrada para este número.' });
+        }
+
+        // Return the first one (most recent usually)
+        res.json({ person: conversations[0].person || { id: number }, conversations: conversations });
 
     } catch (err) {
         console.error('Error resolving Infobip number:', err);
