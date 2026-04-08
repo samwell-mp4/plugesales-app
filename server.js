@@ -351,7 +351,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_approved BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_feedback TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS origin VARCHAR(50)`);
-        
+
         // Migration: Tag existing data
         console.log('Running security migration: tagging submission origin...');
         await client.query(`UPDATE client_submissions SET origin = 'TEMPLATE_CREATOR' WHERE status = 'GERADO' AND origin IS NULL`);
@@ -482,12 +482,12 @@ const initDB = async () => {
 
         // Seed the Plug Cards catalog — idempotent via ON CONFLICT (name)
         const seedCards = [
-            { name: 'PC-10 | Foundation Card',   tier: 'foundation',  vol: 10000,   chips: 5,   camps: 1,   pri: 'low',    speed: 'standard',    ban: 'basic',     price: 97.00,   copy: 'Entrada estratégica para validação de campanhas e aquisição inicial.', features: { resources: ['Templates padrão', 'Tracking básico de clique', 'Dashboard essencial'] } },
-            { name: 'PC-20 | Growth Card',       tier: 'growth',      vol: 20000,   chips: 8,   camps: 2,   pri: 'low',    speed: 'stable',      ban: 'basic',     price: 197.00,  copy: 'Primeiro nível de escala com consistência operacional.', features: { resources: ['Personalização de templates', 'Métricas de entrega', 'Histórico de campanhas'] } },
-            { name: 'PC-50 | Performance Card',  tier: 'performance', vol: 50000,   chips: 15,  camps: 4,   pri: 'medium', speed: 'accelerated', ban: 'pro',       price: 497.00,  copy: 'Construído para operações que já geram receita consistente.', features: { resources: ['Prioridade média', 'Envio acelerado', 'Suporte priority'] } },
-            { name: 'PC-100 | Scale Card',       tier: 'velocity',    vol: 100000,  chips: 25,  camps: 10,  pri: 'medium', speed: 'high',        ban: 'pro',       price: 897.00,  copy: 'Focado em escala rápida com automação de infraestrutura.', features: { resources: ['Automação de rotação', 'Chips ilimitados (soft)', 'Relatórios avançados'] } },
-            { name: 'PC-250 | Domination Card',  tier: 'dominance',   vol: 250000,  chips: 60,  camps: 999, pri: 'high',   speed: 'turbo',       ban: 'enterprise', price: 1997.00, copy: 'Domínio total de mercado com volume massivo e estabilidade.', features: { resources: ['Infra dedicada', 'Warm-up assistido', 'Manager exclusivo'] } },
-            { name: 'PC-500 | Apex Card',        tier: 'apex',        vol: 500000,  chips: 150, camps: 999, pri: 'high',   speed: 'instant',     ban: 'highest',   price: 3497.00, copy: 'O ápice da operação Plug & Sales. Máxima escala, mínima fricção.', features: { resources: ['Acesso antecipado beta', 'Customização total', 'Acordo de SLA 99%'] } }
+            { name: 'PC-10 | Foundation Card', tier: 'foundation', vol: 10000, chips: 5, camps: 1, pri: 'low', speed: 'standard', ban: 'basic', price: 97.00, copy: 'Entrada estratégica para validação de campanhas e aquisição inicial.', features: { resources: ['Templates padrão', 'Tracking básico de clique', 'Dashboard essencial'] } },
+            { name: 'PC-20 | Growth Card', tier: 'growth', vol: 20000, chips: 8, camps: 2, pri: 'low', speed: 'stable', ban: 'basic', price: 197.00, copy: 'Primeiro nível de escala com consistência operacional.', features: { resources: ['Personalização de templates', 'Métricas de entrega', 'Histórico de campanhas'] } },
+            { name: 'PC-50 | Performance Card', tier: 'performance', vol: 50000, chips: 15, camps: 4, pri: 'medium', speed: 'accelerated', ban: 'pro', price: 497.00, copy: 'Construído para operações que já geram receita consistente.', features: { resources: ['Prioridade média', 'Envio acelerado', 'Suporte priority'] } },
+            { name: 'PC-100 | Scale Card', tier: 'velocity', vol: 100000, chips: 25, camps: 10, pri: 'medium', speed: 'high', ban: 'pro', price: 897.00, copy: 'Focado em escala rápida com automação de infraestrutura.', features: { resources: ['Automação de rotação', 'Chips ilimitados (soft)', 'Relatórios avançados'] } },
+            { name: 'PC-250 | Domination Card', tier: 'dominance', vol: 250000, chips: 60, camps: 999, pri: 'high', speed: 'turbo', ban: 'enterprise', price: 1997.00, copy: 'Domínio total de mercado com volume massivo e estabilidade.', features: { resources: ['Infra dedicada', 'Warm-up assistido', 'Manager exclusivo'] } },
+            { name: 'PC-500 | Apex Card', tier: 'apex', vol: 500000, chips: 150, camps: 999, pri: 'high', speed: 'instant', ban: 'highest', price: 3497.00, copy: 'O ápice da operação Plug & Sales. Máxima escala, mínima fricção.', features: { resources: ['Acesso antecipado beta', 'Customização total', 'Acordo de SLA 99%'] } }
         ];
 
         for (const card of seedCards) {
@@ -505,6 +505,24 @@ const initDB = async () => {
         }
 
         console.log('✅ Plug Cards tables verified and catalog seeded automatically.');
+
+        // ============================================================
+        // CRM GESTÃO CONSULTIVA — NEW TABLE
+        // ============================================================
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS consultative_actions (
+                id SERIAL PRIMARY KEY,
+                client_name TEXT NOT NULL,
+                action_date DATE NOT NULL,
+                priority TEXT DEFAULT 'MÉDIA',
+                status TEXT DEFAULT 'PENDENTE',
+                responsavel TEXT,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✅ Table consultative_actions verified/created.');
+        // ============================================================
         // ============================================================
         console.log('✅ Database initialized and verified.');
 
@@ -625,7 +643,7 @@ app.put('/api/crm/leads/:id', async (req, res) => {
     try {
         const updateData = req.body || {};
         const rowNumber = parseInt(id) + 1;
-        
+
         const sheets = await getSheetsClient();
         if (!sheets) throw new Error('Google API não configurada. Verifique o arquivo service-account.json ou a variável GOOGLE_SERVICE_ACCOUNT_JSON.');
 
@@ -658,6 +676,70 @@ app.put('/api/crm/leads/:id', async (req, res) => {
 });
 
 
+
+// --- CRM / GESTÃO CONSULTIVA ENDPOINTS ---
+app.get('/api/crm/consultiva', async (req, res) => {
+    try {
+        const { responsavel } = req.query;
+        let query = 'SELECT * FROM consultative_actions';
+        const params = [];
+        
+        if (responsavel) {
+            query += ' WHERE responsavel = $1';
+            params.push(responsavel);
+        }
+        
+        query += ' ORDER BY action_date ASC, created_at DESC';
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/crm/consultiva', async (req, res) => {
+    const { client_name, action_date, priority, status, responsavel, notes } = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO consultative_actions (client_name, action_date, priority, status, responsavel, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [client_name, action_date, priority || 'MÉDIA', status || 'PENDENTE', responsavel, notes]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/crm/consultiva/:id', async (req, res) => {
+    const { id } = req.params;
+    const { client_name, action_date, priority, status, responsavel, notes } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE consultative_actions 
+             SET client_name = COALESCE($1, client_name), 
+                 action_date = COALESCE($2, action_date), 
+                 priority = COALESCE($3, priority), 
+                 status = COALESCE($4, status), 
+                 responsavel = COALESCE($5, responsavel), 
+                 notes = COALESCE($6, notes)
+             WHERE id = $7 RETURNING *`,
+            [client_name, action_date, priority, status, responsavel, notes, id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/crm/consultiva/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM consultative_actions WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Configuração de CORS
 app.use(cors());
@@ -1191,7 +1273,7 @@ app.get('/api/client-submissions', async (req, res) => {
         }
 
         query += ` ORDER BY c.timestamp DESC`;
-        
+
         const result = await pool.query(query, params);
         res.json(result.rows || []);
     } catch (err) {
@@ -1641,7 +1723,7 @@ app.get('/api/pro-links', async (req, res) => {
     const { user_id } = req.query;
     try {
         const result = await pool.query(
-            'SELECT * FROM pro_rotators WHERE user_id = $1 ORDER BY created_at DESC', 
+            'SELECT * FROM pro_rotators WHERE user_id = $1 ORDER BY created_at DESC',
             [user_id]
         );
         res.json(result.rows);
@@ -2075,7 +2157,7 @@ app.get('/r/:slug', async (req, res) => {
         // Track Detailed Click (Fire and Forget)
         const userIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
         const cleanIp = userIp.includes(',') ? userIp.split(',')[0].trim() : userIp;
-        
+
         (async () => {
             try {
                 let country = 'Local', city = 'N/A';
@@ -2087,7 +2169,7 @@ app.get('/r/:slug', async (req, res) => {
                             country = geo.country;
                             city = geo.city;
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                 }
 
                 await pool.query(
@@ -2568,10 +2650,10 @@ app.get('/api/v2/wallet', async (req, res) => {
         `, [userId]);
         const gifts = await pool.query('SELECT * FROM gift_cards WHERE creator_user_id = $1 OR recipient_user_id = $1 ORDER BY created_at DESC', [userId]);
         const refunds = await pool.query('SELECT * FROM refund_requests WHERE user_id = $1 ORDER BY requested_at DESC', [userId]);
-        
-        res.json({ 
-            wallet, 
-            ledger: ledger.rows, 
+
+        res.json({
+            wallet,
+            ledger: ledger.rows,
             purchases: purchases.rows,
             gifts: gifts.rows,
             refunds: refunds.rows
@@ -2616,15 +2698,15 @@ app.get('/api/v2/refund/eligibility/:purchaseId', async (req, res) => {
         const purchase = await pool.query('SELECT * FROM user_card_purchases WHERE id = $1', [req.params.purchaseId]);
         if (purchase.rows.length === 0) return res.status(404).json({ error: 'Compra não encontrada' });
         const p = purchase.rows[0];
-        
+
         const now = new Date();
         const deadline = new Date(p.refund_deadline_at);
         const expired = now > deadline;
         const eligible = p.credits_available > 0 && !expired && p.credits_used === 0;
-        
-        res.json({ 
-            eligible, 
-            credits: p.credits_available, 
+
+        res.json({
+            eligible,
+            credits: p.credits_available,
             deadline: p.refund_deadline_at,
             expired,
             valueEstimated: (p.credits_available / p.credits_origin_total) * p.price_paid
@@ -2691,7 +2773,7 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
             console.log('[INFOBIP] User not found');
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
-        
+
         const apiKey = userRes.rows[0].infobip_key;
         if (!apiKey) {
             console.log('[INFOBIP] API Key missing');
@@ -2716,14 +2798,14 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
         }
 
         const sender = sendersData.senders?.find((s) => clean(s.address) === targetClean || clean(s.number) === targetClean);
-        
+
         if (sender && sender.channelApplicationId) {
             console.log(`[INFOBIP] Found WABA sender: ${sender.channelApplicationId}`);
             try {
                 const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?channelApplicationId=${sender.channelApplicationId}`, {
                     headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
                 });
-                
+
                 if (convResponse.ok) {
                     const convData = await convResponse.json();
                     const conversations = Array.isArray(convData) ? convData : (convData.conversations || []);
@@ -2799,8 +2881,8 @@ app.post('/api/infobip/conversations/:id/messages', async (req, res) => {
 
         const response = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations/${id}/messages`, {
             method: 'POST',
-            headers: { 
-                'Authorization': `App ${apiKey}`, 
+            headers: {
+                'Authorization': `App ${apiKey}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
@@ -2996,7 +3078,7 @@ app.post('/api/step-leads', async (req, res) => {
         if (agent_name) {
             // Normaliza tanto o nome no banco quanto o parâmetro recebido (remove espaços, hifens e coloca em lowercase)
             const agentRes = await pool.query(
-                "SELECT notification_number, phone FROM users WHERE LOWER(REPLACE(REPLACE(name, ' ', ''), '-', '')) = LOWER(REPLACE(REPLACE($1, ' ', ''), '-', '')) LIMIT 1", 
+                "SELECT notification_number, phone FROM users WHERE LOWER(REPLACE(REPLACE(name, ' ', ''), '-', '')) = LOWER(REPLACE(REPLACE($1, ' ', ''), '-', '')) LIMIT 1",
                 [agent_name.replace(/\+/g, '')]
             );
             agentPhone = agentRes.rows[0]?.notification_number || agentRes.rows[0]?.phone || null;
@@ -3251,7 +3333,7 @@ app.post('/api/plug-cards/buy', async (req, res) => {
                 // Card "4242..." always succeeds
                 // Card "5000..." always fails
                 const num = (cardData?.cardNumber || '').replace(/\s/g, '');
-                
+
                 if (num.startsWith('5000')) {
                     return { success: false, error: 'Pagamento recusado pelo emissor (Simulação).' };
                 }
@@ -3414,7 +3496,7 @@ app.get('/api/plug-cards/wallet/:userId', async (req, res) => {
             .select('*, plug_cards(*)')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
-        
+
         if (error) throw error;
 
         // Flatten for frontend compatibility
@@ -3521,7 +3603,7 @@ const CardEconomyService = {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            
+
             const cardRes = await client.query('SELECT * FROM plug_cards WHERE id = $1', [cardId]);
             if (cardRes.rows.length === 0) throw new Error('Card not found');
             const card = cardRes.rows[0];
@@ -3589,7 +3671,7 @@ const CardEconomyService = {
                 WHERE user_id = $1 AND credits_available > 0 
                 ORDER BY purchased_at ASC
             `, [userId]);
-            
+
             let remainingToReserve = amount;
             for (const p of purchasesRes.rows) {
                 const take = Math.min(remainingToReserve, p.credits_available);
@@ -3599,7 +3681,7 @@ const CardEconomyService = {
                         credits_reserved = credits_reserved + $1
                     WHERE id = $2
                 `, [take, p.id]);
-                
+
                 await client.query(`
                     INSERT INTO campaign_credit_reservations (
                         user_id, campaign_reference, purchase_id, requested_credits, reserved_credits, reservation_status
@@ -3833,10 +3915,10 @@ app.get('/api/v2/wallet', async (req, res) => {
         `, [userId]);
         const gifts = await pool.query('SELECT * FROM gift_cards WHERE creator_user_id = $1 OR recipient_user_id = $1 ORDER BY created_at DESC', [userId]);
         const refunds = await pool.query('SELECT * FROM refund_requests WHERE user_id = $1 ORDER BY requested_at DESC', [userId]);
-        
-        res.json({ 
-            wallet, 
-            ledger: ledger.rows, 
+
+        res.json({
+            wallet,
+            ledger: ledger.rows,
             purchases: purchases.rows,
             gifts: gifts.rows,
             refunds: refunds.rows
@@ -3881,15 +3963,15 @@ app.get('/api/v2/refund/eligibility/:purchaseId', async (req, res) => {
         const purchase = await pool.query('SELECT * FROM user_card_purchases WHERE id = $1', [req.params.purchaseId]);
         if (purchase.rows.length === 0) return res.status(404).json({ error: 'Compra não encontrada' });
         const p = purchase.rows[0];
-        
+
         const now = new Date();
         const deadline = new Date(p.refund_deadline_at);
         const expired = now > deadline;
         const eligible = p.credits_available > 0 && !expired && p.credits_used === 0;
-        
-        res.json({ 
-            eligible, 
-            credits: p.credits_available, 
+
+        res.json({
+            eligible,
+            credits: p.credits_available,
             deadline: p.refund_deadline_at,
             expired,
             valueEstimated: (p.credits_available / p.credits_origin_total) * p.price_paid

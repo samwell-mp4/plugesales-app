@@ -732,6 +732,57 @@ export const dbService = {
             throw err;
         }
     },
+    // --- GESTÃO CONSULTIVA ---
+    getConsultativeActions: async (responsavel?: string) => {
+        try {
+            const params = new URLSearchParams();
+            if (responsavel) params.append('responsavel', responsavel);
+            const res = await fetch(`${API_BASE}/crm/consultiva?${params.toString()}`);
+            if (!res.ok) throw new Error('Erro ao carregar ações consultivas.');
+            return await res.json();
+        } catch (err: any) {
+            console.error("Consultative Actions Fetch Error:", err);
+            return [];
+        }
+    },
+    addConsultativeAction: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/consultiva`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error('Erro ao adicionar ação consultiva.');
+            return await res.json();
+        } catch (err: any) {
+            console.error("Consultative Action Add Error:", err);
+            return null;
+        }
+    },
+    updateConsultativeAction: async (id: number, data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/consultiva/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error('Erro ao atualizar ação consultiva.');
+            return await res.json();
+        } catch (err: any) {
+            console.error("Consultative Action Update Error:", err);
+            return null;
+        }
+    },
+    deleteConsultativeAction: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/consultiva/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Erro ao excluir ação consultiva.');
+            return await res.json();
+        } catch (err: any) {
+            console.error("Consultative Action Delete Error:", err);
+            return { error: err.message };
+        }
+    },
     debugDb: async () => {
         try {
             const res = await fetch(`${API_BASE}/debug/db`);

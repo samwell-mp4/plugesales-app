@@ -110,6 +110,21 @@ const Sidebar = () => {
             ]
         },
         {
+            id: 'CRM',
+            label: 'CRM & GESTÃO',
+            items: [
+                {
+                    name: 'Dashboard CRM',
+                    icon: <Activity />,
+                    children: [
+                        { name: 'Análise Geral', path: '/crm/analise' },
+                        { name: 'Clientes & Funil', path: '/crm/funil' },
+                        { name: 'Gestão Consultiva', path: '/crm/consultiva' },
+                    ]
+                }
+            ]
+        },
+        {
             id: 'PÁGINAS',
             label: 'PÁGINAS & ENCURTADOR',
             items: [
@@ -119,7 +134,6 @@ const Sidebar = () => {
                     children: [
                         { name: 'Encurtador', path: '/link-shortener', icon: <Link /> },
                         { name: 'Rotacionador PRO', path: '/link-rotator', icon: <Zap /> },
-                        { name: 'Dashboard CRM', path: '/crm-dashboard', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
                     ]
                 }
             ]

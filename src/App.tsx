@@ -25,7 +25,9 @@ import Profile from './pages/Profile';
 import LeadStepForm from './pages/LeadStepForm';
 import LeadAdminView from './pages/LeadAdminView';
 import ClientForClientForm from './pages/ClientForClientForm';
-import CRMDashboard from './pages/CRMDashboard';
+import CRMAnalise from './pages/CRMAnalise';
+import CRMFunil from './pages/CRMFunil';
+import GestaoConsultiva from './pages/GestaoConsultiva';
 import CronReport from './pages/CronReport';
 import PlugCardsExchange from './pages/PlugCardsExchange';
 import MyPlugCards from './pages/MyPlugCards';
@@ -140,7 +142,9 @@ function AppContent() {
           <Route path="/client-add/:parentId/:submissionId?" element={<ClientForClientForm />} />
           <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
           <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/dashboard" />} />
-          <Route path="/crm-dashboard" element={<CRMDashboard />} />
+          <Route path="/crm/analise" element={<CRMAnalise />} />
+          <Route path="/crm/funil" element={<CRMFunil />} />
+          <Route path="/crm/consultiva" element={<GestaoConsultiva />} />
           <Route path="/cron-report" element={<CronReport />} />
           {/* PLUG CARDS MODULE — isolated, no impact on existing routes */}
           <Route path="/plug-cards" element={<PlugCardsExchange />} />
