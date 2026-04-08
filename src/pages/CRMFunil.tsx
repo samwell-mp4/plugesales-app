@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Search, Filter, RefreshCw, User as UserIcon, 
@@ -9,6 +9,87 @@ import {
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { dbService } from '../services/dbService';
+
+// --- Memoized Components for Performance ---
+
+const LeadCard = memo(({ lead, index, onEdit, onFavorite, onDelete, onWhatsApp, formatDate, getInitials }: any) => {
+    return (
+        <Draggable draggableId={lead.id.toString()} index={index}>
+            {(provided, snapshot) => (
+                <div 
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    className={`lead-card-glass group ${snapshot.isDragging ? 'dragging-card' : ''}`} 
+                    onClick={() => onEdit(lead)}
+                    style={{
+                        ...provided.draggableProps.style,
+                        transition: snapshot.isDragging ? 'none' : provided.draggableProps.style?.transition
+                    }}
+                >
+                    <div className="lead-card-header">
+                        <div className="lead-name-group">
+                            <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
+                            <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
+                        </div>
+                        <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
+                    </div>
+
+                    <div className="lead-info-grid">
+                        <div className="lead-info-item text-primary-color">
+                            <Zap size={11} fill="currentColor" /> 
+                            {lead.metodo || 'Sem Método'} | {lead.volume || '0'}
+                        </div>
+                        <div className="lead-info-item">
+                            <Phone size={11} /> 
+                            {lead.numero}
+                        </div>
+                        <div className="lead-info-item">
+                            <UserIcon size={11} />
+                            {lead.responsavel}
+                        </div>
+                    </div>
+
+                    <div className="lead-footer-actions">
+                        <div className="lead-date-badge">
+                            <Calendar size={10} />
+                            {formatDate(lead.created_at)}
+                        </div>
+                        <div className="lead-quick-actions">
+                            <button 
+                                className={`lead-favorite-btn ${lead.is_favorite ? 'active' : ''}`}
+                                onClick={(e) => { e.stopPropagation(); onFavorite(lead); }}
+                            >
+                                <Star size={14} fill={lead.is_favorite ? 'currentColor' : 'none'} />
+                            </button>
+                            <button 
+                                className="btn-card-action whatsapp" 
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    onWhatsApp(lead.numero); 
+                                }}
+                                title="WhatsApp"
+                            >
+                                <MessageSquare size={14} />
+                            </button>
+                            <button 
+                                className="btn-card-action delete" 
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    onDelete(lead.id); 
+                                }}
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </Draggable>
+    );
+});
+
+LeadCard.displayName = 'LeadCard';
 
 const CRMFunil = () => {
     const { user } = useAuth();
@@ -145,16 +226,29 @@ const CRMFunil = () => {
 
     const filteredLeads = useMemo(() => {
         return leads.filter(lead => {
-            const name = lead.nome || '';
-            const number = lead.numero || '';
-            const responsavel = lead.responsavel || '';
-            const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                 number.includes(searchTerm) || 
-                                 responsavel.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesStatus = filterStatus === 'Todos' || lead.status === filterStatus;
-            return matchesSearch && matchesStatus;
+            const name = (lead.nome || '').toLowerCase();
+            const number = (lead.numero || '').toLowerCase();
+            const responsavel = (lead.responsavel || '').toLowerCase();
+            const query = searchTerm.toLowerCase();
+
+            const matchesSearch = name.includes(query) || number.includes(query) || responsavel.includes(query);
+            const matchesFilter = filterStatus === 'Todos' || lead.status === filterStatus;
+
+            return matchesSearch && matchesFilter;
         });
     }, [leads, searchTerm, filterStatus]);
+
+    // Group leads by status for efficient rendering
+    const leadsByStatus = useMemo(() => {
+        const groups: Record<string, any[]> = {};
+        statusList.forEach(status => groups[status] = []);
+        filteredLeads.forEach(lead => {
+            if (groups[lead.status]) {
+                groups[lead.status].push(lead);
+            }
+        });
+        return groups;
+    }, [filteredLeads]);
 
     // Metrics Calculations
     const metrics = useMemo(() => {
@@ -180,18 +274,22 @@ const CRMFunil = () => {
 
     const statusList = ['Aguardando Atendimento', 'Agendamento Realizado', 'Venda Realizada', 'Não Fechou', 'Não Respondeu'];
     
-    const getInitials = (name: string) => {
+    const getInitials = useCallback((name: string) => {
         if (!name) return '??';
         const parts = name.trim().split(/\s+/);
         if (parts.length === 1) return name.substring(0, 2).toUpperCase();
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    };
+    }, []);
 
-    const formatDate = (dateStr: string) => {
+    const formatDate = useCallback((dateStr: string) => {
         if (!dateStr) return 'Recente';
         const date = new Date(dateStr);
         return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-    };
+    }, []);
+
+    const handleWhatsApp = useCallback((numero: string) => {
+        window.open(`https://wa.me/${(numero || '').replace(/\D/g,'')}`, '_blank');
+    }, []);
 
     return (
         <div className="crm-container animate-fade-in">
@@ -387,81 +485,22 @@ const CRMFunil = () => {
                                                 </div>
 
                                                 <div className="kanban-cards-container">
-                                                    {filteredLeads.filter(l => l.status === status).map((lead, index) => (
-                                                        <Draggable key={lead.id} draggableId={lead.id.toString()} index={index}>
-                                                            {(provided, snapshot) => (
-                                                                <div 
-                                                                    ref={provided.innerRef}
-                                                                    {...provided.draggableProps}
-                                                                    {...provided.dragHandleProps}
-                                                                    className={`lead-card-glass group ${snapshot.isDragging ? 'dragging-card' : ''}`} 
-                                                                    onClick={() => setSelectedLead(lead)}
-                                                                >
-                                                                    <div className="lead-card-header">
-                                                                        <div className="lead-name-group">
-                                                                            <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
-                                                                            <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
-                                                                        </div>
-                                                                        <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
-                                                                    </div>
-
-                                                                    <div className="lead-info-grid">
-                                                                        <div className="lead-info-item text-primary-color">
-                                                                            <Zap size={11} fill="currentColor" /> 
-                                                                            {lead.metodo || 'Sem Método'} | {lead.volume || '0'}
-                                                                        </div>
-                                                                        <div className="lead-info-item">
-                                                                            <Phone size={11} /> 
-                                                                            {lead.numero}
-                                                                        </div>
-                                                                        <div className="lead-info-item">
-                                                                            <UserIcon size={11} />
-                                                                            {lead.responsavel}
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div className="lead-footer-actions">
-                                                                        <div className="lead-date-badge">
-                                                                            <Calendar size={10} />
-                                                                            {formatDate(lead.created_at)}
-                                                                        </div>
-                                                                        <div className="lead-quick-actions">
-                                                                            <button 
-                                                                                className={`lead-favorite-btn ${lead.is_favorite ? 'active' : ''}`}
-                                                                                onClick={(e) => { e.stopPropagation(); toggleFavorite(lead); }}
-                                                                            >
-                                                                                <Star size={14} fill={lead.is_favorite ? 'currentColor' : 'none'} />
-                                                                            </button>
-                                                                            <button 
-                                                                                className="btn-card-action whatsapp" 
-                                                                                onClick={(e) => { 
-                                                                                    e.stopPropagation(); 
-                                                                                    window.open(`https://wa.me/${(lead.numero || '').replace(/\D/g,'')}`, '_blank'); 
-                                                                                }}
-                                                                                title="WhatsApp"
-                                                                            >
-                                                                                <MessageSquare size={14} />
-                                                                            </button>
-                                                                            <button 
-                                                                                className="btn-card-action delete" 
-                                                                                onClick={(e) => { 
-                                                                                    e.stopPropagation(); 
-                                                                                    handleDeleteLead(lead.id); 
-                                                                                }}
-                                                                                title="Excluir"
-                                                                            >
-                                                                                <Trash2 size={14} />
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </Draggable>
+                                                    {(leadsByStatus[status] || []).map((lead, index) => (
+                                                        <LeadCard 
+                                                            key={lead.id} 
+                                                            lead={lead} 
+                                                            index={index} 
+                                                            onEdit={setSelectedLead}
+                                                            onFavorite={toggleFavorite}
+                                                            onDelete={handleDeleteLead}
+                                                            onWhatsApp={handleWhatsApp}
+                                                            formatDate={formatDate}
+                                                            getInitials={getInitials}
+                                                        />
                                                     ))}
-
                                                     {provided.placeholder}
 
-                                                    {filteredLeads.filter(l => l.status === status).length === 0 && !snapshot.isDraggingOver && (
+                                                    {(leadsByStatus[status] || []).length === 0 && !snapshot.isDraggingOver && (
                                                         <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/5 rounded-[24px] opacity-10">
                                                             <Zap size={24} className="mb-2" />
                                                             <span className="text-[10px] font-black tracking-widest uppercase">Sem Leads</span>
