@@ -16,6 +16,7 @@ import ClientDashboard from './pages/ClientDashboard';
 import LinkShortener from './pages/LinkShortener';
 import LinkRotator from './pages/LinkRotator';
 import LinkStats from './pages/LinkStats';
+import RotatorDetails from './pages/RotatorDetails';
 import ClientReports from './pages/ClientReportsPage';
 import LandingPage from './pages/LandingPage';
 import ThankYou from './pages/ThankYou';
@@ -124,6 +125,7 @@ function AppContent() {
           <Route path="/dispatch" element={<TemplateDispatch />} />
           <Route path="/link-shortener" element={<LinkShortener />} />
           <Route path="/link-rotator" element={<LinkRotator />} />
+          <Route path="/rotator-stats/:id" element={<RotatorDetails />} />
           <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
           <Route path="/landing" element={<LandingPage />} />

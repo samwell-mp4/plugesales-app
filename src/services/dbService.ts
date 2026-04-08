@@ -645,6 +645,16 @@ export const dbService = {
             return { error: err.message };
         }
     },
+    getProLinkStats: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/pro-links/${id}/stats`);
+            if (!res.ok) throw new Error("Erro ao buscar estatísticas do rotacionador");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching pro link stats:", err);
+            return null;
+        }
+    },
     trackTemplate: async (name: string, userId: number) => {
         try {
             await fetch(`${API_BASE}/templates/track`, {

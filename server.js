@@ -275,6 +275,18 @@ const initDB = async () => {
                 targets JSONB NOT NULL,
                 total_clicks INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS pro_rotator_clicks (
+                id SERIAL PRIMARY KEY,
+                rotator_id INTEGER REFERENCES pro_rotators(id) ON DELETE CASCADE,
+                target_url TEXT,
+                target_index INTEGER,
+                user_ip TEXT,
+                user_agent TEXT,
+                referer TEXT,
+                country TEXT,
+                city TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
@@ -1645,6 +1657,52 @@ app.delete('/api/pro-links/:id', async (req, res) => {
     }
 });
 
+app.get('/api/pro-links/:id/stats', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // 1. Get basic rotator info
+        const rotatorRes = await pool.query('SELECT * FROM pro_rotators WHERE id = $1', [id]);
+        if (rotatorRes.rows.length === 0) return res.status(404).json({ error: 'Rotacionador não encontrado' });
+        const rotator = rotatorRes.rows[0];
+
+        // 2. Click counts per target link
+        const targetStatsRes = await pool.query(
+            `SELECT target_index, target_url, COUNT(*) as clicks 
+             FROM pro_rotator_clicks 
+             WHERE rotator_id = $1 
+             GROUP BY target_index, target_url 
+             ORDER BY clicks DESC`,
+            [id]
+        );
+
+        // 3. Clicks over time (last 30 days)
+        const timelineRes = await pool.query(
+            `SELECT DATE(timestamp) as date, COUNT(*) as clicks 
+             FROM pro_rotator_clicks 
+             WHERE rotator_id = $1 AND timestamp > NOW() - INTERVAL '30 days'
+             GROUP BY DATE(timestamp) 
+             ORDER BY date ASC`,
+            [id]
+        );
+
+        // 4. Browsers & Devices (Simplified from UA)
+        const clicksRes = await pool.query(
+            'SELECT user_agent, country, city, timestamp FROM pro_rotator_clicks WHERE rotator_id = $1 ORDER BY timestamp DESC LIMIT 100',
+            [id]
+        );
+
+        res.json({
+            rotator,
+            targets: targetStatsRes.rows,
+            timeline: timelineRes.rows,
+            recentClicks: clicksRes.rows
+        });
+    } catch (err) {
+        console.error('Stats API Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/shortener/links', async (req, res) => {
     const { user_id, client_id, role, startDate, endDate, page = 1, limit = 20, search } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -1997,17 +2055,57 @@ app.get('/r/:slug', async (req, res) => {
         const totalWeight = targets.reduce((sum, t) => sum + (parseFloat(t.weight) || 1), 0);
         let random = Math.random() * totalWeight;
         let selectedUrl = targets[0].url;
+        let selectedIndex = 0;
 
-        for (const target of targets) {
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
             random -= (parseFloat(target.weight) || 1);
             if (random <= 0) {
                 selectedUrl = target.url;
+                selectedIndex = i;
                 break;
             }
         }
 
         // Increment Global clicks
         pool.query('UPDATE pro_rotators SET total_clicks = total_clicks + 1 WHERE id = $1', [rotator.id]).catch(console.error);
+
+        // Track Detailed Click (Fire and Forget)
+        const userIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+        const cleanIp = userIp.includes(',') ? userIp.split(',')[0].trim() : userIp;
+        
+        (async () => {
+            try {
+                let country = 'Local', city = 'N/A';
+                if (cleanIp !== '127.0.0.1' && cleanIp !== '::1' && !cleanIp.startsWith('::ffff:127.0.0.1')) {
+                    try {
+                        const geoResp = await fetch(`http://ip-api.com/json/${cleanIp}`);
+                        const geo = await geoResp.json();
+                        if (geo.status === 'success') {
+                            country = geo.country;
+                            city = geo.city;
+                        }
+                    } catch (e) {}
+                }
+
+                await pool.query(
+                    `INSERT INTO pro_rotator_clicks (rotator_id, target_url, target_index, user_ip, user_agent, referer, country, city) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                    [
+                        rotator.id,
+                        selectedUrl,
+                        selectedIndex,
+                        cleanIp,
+                        req.headers['user-agent'],
+                        req.headers['referer'] || 'Direto',
+                        country,
+                        city
+                    ]
+                );
+            } catch (err) {
+                console.error('Error logging pro rotator click:', err);
+            }
+        })();
 
         // Protocol Normalization
         let finalUrl = selectedUrl.trim();

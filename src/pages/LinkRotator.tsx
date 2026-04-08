@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
     Plus, 
     Trash2, 
@@ -17,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
 const LinkRotator = () => {
+    const navigate = useNavigate();
     const { user } = useAuth() as any;
     const [title, setTitle] = useState('');
     const [slug, setSlug] = useState('');
@@ -387,6 +389,9 @@ const LinkRotator = () => {
                                                 <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>CLICKS TOTAIS</div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button onClick={() => navigate(`/rotator-stats/${r.id}`)} className="icon-button" title="Ver Detalhes">
+                                                    <BarChart3 size={16} />
+                                                </button>
                                                 <button onClick={() => copyToClipboard(r.slug)} className="icon-button" title="Copiar Link Short">
                                                     <Copy size={16} />
                                                 </button>
