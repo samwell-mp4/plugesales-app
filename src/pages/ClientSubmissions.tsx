@@ -212,6 +212,7 @@ const ClientSubmissions = () => {
             templateName: `${sub.profile_name.toLowerCase().replace(/[\s-@]/g, '_')}_${sub.ddd}`,
             templateType: sub.template_type || adsToFill[0].template_type || 'TEXT',
             senderNumber: sub.sender_number || '',
+            bodyText: adsToFill[0].ad_copy || sub.ad_copy || '',
             rows: adsToFill.map((ad, idx) => ({
                 id: idx + 1,
                 suffix: ad.ad_name ? `_${ad.ad_name.toLowerCase().replace(/[\s-@]/g, '_')}` : `_v${idx + 1}`,
@@ -222,6 +223,7 @@ const ClientSubmissions = () => {
                 var2: ad.variables?.[1] || '',
                 var3: ad.variables?.[2] || '',
                 var4: ad.variables?.[3] || '',
+                variables: ad.variables || [],
                 buttonUrl: ad.button_link || ''
             }))
         };
@@ -256,6 +258,7 @@ const ClientSubmissions = () => {
                     var2: ad.variables?.[1] || '',
                     var3: ad.variables?.[2] || '',
                     var4: ad.variables?.[3] || '',
+                    variables: ad.variables || [],
                     buttonUrl: ad.button_link || '',
                     buttonUrls: [ad.button_link || ''],
                     buttonTexts: ['Clique Aqui'],
@@ -271,6 +274,7 @@ const ClientSubmissions = () => {
             clientId: firstSub.user_id,
             clientName: firstSub.client_name,
             templateType: firstSub.template_type || firstAds[0]?.template_type || 'TEXT',
+            bodyText: firstAds[0]?.ad_copy || firstSub.ad_copy || '',
             campaigns: campaigns
         };
 

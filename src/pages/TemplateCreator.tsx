@@ -75,6 +75,7 @@ const TemplateCreator = () => {
             if (data.templateName) setModelName(data.templateName);
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
             if (data.clientId) setSelectedClientId(data.clientId);
+            if (data.bodyText) _setBodyText(data.bodyText);
 
             if (data.campaigns && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
                 const initializedCampaigns = data.campaigns.map((camp: any) => ({
@@ -141,6 +142,7 @@ const TemplateCreator = () => {
     const defaultVars = ['', '', '', ''];
     const [variablesExample, _setVariablesExample] = useState(defaultVars);
     const [isFiveVars, setIsFiveVars] = useState(false);
+    const [showIndividualDetails, setShowIndividualDetails] = useState(false);
 
     const [buttons, setButtons] = useState<ButtonDef[]>([
         { type: 'url', text: 'Clique Aqui', url: '' }
@@ -398,6 +400,7 @@ const TemplateCreator = () => {
                             assigned_to: user?.name,
                             accepted_by: user?.name,
                             timestamp: new Date().toISOString(),
+                            language: selectedPayloadLanguage,
                             ads: [{
                                 ad_name: currentName,
                                 template_type: headerType,
@@ -536,6 +539,7 @@ const TemplateCreator = () => {
                             status: 'GERADO',
                             assigned_to: user?.name,
                             accepted_by: user?.name,
+                            language: selectedPayloadLanguage,
                             logs: [...currentLogs, newLog]
                         });
                     } catch (err) {
@@ -560,6 +564,7 @@ const TemplateCreator = () => {
                         assigned_to: user?.name,
                         accepted_by: user?.name,
                         timestamp: new Date().toISOString(),
+                        language: selectedPayloadLanguage,
                         ads: campaignAds,
                         logs: [{
                             id: Date.now(),
@@ -953,12 +958,18 @@ const TemplateCreator = () => {
                                             const active = e.target.checked;
                                             setIsFiveVars(active);
                                             if (active) {
-                                                _setBodyText('Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇');
+                                                const defaultText = selectedPayloadLanguage === 'en_US' 
+                                                    ? 'Hello {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nTo {{5}}, click the button below 👇'
+                                                    : 'Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇';
+                                                _setBodyText(defaultText);
                                                 if (variablesExample.length < 5) {
-                                                    _setVariablesExample([...variablesExample, 'ver o comprovante digital #76632353 e verificar a entrega']);
+                                                    _setVariablesExample([...variablesExample, 'check visual proof #76632353']);
                                                 }
                                             } else {
-                                                _setBodyText('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
+                                                const defaultText = selectedPayloadLanguage === 'en_US'
+                                                    ? 'Hi {{1}}! We inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇'
+                                                    : 'Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇';
+                                                _setBodyText(defaultText);
                                                 if (variablesExample.length > 4) {
                                                     _setVariablesExample(variablesExample.slice(0, 4));
                                                 }
@@ -1049,33 +1060,71 @@ const TemplateCreator = () => {
                                             </div>
                                         </div>
                                     )}
-                                    <div className="mt-4 flex flex-col gap-2"><label>Corpo da Mensagem (Body)</label><textarea className="input-field" style={{ minHeight: '120px' }} value={bodyText} onChange={e => _setBodyText(e.target.value)} /></div>
 
-                                    <div className="mt-4 flex flex-col gap-4">
-                                        <div className="flex items-center justify-between">
-                                            <label>Configuração de Variáveis (Visualização no Card)</label>
-                                            <span style={{ fontSize: '10px', opacity: 0.5, fontWeight: 700 }}>{variablesExample.length} ATIVAS</span>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => (
-                                                <div key={i} className="flex flex-col gap-1">
-                                                    <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', opacity: 0.6 }}>VAR {i + 1}</span>
-                                                    <input
-                                                        className="input-field"
-                                                        value={variablesExample[i] || ''}
-                                                        onChange={e => {
-                                                            const newVars = [...variablesExample];
-                                                            newVars[i] = e.target.value;
-                                                            _setVariablesExample(newVars);
-                                                        }}
-                                                        placeholder={`Valor para {{${i + 1}}}`}
-                                                    />
+                                    {!showIndividualDetails ? (
+                                        <div 
+                                            className="mt-4 p-4 flex items-center justify-between" 
+                                            style={{ 
+                                                background: 'rgba(172, 248, 0, 0.05)', 
+                                                border: '1px solid rgba(172, 248, 0, 0.15)', 
+                                                borderRadius: '16px',
+                                                cursor: 'pointer'
+                                            }}
+                                            onClick={() => setShowIndividualDetails(true)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div style={{ background: 'var(--primary-color)', color: 'black', borderRadius: '50%', padding: '4px' }}>
+                                                    <Activity size={12} strokeWidth={4} />
                                                 </div>
-                                            ))}
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'white' }}>Mensagem e Variáveis configuradas ✅</span>
+                                            </div>
+                                            <button 
+                                                className="global-tile-btn global-tile-btn-ghost" 
+                                                style={{ height: '32px', fontSize: '10px', padding: '0 12px' }}
+                                                onClick={(e) => { e.stopPropagation(); setShowIndividualDetails(true); }}
+                                            >
+                                                ALTERAR
+                                            </button>
                                         </div>
-                                    </div>
-
-                                    <div className="mt-6 flex flex-col gap-2"><label>Rodapé (Footer)</label><input className="input-field" value={footerText} onChange={e => _setFooterText(e.target.value)} /></div>
+                                    ) : (
+                                        <div className="flex flex-col gap-6 animate-fade-in">
+                                            <div className="flex items-center justify-between">
+                                                <label>Corpo da Mensagem (Body)</label>
+                                                <button 
+                                                    onClick={() => setShowIndividualDetails(false)}
+                                                    style={{ fontSize: '10px', color: 'var(--primary-color)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 900 }}
+                                                >
+                                                    RECOLHER ✕
+                                                </button>
+                                            </div>
+                                            <textarea className="input-field" style={{ minHeight: '120px' }} value={bodyText} onChange={e => _setBodyText(e.target.value)} />
+                                            
+                                            <div className="mt-2 flex flex-col gap-4">
+                                                <div className="flex items-center justify-between">
+                                                    <label>Configuração de Variáveis (Visualização no Card)</label>
+                                                    <span style={{ fontSize: '10px', opacity: 0.5, fontWeight: 700 }}>{variablesExample.length} ATIVAS</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    {Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => (
+                                                        <div key={i} className="flex flex-col gap-1">
+                                                            <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', opacity: 0.6 }}>VAR {i + 1}</span>
+                                                            <input
+                                                                className="input-field"
+                                                                value={variablesExample[i] || ''}
+                                                                onChange={e => {
+                                                                    const newVars = [...variablesExample];
+                                                                    newVars[i] = e.target.value;
+                                                                    _setVariablesExample(newVars);
+                                                                }}
+                                                                placeholder={`Valor para {{${i + 1}}}`}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="mt-2 flex flex-col gap-2"><label>Rodapé (Footer)</label><input className="input-field" value={footerText} onChange={e => _setFooterText(e.target.value)} /></div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="glass-card flex flex-col gap-6">
