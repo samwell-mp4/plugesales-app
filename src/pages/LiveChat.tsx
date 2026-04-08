@@ -8,7 +8,8 @@ import {
     Loader2, 
     RefreshCcw,
     AlertCircle,
-    ArrowLeft
+    ArrowLeft,
+    Smartphone
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -155,10 +156,11 @@ const LiveChat = () => {
                     border: 1px solid var(--surface-border-subtle);
                     border-radius: 24px;
                     overflow: hidden;
-                    backdrop-filter: blur(12px);
+                    backdrop-filter: blur(20px);
                     max-width: 1000px;
                     margin: 0 auto;
                     width: 100%;
+                    box-shadow: var(--shadow-md);
                 }
 
                 .chat-header {
@@ -177,21 +179,22 @@ const LiveChat = () => {
                     display: flex;
                     flex-direction: column;
                     gap: 16px;
-                    background: radial-gradient(circle at top right, rgba(172,248,0,0.03), transparent);
+                    background: radial-gradient(circle at top right, rgba(172,248,0,0.02), transparent);
                 }
 
                 .message-bubble {
                     max-width: 75%;
-                    padding: 12px 16px;
-                    border-radius: 18px;
-                    font-size: 14px;
+                    padding: 12px 18px;
+                    border-radius: 20px;
+                    font-size: 0.9rem;
                     line-height: 1.5;
+                    font-weight: 500;
                     position: relative;
                 }
 
                 .message-inbound {
                     align-self: flex-start;
-                    background: var(--bg-primary);
+                    background: var(--bg-color);
                     border: 1px solid var(--surface-border-subtle);
                     color: var(--text-primary);
                     border-bottom-left-radius: 4px;
@@ -201,33 +204,40 @@ const LiveChat = () => {
                     align-self: flex-end;
                     background: var(--primary-color);
                     color: black;
-                    font-weight: 500;
+                    font-weight: 800;
                     border-bottom-right-radius: 4px;
+                    box-shadow: 0 4px 15px rgba(172, 248, 0, 0.1);
                 }
 
                 .message-time {
                     font-size: 10px;
                     opacity: 0.5;
-                    margin-top: 4px;
+                    margin-top: 6px;
                     display: block;
                     text-align: right;
+                    font-weight: 700;
                 }
 
                 .chat-input-area {
-                    padding: 20px 24px;
+                    padding: 24px;
                     border-top: 1px solid var(--surface-border-subtle);
-                    background: rgba(255,255,255,0.02);
+                    background: rgba(255,255,255,0.01);
                 }
 
-                .search-hero {
+                .search-command-center {
                     flex: 1;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    max-width: 500px;
-                    margin: 0 auto;
+                    max-width: 600px;
+                    margin: 40px auto;
                     text-align: center;
+                    background: var(--command-center-bg);
+                    padding: 60px 40px;
+                    border-radius: 32px;
+                    border: 1px solid var(--surface-border-subtle);
+                    box-shadow: var(--shadow-md);
                 }
 
                 .pulse-loader {
@@ -240,68 +250,93 @@ const LiveChat = () => {
                 }
 
                 .messages-area::-webkit-scrollbar { width: 6px; }
-                .messages-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+                .messages-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+                
+                .waba-badge {
+                    font-size: 10px;
+                    padding: 6px 14px;
+                    background: rgba(172, 248, 0, 0.1);
+                    color: var(--primary-color);
+                    border: 1px solid rgba(172, 248, 0, 0.2);
+                    border-radius: 12px;
+                    font-weight: 900;
+                    letter-spacing: 1px;
+                }
+
+                .premium-input {
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid var(--surface-border);
+                    color: white;
+                    border-radius: 18px;
+                    padding: 18px 24px;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    transition: all 0.3s;
+                    width: 100%;
+                }
+                .premium-input:focus {
+                    outline: none;
+                    border-color: var(--primary-color);
+                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.1);
+                }
             `}</style>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                <div style={{ padding: '12px', background: 'var(--primary-gradient)', borderRadius: '16px', color: 'black' }}>
-                    <MessageSquare size={24} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+                <div style={{ padding: '14px', background: 'var(--primary-gradient)', borderRadius: '20px', color: 'black', boxShadow: '0 8px 25px rgba(172, 248, 0, 0.2)' }}>
+                    <MessageSquare size={28} />
                 </div>
                 <div>
-                    <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', letterSpacing: '-1px' }}>LIVE <span className="text-primary-color">CHAT</span></h1>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '12px', fontWeight: 700 }}>INFOBIP CONVERSATIONS</p>
+                    <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-2px', textTransform: 'uppercase' }}>ATENDIMENTO <span style={{ color: 'var(--primary-color)' }}>AO VIVO</span></h1>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '11px', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>Central de Mensagens Cloud API</p>
                 </div>
             </div>
 
             {!activeConversation ? (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'center' }}>
                     {!isWaba ? (
-                        <div className="search-hero">
-                             <div className={`mb-8 p-6 rounded-full bg-white/5 border border-white/10 ${isLoading ? 'pulse-loader' : ''}`}>
-                                <Search size={48} className="text-primary-color" />
+                        <div className="search-command-center">
+                             <div className={`pulse-loader`} style={{ marginBottom: '32px', padding: '24px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <Smartphone size={56} color="var(--primary-color)" strokeWidth={1} />
                             </div>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '8px' }}>Puxar Conversa</h2>
-                            <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '14px' }}>
-                                Insira o número do WhatsApp (DDI + DDD + Número) para abrir o chat em tempo real.
+                            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '12px', letterSpacing: '-1px' }}>Carregar Conversa</h2>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '40px', fontSize: '0.95rem', fontWeight: 500, lineHeight: 1.6 }}>
+                                Sincronize o histórico de mensagens via WABA.<br/>
+                                <span style={{ color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Insira o número com DDI + DDD</span>
                             </p>
 
-                            <form onSubmit={handleSearch} style={{ width: '100%', position: 'relative' }}>
+                            <form onSubmit={handleSearch} style={{ width: '100%', position: 'relative', maxWidth: '450px' }}>
                                 <input 
+                                    className="premium-input"
                                     type="text" 
                                     placeholder="Ex: 5511999999999"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
                                     disabled={isLoading}
-                                    style={{ 
-                                        width: '100%', padding: '18px 24px', borderRadius: '18px', 
-                                        background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)',
-                                        color: 'white', fontSize: '16px', fontWeight: 700, outline: 'none'
-                                    }}
                                 />
                                 <button 
                                     type="submit" 
                                     disabled={isLoading || !phoneNumber}
                                     style={{ 
-                                        position: 'absolute', right: '8px', top: '8px', bottom: '8px',
-                                        padding: '0 20px', borderRadius: '14px', background: 'var(--primary-color)',
+                                        position: 'absolute', right: '10px', top: '10px', bottom: '10px',
+                                        padding: '0 24px', borderRadius: '14px', background: 'var(--primary-color)',
                                         color: 'black', fontWeight: 900, border: 'none', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: '8px'
+                                        display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem'
                                     }}
                                 >
-                                    {isLoading ? <Loader2 className="animate-spin" size={20} /> : <><Search size={20} /> BUSCAR</>}
+                                    {isLoading ? <Loader2 className="animate-spin" size={18} /> : <><Search size={18} /> BUSCAR</>}
                                 </button>
                             </form>
                         </div>
                     ) : (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--card-bg-subtle)', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)', padding: '24px', overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <button onClick={() => setIsWaba(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--card-bg-subtle)', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)', padding: '32px', width: '100%', maxWidth: '800px', margin: '0 auto', backdropFilter: 'blur(20px)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <button onClick={() => setIsWaba(false)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <ArrowLeft size={20} />
                                     </button>
-                                    <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Conversas do Remetente</h2>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>Sessões Ativas</h2>
                                 </div>
-                                <span style={{ fontSize: '11px', padding: '4px 10px', background: 'var(--primary-color)', color: 'black', borderRadius: '20px', fontWeight: 800 }}>WABA: {phoneNumber}</span>
+                                <span className="waba-badge">ID: {phoneNumber}</span>
                             </div>
 
                             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -310,20 +345,20 @@ const LiveChat = () => {
                                         key={conv.id} 
                                         onClick={() => selectConversation(conv)}
                                         style={{ 
-                                            padding: '16px', borderRadius: '16px', background: 'var(--bg-primary)', 
-                                            border: '1px solid var(--surface-border-subtle)', cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s'
+                                            padding: '20px', borderRadius: '20px', background: 'rgba(255,255,255,0.02)', 
+                                            border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', gap: '20px', transition: 'all 0.3s'
                                         }}
-                                        className="hover:bg-white/5"
+                                        className="hover-lift"
                                     >
-                                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--card-bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <User size={20} className="text-primary-color" />
+                                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                            <User size={24} color="var(--primary-color)" />
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 800, fontSize: '14px' }}>{conv.person?.firstName || 'Lead'} {conv.person?.lastName || ''}</div>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {conv.person?.id} • Status: {conv.status}</div>
+                                            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white' }}>{conv.person?.firstName || 'Lead Interessado'} {conv.person?.lastName || ''}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Status: <span style={{ color: 'var(--primary-color)' }}>{conv.status}</span> • ID: {conv.person?.id?.slice(0,10)}...</div>
                                         </div>
-                                        <div style={{ fontSize: '10px', opacity: 0.5 }}>{formatTime(conv.updatedAt)}</div>
+                                        <div style={{ fontSize: '11px', opacity: 0.4, fontWeight: 700 }}>{formatTime(conv.updatedAt)}</div>
                                     </div>
                                 ))}
                                 {wabaConversations.length === 0 && (
@@ -341,26 +376,26 @@ const LiveChat = () => {
                 </div>
             ) : (
                 <div className="chat-container">
-                    <div className="chat-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <button onClick={() => setActiveConversation(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                    <div className="chat-header" style={{ backdropFilter: 'blur(30px)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            <button onClick={() => setActiveConversation(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <ArrowLeft size={20} />
                             </button>
-                            <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--surface-border-subtle)' }}>
-                                <User className="text-primary-color" size={24} />
+                            <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--surface-border-subtle)', position: 'relative' }}>
+                                <User color="var(--primary-color)" size={28} />
+                                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#22c55e', border: '3px solid var(--card-bg-subtle)' }} />
                             </div>
                             <div>
-                                <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>
                                     {person?.firstName || 'Lead'} {person?.lastName || ''}
                                 </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
-                                    EM ATENDIMENTO • {phoneNumber}
+                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>
+                                    CLIENTE ONLINE • {phoneNumber}
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => fetchMessages(activeConversation.id)} className="icon-button" style={{ width: '40px', height: '40px' }}>
-                            <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        <button onClick={() => fetchMessages(activeConversation.id)} style={{ background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', width: '44px', height: '44px', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <RefreshCcw size={20} className={isLoading ? 'animate-spin' : ''} />
                         </button>
                     </div>
 
@@ -382,11 +417,11 @@ const LiveChat = () => {
                     </div>
 
                     <form onSubmit={handleSendMessage} className="chat-input-area">
-                        <div style={{ position: 'relative', display: 'flex', gap: '12px' }}>
+                        <div style={{ position: 'relative', display: 'flex', gap: '16px' }}>
                             <textarea 
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Digite sua mensagem..."
+                                placeholder="Pressione Shift+Enter para quebrar linha ou Enter para enviar..."
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
@@ -394,19 +429,21 @@ const LiveChat = () => {
                                     }
                                 }}
                                 style={{ 
-                                    flex: 1, padding: '16px 20px', borderRadius: '16px', background: 'var(--bg-primary)',
+                                    flex: 1, padding: '20px 24px', borderRadius: '20px', background: 'var(--bg-color)',
                                     border: '1px solid var(--surface-border-subtle)', color: 'white', resize: 'none',
-                                    maxHeight: '120px', minHeight: '56px', fontSize: '14px', outline: 'none'
+                                    maxHeight: '120px', minHeight: '60px', fontSize: '0.95rem', outline: 'none',
+                                    fontWeight: 500, transition: 'border-color 0.3s'
                                 }}
                             />
                             <button 
                                 type="submit"
                                 disabled={!newMessage.trim() || isSending}
                                 style={{ 
-                                    width: '56px', height: '56px', borderRadius: '16px', 
+                                    width: '60px', height: '60px', borderRadius: '20px', 
                                     background: 'var(--primary-color)', color: 'black',
                                     border: 'none', cursor: 'pointer', display: 'flex',
-                                    alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                                    alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s',
+                                    boxShadow: '0 8px 20px rgba(172, 248, 0, 0.2)'
                                 }}
                             >
                                 {isSending ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}

@@ -102,19 +102,19 @@ const Sidebar = () => {
             id: 'OPERACIONAL',
             label: 'OPERACIONAL',
             items: [
-                { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, role: 'ADMIN' },
-                { name: 'LIVE CHAT', path: '/live-chat', icon: <MessageSquare />, role: 'ADMIN' },
-                { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, role: 'ADMIN' },
-                { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, role: 'ADMIN' },
+                { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, roles: ['ADMIN', 'EMPLOYEE'] },
+                // { name: 'LIVE CHAT', path: '/live-chat', icon: <MessageSquare />, roles: ['ADMIN'] }, // Oculto por enquanto
+                { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
-                { name: 'Hospedagem', path: '/media', icon: <Layers />, role: 'ADMIN' },
+                { name: 'Hospedagem', path: '/media', icon: <Layers />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Dashboard Client', path: '/client-dashboard', icon: <LayoutDashboard />, role: 'CLIENT' },
                 { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
             ]
         },
         {
             id: 'CRM',
-            label: 'CRM & GESTÃO ESTRATÉGICA',
+            label: 'CRM E GESTÃO',
             items: [
                 { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users /> },
                 { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar /> },
@@ -170,14 +170,21 @@ const Sidebar = () => {
                 if (item.excludeRole && userRole === item.excludeRole) return false;
                 
                 // Standard role logic
-                if (item.role === 'ADMIN' && userRole !== 'ADMIN') return false;
-                if (item.role === 'CLIENT' && userRole !== 'CLIENT') return false;
+                if (item.roles) {
+                    if (!item.roles.includes(userRole)) return false;
+                } else if (item.role) {
+                    if (item.role !== userRole) return false;
+                }
                 
                 // Children check (for submenus)
                 if (item.children) {
                     item.children = item.children.filter((child: any) => {
                         if (child.excludeRole && userRole === child.excludeRole) return false;
-                        if (child.role === 'ADMIN' && userRole !== 'ADMIN') return false;
+                        if (child.roles) {
+                            if (!child.roles.includes(userRole)) return false;
+                        } else if (child.role) {
+                            if (child.role !== userRole) return false;
+                        }
                         return true;
                     });
                     return item.children.length > 0;
@@ -265,27 +272,16 @@ const Sidebar = () => {
             </nav>
 
             <div className="user-footer-supreme">
-                <div className="user-card-supreme">
-                    <div className="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center text-white/30 border border-white/10 shadow-inner">
-                        <UserCircle size={28} strokeWidth={1.5} />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-black text-white truncate">{user?.name}</span>
-                        <span className="text-[10px] font-black text-primary-color tracking-tight uppercase opacity-70">{user?.role}</span>
-                    </div>
+                <div className="user-card-supreme" style={{ justifyContent: 'center', textAlign: 'center' }}>
+                    <span className="text-[13px] font-black text-white truncate leading-tight uppercase tracking-[0.1em]">{user?.name}</span>
                 </div>
                 
-                <div className="flex gap-2">
-                    <button onClick={toggleTheme} className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-primary-color hover:bg-white/10 transition-all">
-                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                    </button>
-                    <button 
-                        onClick={() => { if(window.confirm('Sair da conta?')) logout(); }} 
-                        className="logout-btn-supreme flex-1"
-                    >
-                        <LogOut size={16} /> ENCERRAR SESSÃO
-                    </button>
-                </div>
+                <button 
+                    onClick={() => { if(window.confirm('Sair da conta?')) logout(); }} 
+                    className="logout-btn-supreme"
+                >
+                    <LogOut size={16} /> ENCERRAR SESSÃO
+                </button>
             </div>
         </aside>
     );

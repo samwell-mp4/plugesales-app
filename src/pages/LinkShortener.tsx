@@ -168,6 +168,24 @@ const LinkShortener = () => {
         }
     };
 
+    const handleBulkBatch = (prefix: string) => {
+        const count = 10;
+        const newBatch = Array.from({ length: count }, (_, i) => ({
+            title: `${prefix}${i + 1}`,
+            url: bulkLinks[0]?.url || ''
+        }));
+        setBulkLinks(prev => {
+            const current = [...prev].filter(l => l.url || l.title);
+            return [...current, ...newBatch];
+        });
+    };
+
+    const handleReplicateAll = () => {
+        const firstUrl = bulkLinks[0]?.url;
+        if (!firstUrl) return alert("Preencha a primeira URL para replicar.");
+        setBulkLinks(prev => prev.map(l => ({ ...l, url: firstUrl })));
+    };
+
     const handleDeleteLink = async (id: number) => {
         if (!window.confirm("Tem certeza que deseja excluir este link?")) return;
         try {
@@ -431,16 +449,37 @@ const LinkShortener = () => {
                                     </>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                                            Lista de Links
-                                        </label>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                                Lista de Links
+                                            </label>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                {['B', 'C'].map(pref => (
+                                                    <button 
+                                                        key={pref}
+                                                        type="button" 
+                                                        onClick={() => handleBulkBatch(pref)}
+                                                        style={{ background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', fontSize: '8px', fontWeight: 900, padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                                    >
+                                                       +10 {pref}
+                                                    </button>
+                                                ))}
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setBulkLinks([{ title: '', url: '' }])}
+                                                    style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: '8px', fontWeight: 900, padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                                >
+                                                   Limpar
+                                                </button>
+                                            </div>
+                                        </div>
                                         {bulkLinks.map((link, idx) => (
                                             <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                     <input 
                                                         className="input-field"
                                                         style={{ padding: '8px 12px', fontSize: '12px' }}
-                                                        placeholder="Título"
+                                                        placeholder={`Título ${idx === 0 ? '(B1, C1...)' : ''}`}
                                                         value={link.title}
                                                         onChange={e => {
                                                             const newLinks = [...bulkLinks];
@@ -448,17 +487,32 @@ const LinkShortener = () => {
                                                             setBulkLinks(newLinks);
                                                         }}
                                                     />
-                                                    <input 
-                                                        className="input-field"
-                                                        style={{ padding: '8px 12px', fontSize: '12px' }}
-                                                        placeholder="https://URL-Original..."
-                                                        value={link.url}
-                                                        onChange={e => {
-                                                            const newLinks = [...bulkLinks];
-                                                            newLinks[idx].url = e.target.value;
-                                                            setBulkLinks(newLinks);
-                                                        }}
-                                                    />
+                                                    <div style={{ position: 'relative' }}>
+                                                        <input 
+                                                            className="input-field"
+                                                            style={{ padding: '8px 12px', paddingRight: idx === 0 ? '80px' : '12px', fontSize: '12px' }}
+                                                            placeholder="https://URL-Original..."
+                                                            value={link.url}
+                                                            onChange={e => {
+                                                                let val = e.target.value;
+                                                                if (val && !val.startsWith('http') && val.length > 5) {
+                                                                    val = 'https://' + val;
+                                                                }
+                                                                const newLinks = [...bulkLinks];
+                                                                newLinks[idx].url = val;
+                                                                setBulkLinks(newLinks);
+                                                            }}
+                                                        />
+                                                        {idx === 0 && (
+                                                            <button 
+                                                                type="button"
+                                                                onClick={handleReplicateAll}
+                                                                style={{ position: 'absolute', right: '4px', top: '4px', bottom: '4px', background: 'var(--primary-color)', border: 'none', borderRadius: '10px', color: 'black', fontSize: '9px', fontWeight: 900, padding: '0 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                            >
+                                                                <Zap size={10} /> REPLICAR
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 {bulkLinks.length > 1 && (
                                                     <button 
