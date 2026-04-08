@@ -30,6 +30,11 @@ const addCronLog = (log) => {
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Configuração Global de Middlewares (IMPORTANTE: Antes das rotas)
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
 // --- REDIS CONFIG ---
 const DEFAULT_REDIS = "redis://default:Marketing@plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379";
 const LOCAL_REDIS = "redis://localhost:6379";
@@ -603,6 +608,10 @@ app.get('/api/crm/leads', async (req, res) => {
 
 app.post('/api/crm/leads', async (req, res) => {
     try {
+        if (!req.body || Object.keys(req.body).length === 0) {
+            return res.status(400).json({ error: "O corpo da requisição está vazio. Verifique o middleware de JSON." });
+        }
+
         const { data, error } = await supabase
             .from('crm_leads')
             .insert([req.body])
@@ -756,9 +765,6 @@ app.delete('/api/crm/consultiva/:id', async (req, res) => {
     }
 });
 
-// Configuração de CORS
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
 
 // --- AUTH ENDPOINTS ---
 app.post('/api/auth/register', async (req, res) => {
