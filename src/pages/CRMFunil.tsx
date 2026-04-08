@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Search, Filter, RefreshCw, User as UserIcon, 
     MessageSquare, Tag, List, Trello, 
     Save, Plus, Trash2, Edit3, X, DollarSign,
-    Phone, Mail, Calendar, MapPin
+    Phone, Mail, Calendar, MapPin, TrendingUp, Target, PieChart, Zap
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
@@ -27,7 +27,6 @@ const CRMFunil = () => {
         tag: '',
         status: 'Novo',
         responsavel: user?.name || '',
-        value_client: '0',
         metodo: '',
         volume: ''
     });
@@ -68,7 +67,6 @@ const CRMFunil = () => {
                 tag: '',
                 status: 'Novo',
                 responsavel: user?.name || '',
-                value_client: '0',
                 metodo: '',
                 volume: ''
             });
@@ -106,52 +104,141 @@ const CRMFunil = () => {
         }
     };
 
-    const filteredLeads = leads.filter(lead => {
-        const name = lead.nome || '';
-        const number = lead.numero || '';
-        const responsavel = lead.responsavel || '';
-        const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             number.includes(searchTerm) || 
-                             responsavel.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = filterStatus === 'Todos' || lead.status === filterStatus;
-        return matchesSearch && matchesStatus;
-    });
 
-    const statusList = ['Novo', 'Contato', 'Diagnóstico', 'Proposta', 'Ganho', 'Perdido'];
+    const filteredLeads = useMemo(() => {
+        return leads.filter(lead => {
+            const name = lead.nome || '';
+            const number = lead.numero || '';
+            const responsavel = lead.responsavel || '';
+            const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                 number.includes(searchTerm) || 
+                                 responsavel.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = filterStatus === 'Todos' || lead.status === filterStatus;
+            return matchesSearch && matchesStatus;
+        });
+    }, [leads, searchTerm, filterStatus]);
+
+    // Metrics Calculations
+    const metrics = useMemo(() => {
+        const totalLeads = filteredLeads.length;
+        const pendingLeads = filteredLeads.filter(l => l.status !== 'Venda Realizada' && l.status !== 'Não Fechou').length;
+        const convertedLeads = filteredLeads.filter(l => l.status === 'Venda Realizada').length;
+        const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : '0';
+
+        // Leads Today
+        const today = new Date().toISOString().split('T')[0];
+        const leadsToday = leads.filter(l => {
+            const leadDate = l.created_at ? new Date(l.created_at).toISOString().split('T')[0] : '';
+            return leadDate === today;
+        }).length;
+
+        return {
+            totalLeads,
+            leadsToday,
+            pendingLeads,
+            conversionRate
+        };
+    }, [filteredLeads, leads]);
+
+    const statusList = ['Aguardando Atendimento', 'Agendamento Realizado', 'Venda Realizada', 'Não Fechou', 'Não Respondeu'];
     
-    const getColumnTotal = (status: string) => {
-        const columnLeads = filteredLeads.filter(l => l.status === status);
-        const total = columnLeads.reduce((acc, lead) => {
-            const val = parseFloat((lead.value_client || '0').replace(/[^\d.,]/g, '').replace(',', '.'));
-            return acc + (isNaN(val) ? 0 : val);
-        }, 0);
-        return total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const getInitials = (name: string) => {
+        if (!name) return '??';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return name.substring(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
+
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return 'Recente';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     };
 
     return (
-        <div className="crm-container">
+        <div className="crm-container animate-fade-in">
             <header className="crm-header-premium">
                 <div className="crm-title-group">
-                    <div className="crm-badge-small"><Trello size={12} /> SISTEMA DE PIPELINE NATIVO</div>
+                    <div className="crm-badge-small">
+                        <Zap size={10} fill="var(--primary-color)" /> 
+                        SISTEMA DE PIPELINE NATIVO v2.0
+                    </div>
                     <h1 className="crm-main-title">Clientes & Funil</h1>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex items-center gap-6">
                     <div className="crm-toggle-group-premium">
-                        <button className={`crm-toggle-btn ${viewMode === 'kanban' ? 'active' : ''}`} onClick={() => setViewMode('kanban')}><Trello size={14} className="inline mr-2" /> Kanban</button>
-                        <button className={`crm-toggle-btn ${viewMode === 'lista' ? 'active' : ''}`} onClick={() => setViewMode('lista')}><List size={14} className="inline mr-2" /> Lista</button>
+                        <button className={`crm-toggle-btn ${viewMode === 'kanban' ? 'active' : ''}`} onClick={() => setViewMode('kanban')}>
+                            <Trello size={14} className="inline mr-2" /> KANBAN
+                        </button>
+                        <button className={`crm-toggle-btn ${viewMode === 'lista' ? 'active' : ''}`} onClick={() => setViewMode('lista')}>
+                            <List size={14} className="inline mr-2" /> LISTA
+                        </button>
                     </div>
                     
-                    <button className="btn-icon-only" onClick={fetchLeads}><RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} /></button>
+                    <button className="btn-icon-only" style={{ borderRadius: '14px' }} onClick={fetchLeads}>
+                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
                     
                     <button className="btn-supreme" onClick={() => setIsAddModalOpen(true)}>
-                        <Plus size={18} /> NOVO LEAD
+                        <Plus size={18} strokeWidth={3} /> NOVO LEAD
                     </button>
                 </div>
             </header>
 
-            {/* ACTION BAR / FILTERS */}
-            <div className="crm-action-bar mb-8">
+            {/* KPI METRICS ROW */}
+            <div className="metrics-grid-row">
+                <div className="crm-card crm-card-kpi glow-border-primary" style={{ borderLeftColor: 'var(--primary-color)' }}>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3>Total de Leads</h3>
+                            <h2>{metrics.totalLeads}</h2>
+                        </div>
+                        <div className="w-12 h-12 bg-primary-color/10 rounded-2xl flex items-center justify-center text-primary-color">
+                            <UserIcon size={24} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="crm-card crm-card-kpi glow-border-blue" style={{ borderLeftColor: '#3b82f6' }}>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3>Leads de Hoje</h3>
+                            <h2>{metrics.leadsToday}</h2>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500">
+                            <Calendar size={24} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="crm-card crm-card-kpi" style={{ borderLeftColor: '#fbbf24' }}>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3>Em Atendimento</h3>
+                            <h2>{metrics.pendingLeads}</h2>
+                        </div>
+                        <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500">
+                            <Target size={24} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="crm-card crm-card-kpi" style={{ borderLeftColor: '#a855f7' }}>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3>Conversão</h3>
+                            <h2>{metrics.conversionRate}%</h2>
+                        </div>
+                        <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500">
+                            <PieChart size={24} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* SUPREME ACTION BAR */}
+            <div className="crm-action-bar">
                 <div className="crm-control-group flex-1">
                     <Search size={16} className="icon" />
                     <input 
@@ -163,7 +250,7 @@ const CRMFunil = () => {
                     />
                 </div>
 
-                <div className="crm-control-group w-[250px]">
+                <div className="crm-control-group w-[280px]">
                     <Filter size={16} className="icon" />
                     <select className="crm-select-premium" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                         <option value="Todos">TODOS OS STATUS</option>
@@ -172,11 +259,14 @@ const CRMFunil = () => {
                 </div>
             </div>
 
-            <main>
+            <main className="animate-funnel">
                 {isLoading ? (
-                    <div className="flex flex-col items-center justify-center py-40 gap-4">
-                        <div className="w-12 h-12 border-4 border-primary-color/20 border-t-primary-color rounded-full animate-spin"></div>
-                        <p className="font-black text-primary-color tracking-[0.2em] text-[10px] animate-pulse">SINCRONIZANDO SUPABASE</p>
+                    <div className="flex flex-col items-center justify-center py-40 gap-6">
+                        <div className="relative">
+                            <div className="w-16 h-16 border-4 border-primary-color/10 border-t-primary-color rounded-full animate-spin"></div>
+                            <Zap size={20} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary-color animate-pulse" />
+                        </div>
+                        <p className="font-black text-primary-color tracking-[0.3em] text-[10px] animate-pulse">SINCRONIZANDO PIPELINE</p>
                     </div>
                 ) : (
                     viewMode === 'lista' ? (
@@ -185,11 +275,13 @@ const CRMFunil = () => {
                                 <thead>
                                     <tr>
                                         <th>CLIENTE</th>
-                                        <th>STATUS</th>
-                                        <th>ORIGEM / TAG</th>
+                                        <th>MÉTODO</th>
+                                        <th>VOLUME</th>
+                                        <th>DATA</th>
+                                        <th>NÚMERO</th>
+                                        <th>EMAIL</th>
                                         <th>RESPONSÁVEL</th>
-                                        <th>TICKET MÉDIO</th>
-                                        <th className="text-right pr-8">AÇÕES</th>
+                                        <th className="text-right">AÇÕES</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -197,26 +289,26 @@ const CRMFunil = () => {
                                         <tr key={lead.id} className="crm-table-row group">
                                             <td>
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-primary-color/10 flex items-center justify-center text-primary-color font-black text-lg">{(lead.nome || '?').charAt(0)}</div>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-white text-sm">{lead.nome || 'Sem Nome'}</span>
-                                                        <span className="text-[11px] text-gray-500 font-medium">{lead.numero}</span>
-                                                    </div>
+                                                    <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
+                                                    <span className="font-bold text-white text-[14px]">{lead.nome || 'Sem Nome'}</span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black text-gray-300 border border-white/5 inline-flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary-color" />
-                                                    {lead.status?.toUpperCase()}
-                                                </div>
-                                            </td>
-                                            <td><span className="text-[11px] font-bold text-gray-500">{lead.tag || '-'}</span></td>
-                                            <td><div className="flex items-center gap-2 text-xs font-bold text-gray-400"><UserIcon size={12} className="text-primary-color" /> {lead.responsavel || '-'}</div></td>
-                                            <td><span className="font-black text-primary-color text-sm">R$ {lead.value_client || '0'}</span></td>
-                                            <td className="text-right pr-8">
-                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                            <td><span className="text-[11px] font-bold text-primary-color bg-primary-color/5 px-2 py-1 rounded-md">{lead.metodo || '-'}</span></td>
+                                            <td><span className="text-[11px] font-bold text-gray-400">{lead.volume || '-'}</span></td>
+                                            <td><span className="text-[11px] font-bold text-white bg-white/5 px-2 py-1 rounded-md uppercase tracking-tighter text-[10px]">{formatDate(lead.created_at)}</span></td>
+                                            <td><span className="text-[11px] font-bold text-gray-400">{lead.numero}</span></td>
+                                            <td><span className="text-[11px] font-bold text-gray-400">{lead.email || '-'}</span></td>
+                                            <td><div className="flex items-center gap-2 text-[11px] font-bold text-gray-400"><UserIcon size={12} className="text-primary-color/50" /> {lead.responsavel || '-'}</div></td>
+                                            <td className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button 
+                                                        onClick={() => window.open(`https://wa.me/${(lead.numero || '').replace(/\D/g,'')}`, '_blank')} 
+                                                        className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all"
+                                                        title="WhatsApp"
+                                                    >
+                                                        <MessageSquare size={16} />
+                                                    </button>
                                                     <button onClick={() => setSelectedLead(lead)} className="p-2 bg-white/5 hover:bg-primary-color/20 text-white hover:text-primary-color rounded-lg transition-all"><Edit3 size={16} /></button>
-                                                    <button onClick={() => handleDeleteLead(lead.id)} className="p-2 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-500 rounded-lg transition-all"><Trash2 size={16} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -228,42 +320,89 @@ const CRMFunil = () => {
                         <div className="kanban-view scrollbar-hide">
                             {statusList.map(status => (
                                 <div key={status} className="kanban-col">
-                                    <div className="kanban-col-header mb-6">
-                                        <div className="flex flex-col gap-1">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-2 h-2 rounded-full bg-primary-color animate-pulse shadow-[0_0_10px_#acf800]"></div>
-                                                <h3>{status}</h3>
+                                    <div className="kanban-col-header-premium">
+                                        <div className="kanban-col-title-row">
+                                            <div className="kanban-col-title">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary-color shadow-[0_0_8px_var(--primary-color)]"></div>
+                                                {status}
                                             </div>
-                                            <span className="text-[10px] font-black text-primary-color/50 ml-5">{getColumnTotal(status)}</span>
+                                            <span className="kanban-col-badge">
+                                                {filteredLeads.filter(l => l.status === status).length}
+                                            </span>
                                         </div>
-                                        <span className="bg-white/5 px-3 py-1 rounded-lg text-[11px] font-black border border-white/5">{filteredLeads.filter(l => l.status === status).length}</span>
                                     </div>
-                                    <div className="flex flex-col gap-4">
+
+                                    <div className="kanban-cards-container">
                                         {filteredLeads.filter(l => l.status === status).map(lead => (
-                                            <div key={lead.id} className="kanban-card-premium group" onClick={() => setSelectedLead(lead)}>
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-black text-white text-sm mb-1 group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
-                                                        <span className="text-[10px] text-gray-500 font-bold tracking-wider">{lead.numero}</span>
+                                            <div key={lead.id} className="lead-card-glass group" onClick={() => setSelectedLead(lead)}>
+                                                <div className="lead-card-header">
+                                                    <div className="lead-name-group">
+                                                        <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
+                                                        <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
                                                     </div>
-                                                    <div className="text-primary-color font-black text-xs bg-primary-color/10 px-2 py-1 rounded-md">R$ {lead.value_client}</div>
+                                                    <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
                                                 </div>
-                                                <div className="flex flex-wrap gap-2 mb-4">
-                                                    {lead.tag && <span className="bg-white/5 px-2 py-1 rounded-md text-[9px] font-black text-gray-400 border border-white/5 flex items-center gap-1"><Tag size={8} /> {lead.tag}</span>}
+
+                                                <div className="lead-info-grid">
+                                                    <div className="lead-info-item text-primary-color">
+                                                        <Zap size={11} fill="currentColor" /> 
+                                                        {lead.metodo || 'Sem Método'} | {lead.volume || '0'}
+                                                    </div>
+                                                    <div className="lead-info-item">
+                                                        <Phone size={11} /> 
+                                                        {lead.numero}
+                                                    </div>
+                                                    <div className="lead-info-item">
+                                                        <UserIcon size={11} />
+                                                        {lead.responsavel}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-2">
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase"><UserIcon size={10} className="text-primary-color" /> {lead.responsavel}</div>
-                                                    <div className="flex gap-1">
-                                                        <button className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-all" onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${(lead.numero || '').replace(/\D/g,'')}`, '_blank'); }}><MessageSquare size={13} /></button>
-                                                        <button className="p-2 bg-white/5 text-white/50 rounded-lg hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); }}><Edit3 size={13} /></button>
+
+                                                <div className="lead-footer-actions">
+                                                    <div className="lead-date-badge">
+                                                        <Calendar size={10} />
+                                                        {formatDate(lead.created_at)}
+                                                    </div>
+                                                    <div className="lead-quick-actions">
+                                                        <button 
+                                                            className="btn-card-action whatsapp" 
+                                                            onClick={(e) => { 
+                                                                e.stopPropagation(); 
+                                                                window.open(`https://wa.me/${(lead.numero || '').replace(/\D/g,'')}`, '_blank'); 
+                                                            }}
+                                                            title="WhatsApp"
+                                                        >
+                                                            <MessageSquare size={14} />
+                                                        </button>
+                                                        <button 
+                                                            className="btn-card-action" 
+                                                            onClick={(e) => { 
+                                                                e.stopPropagation(); 
+                                                                setSelectedLead(lead); 
+                                                            }}
+                                                            title="Editar"
+                                                        >
+                                                            <Edit3 size={14} />
+                                                        </button>
+                                                        <button 
+                                                            className="btn-card-action delete" 
+                                                            onClick={(e) => { 
+                                                                e.stopPropagation(); 
+                                                                handleDeleteLead(lead.id); 
+                                                            }}
+                                                            title="Excluir"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
+
                                         {filteredLeads.filter(l => l.status === status).length === 0 && (
-                                            <div className="border-2 border-dashed border-white/5 rounded-2xl py-8 flex flex-col items-center justify-center opacity-30">
-                                                <UserIcon size={24} className="mb-2" />
-                                                <span className="text-[10px] font-black">VAZIO</span>
+                                            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/5 rounded-[20px] opacity-20">
+                                                <Zap size={24} className="mb-2" />
+                                                <span className="text-[10px] font-black tracking-widest uppercase">Sem Leads</span>
                                             </div>
                                         )}
                                     </div>
@@ -278,50 +417,53 @@ const CRMFunil = () => {
             {isAddModalOpen && (
                 <div className="crm-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
                     <div className="crm-modal-content" onClick={e => e.stopPropagation()}>
-                        <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-lg shadow-primary-color/20"><Plus size={28} /></div>
+                        <header className="p-10 border-b border-white/5 flex justify-between items-center bg-white/2">
+                            <div className="flex items-center gap-5">
+                                <div className="w-16 h-16 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-xl shadow-primary-color/20"><Plus size={32} strokeWidth={3} /></div>
                                 <div>
-                                    <h2 className="text-xl font-black text-white leading-none mb-2">Novo Lead</h2>
-                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Adicionar prospect ao funil nativo</p>
+                                    <h2 className="text-2xl font-black text-white leading-none mb-2">Novo Lead</h2>
+                                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">Registro Centralizado de Prospectos</p>
                                 </div>
                             </div>
-                            <button className="p-3 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-500 rounded-xl transition-all" onClick={() => setIsAddModalOpen(false)}><X size={20} /></button>
+                            <button className="btn-icon-only" style={{ width: '48px', height: '48px', borderRadius: '14px' }} onClick={() => setIsAddModalOpen(false)}><X size={24} /></button>
                         </header>
 
-                        <div className="p-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-10">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="crm-input-group">
-                                    <label><UserIcon size={10} className="inline mr-1" /> Nome do Lead</label>
+                                    <label>Nome do Lead</label>
                                     <input type="text" className="crm-input" value={newLead.nome} onChange={e => setNewLead({...newLead, nome: e.target.value})} placeholder="Ex: João Silva" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label><Phone size={10} className="inline mr-1" /> WhatsApp</label>
+                                    <label>WhatsApp / Celular</label>
                                     <input type="text" className="crm-input" value={newLead.numero} onChange={e => setNewLead({...newLead, numero: e.target.value})} placeholder="5511999999999" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label><Tag size={10} className="inline mr-1" /> Status Inicial</label>
-                                    <select className="crm-input" value={newLead.status} onChange={e => setNewLead({...newLead, status: e.target.value})}>
+                                    <label>Status no Funil</label>
+                                    <select className="crm-input" style={{ appearance: 'auto' }} value={newLead.status} onChange={e => setNewLead({...newLead, status: e.target.value})}>
                                         {statusList.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
                                 <div className="crm-input-group">
-                                    <label><DollarSign size={10} className="inline mr-1" /> Valor Previsto (R$)</label>
-                                    <input type="text" className="crm-input" value={newLead.value_client} onChange={e => setNewLead({...newLead, value_client: e.target.value})} />
+                                    <label>Método de Trabalho</label>
+                                    <input type="text" className="crm-input" value={newLead.metodo} onChange={e => setNewLead({...newLead, metodo: e.target.value})} placeholder="Ex: Tráfego Pago, Orgânico..." />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label><UserIcon size={10} className="inline mr-1" /> Responsável</label>
+                                    <label>Volume de Mensagens</label>
+                                    <input type="text" className="crm-input" value={newLead.volume} onChange={e => setNewLead({...newLead, volume: e.target.value})} placeholder="Ex: 100/dia" />
+                                </div>
+                                <div className="crm-input-group">
+                                    <label>Consultor Responsável</label>
                                     <input type="text" className="crm-input" value={newLead.responsavel} onChange={e => setNewLead({...newLead, responsavel: e.target.value})} />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label><MapPin size={10} className="inline mr-1" /> Origem / Tag</label>
+                                    <label>Origem / Campanha</label>
                                     <input type="text" className="crm-input" value={newLead.tag} onChange={e => setNewLead({...newLead, tag: e.target.value})} placeholder="Anúncios, Orgânico..." />
                                 </div>
                             </div>
 
-                            <button className="btn-supreme w-full mt-8 py-5" onClick={handleAddLead} disabled={isUpdating}>
-                                {isUpdating ? <RefreshCw size={20} className="animate-spin" /> : <Save size={20} className="inline mr-2" />} 
-                                SALVAR LEAD NO SUPABASE
+                            <button className="btn-supreme w-full mt-10 py-5" onClick={handleAddLead} disabled={isUpdating}>
+                                {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={22} /> SALVAR LEAD NO SUPABASE</>} 
                             </button>
                         </div>
                     </div>
@@ -332,37 +474,29 @@ const CRMFunil = () => {
             {selectedLead && (
                 <div className="crm-modal-overlay" onClick={() => setSelectedLead(null)}>
                     <div className="crm-modal-content" onClick={e => e.stopPropagation()}>
-                        <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-primary-color font-black text-2xl">{(selectedLead.nome || '?').charAt(0)}</div>
+                        <header className="p-10 border-b border-white/5 flex justify-between items-center bg-white/2">
+                            <div className="flex items-center gap-5">
+                                <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-primary-color font-black text-2xl shadow-lg">{getInitials(selectedLead.nome)}</div>
                                 <div>
-                                    <h2 className="text-xl font-black text-white leading-none mb-2">{selectedLead.nome || 'Editar Lead'}</h2>
-                                    <p className="text-xs text-gray-500 font-bold">{selectedLead.numero} • {selectedLead.email || 'Sem e-mail'}</p>
+                                    <h2 className="text-2xl font-black text-white leading-none mb-2">{selectedLead.nome || 'Editar Lead'}</h2>
+                                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{selectedLead.numero} • {selectedLead.tag || 'Sem Tag'}</p>
                                 </div>
                             </div>
-                            <button className="p-3 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-500 rounded-xl transition-all" onClick={() => setSelectedLead(null)}><X size={20} /></button>
+                            <button className="btn-icon-only" style={{ width: '48px', height: '48px', borderRadius: '14px' }} onClick={() => setSelectedLead(null)}><X size={24} /></button>
                         </header>
 
-                        <div className="p-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-10">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="crm-input-group">
                                     <label>Status Comercial</label>
                                     <select 
                                         className="crm-input"
+                                        style={{ appearance: 'auto' }}
                                         value={selectedLead.status}
                                         onChange={(e) => setSelectedLead({ ...selectedLead, status: e.target.value })}
                                     >
                                         {statusList.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
-                                </div>
-                                <div className="crm-input-group">
-                                    <label>Ticket Médio (R$)</label>
-                                    <input 
-                                        type="text" 
-                                        className="crm-input"
-                                        value={selectedLead.value_client}
-                                        onChange={(e) => setSelectedLead({ ...selectedLead, value_client: e.target.value })}
-                                    />
                                 </div>
                                 <div className="crm-input-group">
                                     <label>Responsável</label>
@@ -382,13 +516,31 @@ const CRMFunil = () => {
                                         onChange={(e) => setSelectedLead({ ...selectedLead, tag: e.target.value })}
                                     />
                                 </div>
+                                <div className="crm-input-group">
+                                    <label>Método</label>
+                                    <input 
+                                        type="text" 
+                                        className="crm-input"
+                                        value={selectedLead.metodo}
+                                        onChange={(e) => setSelectedLead({ ...selectedLead, metodo: e.target.value })}
+                                    />
+                                </div>
+                                <div className="crm-input-group">
+                                    <label>Volume</label>
+                                    <input 
+                                        type="text" 
+                                        className="crm-input"
+                                        value={selectedLead.volume}
+                                        onChange={(e) => setSelectedLead({ ...selectedLead, volume: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="mt-8 flex gap-4">
+                            <div className="mt-10 flex gap-4">
                                 <button className="flex-1 btn-supreme py-5" onClick={() => handleUpdateLead(selectedLead.id, selectedLead)}>
-                                    <Save size={18} /> SALVAR ALTERAÇÕES
+                                    <Save size={20} /> SALVAR ALTERAÇÕES
                                 </button>
-                                <button className="p-4 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 transition-all border border-red-500/20 hover:text-white" onClick={() => handleDeleteLead(selectedLead.id)}>
+                                <button className="p-5 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 transition-all border border-red-500/20 hover:text-white" onClick={() => handleDeleteLead(selectedLead.id)}>
                                     <Trash2 size={24} />
                                 </button>
                             </div>

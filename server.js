@@ -3096,27 +3096,57 @@ app.post('/api/step-leads', async (req, res) => {
     console.log('📬 [STEP_LEAD] New submission received:', { name, phone, email, agent_name });
     try {
         let agentPhone = null;
+        let actualAgentName = agent_name;
+
         if (agent_name) {
-            // Normaliza tanto o nome no banco quanto o parâmetro recebido (remove espaços, hifens e coloca em lowercase)
+            // Normaliza tanto o nome no banco quanto o parâmetro recebido
             const agentRes = await pool.query(
-                "SELECT notification_number, phone FROM users WHERE LOWER(REPLACE(REPLACE(name, ' ', ''), '-', '')) = LOWER(REPLACE(REPLACE($1, ' ', ''), '-', '')) LIMIT 1",
-                [agent_name.replace(/\+/g, '')]
+                "SELECT name, notification_number, phone FROM users WHERE LOWER(REPLACE(REPLACE(name, ' ', ''), '-', '')) = LOWER(REPLACE(REPLACE($1, ' ', ''), '-', '')) LIMIT 1",
+                [agent_name.replace(/\+/g, ' ')] // Troca + por espaço para busca mais precisa
             );
-            agentPhone = agentRes.rows[0]?.notification_number || agentRes.rows[0]?.phone || null;
+            if (agentRes.rows.length > 0) {
+                agentPhone = agentRes.rows[0].notification_number || agentRes.rows[0].phone || null;
+                actualAgentName = agentRes.rows[0].name; // Usa o nome oficial do banco
+            }
         }
 
+        // 1. Salva no PostgreSQL local (Registro histórico)
         const result = await pool.query(
             'INSERT INTO step_leads (name, phone, email, niche, method, volume, agent_name) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-            [name, phone, email, niche, method, volume, agent_name || null]
+            [name, phone, email, niche, method, volume, actualAgentName || null]
         );
 
         const newLead = result.rows[0];
-        console.log('✅ [STEP_LEAD] Saved to database with ID:', newLead.id);
+        console.log('✅ [STEP_LEAD] Saved to local DB with ID:', newLead.id);
+
+        // 2. CONCILIAÇÃO COM CRM (SUPABASE)
+        try {
+            const { error: supabaseError } = await supabase
+                .from('crm_leads')
+                .insert([{
+                    nome: name,
+                    numero: phone,
+                    email: email,
+                    tag: 'Lead Flow',
+                    status: 'Aguardando Atendimento',
+                    responsavel: actualAgentName || 'Sem Atribuição',
+                    value_client: 0,
+                    metodo: method || 'N/A',
+                    volume: volume || 'N/A'
+                }]);
+
+            if (supabaseError) {
+                console.error('❌ [CRM_SYNC_ERROR] Error inserting into Supabase:', supabaseError);
+            } else {
+                console.log('✨ [CRM_SYNC_SUCCESS] Lead successfully added to Supabase CRM');
+            }
+        } catch (supabaseCatch) {
+            console.error('❌ [CRM_SYNC_CRITICAL] Supabase connection error:', supabaseCatch.message);
+        }
 
         // --- WEBHOOK N8N ---
         const webhookUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/8b096b73-408c-456e-8d27-282b8da62084';
         try {
-            // Using global fetch (Node 18+)
             fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -3127,7 +3157,7 @@ app.post('/api/step-leads', async (req, res) => {
                     timestamp_br: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
                 })
             }).then(r => console.log('📡 [WEBHOOK] Sent to n8n:', r.status))
-                .catch(e => console.error('❌ [WEBHOOK] Error sending to n8n:', e.message));
+              .catch(e => console.error('❌ [WEBHOOK] Error sending to n8n:', e.message));
         } catch (webhookErr) {
             console.error('❌ [WEBHOOK] Sync error:', webhookErr.message);
         }
