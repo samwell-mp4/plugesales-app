@@ -73,12 +73,12 @@ const MediaHosting = () => {
                 });
 
                 if (!response.ok) throw new Error(`Falha no upload de ${file.name}`);
-                load(); // Reload complete list after each successful upload
             } catch (error: any) {
                 console.error('Upload Error:', error);
             }
         }
 
+        load(); // Reload complete list ONCE after all files are done
         setIsUploading(false);
         setUploadProgress({ current: 0, total: 0 });
     };

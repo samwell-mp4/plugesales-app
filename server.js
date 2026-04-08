@@ -2233,15 +2233,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     const host = req.get('host');
     const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
 
-    res.json({
-        success: true,
-        url: fileUrl,
-        path: `/uploads/${req.file.filename}`,
-        fileName: req.file.filename,
-        originalName: req.file.originalname,
-        size: req.file.size
-    });
-
     let fileType = 'document';
     const mimetype = req.file.mimetype;
     if (mimetype.includes('image')) fileType = 'image';
@@ -2249,15 +2240,25 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     else if (mimetype.includes('pdf')) fileType = 'document';
     else if (mimetype.includes('spreadsheet') || mimetype.includes('excel') || mimetype.includes('csv')) fileType = 'spreadsheet';
 
-    pool.query(
-        'INSERT INTO media_library (name, type, url, short_url) VALUES ($1, $2, $3, $4)',
-        [
-            req.file.originalname,
-            fileType,
-            fileUrl,
-            fileUrl
-        ]
-    ).catch(err => console.error("Error saving media to DB:", err));
+    try {
+        const dbResult = await pool.query(
+            'INSERT INTO media_library (name, type, url, short_url) VALUES ($1, $2, $3, $4) RETURNING id',
+            [req.file.originalname, fileType, fileUrl, fileUrl]
+        );
+
+        res.json({
+            success: true,
+            id: dbResult.rows[0].id,
+            url: fileUrl,
+            path: `/uploads/${req.file.filename}`,
+            fileName: req.file.filename,
+            originalName: req.file.originalname,
+            size: req.file.size
+        });
+    } catch (err) {
+        console.error("Error saving media to DB:", err);
+        res.status(500).json({ error: 'Erro ao registrar mídia no banco de dados.' });
+    }
 });
 
 // API: Queue Dispatch (Pushes to Redis)
