@@ -91,7 +91,7 @@ const CRMAnalise = () => {
                         <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
 
-                    <button className="btn-glow">
+                    <button className="btn-supreme">
                         <Download size={16} /> Exportar
                     </button>
                 </div>

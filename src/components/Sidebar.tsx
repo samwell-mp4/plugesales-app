@@ -410,12 +410,12 @@ const Sidebar = () => {
                                         <NavLink
                                             key={item.path}
                                             to={item.path}
-                                            className={({ isActive }) => `nav-link-item ${isActive ? 'active' : ''}`}
+                                            className={({ isActive }) => `nav-link-supreme ${isActive ? 'active' : ''}`}
                                         >
-                                            <div className={`${location.pathname === item.path ? 'text-primary' : 'text-white/30'}`}>
+                                            <div className="icon-box">
                                                 {item.icon && React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
                                             </div>
-                                            <span className="font-semibold text-white/70">{item.name}</span>
+                                            <span>{item.name}</span>
                                         </NavLink>
                                     )
                                 ))}

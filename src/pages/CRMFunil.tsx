@@ -126,7 +126,7 @@ const CRMFunil = () => {
                         <button className="btn-icon-only text-primary-color border-primary-color/20" onClick={handleMigrate} title="Migrar Planilha"><Database size={18} /></button>
                     )}
 
-                    <button className="btn-glow" onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${CRM_SPREADSHEET_ID}`, '_blank')}>
+                    <button className="btn-supreme" onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${CRM_SPREADSHEET_ID}`, '_blank')}>
                         <Plus size={18} /> Novo Lead
                     </button>
                 </div>
