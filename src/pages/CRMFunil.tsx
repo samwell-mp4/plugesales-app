@@ -91,6 +91,14 @@ const LeadCard = memo(({ lead, index, onEdit, onFavorite, onDelete, onWhatsApp, 
 
 LeadCard.displayName = 'LeadCard';
 
+const statusList = [
+    'Aguardando Atendimento',
+    'Agendamento Realizado',
+    'Venda Realizada',
+    'Não Fechou',
+    'Não Respondeu'
+];
+
 const CRMFunil = () => {
     const { user } = useAuth();
     const [leads, setLeads] = useState<any[]>([]);
@@ -272,7 +280,6 @@ const CRMFunil = () => {
         };
     }, [filteredLeads, leads]);
 
-    const statusList = ['Aguardando Atendimento', 'Agendamento Realizado', 'Venda Realizada', 'Não Fechou', 'Não Respondeu'];
     
     const getInitials = useCallback((name: string) => {
         if (!name) return '??';
