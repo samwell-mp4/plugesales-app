@@ -116,15 +116,8 @@ const Sidebar = () => {
             id: 'CRM',
             label: 'CRM & GESTÃO ESTRATÉGICA',
             items: [
-                {
-                    name: 'Pipeline de Vendas',
-                    icon: <Activity />,
-                    children: [
-                        { name: 'Análise Geral', path: '/crm/analise', icon: <BarChart3 /> },
-                        { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users /> },
-                        { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar /> },
-                    ]
-                }
+                { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users /> },
+                { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar /> },
             ]
         },
         {
@@ -221,188 +214,34 @@ const Sidebar = () => {
     if (user?.role === 'PENDING_CLIENT') return null;
 
     return (
-        <aside className="sidebar-container">
-            <style>{`
-                .sidebar-container {
-                    position: fixed;
-                    left: 20px;
-                    top: 20px;
-                    bottom: 20px;
-                    width: var(--sidebar-width);
-                    z-index: 500;
-                    background: rgba(10, 15, 25, 0.88);
-                    backdrop-filter: blur(24px) saturate(180%);
-                    border-radius: 24px;
-                    display: flex;
-                    flex-direction: column;
-                    padding: 24px 16px;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                    transition: all 0.3s ease;
-                }
-                
-                .nav-scroll {
-                    flex: 1;
-                    overflow-y: auto;
-                    margin-top: 20px;
-                    padding-right: 4px;
-                }
-                .nav-scroll::-webkit-scrollbar { width: 3px; }
-                .nav-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 10px; }
-
-                .category-block { margin-bottom: 20px; }
-                
-                .category-toggle {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 8px 12px;
-                    cursor: pointer;
-                    margin-bottom: 6px;
-                    border-radius: 8px;
-                    transition: all 0.2s;
-                    user-select: none;
-                }
-                .category-toggle:hover { background: rgba(255,255,255,0.03); }
-                .category-title {
-                    font-size: 0.65rem;
-                    font-weight: 800;
-                    color: rgba(255,255,255,0.3);
-                    letter-spacing: 1.5px;
-                }
-
-                .nav-link-item, .nav-link-group {
-                    padding: 10px 14px;
-                    border-radius: 12px;
-                    color: rgba(255,255,255,0.5);
-                    text-decoration: none;
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                    margin-bottom: 2px;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    cursor: pointer;
-                }
-                
-                .nav-link-item:hover, .nav-link-group:hover {
-                    background: rgba(255,255,255,0.04);
-                    color: white;
-                }
-
-                .nav-link-item.active {
-                    background: rgba(172, 248, 0, 0.1);
-                    color: var(--primary-color);
-                    font-weight: 700;
-                    border-left: 3px solid var(--primary-color);
-                    border-radius: 4px 12px 12px 4px;
-                }
-                
-                .sub-link-item {
-                    padding: 8px 12px;
-                    border-radius: 8px;
-                    color: rgba(255,255,255,0.35);
-                    text-decoration: none;
-                    font-size: 0.8rem;
-                    font-weight: 500;
-                    transition: all 0.2s;
-                    display: block;
-                }
-                .sub-link-item:hover { color: white; background: rgba(255,255,255,0.02); }
-                .sub-link-item.active { 
-                    color: var(--primary-color); 
-                    font-weight: 750;
-                    background: rgba(172, 248, 0, 0.05);
-                }
-
-                @media (max-width: 768px) {
-                    .sidebar-container {
-                        width: 100% !important;
-                        height: 76px !important;
-                        left: 0 !important; right: 0 !important; bottom: 0 !important; top: auto !important;
-                        margin: 0 !important; border-radius: 0 !important;
-                        padding: 0 12px !important;
-                        background: rgba(10, 15, 25, 0.98) !important;
-                        border: none;
-                        border-top: 1px solid rgba(255,255,255,0.1);
-                        flex-direction: row !important;
-                    }
-                    .logo-header, .user-footer, .category-toggle, .category-title, .sub-link-item { display: none !important; }
-                    .nav-scroll {
-                        margin-top: 0 !important;
-                        display: flex !important;
-                        flex-direction: row !important;
-                        align-items: center;
-                        gap: 12px;
-                        overflow-x: auto;
-                        padding-right: 0;
-                        width: 100%;
-                    }
-                    .category-block { margin-bottom: 0; }
-                    .nav-link-item, .nav-link-mobile {
-                        flex: 0 0 auto;
-                        flex-direction: column !important;
-                        min-width: 72px;
-                        padding: 8px !important;
-                        gap: 2px !important;
-                        font-size: 0.65rem !important;
-                        margin-bottom: 0;
-                        border-left: none !important;
-                        color: rgba(255,255,255,0.4);
-                        text-align: center;
-                    }
-                    .nav-link-item.active, .nav-link-mobile.active {
-                        background: transparent !important;
-                        color: var(--primary-color) !important;
-                        border-bottom: 2px solid var(--primary-color) !important;
-                        border-radius: 0;
-                    }
-                    .nav-link-mobile { display: flex; align-items: center; text-decoration: none; }
-                }
-
-                .user-footer {
-                    margin-top: auto;
-                    padding-top: 20px;
-                    border-top: 1px solid rgba(255,255,255,0.06);
-                }
-                .logout-btn {
-                    margin-top: 12px;
-                    background: rgba(255,255,255,0.03);
-                    color: rgba(255,255,255,0.3);
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    transition: all 0.2s;
-                    border-radius: 12px;
-                }
-                .logout-btn:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-            `}</style>
-
-            <div className="logo-header flex items-center justify-between px-2 mb-2">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-black shadow-lg shadow-primary/20">
-                        <MessageSquare size={19} />
-                    </div>
-                    <span className="font-black text-white text-base tracking-tighter">Plug & Sales</span>
+        <aside className="sidebar-supreme">
+            <div className="sidebar-supreme-logo">
+                <div className="w-10 h-10 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-lg shadow-primary-color/20">
+                    <Zap size={22} fill="currentColor" />
                 </div>
-                <button onClick={toggleTheme} className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-primary/80 hover:bg-white/10 transition-colors">
-                    {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-                </button>
+                <div>
+                    <span className="font-black text-white text-lg tracking-tighter block leading-tight">Plug & Sales</span>
+                    <span className="text-[9px] font-black text-primary-color tracking-[0.2em] uppercase opacity-60">Operations Center</span>
+                </div>
             </div>
 
-            <nav className="nav-scroll">
+            <nav className="nav-scroll flex-1">
                 {filteredCats.map(cat => (
-                    <div key={cat.id} className="category-block">
-                        <div 
-                            className="bg-white/[0.03] px-3 py-2 rounded-lg flex items-center justify-between group hover:bg-white/[0.05] transition-all cursor-pointer mb-2" 
-                            onClick={() => { if(cat.id !== 'OPERACIONAL') setCollapsedCats(p => ({ ...p, [cat.id]: !p[cat.id] })); }}
-                            style={{ cursor: cat.id === 'OPERACIONAL' ? 'default' : 'pointer' }}
-                        >
-                            <span className="text-[10px] font-black text-white/40 uppercase tracking-[2px] group-hover:text-primary transition-colors">{cat.label}</span>
+                    <div key={cat.id} className="sidebar-supreme-cat">
+                        <div className="flex items-center justify-between mb-3 px-2">
+                            <span className="cat-label-supreme">{cat.label}</span>
                             {cat.id !== 'OPERACIONAL' && (
-                                <ChevronDown size={10} className={`opacity-20 transition-transform ${collapsedCats[cat.id] ? '-rotate-90' : ''}`} />
+                                <button 
+                                    onClick={() => setCollapsedCats(p => ({ ...p, [cat.id]: !p[cat.id] }))}
+                                    className="text-white/20 hover:text-primary-color transition-colors"
+                                >
+                                    <ChevronDown size={14} className={`transition-transform duration-300 ${collapsedCats[cat.id] ? '-rotate-90' : ''}`} />
+                                </button>
                             )}
                         </div>
+                        
                         {!collapsedCats[cat.id] && (
-                            <div className="flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="flex flex-col gap-1">
                                 {cat.items.map((item: any) => (
                                     item.children ? (
                                         <SubMenu key={item.name} item={item} activePath={location.pathname} isMobile={isMobile} />
@@ -412,8 +251,8 @@ const Sidebar = () => {
                                             to={item.path}
                                             className={({ isActive }) => `nav-link-supreme ${isActive ? 'active' : ''}`}
                                         >
-                                            <div className="icon-box">
-                                                {item.icon && React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
+                                            <div className="icon-box-supreme">
+                                                {item.icon && React.cloneElement(item.icon as React.ReactElement<any>, { size: 19 })}
                                             </div>
                                             <span>{item.name}</span>
                                         </NavLink>
@@ -425,19 +264,28 @@ const Sidebar = () => {
                 ))}
             </nav>
 
-            <div className="user-footer">
-                <div className="bg-white/5 border border-white/5 p-3 rounded-2xl flex items-center gap-3 shadow-inner">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 border border-white/5">
-                        <UserCircle size={26} strokeWidth={1.5} />
+            <div className="user-footer-supreme">
+                <div className="user-card-supreme">
+                    <div className="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center text-white/30 border border-white/10 shadow-inner">
+                        <UserCircle size={28} strokeWidth={1.5} />
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-bold text-white truncate">{user?.name}</span>
-                        <span className="text-[10px] font-black text-primary opacity-70 tracking-tighter uppercase">{user?.role}</span>
+                        <span className="text-sm font-black text-white truncate">{user?.name}</span>
+                        <span className="text-[10px] font-black text-primary-color tracking-tight uppercase opacity-70">{user?.role}</span>
                     </div>
                 </div>
-                <button onClick={() => { if(window.confirm('Sair da conta?')) logout(); }} className="logout-btn w-full py-2.5 flex items-center justify-center gap-2 cursor-pointer border border-white/5">
-                    <LogOut size={15} /> SAIR
-                </button>
+                
+                <div className="flex gap-2">
+                    <button onClick={toggleTheme} className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-primary-color hover:bg-white/10 transition-all">
+                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
+                    <button 
+                        onClick={() => { if(window.confirm('Sair da conta?')) logout(); }} 
+                        className="logout-btn-supreme flex-1"
+                    >
+                        <LogOut size={16} /> ENCERRAR SESSÃO
+                    </button>
+                </div>
             </div>
         </aside>
     );

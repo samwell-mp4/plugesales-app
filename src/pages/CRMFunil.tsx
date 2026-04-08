@@ -545,7 +545,7 @@ const CRMFunil = () => {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3">
+                            <div className="supreme-sidebar-actions">
                                 <button 
                                     className="btn-supreme py-4 justify-center" 
                                     onClick={() => window.open(`https://wa.me/${(selectedLead.numero || '').replace(/\D/g,'')}`, '_blank')}
@@ -553,15 +553,16 @@ const CRMFunil = () => {
                                     <MessageSquare size={18} /> ABRIR WHATSAPP
                                 </button>
                                 
-                                <button className="p-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl flex items-center justify-center gap-3 transition-all font-bold text-sm"
+                                <button 
+                                    className={`btn-sidebar-supreme favorite ${selectedLead.is_favorite ? 'active' : ''}`}
                                     onClick={() => toggleFavorite(selectedLead)}
                                 >
-                                    <Star size={18} fill={selectedLead.is_favorite ? '#fbbf24' : 'none'} color={selectedLead.is_favorite ? '#fbbf24' : 'currentColor'} /> 
-                                    {selectedLead.is_favorite ? 'REMOVER DOS FAVORITOS' : 'ADICIONAR AOS FAVORITOS'}
+                                    <Star size={18} fill={selectedLead.is_favorite ? '#fbbf24' : 'none'} /> 
+                                    {selectedLead.is_favorite ? 'NOS FAVORITOS' : 'ADICIONAR FAVORITO'}
                                 </button>
 
                                 <button 
-                                    className="p-4 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl flex items-center justify-center gap-3 transition-all font-bold text-sm border border-red-500/20"
+                                    className="btn-sidebar-supreme delete"
                                     onClick={() => handleDeleteLead(selectedLead.id)}
                                 >
                                     <Trash2 size={18} /> EXCLUIR REGISTRO

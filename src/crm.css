@@ -257,15 +257,19 @@
 
 /* Modals */
 /* Supreme Lead Modal */
-.crm-modal-overlay {
+.supreme-modal-overlay {
     position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(12px);
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(16px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 99999;
+    padding: 20px;
 }
 
 .supreme-modal-content {
@@ -287,11 +291,55 @@
     width: 320px;
     background: rgba(255, 255, 255, 0.02);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 40px;
+    padding: 30px;
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 20px;
     overflow-y: auto;
+}
+
+.supreme-sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-sidebar-supreme {
+    padding: 16px;
+    border-radius: 18px;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+}
+
+.btn-sidebar-supreme.favorite {
+    background: rgba(251, 191, 36, 0.05);
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.1);
+}
+
+.btn-sidebar-supreme.favorite.active {
+    background: #fbbf24;
+    color: #000;
+}
+
+.btn-sidebar-supreme.delete {
+    background: rgba(239, 68, 68, 0.05);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.1);
+}
+
+.btn-sidebar-supreme.delete:hover {
+    background: #ef4444;
+    color: #fff;
 }
 
 .supreme-modal-main {
@@ -779,28 +827,56 @@
     border-color: rgba(239, 68, 68, 0.3);
 }
 
-/* --- Tables Improvements --- */
+/* --- Supreme Table Polish --- */
 .crm-table-container {
     background: rgba(15, 23, 42, 0.3);
     backdrop-filter: blur(20px);
-    border-radius: 24px;
-    border: 1px solid rgba(172, 248, 0, 0.05);
-    padding: 10px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.crm-premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
 }
 
 .crm-premium-table th {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 10px;
+    text-align: left;
+    padding: 12px 20px;
+    font-size: 10px;
+    font-weight: 1000;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.crm-table-row td {
     padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: #fff;
+    font-size: 13px;
+    vertical-align: middle;
 }
 
-.crm-table-row {
-    transition: all 0.3s ease;
+.crm-table-row td:first-child {
+    border-left: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 20px 0 0 20px;
 }
 
-.crm-table-row:hover {
-    background: rgba(172, 248, 0, 0.04) !important;
-    transform: translateX(4px);
+.crm-table-row td:last-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 0 20px 20px 0;
+}
+
+.crm-table-row:hover td {
+    background: rgba(172, 248, 0, 0.04);
+    border-color: rgba(172, 248, 0, 0.2);
+    color: var(--primary-color);
 }
 
 /* Animations */
