@@ -722,8 +722,9 @@ export const dbService = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            if (!res.ok) throw new Error('Erro ao adicionar lead no Supabase.');
-            return await res.json();
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || 'Erro ao adicionar lead no Supabase.');
+            return result;
         } catch (err: any) {
             console.error("CRM Add Error:", err);
             throw err;

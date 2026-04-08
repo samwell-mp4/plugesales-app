@@ -608,10 +608,17 @@ app.post('/api/crm/leads', async (req, res) => {
             .insert([req.body])
             .select();
         
-        if (error) throw error;
+        if (error) {
+            console.error("SUPABASE CRM INSERT ERROR:", error);
+            return res.status(400).json({ 
+                error: error.message,
+                details: error.details,
+                hint: error.hint
+            });
+        }
         res.json(data[0]);
     } catch (err) {
-        console.error("CRM Insert Error (Supabase):", err.message);
+        console.error("CRM Insert Critical Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });
