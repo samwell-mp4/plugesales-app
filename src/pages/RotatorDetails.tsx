@@ -59,6 +59,10 @@ const RotatorDetails = () => {
 
     const mobilePct = Math.round((deviceStats.mobile / (stats.recentClicks.length || 1)) * 100);
 
+    const targets = typeof stats.rotator.targets === 'string' 
+        ? JSON.parse(stats.rotator.targets) 
+        : (stats.rotator.targets || []);
+
     return (
         <div className="container-root" style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '28px 24px' }}>
             <style>{`
@@ -165,11 +169,11 @@ const RotatorDetails = () => {
                     </div>
                     <div className="glass-card">
                         <div className="stat-label">Links Ativos</div>
-                        <div className="stat-value">{JSON.parse(stats.rotator.targets).length}</div>
+                        <div className="stat-value">{targets.length}</div>
                     </div>
                     <div className="glass-card">
                         <div className="stat-label">Média Cliques/Link</div>
-                        <div className="stat-value">{(totalClicks / Math.max(JSON.parse(stats.rotator.targets).length, 1)).toFixed(1)}</div>
+                        <div className="stat-value">{(totalClicks / Math.max(targets.length, 1)).toFixed(1)}</div>
                     </div>
                     <div className="glass-card">
                         <div className="stat-label">Desempenho</div>
