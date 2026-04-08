@@ -601,6 +601,21 @@ app.get('/api/crm/leads', async (req, res) => {
     }
 });
 
+app.post('/api/crm/leads', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('crm_leads')
+            .insert([req.body])
+            .select();
+        
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (err) {
+        console.error("CRM Insert Error (Supabase):", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // MIGRATION ENDPOINT: Google Sheets -> Supabase
 app.post('/api/crm/migrate', async (req, res) => {
     try {

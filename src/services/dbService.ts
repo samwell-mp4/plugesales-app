@@ -715,6 +715,20 @@ export const dbService = {
             throw err;
         }
     },
+    addCRMLead: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/leads`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error('Erro ao adicionar lead no Supabase.');
+            return await res.json();
+        } catch (err: any) {
+            console.error("CRM Add Error:", err);
+            throw err;
+        }
+    },
     updateCRMLead: async (id: string | number, data: any) => {
         try {
             const res = await fetch(`${API_BASE}/crm/leads/${id}`, {
