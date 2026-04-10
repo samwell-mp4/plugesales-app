@@ -13,7 +13,8 @@ const employees = [
     { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br' },
     { name: 'Samwell Souza', email: 'samwellsouza@plugsales.com.br' },
     { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br' },
-    { name: 'Ramon Gomes', email: 'ramongomes@plugsales.com.br', password: 'Ramon@plugsales2026!' }
+    { name: 'Ramon Gomes', email: 'ramongomes@plugsales.com.br', password: 'Ramon@plugsales2026!' },
+    { name: 'Gisele Vieira', email: 'giselevieira@plugsales.com.br' }
 ];
 
 const generatePassword = () => {

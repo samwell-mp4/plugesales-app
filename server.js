@@ -3053,7 +3053,8 @@ const seedOfficialEmployees = async () => {
         { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br', phone: '5531983195398' },
         { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br', phone: '5531995113394' },
         { name: 'Samwell Souza', email: 'samwellsouza@plugsales.com.br', phone: '5531988868362' },
-        { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br', phone: '5531992330403' }
+        { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br', phone: '5531992330403' },
+        { name: 'Gisele Vieira', email: 'giselevieira@plugsales.com.br', phone: '5531983804904' }
     ];
 
     const standardPassword = 'PlugSales#2026';

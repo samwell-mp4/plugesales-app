@@ -16,7 +16,8 @@ const Obrigado = () => {
         '6': 'Italo Clovis',
         '7': 'Samwell Souza',
         '8': 'Thales Henrique',
-        '9': 'Ramon Gomes'
+        '9': 'Ramon Gomes',
+        '10': 'Gisele Vieira'
     };
 
     const agentName = id ? agentMap[id] : null;
