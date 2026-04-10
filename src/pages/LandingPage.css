@@ -8,8 +8,11 @@
   min-height: 100vh;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
   scroll-behavior: smooth;
   position: relative;
+  box-sizing: border-box;
 }
 
 .lp-container::before {
@@ -847,8 +850,10 @@
 }
 
 @media (max-width: 480px) {
-  .lp-section {
+  .lp-section, .lp-section2 {
     padding: 60px 20px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .lp-hero {

@@ -131,20 +131,20 @@ const Dashboard = () => {
 
     return (
         <div className="animate-fade-in dashboard-root" style={{ paddingBottom: '60px' }}>
-            <div className="flex items-center justify-between mb-10 header-section">
-                <div>
-                    <h1 style={{ fontWeight: 900, fontSize: '3rem', letterSpacing: '-2px', margin: 0, background: 'var(--title-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <div className="dashboard-header mb-10">
+                <div className="header-info">
+                    <h1 className="dashboard-title">
                         {user?.role === 'ADMIN' ? 'Dashboard de Operações' : 'Painel de Colaborador'}
                     </h1>
                     <p className="subtitle" style={{ fontSize: '1.1rem', opacity: 0.7 }}>
                         {user?.role === 'ADMIN' ? 'Gestão de templates e monitoramento de performance em tempo real' : 'Acesse suas ferramentas e acompanhe suas tarefas'}
                     </p>
                 </div>
-                <div className="flex gap-4">
-                    <button className="btn btn-secondary" style={{ borderRadius: '16px', padding: '12px 24px', fontWeight: 800 }} onClick={fetchData} disabled={isLoading}>
+                <div className="header-actions">
+                    <button className="btn btn-secondary action-btn-top" onClick={fetchData} disabled={isLoading}>
                         <Clock size={18} className={isLoading ? 'animate-spin' : ''} /> SYNC META
                     </button>
-                    <NavLink to="/dispatch" className="btn btn-primary" style={{ color: 'black', fontWeight: 900, borderRadius: '16px', padding: '12px 24px', boxShadow: '0 0 20px rgba(172, 248, 0, 0.2)' }}>
+                    <NavLink to="/dispatch" className="btn btn-primary action-btn-top" style={{ color: 'black', boxShadow: '0 0 20px rgba(172, 248, 0, 0.2)' }}>
                         <Send size={18} /> DISPARO RÁPIDO
                     </NavLink>
                 </div>
@@ -189,7 +189,7 @@ const Dashboard = () => {
                 />
             </div>
 
-            <div className="grid-layout" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '32px' }}>
+            <div className="grid-layout" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '32px' }}>
                 {/* Column 1: Shortcuts & Activity */}
                 <div className="flex-col gap-10">
                     <div className="glass-card flex-col p-8" style={{ border: '1px solid var(--surface-border-subtle)', borderRadius: '32px', minHeight: '340px' }}>
@@ -392,9 +392,23 @@ const Dashboard = () => {
                     .truncate { max-width: 300px; }
                 }
 
-                @media (max-width: 1000px) {
-                    .grid-layout { grid-template-columns: 1fr; }
-                    h1 { font-size: 2.2rem !important; }
+                .dashboard-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+                .dashboard-title { font-weight: 900; fontSize: 3rem; letter-spacing: -2px; margin: 0; background: var(--title-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.1; }
+                .header-actions { display: flex; gap: 16px; align-items: center; }
+                .action-btn-top { border-radius: 16px; padding: 12px 24px; font-weight: 800; white-space: nowrap; }
+
+                @media (max-width: 1024px) {
+                    .dashboard-header { flex-direction: column; align-items: flex-start; text-align: left; }
+                    .header-actions { width: 100%; }
+                    .action-btn-top { flex: 1; justify-content: center; }
+                    .dashboard-title { font-size: 2.2rem; }
+                }
+
+                @media (max-width: 600px) {
+                    .header-actions { flex-direction: column; }
+                    .action-btn-top { width: 100%; }
+                    .grid-layout { gap: 16px; }
+                    .glass-card { padding: 20px; }
                 }
             `}</style>
         </div>

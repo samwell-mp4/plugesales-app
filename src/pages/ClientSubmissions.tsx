@@ -24,7 +24,10 @@ import {
     Eye,
     Send,
     Calendar,
-    Copy as CopyIcon
+    Copy as CopyIcon,
+    SlidersHorizontal,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -80,11 +83,19 @@ const ClientSubmissions = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list' | 'kanban'>('grid');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(12);
-    const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+    const [showExtraFilters, setShowExtraFilters] = useState(false);
+    const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [showUpcoming, setShowUpcoming] = useState(false);
     const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
-    const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
     const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('');
+    const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const loadSubmissions = async () => {
         setIsLoading(true);
@@ -152,13 +163,13 @@ const ClientSubmissions = () => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    const isAccepted = (s: ClientSubmission) => !!(s.accepted_by && s.accepted_by.trim() !== '') || !!(s.assigned_to && s.assigned_to.trim() !== '');
+    const isAccepted = (s: ClientSubmission) => !!((s.accepted_by || '').trim() !== '') || !!((s.assigned_to || '').trim() !== '');
 
     const allSubmissions = Array.isArray(submissions) ? submissions : [];
     
     const allFiltered = allSubmissions.filter(s => {
-        const matchesSearch = (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const matchesSearch = (s.profile_name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+            (s.client_name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
             (s.ddd || '').includes(searchTerm);
         
         const matchesClient = !selectedClientFilter || String(s.user_id) === String(selectedClientFilter);
@@ -167,16 +178,17 @@ const ClientSubmissions = () => {
         const matchesStart = !dateRange.start || dateObj >= new Date(dateRange.start + 'T00:00:00');
         const matchesEnd = !dateRange.end || dateObj <= new Date(dateRange.end + 'T23:59:59');
 
-        const hasUpcomingAd = s.ads?.some(ad => ad.scheduled_at && new Date(ad.scheduled_at) > new Date()) || false;
-        const matchesUpcoming = !showUpcoming || hasUpcomingAd;
-
-        const matchesStatus = !selectedStatusFilter || s.status === selectedStatusFilter;
-        const currentType = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'TEXT';
+        const adsArr = Array.isArray(s.ads) ? s.ads : [];
+        const currentType = (adsArr.length > 0 ? adsArr[0]?.template_type : s.template_type) || 'TEXT';
         const matchesType = !selectedTypeFilter || currentType === selectedTypeFilter;
         const matchesEmployee = !selectedEmployeeFilter || 
             (s.assigned_to || '').trim().toLowerCase() === selectedEmployeeFilter.trim().toLowerCase();
 
         const isNotPendingParent = s.status !== 'AGUARDANDO_APROVACAO_PAI';
+
+        const hasUpcomingAd = adsArr.some(ad => ad.scheduled_at && new Date(ad.scheduled_at) > new Date()) || false;
+        const matchesUpcoming = !showUpcoming || hasUpcomingAd;
+        const matchesStatus = !selectedStatusFilter || s.status === selectedStatusFilter;
 
         return matchesSearch && matchesClient && matchesStart && matchesEnd && matchesUpcoming && matchesStatus && matchesType && matchesEmployee && isNotPendingParent;
     });
@@ -197,7 +209,7 @@ const ClientSubmissions = () => {
     };
 
     const handlePreFillCreator = (sub: ClientSubmission) => {
-        const adsToFill = sub.ads && sub.ads.length > 0 ? sub.ads : [{
+        const adsToFill = Array.isArray(sub.ads) && sub.ads.length > 0 ? sub.ads : [{
             ad_name: sub.profile_name,
             template_type: sub.template_type || 'TEXT',
             media_url: sub.media_url,
@@ -237,7 +249,7 @@ const ClientSubmissions = () => {
         const selectedSubmissions = submissions.filter(s => selectedIds.includes(s.id));
         
         const campaigns = selectedSubmissions.map((sub) => {
-            const adsToFill = sub.ads && sub.ads.length > 0 ? sub.ads : [{
+            const adsToFill = Array.isArray(sub.ads) && sub.ads.length > 0 ? sub.ads : [{
                 ad_name: sub.profile_name,
                 template_type: sub.template_type || 'TEXT',
                 media_url: sub.media_url,
@@ -273,15 +285,13 @@ const ClientSubmissions = () => {
         const preFillData = {
             clientId: firstSub.user_id,
             clientName: firstSub.client_name,
-            templateType: firstSub.template_type || firstAds[0]?.template_type || 'TEXT',
-            bodyText: firstAds[0]?.ad_copy || firstSub.ad_copy || '',
+            templateType: firstSub.template_type || (firstAds.length > 0 ? firstAds[0]?.template_type : 'TEXT'),
+            bodyText: (firstAds.length > 0 ? firstAds[0]?.ad_copy : firstSub.ad_copy) || '',
             campaigns: campaigns
         };
 
         navigate('/templates', { state: { preFillData, activeTab: 'BULK' } });
     };
-
-
 
     const handleAssign = async (id: number, employeeName: string) => {
         try {
@@ -366,27 +376,30 @@ const ClientSubmissions = () => {
     };
 
     const tabs = [
-        ...(user?.role === 'ADMIN' ? [{ id: 'available' as const, label: 'PENDENTES', icon: <Inbox size={13} />, count: allFiltered.filter(s => !s.assigned_to).length }] : []),
-        { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: allFiltered.filter(s => s.assigned_to === user?.name).length },
-        ...(user?.role === 'ADMIN' ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: allFiltered.length }] : []),
+        ...(user?.role === 'ADMIN' ? [{ id: 'available' as const, label: 'PENDENTES', icon: <Inbox size={13} />, count: Array.isArray(allFiltered) ? allFiltered.filter(s => !s.assigned_to).length : 0 }] : []),
+        { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: Array.isArray(allFiltered) ? allFiltered.filter(s => (s.assigned_to || '').trim().toLowerCase() === (user?.name || '').trim().toLowerCase()).length : 0 },
+        ...(user?.role === 'ADMIN' ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: Array.isArray(allFiltered) ? allFiltered.length : 0 }] : []),
     ];
 
     const totalEntregues = allFiltered.reduce((sum, sub) => {
-        const adsEntregues = sub.ads?.reduce((s, ad) => s + (ad.delivered_leads || 0), 0) || 0;
+        const adsArr = Array.isArray(sub.ads) ? sub.ads : [];
+        const adsEntregues = adsArr.reduce((s, ad) => s + (ad.delivered_leads || 0), 0) || 0;
         return sum + adsEntregues;
     }, 0);
 
     const totalFaturado = allFiltered.reduce((sum, sub) => {
-        const adsFaturado = sub.ads?.reduce((s, ad) => s + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
+        const adsArr = Array.isArray(sub.ads) ? sub.ads : [];
+        const adsFaturado = adsArr.reduce((s, ad) => s + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
         return sum + adsFaturado;
     }, 0);
 
         const renderGridView = () => (
         <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
             {paginatedSubmissions.map(s => {
-                const adCount = s.ads?.length || 0;
-                const subTotalEntregues = s.ads?.reduce((sum, ad) => sum + (ad.delivered_leads || 0), 0) || 0;
-                const subTotalFaturado = s.ads?.reduce((sum, ad) => sum + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
+                const adsArr = Array.isArray(s.ads) ? s.ads : [];
+                const adCount = adsArr.length || 0;
+                const subTotalEntregues = adsArr.reduce((sum, ad) => sum + (ad.delivered_leads || 0), 0) || 0;
+                const subTotalFaturado = adsArr.reduce((sum, ad) => sum + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
                 return (
                     <div key={s.id} className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)} style={{ padding: '20px' }}>
                         <div className="card-actions">
@@ -402,7 +415,7 @@ const ClientSubmissions = () => {
                                 {selectedIds.includes(s.id) && <CheckCircle size={13} style={{ color: '#000' }} />}
                             </div>
                         </div>
-                        {s.status === 'GERADO' && s.ads?.some(ad => ad.scheduled_at) && (
+                        {s.status === 'GERADO' && (Array.isArray(s.ads) && s.ads.some(ad => ad.scheduled_at)) && (
                             <div style={{ position: 'absolute', top: '16px', right: '140px' }}>
                                 <div style={{ fontSize: '9px', fontWeight: 900, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '3px 10px', borderRadius: '999px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                     <Clock size={10} /> AGENDADO
@@ -454,7 +467,7 @@ const ClientSubmissions = () => {
                                 </div>
                                 <div>
                                     <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '1px' }}>PRÓXIMO DISPARO</p>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#fff' }}>{new Date(s.ads[0].scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+                                    <p style={{ margin: '2px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#fff' }}>{s.ads?.[0]?.scheduled_at ? new Date(s.ads[0].scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</p>
                                     {s.sender_number && (
                                         <p style={{ margin: '2px 0 0 0', fontSize: '9px', fontWeight: 800, color: 'rgba(59,130,246,0.7)' }}>BM SENDER: {s.sender_number}</p>
                                     )}
@@ -532,7 +545,7 @@ const ClientSubmissions = () => {
                                 {s.client_name ? `Cliente: ${s.client_name}` : 'Sem Cliente'}
                             </span>
                             <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
-                                DDD: {s.ddd || '--'} | Ad: {s.ads && s.ads.length > 0 ? s.ads[0].ad_name : 'Sem Ad'}
+                                DDD: {s.ddd || '--'} | Ad: {(Array.isArray(s.ads) && s.ads.length > 0) ? s.ads[0].ad_name : 'Sem Ad'}
                             </span>
                         </div>
                     </div>
@@ -637,9 +650,9 @@ const ClientSubmissions = () => {
     };
 
     return (
-        <div style={{ minHeight: '100vh', padding: '32px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
+        <div className="cs-page-container" style={{ minHeight: '100vh', padding: '32px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
             <style>{`
-                * { box-sizing: border-box; }
+                * { box-sizing: border-box !important; }
                 .cs-card {
                     background: var(--card-bg-subtle);
                     border: 1px solid var(--surface-border-subtle);
@@ -647,6 +660,7 @@ const ClientSubmissions = () => {
                     transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
                     position: relative;
                     overflow: hidden;
+                    min-width: 0 !important;
                 }
                 .cs-card:hover {
                     border-color: rgba(172,248,0,0.25);
@@ -658,43 +672,26 @@ const ClientSubmissions = () => {
                     border-color: rgba(172,248,0,0.4);
                     background: rgba(172,248,0,0.04);
                 }
-                .cs-card .card-actions {
-                    position: absolute; top: 12px; right: 12px;
-                    display: flex; gap: 6px;
-                    opacity: 0; transform: translateY(-4px); transition: all 0.2s;
-                }
-                .cs-card:hover .card-actions { opacity: 1; transform: translateY(0); }
-                .cs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
-                .tab-pill { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 12px; font-weight: 900; font-size: 10px; letter-spacing: 0.5px; transition: all 0.2s; cursor: pointer; border: none; }
-                .tab-pill.active { background: var(--primary-color); color: #000; }
+                .cs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; width: 100% !important; min-width: 0 !important; }
+                .tab-pill { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 12px; font-weight: 900; font-size: 10px; letter-spacing: 0.5px; transition: all 0.2s; cursor: pointer; border: 1px solid transparent; }
+                .tab-pill.active { background: var(--primary-color); color: #000; border-color: rgba(172,248,0,0.3); box-shadow: 0 4px 15px rgba(172,248,0,0.2); }
                 .tab-pill.inactive { background: transparent; color: rgba(255,255,255,0.35); }
                 .tab-pill.inactive:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
-                .count-badge.active { background: rgba(0,0,0,0.3); color: #000; }
-                .count-badge.inactive { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); }
-                .tab-pill { border: 1px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-                .tab-pill.active { border-color: rgba(172,248,0,0.3); box-shadow: 0 4px 15px rgba(172,248,0,0.2); }
-                .progress-overlay {
-                    position: fixed; inset: 0; background: var(--overlay-bg); z-index: 9999;
-                    display: flex; flex-direction: column; align-items: center; justify-content: center;
-                    backdrop-filter: blur(20px);
-                }
-                .accept-btn {
-                    width: 100%; background: var(--primary-color); color: #000; font-weight: 900;
-                    font-size: 11px; letter-spacing: 1px; padding: 12px; border-radius: 12px; border: none;
-                    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap-6px;
-                }
-                .accept-btn:hover { transform: scale(1.02); box-shadow: 0 8px 20px -4px rgba(172,248,0,0.4); }
+                .count-badge { padding: 2px 6px; border-radius: 6px; font-size: 9px; margin-left: 4px; }
+                .count-badge.active { background: rgba(0,0,0,0.2); color: #000; }
+                .count-badge.inactive { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
+
                 .open-btn {
                     width: 100%; background: var(--card-bg-subtle); color: var(--text-secondary); font-weight: 900;
                     font-size: 11px; letter-spacing: 1px; padding: 12px; border-radius: 12px; border: 1px solid var(--surface-border-subtle);
                     cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
                 }
                 .open-btn:hover { background: var(--surface-hover); color: var(--text-primary); border-color: var(--surface-border); }
-                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 24px; }
-                .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 16px; }
+                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 24px; min-width: 0 !important; }
+                .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 16px; min-width: 0 !important; }
 
                 /* List View Styles */
-                .list-container { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+                .list-container { display: flex; flex-direction: column; gap: 8px; width: 100%; min-width: 0 !important; }
                 .list-row {
                     display: grid;
                     grid-template-columns: 1.8fr 0.4fr 1.2fr 2fr 0.8fr 1fr 150px;
@@ -706,6 +703,7 @@ const ClientSubmissions = () => {
                     gap: 20px;
                     transition: all 0.2s;
                     cursor: pointer;
+                    min-width: 0 !important;
                 }
                 .list-row:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1); }
                 .list-row.selected { background: rgba(172,248,0,0.03); border-color: rgba(172,248,0,0.2); }
@@ -717,8 +715,7 @@ const ClientSubmissions = () => {
                 }
                 .list-btn:hover { background: var(--surface-hover); color: var(--text-primary); border-color: var(--surface-border); }
                 .list-btn.primary { background: var(--primary-color); border-color: var(--primary-color); color: #000; box-shadow: 0 0 12px rgba(172,248,0,0.2); }
-                .list-btn.primary:hover { background: #bdfa00; transform: scale(1.05); }
-
+                
                 .list-badge {
                     font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 6px;
                     border: 1px solid rgba(172,248,0,0.3); color: var(--primary-color);
@@ -726,7 +723,7 @@ const ClientSubmissions = () => {
                 }
 
                 /* Kanban Styles */
-                .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; min-height: 600px; -webkit-overflow-scrolling: touch; }
+                .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; min-height: 600px; -webkit-overflow-scrolling: touch; min-width: 0 !important; }
                 .kanban-column {
                     flex: 1; min-width: 320px; max-width: 400px;
                     background: rgba(255,255,255,0.01);
@@ -735,20 +732,6 @@ const ClientSubmissions = () => {
                     padding: 16px;
                     display: flex; flex-direction: column; gap: 12px;
                 }
-                .kanban-header {
-                    display: flex; align-items: center; justify-content: space-between;
-                    margin-bottom: 8px; padding: 0 4px;
-                }
-                .kanban-title { font-size: 11px; font-weight: 900; color: rgba(255,255,255,0.3); letter-spacing: 1px; }
-                .kanban-card {
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.06);
-                    border-radius: 16px;
-                    padding: 16px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .kanban-card:hover { border-color: var(--primary-color); background: rgba(255,255,255,0.04); }
 
                 /* Pagination */
                 .pagination-bar {
@@ -761,14 +744,95 @@ const ClientSubmissions = () => {
                     cursor: pointer; font-weight: 800; font-size: 12px; transition: all 0.2s;
                     display: flex; align-items: center; gap: 4px;
                 }
-                .page-btn:hover:not(:disabled) { background: var(--surface-hover); color: var(--text-primary); }
                 .page-btn.active { background: var(--primary-color); color: #000; border-color: var(--primary-color); }
-                .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+                @media (max-width: 1024px) {
+                    .cs-page-container { padding: 16px 12px !important; overflow-x: hidden !important; }
+                    .cs-layout-main { grid-template-columns: minmax(0, 1fr) !important; width: 100% !important; }
+                    
+                    /* STATS CAROUSEL PER USER REQUEST */
+                    .stats-grid { 
+                        display: flex !important;
+                        overflow-x: auto !important;
+                        padding: 10px 24px 30px !important;
+                        margin: 0 -24px !important;
+                        gap: 16px !important;
+                        scroll-snap-type: x mandatory !important;
+                        -webkit-overflow-scrolling: touch !important;
+                        scrollbar-width: none;
+                    }
+                    .stats-grid::-webkit-scrollbar { display: none; }
+                    .stats-grid > div {
+                        flex: 0 0 280px !important;
+                        scroll-snap-align: center !important;
+                        background: rgba(255,255,255,0.04) !important;
+                        border-color: rgba(255,255,255,0.1) !important;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+                    }
+
+                    .cs-grid { grid-template-columns: minmax(0, 1fr) !important; }
+                    
+                    .list-row {
+                        grid-template-columns: 1fr !important;
+                        gap: 12px !important;
+                        padding: 20px !important;
+                        align-items: stretch !important;
+                    }
+                    .list-row > div { width: 100% !important; min-width: 0 !important; }
+                    
+                    .responsive-stack-mobile { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+                    .responsive-stack-mobile > * { width: 100% !important; flex: none !important; }
+
+                    .tab-pill { flex: 1; justify-content: center; height: 50px; font-size: 9px; }
+                    .chart-grid { grid-template-columns: 1fr !important; }
+
+                    /* NEW CSS DRIVEN FILTERS */
+                    .mobile-filter-toggle { display: none !important; }
+                    .secondary-filters-container { 
+                        display: flex !important; 
+                        flex-direction: column !important; 
+                        width: 100% !important; 
+                        padding: 16px !important; 
+                        background: rgba(255,255,255,0.02) !important; 
+                        border: 1px solid rgba(255,255,255,0.05) !important; 
+                        border-radius: 16px !important; 
+                        gap: 12px !important;
+                        align-items: stretch !important;
+                    }
+                    .secondary-filters-container.is-open { 
+                        display: flex !important; 
+                        animation: slideDown 0.3s ease-out forwards;
+                    }
+
+                    @keyframes slideDown {
+                        from { opacity: 0; transform: translateY(-10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                }
+
+                @media (min-width: 1025px) {
+                    .mobile-filter-toggle { display: none !important; }
+                    .secondary-filters-container {
+                        display: flex !important;
+                        position: static !important;
+                        background: transparent !important;
+                        border: none !important;
+                        padding: 0 !important;
+                        box-shadow: none !important;
+                        opacity: 1 !important;
+                        pointer-events: auto !important;
+                        transform: none !important;
+                        margin-left: 10px !important;
+                        gap: 8px !important;
+                        width: auto !important;
+                        flex-wrap: wrap !important;
+                    }
+                }
             `}</style>
 
-            <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
+            <div className="cs-layout-main" style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
                 <div style={{ marginBottom: '36px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
+                    <div className="flex items-end justify-between flex-wrap gap-5 responsive-stack-mobile">
                         <div>
                             <p style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '3px', color: 'var(--primary-color)', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.8 }}>ÁREA DO CLIENTE</p>
                             <h1 style={{ fontWeight: 900, fontSize: '2.2rem', letterSpacing: '-1.5px', margin: 0, lineHeight: 1 }}>Dashboard de Clientes</h1>
@@ -794,7 +858,7 @@ const ClientSubmissions = () => {
                                 <Plus size={16} /> NOVO ENVIO
                             </button>
                             {selectedIds.length > 0 && (
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                                <div className="flex gap-2 responsive-stack-mobile">
                                     <button
                                         onClick={handleBulkRedirectToCreator}
                                         disabled={isProcessing}
@@ -831,15 +895,15 @@ const ClientSubmissions = () => {
 
                     <div className="stats-grid">
                         {(['ADMIN', 'EMPLOYEE'].includes(user?.role || '') ? [
-                            { label: 'Total', value: allSubmissions.length, color: 'var(--text-secondary)' },
-                            { label: 'Em andamento', value: allSubmissions.filter(isAccepted).length, color: '#f59e0b' },
-                            { label: 'Total Entregues', value: totalEntregues.toLocaleString('pt-BR'), color: '#22c55e' },
-                            { label: 'Investimento Clientes', value: `R$ ${totalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'var(--primary-color)' },
+                            { label: 'Total', value: (allSubmissions || []).length, color: 'var(--text-secondary)' },
+                            { label: 'Em andamento', value: (allSubmissions || []).filter(isAccepted).length, color: '#f59e0b' },
+                            { label: 'Total Entregues', value: (totalEntregues || 0).toLocaleString('pt-BR'), color: '#22c55e' },
+                            { label: 'Investimento Clientes', value: `R$ ${(totalFaturado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'var(--primary-color)' },
                         ] : [
-                            { label: 'Total', value: allSubmissions.length, color: 'var(--text-secondary)' },
-                            { label: 'Disponíveis', value: allFiltered.filter(s => !s.assigned_to).length, color: 'var(--primary-color)' },
-                            { label: 'Em andamento', value: allFiltered.filter(isAccepted).length, color: '#f59e0b' },
-                            { label: 'Geradas', value: allFiltered.filter(s => s.status === 'GERADO').length, color: '#22c55e' },
+                            { label: 'Total', value: (allSubmissions || []).length, color: 'var(--text-secondary)' },
+                            { label: 'Disponíveis', value: (allFiltered || []).filter(s => !s.assigned_to).length, color: 'var(--primary-color)' },
+                            { label: 'Em andamento', value: (allFiltered || []).filter(isAccepted).length, color: '#f59e0b' },
+                            { label: 'Geradas', value: (allFiltered || []).filter(s => s.status === 'GERADO').length, color: '#22c55e' },
                         ]).map(stat => (
                             <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '18px', padding: '18px 24px', backdropFilter: 'blur(10px)', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
                                 <span style={{ fontSize: '28px', fontWeight: 900, color: stat.color, lineHeight: 1, display: 'block', marginBottom: '4px' }}>{stat.value}</span>
@@ -848,16 +912,17 @@ const ClientSubmissions = () => {
                         ))}
                     </div>
 
-                    {allSubmissions.length > 0 && (() => {
+                    {Array.isArray(allSubmissions) && allSubmissions.length > 0 && (() => {
                         const total = allSubmissions.length;
-                        const avail = allFiltered.filter(s => !s.assigned_to).length;
+                        const avail = (allFiltered || []).filter(s => !s.assigned_to).length;
                         const inProgress = allSubmissions.filter(isAccepted).length;
                         const done = allSubmissions.filter(s => s.status === 'GERADO').length;
                         const cancelled = allSubmissions.filter(s => s.status === 'CANCELADO').length;
 
                         const byType: Record<string, number> = {};
                         allSubmissions.forEach(s => {
-                            const t = (s.ads && s.ads.length > 0 ? s.ads[0]?.template_type : s.template_type) || 'none';
+                            const adsArr = Array.isArray(s.ads) ? s.ads : [];
+                            const t = (adsArr.length > 0 ? adsArr[0]?.template_type : s.template_type) || 'none';
                             byType[t] = (byType[t] || 0) + 1;
                         });
                         const typeColors: Record<string, string> = { image: '#a855f7', video: '#3b82f6', none: 'var(--text-muted)' };
@@ -903,8 +968,8 @@ const ClientSubmissions = () => {
                     })()}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', gap: '4px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '4px' }}>
+                    <div className="flex items-center justify-between mb-6 gap-4 flex-wrap responsive-stack-mobile">
+                        <div className="flex gap-1 background-subtle border-subtle rounded-xl p-1 responsive-stack-mobile">
                         {tabs.map(tab => (
                             <button key={tab.id} className={`tab-pill ${activeTab === tab.id ? 'active' : 'inactive'}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}>
                                 {tab.icon} {tab.label} <span className={`count-badge ${activeTab === tab.id ? 'active' : 'inactive'}`}>{tab.count}</span>
@@ -912,38 +977,16 @@ const ClientSubmissions = () => {
                         ))}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, flexWrap: 'wrap' }}>
+                    <div className="flex items-center gap-3 flex-1 flex-wrap responsive-stack-mobile">
                         {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
                             <>
                                 <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
                                     <select value={selectedClientFilter} onChange={e => { setSelectedClientFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
                                         <option value="" style={{ background: '#0f172a' }}>CLIENTES</option>
-                                        {clients.map(c => <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{c.name.toUpperCase()}</option>)}
+                                        {Array.isArray(clients) && clients.map(c => <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{(c.name || '').toUpperCase()}</option>)}
                                     </select>
                                 </div>
-                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                    <select value={selectedStatusFilter} onChange={e => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedStatusFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
-                                        <option value="" style={{ background: '#0f172a' }}>STATUS</option>
-                                        <option value="PENDENTE" style={{ background: '#0f172a' }}>PENDENTE</option>
-                                        <option value="GERADO" style={{ background: '#0f172a' }}>GERADO</option>
-                                        <option value="CONCLUIDO" style={{ background: '#0f172a' }}>CONCLUÍDO</option>
-                                        <option value="CANCELADO" style={{ background: '#0f172a' }}>CANCELADO</option>
-                                    </select>
-                                </div>
-                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                    <select value={selectedEmployeeFilter} onChange={e => { setSelectedEmployeeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedEmployeeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
-                                        <option value="" style={{ background: '#0f172a' }}>FUNCIONÁRIOS</option>
-                                        {employees.map(emp => <option key={emp} value={emp} style={{ background: '#0f172a' }}>{emp.toUpperCase()}</option>)}
-                                    </select>
-                                </div>
-                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                    <select value={selectedTypeFilter} onChange={e => { setSelectedTypeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedTypeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
-                                        <option value="" style={{ background: '#0f172a' }}>TIPO</option>
-                                        <option value="image" style={{ background: '#0f172a' }}>IMAGEM</option>
-                                        <option value="video" style={{ background: '#0f172a' }}>VÍDEO</option>
-                                        <option value="none" style={{ background: '#0f172a' }}>TEXTO / OUTRO</option>
-                                    </select>
-                                </div>
+
                                 <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)' }}>DE:</span>
                                     <input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({ ...p, start: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, outline: 'none' }} />
@@ -952,16 +995,50 @@ const ClientSubmissions = () => {
                                     <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ:</span>
                                     <input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({ ...p, end: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, outline: 'none' }} />
                                 </div>
-                                <button onClick={() => { setShowUpcoming(!showUpcoming); setCurrentPage(1); }} style={{ background: showUpcoming ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${showUpcoming ? '#3b82f6' : 'var(--surface-border-subtle)'}`, color: showUpcoming ? '#3b82f6' : 'var(--text-muted)', padding: '0 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', height: '38px' }}>
-                                    <Clock size={14} /> PRÓXIMOS
+
+                                <button 
+                                    onClick={() => setShowExtraFilters(!showExtraFilters)}
+                                    className="mobile-filter-toggle"
+                                    style={{ background: showExtraFilters ? 'rgba(172,248,0,0.1)' : 'var(--card-bg-subtle)', border: `1px solid ${showExtraFilters ? 'var(--primary-color)' : 'var(--surface-border-subtle)'}`, color: showExtraFilters ? 'var(--primary-color)' : 'var(--text-muted)', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '11px', alignItems: 'center', gap: '8px', height: '38px', transition: 'all 0.2s' }}
+                                >
+                                    <SlidersHorizontal size={14} /> FILTRAR {showExtraFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
+
+                                <div className={`secondary-filters-container ${showExtraFilters ? 'is-open' : ''}`}>
+                                    <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                        <select value={selectedStatusFilter} onChange={e => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedStatusFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                            <option value="" style={{ background: '#0f172a' }}>STATUS</option>
+                                            <option value="PENDENTE" style={{ background: '#0f172a' }}>PENDENTE</option>
+                                            <option value="GERADO" style={{ background: '#0f172a' }}>GERADO</option>
+                                            <option value="CONCLUIDO" style={{ background: '#0f172a' }}>CONCLUÍDO</option>
+                                            <option value="CANCELADO" style={{ background: '#0f172a' }}>CANCELADO</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                        <select value={selectedEmployeeFilter} onChange={e => { setSelectedEmployeeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedEmployeeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                            <option value="" style={{ background: '#0f172a' }}>FUNCIONÁRIOS</option>
+                                            {Array.isArray(employees) && employees.map(emp => <option key={emp} value={emp} style={{ background: '#0f172a' }}>{(emp || '').toUpperCase()}</option>)}
+                                        </select>
+                                    </div>
+                                    <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                        <select value={selectedTypeFilter} onChange={e => { setSelectedTypeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedTypeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                            <option value="" style={{ background: '#0f172a' }}>TIPO</option>
+                                            <option value="image" style={{ background: '#0f172a' }}>IMAGEM</option>
+                                            <option value="video" style={{ background: '#0f172a' }}>VÍDEO</option>
+                                            <option value="none" style={{ background: '#0f172a' }}>TEXTO / OUTRO</option>
+                                        </select>
+                                    </div>
+                                    <button onClick={() => { setShowUpcoming(!showUpcoming); setCurrentPage(1); }} style={{ background: showUpcoming ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${showUpcoming ? '#3b82f6' : 'var(--surface-border-subtle)'}`, color: showUpcoming ? '#3b82f6' : 'var(--text-muted)', padding: '0 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', height: '38px', width: isMobile ? '100%' : 'auto' }}>
+                                        <Clock size={14} /> PRÓXIMOS
+                                    </button>
+                                </div>
                             </>
                         )}
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
                             <Search size={15} style={{ color: 'var(--text-muted)' }} />
                             <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} placeholder="Buscar..." style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '13px', padding: '10px 0', width: '100%' }} />
                         </div>
-                        <button onClick={selectAll} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>
+                        <button onClick={selectAll} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontWeight: 900, cursor: 'pointer', alignSelf: isMobile ? 'center' : 'auto' }}>
                             {selectedIds.length === filteredSubmissions.length && filteredSubmissions.length > 0 ? 'DESSELECIONAR' : 'SEL. TUDO'}
                         </button>
                     </div>

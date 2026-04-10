@@ -24,15 +24,11 @@ const UploadContacts = () => {
     const [discardNoName] = useState(false);
     const [mapExtraInfo] = useState(false);
     const [smartSplit] = useState(false);
-    const [formatWithAI, setFormatWithAI] = useState(false);
-    const [openAIApiKey, setOpenAIApiKey] = useState(localStorage.getItem('openai_api_key') || '');
-
     const [results, setResults] = useState<{ tag: string, count: number }[]>([]);
     const [processedData, setProcessedData] = useState<any[]>([]);
     const [totalContacts, setTotalContacts] = useState(0);
     const [duplicateCount, setDuplicateCount] = useState(0);
     const [invalidCount, setInvalidCount] = useState(0);
-    const [validatorNumber, setValidatorNumber] = useState('');
     const [uploadHistory, setUploadHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
@@ -204,37 +200,7 @@ const UploadContacts = () => {
                 let extractedContacts: any[] = [];
                 const fileName = file.name.toLowerCase();
 
-                if (formatWithAI) {
-                    let rawText = "";
-                    if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
-                        rawText = new TextDecoder("utf-8").decode(e.target?.result as ArrayBuffer);
-                    } else {
-                        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        rawText = XLSX.utils.sheet_to_csv(firstSheet);
-                    }
-
-                    const res = await fetch('/api/contacts/ai-format', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: rawText, apiKey: openAIApiKey })
-                    });
-                    const resData = await res.json();
-                    
-                    if (!res.ok || !resData.success) {
-                        alert("Erro da IA: " + (resData.error || 'Falha ao formatar planilha'));
-                        setIsProcessing(false);
-                        return;
-                    }
-                    
-                    extractedContacts = resData.contacts.map((c: any) => ({
-                        ...c,
-                        telefone: normalizePhone(c.telefone || '')
-                    })).filter((c: any) => c && c.telefone && c.telefone.length === 13);
-                    
-                    setInvalidCount(0);
-                } else if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
+                if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
                     const textData = new TextDecoder("utf-8").decode(e.target?.result as ArrayBuffer);
                     const lines = textData.split(/\r?\n/).filter(line => line.trim().length > 0);
 
@@ -376,13 +342,13 @@ const UploadContacts = () => {
                 setProcessedData(formattedList);
 
                 // Save contacts data to DB
-                await dbService.saveContacts(baseTag, filtered, total, validatorNumber || 'N/A', 'Admin');
+                await dbService.saveContacts(baseTag, filtered, total, 'N/A', 'Admin');
 
                 // Save upload history entry to DB
                 const newHistoryItem = await dbService.addUploadHistory({
                     tag: baseTag,
                     count: total,
-                    validator: validatorNumber || 'N/A',
+                    validator: 'N/A',
                     creator: 'Admin',
                     status: 'CONCLUÍDO'
                 });
@@ -515,13 +481,18 @@ const UploadContacts = () => {
                 }
 
                 @media (max-width: 768px) {
+                    .upload-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+                    .glass-card { padding: 20px !important; border-radius: 16px !important; }
                     .history-header { flex-direction: column; align-items: flex-start !important; gap: 16px; }
-                    .history-filters { width: 100%; flex-direction: column; }
-                    .history-filters input { width: 100% !important; }
-                    .config-row { flex-direction: column; }
-                    .checkbox-group { border-left: none !important; padding-left: 0 !important; margin-top: 16px; border-top: 1px solid var(--surface-border); padding-top: 16px; }
-                    .upload-action-row { flex-direction: column; }
-                    .upload-action-row button { width: 100%; }
+                    .history-filters { width: 100% !important; flex-direction: column !important; gap: 10px !important; }
+                    .history-filters input, .history-filters > div { width: 100% !important; }
+                    .history-filters > div input { width: 100% !important; }
+                    .config-row { flex-direction: column !important; gap: 16px !important; }
+                    .upload-action-row { flex-direction: column !important; gap: 12px !important; }
+                    .upload-action-row > * { width: 100% !important; }
+                    .upload-zone { max-width: 100% !important; width: 100% !important; }
+                    .history-table th, .history-table td { padding: 12px 10px !important; font-size: 0.75rem !important; }
+                    .badge-premium { font-size: 0.6rem !important; padding: 3px 8px !important; }
                 }
 
 
@@ -566,55 +537,10 @@ const UploadContacts = () => {
                                     onChange={e => setBaseTag(e.target.value)}
                                 />
                             </div>
-                            <div className="flex gap-4">
-                                <div className="input-group" style={{ flex: 1 }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>Batch Size</label>
-                                    <input type="number" className="input-field" style={{ padding: '12px' }} value={batchSize} onChange={e => setBatchSize(Number(e.target.value))} />
-                                </div>
-                                <div className="input-group" style={{ flex: 2 }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>Número de Teste</label>
-                                    <input className="input-field" style={{ padding: '12px' }} placeholder="5511..." value={validatorNumber} onChange={e => setValidatorNumber(e.target.value)} />
-                                </div>
+                            <div className="input-group" style={{ marginTop: '8px' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7 }}>Batch Size</label>
+                                <input type="number" className="input-field" style={{ padding: '12px' }} value={batchSize} onChange={e => setBatchSize(Number(e.target.value))} />
                             </div>
-                        </div>
-
-                        <div className="flex-col gap-5 checkbox-group" style={{ flex: 1, borderLeft: '1px solid var(--surface-border-subtle)', paddingLeft: '32px' }}>
-                            <label className="flex items-center gap-3" style={{ cursor: 'pointer' }}>
-                                <input 
-                                    type="checkbox" 
-                                    checked={formatWithAI} 
-                                    onChange={e => setFormatWithAI(e.target.checked)} 
-                                    style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)', cursor: 'pointer' }}
-                                />
-                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                    ✨ Usar Inteligência Artificial (OpenAI) para extrair lista
-                                </span>
-                            </label>
-                            
-                            {formatWithAI && (
-                                <div className="input-group" style={{ paddingLeft: '30px', marginTop: '-10px' }}>
-                                    <input
-                                        type="password"
-                                        className="input-field"
-                                        style={{ padding: '8px 12px', fontSize: '0.75rem', borderRadius: '8px', width: '100%' }}
-                                        placeholder="Sua API Key da OpenAI (sk-...)"
-                                        value={openAIApiKey}
-                                        onChange={e => {
-                                            setOpenAIApiKey(e.target.value);
-                                            localStorage.setItem('openai_api_key', e.target.value);
-                                        }}
-                                    />
-                                    <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                                        Sua chave é salva apenas no seu navegador.
-                                    </p>
-                                </div>
-                            )}
-
-                            {!formatWithAI && (
-                            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, paddingLeft: '30px', marginTop: '-12px' }}>
-                                A IA detectará nomes e telefones com precisão superior. Ideal para planilhas desorganizadas. O uso da API poderá gerar custos.
-                            </p>
-                            )}
                         </div>
                     </div>
 

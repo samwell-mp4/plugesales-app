@@ -74,12 +74,16 @@ const Accounts = () => {
     }, [apiKey]);
 
     useEffect(() => {
-        if (senderNumber && senderNumber !== user?.infobip_sender) {
+        if (!senderNumber || senderNumber === user?.infobip_sender) return;
+        
+        const handler = setTimeout(() => {
             dbService.updateProfile({ id: user?.id, infobip_sender: senderNumber }).then(updated => {
                 if (updated && !updated.error) setUser(updated);
             });
             addToRecents(senderNumber);
-        }
+        }, 1000); // 1s delay for typing
+
+        return () => clearTimeout(handler);
     }, [senderNumber]);
 
     const addToRecents = (num: string) => {
@@ -226,14 +230,53 @@ const Accounts = () => {
                     letter-spacing: 1px;
                 }
                 td { padding: 18px 24px; border-bottom: 1px solid var(--surface-border); font-size: 0.95rem; }
+                .accounts-page { padding: 40px; }
                 .hover-row:hover { background: rgba(172, 248, 0, 0.02); }
                 
-                @media (max-width: 768px) {
-                    .header-row { flex-direction: column; align-items: flex-start; }
-                    .stats-grid { grid-template-columns: 1fr 1fr; }
-                    .filter-tabs { width: 100%; overflow-x: auto; white-space: nowrap; }
+                @media (max-width: 1024px) {
+                    .accounts-page { padding: 20px; padding-bottom: 120px; }
+                    .header-row { flex-direction: column; align-items: flex-start; gap: 16px; }
+                    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+                    .filter-tabs { width: 100%; overflow-x: auto; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none; display: flex; gap: 8px; }
+                    .filter-tabs::-webkit-scrollbar { display: none; }
+                    .config-command-center { padding: 20px; border-radius: 20px; }
                     .config-row { flex-direction: column; align-items: stretch !important; }
-                    .table-container { border-radius: 0; margin-left: -32px; margin-right: -32px; width: calc(100% + 64px); }
+                    
+                    /* Table to Cards Conversion */
+                    .table-container { 
+                        background: transparent; 
+                        border: none; 
+                        box-shadow: none !important;
+                    }
+                    table, thead, tbody, th, td, tr { display: block; }
+                    thead tr { position: absolute; top: -9999px; left: -9999px; }
+                    tr { 
+                        background: var(--card-bg-subtle); 
+                        border: 1px solid var(--surface-border-subtle);
+                        border-radius: 20px;
+                        margin-bottom: 16px;
+                        padding: 16px;
+                    }
+                    td { 
+                        border: none;
+                        padding: 8px 0;
+                        position: relative;
+                        padding-left: 50%;
+                        font-size: 0.85rem;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        text-align: right;
+                    }
+                    td::before { 
+                        content: attr(data-label);
+                        font-weight: 800;
+                        color: var(--text-muted);
+                        text-transform: uppercase;
+                        font-size: 0.7rem;
+                        text-align: left;
+                    }
+                    td:last-child { border-bottom: 0; border-top: 1px solid var(--surface-border-subtle); margin-top: 10px; padding-top: 15px; }
                 }
                 
                 .recent-tag {
@@ -281,22 +324,9 @@ const Accounts = () => {
                 }
             `}</style>
 
-            <div className="flex flex-col gap-6 mb-8">
-                <div className="header-row">
-                    <div>
-                        <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>Monitor de WhatsApp</h1>
-                        <p className="subtitle" style={{ margin: 0 }}>Gerencie seus templates autorizados pela Meta via Infobip</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <button
-                            className="btn btn-secondary"
-                            onClick={() => navigate('/control')}
-                            style={{ borderRadius: '12px', padding: '10px 24px', fontWeight: 800 }}
-                        >
-                            <ShieldCheck size={18} /> VER AÇÕES
-                        </button>
-                    </div>
-                </div>
+            <div className="mb-8">
+                <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>Monitor de WhatsApp</h1>
+                <p className="subtitle" style={{ margin: 0 }}>Gerencie seus templates autorizados pela Meta via Infobip</p>
             </div>
 
             <div className="stats-grid">
@@ -347,10 +377,10 @@ const Accounts = () => {
                                         border: 'none',
                                         borderBottom: '2px solid var(--primary-color)',
                                         color: 'var(--text-primary)',
-                                        fontSize: '1.8rem',
+                                        fontSize: '1.5rem',
                                         fontWeight: 900,
                                         outline: 'none',
-                                        padding: '8px 0',
+                                        padding: '12px 0',
                                         width: '100%',
                                         letterSpacing: '-1px'
                                     }}
@@ -381,7 +411,7 @@ const Accounts = () => {
                                 <BookMarked size={14} color="var(--primary-color)" />
                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Favoritos Recentes</span>
                             </div>
-                            <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-3 flex-wrap" style={{ maxWidth: '100%', overflow: 'hidden' }}>
                                 {recentNumbers.map(num => (
                                     <button
                                         key={num}
@@ -445,11 +475,11 @@ const Accounts = () => {
                 <table>
                     <thead>
                         <tr>
-                            <th>TEMPLATE IDENTIFICADOR</th>
-                            <th>CATEGORIA</th>
-                            <th>STATUS META</th>
-                            <th>SINCRONIZADO</th>
-                            <th style={{ textAlign: 'right' }}>AÇÕES</th>
+                            <th style={{ width: '40%' }}>TEMPLATE IDENTIFICADOR</th>
+                            <th style={{ width: '15%' }}>CATEGORIA</th>
+                            <th style={{ width: '15%' }}>STATUS META</th>
+                            <th style={{ width: '20%' }}>SINCRONIZADO</th>
+                            <th style={{ textAlign: 'right', width: '10%' }}>AÇÕES</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -466,51 +496,51 @@ const Accounts = () => {
                         ) : (
                             filteredTemplates.slice((templatesPage - 1) * itemsPerPage, templatesPage * itemsPerPage).map((t, index) => (
                                 <tr key={index} className="hover-row">
-                                    <td>
-                                        <div className="flex flex-col">
+                                    <td data-label="Template">
+                                        <div className="flex flex-col text-right md:text-left">
                                             <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{t.name}</span>
-                                            <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', opacity: 0.6, fontFamily: 'monospace', marginTop: '2px' }}>{t.id.slice(0, 20)}...</span>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', opacity: 0.6, fontFamily: 'monospace', marginTop: '2px' }}>{t.id.slice(0, 15)}...</span>
                                         </div>
                                     </td>
-                                    <td>
-                                        <div className="flex flex-col">
+                                    <td data-label="Categoria">
+                                        <div className="flex flex-col text-right md:text-left">
                                             <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t.category}</span>
                                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>pt_BR</span>
                                         </div>
                                     </td>
-                                    <td>{getStatusBadge(t.status, t.rejectionReason)}</td>
-                                    <td>
-                                        <div className="flex items-center gap-2" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                    <td data-label="Status">{getStatusBadge(t.status, t.rejectionReason)}</td>
+                                    <td data-label="Sincronizado">
+                                        <div className="flex items-center justify-end md:justify-start gap-2" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                             <Clock size={12} opacity={0.4} />
                                             {formatDate(t.lastUpdatedAt || t.createdAt)}
                                         </div>
                                     </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div className="flex justify-end gap-2">
+                                    <td data-label="Ações">
+                                        <div className="flex justify-end gap-2 w-full">
                                             <button
                                                 className="btn btn-secondary"
-                                                style={{ padding: '10px', minWidth: '40px', borderRadius: '10px' }}
+                                                style={{ padding: '8px', minWidth: '36px', borderRadius: '10px' }}
                                                 onClick={() => window.open(`https://portal.infobip.com/whatsapp/templates/detail/${t.name}`, '_blank')}
                                                 title="Ver no Infobip"
                                             >
-                                                <ExternalLink size={16} />
+                                                <ExternalLink size={14} />
                                             </button>
                                             <button
                                                 className="btn btn-secondary"
-                                                style={{ padding: '10px', minWidth: '40px', borderRadius: '10px' }}
+                                                style={{ padding: '8px', minWidth: '36px', borderRadius: '10px' }}
                                                 onClick={() => alert(`JSON Structure:\n\n${JSON.stringify(t.structure, null, 2)}`)}
                                                 title="Ver Estrutura"
                                             >
-                                                <Eye size={16} />
+                                                <Eye size={14} />
                                             </button>
                                             {t.status.toUpperCase() === 'APPROVED' && (
                                                 <button
                                                     className="btn btn-primary"
-                                                    style={{ padding: '10px', minWidth: '40px', borderRadius: '10px' }}
+                                                    style={{ padding: '8px', minWidth: '36px', borderRadius: '10px' }}
                                                     onClick={() => navigate(`/dispatch`, { state: { template: t, sender: senderNumber, key: apiKey } })}
                                                     title="Disparar"
                                                 >
-                                                    <Send size={16} color="black" />
+                                                    <Send size={14} color="black" />
                                                 </button>
                                             )}
                                         </div>

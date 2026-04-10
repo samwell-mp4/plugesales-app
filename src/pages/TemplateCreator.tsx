@@ -76,6 +76,7 @@ const TemplateCreator = () => {
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
             if (data.clientId) setSelectedClientId(data.clientId);
             if (data.bodyText) _setBodyText(data.bodyText);
+            if (data.language) setSelectedPayloadLanguage(data.language);
 
             if (data.campaigns && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
                 const initializedCampaigns = data.campaigns.map((camp: any) => ({
@@ -154,7 +155,7 @@ const TemplateCreator = () => {
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
     const [queueSize, setQueueSize] = useState(5);
     const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
-    const templateCategory = 'UTILITY';
+    const [selectedCategory, setSelectedCategory] = useState<'UTILITY' | 'MARKETING'>('UTILITY');
 
 
     const handleFileUpload = async (file: File) => {
@@ -190,7 +191,7 @@ const TemplateCreator = () => {
 
         const varCount = uniqueIndices.length;
 
-        // --- STANDARD UTILITY EXAMPLES ---
+        // --- STANDARD UTILITY EXAMPLES (ALWAYS PORTUGUESE) ---
         const standardExamples = [
             "Leandro", // {{1}}
             "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
@@ -198,7 +199,6 @@ const TemplateCreator = () => {
             "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
             "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
         ];
-
         const examples = standardExamples.slice(0, varCount);
 
         const structure: any = {
@@ -244,7 +244,7 @@ const TemplateCreator = () => {
         return {
             name: name,
             language: overrideLanguage || selectedPayloadLanguage,
-            category: templateCategory,
+            category: selectedCategory,
             structure: structure
         };
     };
@@ -812,26 +812,82 @@ const TemplateCreator = () => {
                 .error-border { border-color: #ff4444 !important; box-shadow: 0 0 10px rgba(255, 68, 68, 0.2) !important; }
 
                 @media (max-width: 768px) {
-                    .creator-layout { grid-template-columns: 1fr !important; gap: 16px !important; width: 100% !important; margin: 0 !important; }
-                    .glass-card { padding: 16px !important; border-radius: 12px !important; }
-                    .button-editor { flex-direction: column !important; align-items: stretch !important; }
-                    .bulk-table-container { 
-                        padding: 0 !important; 
-                        border-radius: 12px !important; 
-                        overflow-x: auto !important; 
+                    * { box-sizing: border-box !important; }
+                    .creator-page { padding: 16px 8px !important; overflow-x: hidden !important; width: 100% !important; max-width: 100vw !important; }
+                    .creator-layout { grid-template-columns: minmax(0, 1fr) !important; gap: 24px !important; width: 100% !important; margin: 0 !important; max-width: 100vw !important; overflow-wrap: anywhere; }
+                    .glass-card { 
+                        padding: 16px !important; 
+                        border-radius: 16px !important; 
                         width: 100% !important; 
-                        background: rgba(255,255,255,0.02);
-                        border: 1px solid var(--surface-border-subtle) !important; 
+                        max-width: 100% !important; 
+                        box-sizing: border-box !important;
+                        overflow: hidden !important;
+                        min-width: 0 !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                    }
+                    .glass-card > * { min-width: 0 !important; max-width: 100% !important; overflow-wrap: anywhere !important; }
+                    
+                    /* STACK EVERYTHING ON MOBILE PER USER REQUEST */
+                    .responsive-stack-mobile { flex-direction: column !important; gap: 10px !important; width: 100% !important; min-width: 0 !important; }
+                    .responsive-stack-mobile > button, 
+                    .responsive-stack-mobile > div { width: 100% !important; min-width: 0 !important; max-width: 100% !important; flex: none !important; }
+
+                    .button-editor { 
+                        flex-direction: column !important; 
+                        align-items: stretch !important; 
+                        gap: 12px !important;
+                        padding: 12px !important;
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        overflow: hidden !important;
+                    }
+                    .button-editor > select, 
+                    .button-editor > input { width: 100% !important; flex: none !important; min-width: 0 !important; max-width: 100% !important; }
+                    
+                    .tab-btns { 
+                        flex-direction: column !important;
+                        gap: 12px !important; 
+                        margin-bottom: 24px !important;
+                        width: 100% !important;
+                        min-width: 0 !important;
+                    }
+                    .tab-btns button { height: 60px !important; font-size: 11px !important; width: 100% !important; min-width: 0 !important; }
+
+                    .bulk-table-container { 
+                        overflow-x: auto !important; 
+                        margin: 0 -16px !important;
+                        padding: 0 16px !important;
+                        width: calc(100% + 32px) !important;
+                        max-width: calc(100% + 32px) !important;
+                        min-width: 0 !important;
+                        display: block !important;
                     }
                     .bulk-table { 
-                        min-width: 700px !important; 
-                        margin-top: 0 !important;
+                        min-width: 800px !important; 
+                        margin-top: 10px !important;
+                        table-layout: fixed !important;
                     }
-                    .bulk-table th { font-size: 0.65rem !important; padding: 12px 8px !important; }
+                    .bulk-table th, .bulk-table td { min-width: 80px !important; }
+                    .bulk-table th { font-size: 0.65rem !important; padding: 12px 10px !important; }
                     .bulk-table td { padding: 8px 4px !important; }
-                    .bulk-row-input { font-size: 0.85rem !important; padding: 8px 10px !important; height: 38px !important; }
-                    .wp-bubble { padding: 12px !important; border-radius: 16px !important; }
-                    .var-grid { grid-template-columns: 1fr !important; }
+                    .bulk-row-input { font-size: 0.85rem !important; padding: 8px 10px !important; height: 38px !important; min-width: 0 !important; }
+                    .wp-bubble { 
+                        padding: 12px !important; 
+                        border-radius: 16px !important; 
+                        min-width: 0 !important; 
+                        max-width: 100% !important;
+                        word-break: break-word !important;
+                        overflow-wrap: anywhere !important;
+                    }
+                    .wp-content { min-width: 0 !important; overflow: hidden !important; }
+                    .var-grid { grid-template-columns: 1fr !important; min-width: 0 !important; }
+                    .bulk-prefix-input { min-width: 0 !important; width: 100% !important; font-size: 0.9rem !important; }
+                    .campaign-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; width: 100% !important; min-width: 0 !important; overflow: hidden !important; }
+                    .campaign-header-left { width: 100% !important; flex-wrap: wrap !important; gap: 10px !important; min-width: 0 !important; }
+                    .campaign-actions-mobile { width: 100% !important; justify-content: space-between !important; border-top: 1px solid rgba(255,255,255,0.05) !important; padding-top: 10px !important; min-width: 0 !important; }
+                    .global-config-grid { grid-template-columns: 1fr !important; gap: 16px !important; min-width: 0 !important; }
+                    pre, code { word-break: break-all !important; white-space: pre-wrap !important; overflow-wrap: break-word !important; max-width: 100% !important; }
                 }
 
                 .loading-overlay {
@@ -1015,7 +1071,7 @@ const TemplateCreator = () => {
 
                             <div className="flex flex-col gap-3">
                                 <label>Idioma do Template</label>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 responsive-stack-mobile">
                                     {[
                                         { code: 'pt_BR', label: 'Português (BR)' },
                                         { code: 'en_US', label: 'Inglês (US)' }
@@ -1031,9 +1087,29 @@ const TemplateCreator = () => {
                                     ))}
                                 </div>
                             </div>
+
+                            <div className="flex flex-col gap-3">
+                                <label>Categoria do Template (Infobip)</label>
+                                <div className="flex gap-2 responsive-stack-mobile">
+                                    {[
+                                        { code: 'UTILITY', label: 'UTILITÁRIO' },
+                                        { code: 'MARKETING', label: 'MARKETING' }
+                                    ].map(cat => (
+                                        <button
+                                            key={cat.code}
+                                            onClick={() => setSelectedCategory(cat.code as any)}
+                                            className={`global-tile-btn ${selectedCategory === cat.code ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
+                                            style={{ flex: 1, height: '44px', fontSize: '11px', fontWeight: 900 }}
+                                        >
+                                            {cat.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <span style={{ fontSize: '10px', opacity: 0.5, fontStyle: 'italic' }}>* Recomendado: UTILITÁRIO para notificações de serviço.</span>
+                            </div>
                         </div>
 
-                        <div className="tab-btns flex gap-4" style={{ marginBottom: '32px', padding: '5px 0' }}>
+                        <div className="tab-btns flex gap-4 responsive-stack-mobile" style={{ marginBottom: '32px', padding: '5px 0' }}>
                             <button className={`global-tile-btn ${activeTab === 'MODEL' ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} onClick={() => setActiveTab('MODEL')} style={{ flex: 1, height: '64px' }}><Layers size={18} /> GERAR INDIVIDUALMENTE</button>
                             <button className={`global-tile-btn ${activeTab === 'BULK' ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} onClick={() => setActiveTab('BULK')} style={{ flex: 1, height: '64px' }}><Copy size={18} /> GERAR EM MASSA</button>
                         </div>
@@ -1059,7 +1135,7 @@ const TemplateCreator = () => {
 
                                 <div className="glass-card flex flex-col gap-6">
                                     <label>Tipo de Cabeçalho</label>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 responsive-stack-mobile">
                                         {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(type => (
                                             <button key={type} onClick={() => setHeaderType(type)} className={`global-tile-btn ${headerType === type ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} style={{ flex: 1 }}>{type === 'TEXT' ? 'SEM' : type}</button>
                                         ))}
@@ -1151,7 +1227,7 @@ const TemplateCreator = () => {
                                     <div className="flex flex-col gap-3">
                                         {buttons.map((btn, idx) => (
                                             <div key={idx} className="button-editor">
-                                                <select className="input-field" style={{ width: '120px', padding: '8px' }} value={btn.type} onChange={e => handleUpdateButton(idx, 'type', e.target.value as any)}>
+                                                <select className="input-field" style={{ padding: '8px' }} value={btn.type} onChange={e => handleUpdateButton(idx, 'type', e.target.value as any)}>
                                                     <option value="url">Link</option>
                                                     <option value="reply">Resposta</option>
                                                 </select>
@@ -1171,40 +1247,40 @@ const TemplateCreator = () => {
                             <div className="flex flex-col animate-fade-in" style={{ gap: '32px', marginTop: '10px' }}>
                                 <div className="glass-card flex flex-col gap-6" style={{ marginBottom: '16px' }}>
                                     <div className="flex items-center gap-3"><Link size={18} color="var(--primary-color)" /><h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>Encurtador de Links</h3></div>
-                                    <div className="flex gap-4">
+                                    <div className="flex gap-4 responsive-stack-mobile">
                                         <input className="bulk-field-input" placeholder="Deseja encurtar alguma URL?" value={utilityLinkOriginal} onChange={e => setUtilityLinkOriginal(e.target.value)} />
-                                        <button className="global-tile-btn global-tile-btn-primary" onClick={handleUtilityShorten} disabled={isShorteningUtility || !utilityLinkOriginal} style={{ minWidth: '120px' }}>{isShorteningUtility ? '...' : 'ENCURTAR'}</button>
+                                        <button className="global-tile-btn global-tile-btn-primary" onClick={handleUtilityShorten} disabled={isShorteningUtility || !utilityLinkOriginal} style={{ flex: 1 }}>{isShorteningUtility ? '...' : 'ENCURTAR'}</button>
                                     </div>
                                     {utilityLinkShort && (
-                                        <div className="flex gap-2 animate-fade-in">{buttons.filter(b => b.type === 'url').map((_, idx) => (
-                                            <button key={idx} onClick={() => applyUtilityLinkToAll(idx)} className="global-tile-btn global-tile-btn-ghost" style={{ fontSize: '10px' }}>APLICAR NO B{idx + 1}</button>
+                                        <div className="flex gap-2 flex-wrap animate-fade-in">{buttons.filter(b => b.type === 'url').map((_, idx) => (
+                                            <button key={idx} onClick={() => applyUtilityLinkToAll(idx)} className="global-tile-btn global-tile-btn-ghost" style={{ fontSize: '10px', flex: '1 1 auto' }}>APLICAR NO B{idx + 1}</button>
                                         ))}</div>
                                     )}
                                 </div>
 
-                                <div className="flex justify-between items-center" style={{ marginTop: '24px', marginBottom: '16px' }}>
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 responsive-stack-mobile" style={{ marginTop: '24px', marginBottom: '16px' }}>
                                     <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Campanhas Multi-Gerador</h3>
-                                    <div className="flex gap-4">
+                                    <div className="flex flex-wrap gap-2 responsive-stack-mobile">
                                         <button className="global-tile-btn global-tile-btn-ghost" onClick={applySenderToAllCampaigns}>
                                             <Smartphone size={16} /> SENDER EM TODAS
                                         </button>
                                         <button className="global-tile-btn global-tile-btn-ghost" onClick={() => setCampaigns([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }])}>LIMPAR</button>
-                                        <button className="global-tile-btn global-tile-btn-primary " onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `nome_campanha_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button>
+                                        <button className="global-tile-btn global-tile-btn-primary" onClick={() => setCampaigns([...campaigns, { id: Date.now().toString(), prefix: `nome_campanha_${campaigns.length + 1}_`, rows: [] }])}><Plus size={16} /> NOVA CAMPANHA</button>
                                     </div>
                                 </div>
 
                                 {campaigns.map((camp, cIdx) => (
                                     <div key={camp.id} className="glass-card flex flex-col gap-8 animate-fade-in">
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center gap-4">
+                                        <div className="campaign-header flex justify-between items-center">
+                                            <div className="campaign-header-left flex items-center gap-4">
                                                 <button onClick={() => setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, collapsed: !c.collapsed } : c))} className="global-tile-btn global-tile-btn-ghost" style={{ width: '32px', height: '32px', padding: 0 }}>
                                                     {camp.collapsed ? <ChevronRight size={20} /> : <ChevronDown size={20} />}
                                                 </button>
                                                 <div style={{ background: 'var(--primary-color)', color: 'black', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem' }}>{cIdx + 1}</div>
                                                 <input className={`bulk-prefix-input ${campaigns.filter(c => c.prefix.trim() !== "" && c.prefix.trim().toLowerCase() === camp.prefix.trim().toLowerCase()).length > 1 ? 'error-border' : ''}`} value={camp.prefix} onChange={e => { const val = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, prefix: val } : c)); }} />
-                                                <span style={{ fontSize: '12px', opacity: 0.5, fontWeight: 700 }}>{camp.rows.length} ANÚNCIOS</span>
                                             </div>
-                                            <div className="flex items-center gap-4">
+                                            <div className="campaign-actions-mobile flex items-center gap-4">
+                                                <span style={{ fontSize: '10px', opacity: 0.5, fontWeight: 700 }}>{camp.rows.length} ADS</span>
                                                 {campaigns.length > 1 && (
                                                     <button onClick={() => setCampaigns(campaigns.filter(c => c.id !== camp.id))} className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0 }} title="Remover Campanha">
                                                         <Trash2 size={24} stroke="white" strokeWidth={3} />
@@ -1214,12 +1290,18 @@ const TemplateCreator = () => {
                                         </div>
                                         {!camp.collapsed && (
                                             <div className="flex flex-col gap-8 animate-slide-up">
-                                                <div className="flex gap-4 items-end"><div className="flex-1"><label>Adicionar Anúncios</label><div className="flex gap-2"><input type="number" className="bulk-field-input" value={queueSize} onChange={e => setQueueSize(parseInt(e.target.value) || 1)} style={{ width: '80px', textAlign: 'center' }} /><button className="global-tile-btn global-tile-btn-primary" onClick={() => autoGenerateRows(queueSize, camp.id)}>GERAR {queueSize} LINHAS</button></div></div></div>
+                                                <div className="flex flex-col gap-2">
+                                                    <label style={{ fontSize: '10px', fontWeight: 900, opacity: 0.6 }}>ADICIONAR ANÚNCIOS</label>
+                                                    <div className="flex gap-2 responsive-stack-mobile">
+                                                        <input type="number" className="bulk-field-input" value={queueSize} onChange={e => setQueueSize(parseInt(e.target.value) || 1)} style={{ textAlign: 'center', width: '100%' }} />
+                                                        <button className="global-tile-btn global-tile-btn-primary" onClick={() => autoGenerateRows(queueSize, camp.id)} style={{ flex: 1.5 }}>GERAR {queueSize} LINHAS</button>
+                                                    </div>
+                                                </div>
                                                 {camp.rows.length > 0 && (
                                                     <div className="mt-4 animate-fade-in">
                                                         <div className="flex flex-col gap-4 mb-6" style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
                                                             <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px', textTransform: 'uppercase' }}>Painel de Configuração Rápida</span>
-                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                            <div className="global-config-grid grid grid-cols-1 md:grid-cols-3 gap-6">
                                                                 <div className="flex flex-col gap-2">
                                                                     <label style={{ fontSize: '10px' }}>REMETENTE GLOBAL</label>
                                                                     <div className="flex gap-2">
@@ -1227,7 +1309,7 @@ const TemplateCreator = () => {
                                                                         <button className="global-tile-btn global-tile-btn-primary" onClick={() => {
                                                                             const val = (document.getElementById(`global-sender-${camp.id}`) as HTMLInputElement)?.value;
                                                                             if (val) applyGlobalSender(val, camp.id);
-                                                                        }} style={{ minWidth: '80px' }}>APLICAR</button>
+                                                                        }} style={{ flex: 1 }}>APLICAR</button>
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex flex-col gap-2">
@@ -1236,21 +1318,60 @@ const TemplateCreator = () => {
                                                                 </div>
                                                                 <div className="flex flex-col gap-2">
                                                                     <label style={{ fontSize: '10px' }}>BOTÕES GLOBAIS</label>
-                                                                    <div className="flex gap-1"><button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>LIGAR BOTÕES</button><button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>DESLIGAR</button></div>
+                                                                    <div className="flex gap-1"><button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>LIGAR BOTÕES</button><button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '0.6rem', padding: '0 4px' }}>DESLIGAR</button></div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div style={{ overflowX: 'auto', borderRadius: '12px' }}><table className="bulk-table"><thead><tr><th>SUFIXO</th><th>SENDER</th><th>TIPO</th><th>BOTÃO</th>{(buttons || []).filter(b => b.type === 'url').map((_, i) => <Fragment key={i}><th>NOME B{i + 1}</th><th>LINK B{i + 1}</th></Fragment>)}<th>AÇÕES</th></tr></thead><tbody>{(camp.rows || []).map((row, rIdx) => {
-                                                            const fullName = `${camp.prefix}${row.suffix}`.toLowerCase().trim();
-                                                            const allNames: string[] = [];
-                                                            (campaigns || []).forEach(c => (c.rows || []).forEach(r => allNames.push(`${c.prefix}${r.suffix}`.toLowerCase().trim())));
-                                                            const isFullDuplicate = fullName !== "" && allNames.filter(n => n === fullName).length > 1;
-                                                            const isSuffixDuplicateInCamp = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim().toLowerCase() === row.suffix.trim().toLowerCase() && row.suffix.trim() !== "");
-                                                            const isError = isFullDuplicate || isSuffixDuplicateInCamp;
+                                                        <div className="bulk-table-container">
+                                                            <table className="bulk-table">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>SUFIXO</th>
+                                                                        <th>SENDER</th>
+                                                                        <th>TIPO</th>
+                                                                        <th>BOTÃO</th>
+                                                                        {(buttons || []).filter(b => b.type === 'url').map((_, i) => (
+                                                                            <Fragment key={i}>
+                                                                                <th>NOME B{i + 1}</th>
+                                                                                <th>LINK B{i + 1}</th>
+                                                                            </Fragment>
+                                                                        ))}
+                                                                        <th>AÇÕES</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {(camp.rows || []).map((row, rIdx) => {
+                                                                        const fullName = `${camp.prefix}${row.suffix}`.toLowerCase().trim();
+                                                                        const allNames: string[] = [];
+                                                                        (campaigns || []).forEach(c => (c.rows || []).forEach(r => allNames.push(`${c.prefix}${r.suffix}`.toLowerCase().trim())));
+                                                                        const isFullDuplicate = fullName !== "" && allNames.filter(n => n === fullName).length > 1;
+                                                                        const isSuffixDuplicateInCamp = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim().toLowerCase() === row.suffix.trim().toLowerCase() && row.suffix.trim() !== "");
+                                                                        const isError = isFullDuplicate || isSuffixDuplicateInCamp;
 
-                                                            return (<tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}><td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td><td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
-                                                                {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (<Fragment key={urlIdx}><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td><td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td></Fragment>))}<td><div className="flex gap-3" style={{ position: 'relative', zIndex: 100, minWidth: '120px', justifyContent: 'center' }}><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={28} color="#FFFFFF" strokeWidth={3} /></button><button className="global-tile-btn global-tile-btn-ghost" style={{ width: '52px', height: '52px', padding: 0, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={28} color="#FFFFFF" strokeWidth={3} /></button></div></td></tr>);
-                                                        })}</tbody></table></div>
+                                                                        return (
+                                                                            <tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}>
+                                                                                <td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
+                                                                                <td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
+                                                                                <td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>
+                                                                                <td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
+                                                                                {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
+                                                                                    <Fragment key={urlIdx}>
+                                                                                        <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
+                                                                                        <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
+                                                                                    </Fragment>
+                                                                                ))}
+                                                                                <td>
+                                                                                    <div className="flex gap-3" style={{ position: 'relative', zIndex: 100, justifyContent: 'center', width: '100%' }}>
+                                                                                        <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={24} color="#FFFFFF" /></button>
+                                                                                        <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={24} color="#FFFFFF" /></button>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>

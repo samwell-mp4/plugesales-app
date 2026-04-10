@@ -23,12 +23,14 @@ import {
     Activity,
     BarChart3,
     Users,
-    Calendar
+    Calendar,
+    Menu,
+    X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 // --- Submenu Component ---
-const SubMenu = ({ item, activePath, isMobile }: { item: any, activePath: string, isMobile: boolean }) => {
+const SubMenu = ({ item, activePath }: { item: any, activePath: string }) => {
     const hasActiveChild = useMemo(() => 
         item.children?.some((child: any) => activePath === child.path || (child.path !== '/' && activePath.startsWith(child.path))),
         [item.children, activePath]
@@ -36,27 +38,9 @@ const SubMenu = ({ item, activePath, isMobile }: { item: any, activePath: string
     
     const [isOpen, setIsOpen] = useState(hasActiveChild);
 
-    // Sync only when a child becomes active and it's not currently open
     useEffect(() => {
         if (hasActiveChild) setIsOpen(true);
     }, [hasActiveChild]);
-
-    if (isMobile) {
-        return (
-            <>
-                {item.children.map((child: any) => (
-                    <NavLink
-                        key={child.path}
-                        to={child.path}
-                        className={({ isActive }) => `nav-link-mobile ${isActive ? 'active' : ''}`}
-                    >
-                        {child.icon && React.cloneElement(child.icon as React.ReactElement<any>, { size: 18 })}
-                        <span>{child.name}</span>
-                    </NavLink>
-                ))}
-            </>
-        );
-    }
 
     return (
         <div className="submenu-container">
@@ -91,19 +75,29 @@ const SubMenu = ({ item, activePath, isMobile }: { item: any, activePath: string
 };
 
 const Sidebar = () => {
-    const { user, logout, theme, toggleTheme } = useAuth();
+    const { user, logout } = useAuth();
     const location = useLocation();
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>({});
 
-    // --- Menu Definition ---
+    // Close drawer on navigation
+    useEffect(() => {
+        setIsDrawerOpen(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const menuData = [
         {
             id: 'OPERACIONAL',
             label: 'OPERACIONAL',
             items: [
                 { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, roles: ['ADMIN', 'EMPLOYEE'] },
-                // { name: 'LIVE CHAT', path: '/live-chat', icon: <MessageSquare />, roles: ['ADMIN'] }, // Oculto por enquanto
                 { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
@@ -165,37 +159,23 @@ const Sidebar = () => {
             ...cat,
             items: cat.items.filter((item: any) => {
                 const userRole = user?.role || '';
-                
-                // If item has an 'excludeRole', hide if user has that role
                 if (item.excludeRole && userRole === item.excludeRole) return false;
-                
-                // Standard role logic
-                if (item.roles) {
-                    if (!item.roles.includes(userRole)) return false;
-                } else if (item.role) {
-                    if (item.role !== userRole) return false;
-                }
-                
-                // Children check (for submenus)
+                if (item.roles && !item.roles.includes(userRole)) return false;
+                if (item.role && item.role !== userRole) return false;
                 if (item.children) {
                     item.children = item.children.filter((child: any) => {
                         if (child.excludeRole && userRole === child.excludeRole) return false;
-                        if (child.roles) {
-                            if (!child.roles.includes(userRole)) return false;
-                        } else if (child.role) {
-                            if (child.role !== userRole) return false;
-                        }
+                        if (child.roles && !child.roles.includes(userRole)) return false;
+                        if (child.role && child.role !== userRole) return false;
                         return true;
                     });
                     return item.children.length > 0;
                 }
-
                 return true;
             })
         })).filter(cat => cat.items.length > 0);
     }, [user?.role]);
 
-    // Initialize/Sync collapsed states based on current URL
     useEffect(() => {
         const initialStates: Record<string, boolean> = {};
         filteredCats.forEach(cat => {
@@ -203,23 +183,99 @@ const Sidebar = () => {
                 if (item.children) return item.children.some((c: any) => location.pathname === c.path || (c.path !== '/' && location.pathname.startsWith(c.path)));
                 return location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
             });
-            if (cat.id === 'OPERACIONAL') {
-                initialStates[cat.id] = false;
-            } else {
-                initialStates[cat.id] = !hasActive; // Collapse if not active
-            }
+            initialStates[cat.id] = cat.id === 'OPERACIONAL' ? false : !hasActive;
         });
         setCollapsedCats(initialStates);
-    }, [location.pathname, user?.role]); // Re-sync on path change
-
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth <= 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    }, [location.pathname, user?.role]);
 
     if (user?.role === 'PENDING_CLIENT') return null;
 
+    // --- RENDER MOBILE ---
+    if (isMobile) {
+        // Operational Shortcuts
+        const mobileShortcuts = user?.role === 'CLIENT' 
+            ? [
+                { icon: <LayoutDashboard />, path: '/client-dashboard' },
+                { icon: <FileSpreadsheet />, path: '/client-reports' },
+                { icon: <User />, path: '/profile' }
+            ]
+            : [
+                { icon: <LayoutDashboard />, path: '/upload' },
+                { icon: <Users />, path: '/crm/funil' },
+                { icon: <Activity />, path: '/accounts' },
+                { icon: <MessageSquare />, path: '/templates' }
+            ];
+
+        return (
+            <>
+                <div className="mobile-bottom-nav">
+                    {mobileShortcuts.map((sc, i) => (
+                        <NavLink key={i} to={sc.path} className={({ isActive }) => `nav-item-mobile ${isActive ? 'active' : ''}`}>
+                            {React.cloneElement(sc.icon as React.ReactElement<any>, { size: 22 })}
+                        </NavLink>
+                    ))}
+                    <button onClick={() => setIsDrawerOpen(true)} className={`nav-item-mobile nav-item-mobile-menu ${isDrawerOpen ? 'active' : ''}`}>
+                        <Menu size={22} />
+                    </button>
+                </div>
+
+                <div className={`mobile-drawer-backdrop ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)} />
+                <div className={`mobile-drawer ${isDrawerOpen ? 'open' : ''}`}>
+                    <div className="drawer-handle" />
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-primary-gradient flex items-center justify-center text-black">
+                                <Zap size={16} fill="currentColor" />
+                            </div>
+                            <span className="font-black text-white text-lg tracking-tighter">Plug & Sales</span>
+                        </div>
+                        <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-white/30"><X size={20} /></button>
+                    </div>
+
+                    {filteredCats.map(cat => (
+                        <div key={cat.id} className="mb-6">
+                            <div className="drawer-cat-label">{cat.label}</div>
+                            <div className="flex flex-col gap-1">
+                                {cat.items.map((item: any) => (
+                                    item.children ? (
+                                        item.children.map((child: any) => (
+                                            <NavLink key={child.path} to={child.path} className={({ isActive }) => `drawer-link ${isActive ? 'active' : ''}`}>
+                                                <div className="drawer-icon-box">{React.cloneElement((child.icon || item.icon) as React.ReactElement<any>, { size: 18 })}</div>
+                                                <span>{child.name}</span>
+                                            </NavLink>
+                                        ))
+                                    ) : (
+                                        <NavLink key={item.path} to={item.path} className={({ isActive }) => `drawer-link ${isActive ? 'active' : ''}`}>
+                                            <div className="drawer-icon-box">{React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}</div>
+                                            <span>{item.name}</span>
+                                        </NavLink>
+                                    )
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+
+                    <div className="mt-8 pt-8 border-t border-white/5 flex flex-col gap-4">
+                        <div className="flex items-center gap-3 px-4">
+                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-primary-color font-bold">{user?.name?.charAt(0)}</div>
+                            <div className="flex flex-col">
+                                <span className="text-white font-bold text-sm">{user?.name}</span>
+                                <span className="text-[10px] text-white/30 uppercase tracking-widest">{user?.role}</span>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => { if(window.confirm('Sair da conta?')) logout(); }} 
+                            className="w-full p-4 bg-red-500/10 text-red-500 rounded-2xl font-bold flex items-center justify-center gap-2 text-sm"
+                        >
+                            <LogOut size={18} /> ENCERRAR SESSÃO
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    // --- RENDER DESKTOP ---
     return (
         <aside className="sidebar-supreme">
             <div className="sidebar-supreme-logo">
@@ -251,7 +307,7 @@ const Sidebar = () => {
                             <div className="flex flex-col gap-1">
                                 {cat.items.map((item: any) => (
                                     item.children ? (
-                                        <SubMenu key={item.name} item={item} activePath={location.pathname} isMobile={isMobile} />
+                                        <SubMenu key={item.name} item={item} activePath={location.pathname} />
                                     ) : (
                                         <NavLink
                                             key={item.path}

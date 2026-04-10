@@ -393,7 +393,7 @@ const ClientDashboard = () => {
     }
 
     return (
-        <div className="container-root" style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '28px 24px' }}>
+        <div className="container-root">
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -446,10 +446,28 @@ const ClientDashboard = () => {
                     transform: scale(1.01);
                 }
 
-                @media (max-width: 1024px) {
-                    .stats-wrapper { grid-template-columns: 1fr !important; }
-                    .header-content { flex-direction: column; align-items: flex-start !important; gap: 20px !important; }
-                    .header-actions { width: 100%; justify-content: space-between; }
+                    .stats-wrapper { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important; }
+                    .header-content { flex-direction: column; align-items: flex-start !important; gap: 24px !important; }
+                    .header-actions { width: 100%; justify-content: flex-start; gap: 12px; }
+                    .header-profile-info { flex-direction: column; align-items: flex-start !important; text-align: left; }
+                }
+
+                @media (max-width: 600px) {
+                    .container-root { padding: 16px 12px; }
+                    .stats-wrapper { grid-template-columns: 1fr !important; gap: 16px !important; }
+                    .nav-tab { flex: 1; text-align: center; }
+                    .header-actions { flex-direction: column; align-items: stretch; }
+                    .header-actions .action-btn { width: 100%; }
+                    .primary-btn { margin-bottom: 8px; }
+                    .control-card { padding: 16px; }
+                    .submission-link { padding: 12px; flex-direction: column; align-items: flex-start; gap: 12px; }
+                }
+
+                .container-root { 
+                    min-height: 100vh; 
+                    background: var(--bg-primary); 
+                    color: var(--text-primary); 
+                    padding: 28px 24px; 
                 }
 
                 .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
@@ -510,7 +528,7 @@ const ClientDashboard = () => {
 
                 <div className="stats-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
                     <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.1s' }}>
-                        <div style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                        <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', flexShrink: 0 }}>
                             <Layers size={24} />
                         </div>
                         <div>
@@ -519,7 +537,7 @@ const ClientDashboard = () => {
                         </div>
                     </div>
                     <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.2s' }}>
-                        <div style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b' }}>
+                        <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', flexShrink: 0 }}>
                             <Clock size={24} />
                         </div>
                         <div>
@@ -528,7 +546,7 @@ const ClientDashboard = () => {
                         </div>
                     </div>
                     <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.3s' }}>
-                        <div style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}>
+                        <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e', flexShrink: 0 }}>
                             <CheckCircle2 size={24} />
                         </div>
                         <div>
