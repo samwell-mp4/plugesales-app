@@ -380,12 +380,19 @@ const TemplateCreator = () => {
                     if (res.success) {
                         totalSuccess++;
                         if (user?.id) await dbService.trackTemplate(currentName, user.id);
-                        dbService.addLog({ logType: 'TEMPLATE', name: currentName, author: user?.name, mode: 'SINGLE', userId: Number(selectedClientId) });
+                        const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
+                        dbService.addLog({ 
+                            logType: 'TEMPLATE', 
+                            name: currentName, 
+                            author: user?.name, 
+                            mode: 'SINGLE', 
+                            userId: isInternalUser ? undefined : Number(selectedClientId) 
+                        });
                         await sendToWebhook(payload);
 
                         const client = clients.find(c => String(c.id) === String(selectedClientId));
                         await dbService.addClientSubmission({
-                            user_id: selectedClientId,
+                            user_id: isInternalUser ? undefined : selectedClientId,
                             client_name: client?.name || '',
                             profile_name: currentName,
                             ddd: client?.phone?.substring(0, 2) || '11',
@@ -490,7 +497,14 @@ const TemplateCreator = () => {
                     if (res.success) {
                         successCount++;
                         if (user?.id) await dbService.trackTemplate(name, user.id);
-                        dbService.addLog({ logType: 'TEMPLATE', name, author: user?.name, mode: 'BULK', userId: Number(selectedClientId) });
+                        const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
+                        dbService.addLog({ 
+                            logType: 'TEMPLATE', 
+                            name, 
+                            author: user?.name, 
+                            mode: 'BULK', 
+                            userId: isInternalUser ? undefined : Number(selectedClientId) 
+                        });
                         await sendToWebhook(extendedPayload);
 
                         adsByCampaignId[campaign.id].push({
@@ -547,8 +561,9 @@ const TemplateCreator = () => {
                     }
                 } else {
                     // Creating a NEW submission Card
+                    const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
                     await dbService.addClientSubmission({
-                        user_id: String(selectedClientId),
+                        user_id: (isInternalUser || !selectedClientId) ? undefined : String(selectedClientId),
                         client_name: client?.name || '',
                         profile_name: campaign.prefix.endsWith('_') ? campaign.prefix.slice(0, -1) : campaign.prefix,
                         ddd: client?.phone?.substring(0, 2) || '11',

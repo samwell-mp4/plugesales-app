@@ -542,6 +542,7 @@ const ClientDashboard = () => {
                     <button className={`nav-tab ${activeTab === 'submissions' ? 'active' : ''}`} onClick={() => setActiveTab('submissions')}>MINHAS SUBMISSÕES</button>
                     <button className={`nav-tab ${activeTab === 'links' ? 'active' : ''}`} onClick={() => setActiveTab('links')}>MEUS LINKS</button>
                     <button className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => setActiveTab('activity')}>REGISTRO DE ATIVIDADE</button>
+                    <button className={`nav-tab ${activeTab === 'referrals' ? 'active' : ''}`} onClick={() => setActiveTab('referrals')}>INDICAÇÕES</button>
                 </div>
 
                 <div className="control-card" style={{ animationDelay: '0.4s', padding: '24px' }}>
@@ -685,6 +686,104 @@ const ClientDashboard = () => {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    ) : activeTab === 'referrals' ? (
+                        <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                            <div style={{ marginBottom: '40px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                    <Users className="text-primary-color" size={20} />
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900 }}>Clientes Indicados</h3>
+                                </div>
+                                {isSubClientsLoading ? (
+                                    <div style={{ padding: '40px', textAlign: 'center' }}>
+                                        <div style={{ width: 24, height: 24, margin: '0 auto 12px', border: '2px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                    </div>
+                                ) : subClients.length === 0 ? (
+                                    <div style={{ padding: '40px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                                        <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600 }}>Nenhum cliente indicado até o momento.</p>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                                        {subClients.map((client) => (
+                                            <div key={client.id} style={{ padding: '20px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '20px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                                    <div>
+                                                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>{client.name}</h4>
+                                                        <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>{client.email}</p>
+                                                    </div>
+                                                    <span className="info-chip" style={{ 
+                                                        background: client.approved ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)', 
+                                                        color: client.approved ? '#22c55e' : '#f59e0b',
+                                                        border: `1px solid ${client.approved ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                                                        padding: '4px 8px',
+                                                        fontSize: '8px'
+                                                    }}>
+                                                        {client.approved ? 'ATIVO' : 'PENDENTE'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    {!client.approved && (
+                                                        <button 
+                                                            onClick={() => handleApproveSubClient(client.id)}
+                                                            className="action-btn primary-btn" style={{ flex: 1, height: 36, fontSize: '9px' }}
+                                                        >APROVAR</button>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => handleDeleteSubClient(client.id)}
+                                                        className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0, color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }}
+                                                    ><Trash2 size={14} /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '40px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                    <Layers className="text-primary-color" size={20} />
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900 }}>Campanhas das Indicações</h3>
+                                </div>
+                                {referralSubmissions.length === 0 ? (
+                                    <div style={{ padding: '40px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                                        <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600 }}>Nenhuma campanha de indicação aguardando ação.</p>
+                                    </div>
+                                ) : (
+                                    referralSubmissions.map((sub) => {
+                                        const cfg = statusCfg(sub.status);
+                                        return (
+                                            <div key={sub.id} className="submission-link">
+                                                <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(172,248,0,0.1)', border: '1px solid rgba(172,248,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <Smartphone size={20} style={{ color: 'var(--primary-color)' }} />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900 }}>{sub.profile_name}</h4>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>POR: {sub.submitted_by || 'CLIENTE INDICADO'}</span>
+                                                        <span style={{ color: 'var(--surface-border-subtle)' }}>•</span>
+                                                        <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
+                                                            {cfg.label.toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button 
+                                                        onClick={() => handleApproveReferralSubmission(sub.id, true)}
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ height: 36, padding: '0 16px', fontSize: '9px', borderColor: '#22c55e', color: '#22c55e', background: 'rgba(34,197,94,0.05)' }}
+                                                    >APROVAR</button>
+                                                    <button 
+                                                        onClick={() => handleApproveReferralSubmission(sub.id, false)}
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ height: 36, padding: '0 16px', fontSize: '9px', borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.05)' }}
+                                                    >REPROVAR</button>
+                                                    <button onClick={() => { setSelectedSubDetail(sub); setShowSubDetailModal(true); }} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0 }}><ExternalLink size={14} /></button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
                     ) : null}
