@@ -1426,7 +1426,11 @@ app.post('/api/client-for-client/register', async (req, res) => {
 app.get('/api/client-for-client', async (req, res) => {
     const { parentUserId, submissionId, approvedOnly } = req.query;
     try {
-        let query = 'SELECT * FROM client_for_client_requests';
+        let query = `
+            SELECT r.*, u.name, u.email, u.role as user_role, u.approved as user_approved
+            FROM client_for_client_requests r
+            JOIN users u ON r.user_id = u.id
+        `;
         const params = [];
         const conditions = [];
 
@@ -1443,7 +1447,7 @@ app.get('/api/client-for-client', async (req, res) => {
         }
 
         if (conditions.length > 0) {
-            query += ' WHERE ' + conditions.join(' AND ');
+            query += ' WHERE ' + conditions.map((c, i) => c.replace('parent_user_id', 'r.parent_user_id').replace('submission_id', 'r.submission_id')).join(' AND ');
         }
         query += ' ORDER BY created_at DESC';
 
@@ -1548,7 +1552,7 @@ app.get('/api/referral-submissions/:parentId', async (req, res) => {
     try {
         // Fetch submissions from users whose parent is parentId but ONLY those originating from the Client Form
         const result = await pool.query(
-            `SELECT s.* FROM client_submissions s 
+            `SELECT s.*, u.name as submitted_by FROM client_submissions s 
              JOIN users u ON s.user_id = u.id 
              WHERE u.parent_id = $1 
              AND s.origin = 'CLIENT_FORM'

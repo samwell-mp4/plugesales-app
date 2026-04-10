@@ -599,8 +599,8 @@
     display: flex;
     gap: 32px;
     overflow-x: auto;
-    padding: 10px 10px 40px;
-    min-height: calc(100vh - 350px);
+    padding: 10px 10px 20px;
+    height: calc(100vh - 380px);
     scroll-behavior: smooth;
     scrollbar-width: thin;
     scrollbar-color: var(--primary-color) rgba(255, 255, 255, 0.05);
@@ -625,7 +625,7 @@
     max-width: 340px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    height: 100%;
 }
 
 .kanban-col-header-premium {
@@ -675,7 +675,29 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    min-height: 200px;
+    padding: 4px 12px 40px 4px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(172, 248, 0, 0.2) transparent;
+}
+
+.kanban-cards-container::-webkit-scrollbar {
+    width: 5px;
+}
+
+.kanban-cards-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.kanban-cards-container::-webkit-scrollbar-thumb {
+    background: rgba(172, 248, 0, 0.2);
+    border-radius: 10px;
+}
+
+.kanban-cards-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
 }
 
 /* Premium Lead Card */

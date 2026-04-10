@@ -823,6 +823,10 @@
 }
 
 @media (max-width: 768px) {
+  .lp-mockup-frame {
+    display: none;
+  }
+
   .lp-nav {
     display: none;
   }

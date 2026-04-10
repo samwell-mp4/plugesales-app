@@ -470,7 +470,7 @@ const CRMFunil = () => {
                         </div>
                     ) : (
                         <DragDropContext onDragEnd={onDragEnd}>
-                            <div className="kanban-view scrollbar-hide">
+                            <div className="kanban-view">
                                 {statusList.map(status => (
                                     <Droppable key={status} droppableId={status}>
                                         {(provided, snapshot) => (

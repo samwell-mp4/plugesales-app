@@ -690,10 +690,34 @@ const ClientDashboard = () => {
                         </div>
                     ) : activeTab === 'referrals' ? (
                         <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                            {/* SEÇÃO: LINK DE INDICAÇÃO */}
+                            <div className="control-card" style={{ marginBottom: '40px', border: '1px solid var(--primary-color)', background: 'rgba(172,248,0,0.02)' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-1px' }}>Seu <span className="text-primary-color">Link de Indicação</span></h3>
+                                <p style={{ margin: '8px 0 24px 0', fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '1px' }}>GANHE BENEFÍCIOS INDICANDO NOVOS CLIENTES PARA A PLATAFORMA</p>
+                                
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    <div style={{ flex: 1, position: 'relative' }}>
+                                        <input 
+                                            readOnly 
+                                            value={`${window.location.protocol}//${window.location.host}/client-add/${user?.id}`}
+                                            className="field-input"
+                                            style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.05)', color: 'var(--primary-color)', fontFamily: 'monospace' }}
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={() => copyToClipboard(`${window.location.protocol}//${window.location.host}/client-add/${user?.id}`, 'REFE')}
+                                        className="action-btn primary-btn"
+                                        style={{ height: 52, padding: '0 32px' }}
+                                    >
+                                        <CopyIcon size={18} /> {copyFeedback === 'REFE' ? 'COPIADO!' : 'COPIAR LINK'}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div style={{ marginBottom: '40px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
                                     <Users className="text-primary-color" size={20} />
-                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900 }}>Clientes Indicados</h3>
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900 }}>Indicados Registrados</h3>
                                 </div>
                                 {isSubClientsLoading ? (
                                     <div style={{ padding: '40px', textAlign: 'center' }}>
