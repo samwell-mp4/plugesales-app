@@ -157,6 +157,22 @@ const TemplateCreator = () => {
     const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
     const [selectedCategory, setSelectedCategory] = useState<'UTILITY' | 'MARKETING'>('UTILITY');
 
+    // --- CUSTOM CONFIRM MODAL (replaces window.confirm which is blocked on mobile) ---
+    const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+    const pendingConfirmResolve = useState<((val: boolean) => void) | null>(null);
+    const showConfirm = (message: string): Promise<boolean> => {
+        return new Promise((resolve) => {
+            pendingConfirmResolve[1](() => resolve);
+            setConfirmModal({ open: true, message });
+        });
+    };
+    const handleConfirmResponse = (result: boolean) => {
+        setConfirmModal({ open: false, message: '' });
+        if (pendingConfirmResolve[0]) {
+            pendingConfirmResolve[0](result);
+            pendingConfirmResolve[1](null);
+        }
+    };
 
     const handleFileUpload = async (file: File) => {
         const formData = new FormData();
@@ -456,7 +472,7 @@ const TemplateCreator = () => {
 
         const totalTotal = campaigns.reduce((acc, c) => acc + c.rows.length, 0);
 
-        const confirmBulk = window.confirm(`Isso irá disparar ${totalTotal} chamadas de API em ${campaigns.length} campanhas. Continuar?`);
+        const confirmBulk = await showConfirm(`Isso irá disparar ${totalTotal} chamadas de API em ${campaigns.length} campanhas. Continuar?`);
         if (!confirmBulk) {
             setIsGenerating(false);
             return;
@@ -704,9 +720,9 @@ const TemplateCreator = () => {
         } catch (err) { alert("Erro ao encurtar link."); } finally { setIsShorteningUtility(false); }
     };
 
-    const applyUtilityLinkToAll = (btnIdx: number) => {
+    const applyUtilityLinkToAll = async (btnIdx: number) => {
         if (!utilityLinkShort) return alert("Encurte um link primeiro.");
-        const confirmApply = window.confirm(`Aplicar no botão ${btnIdx + 1} de todas as campanhas?`);
+        const confirmApply = await showConfirm(`Aplicar no botão ${btnIdx + 1} de todas as campanhas?`);
         if (!confirmApply) return;
         setCampaigns(prev => prev.map(c => ({
             ...c,
@@ -720,6 +736,19 @@ const TemplateCreator = () => {
 
     return (
         <Fragment>
+            {/* CUSTOM CONFIRM MODAL */}
+            {confirmModal.open && (
+                <div className="custom-confirm-overlay">
+                    <div className="custom-confirm-box">
+                        <div className="custom-confirm-msg">{confirmModal.message}</div>
+                        <div className="custom-confirm-btns">
+                            <button className="custom-confirm-cancel" onClick={() => handleConfirmResponse(false)}>Cancelar</button>
+                            <button className="custom-confirm-ok" onClick={() => handleConfirmResponse(true)}>Confirmar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isGenerating && (
                 <div className="loading-overlay">
                     <div className="pulse-loader">
@@ -737,6 +766,54 @@ const TemplateCreator = () => {
             )}
 
             <style>{`
+                /* --- CUSTOM CONFIRM MODAL --- */
+                .custom-confirm-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0,0,0,0.75);
+                    backdrop-filter: blur(8px);
+                    z-index: 99999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }
+                .custom-confirm-box {
+                    background: #111;
+                    border: 1px solid rgba(172, 248, 0, 0.25);
+                    border-radius: 20px;
+                    padding: 28px 24px;
+                    max-width: 380px;
+                    width: 100%;
+                    box-shadow: 0 0 60px rgba(172, 248, 0, 0.15);
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                .custom-confirm-msg {
+                    color: white;
+                    font-size: 1rem;
+                    font-weight: 700;
+                    text-align: center;
+                    line-height: 1.5;
+                }
+                .custom-confirm-btns {
+                    display: flex;
+                    gap: 12px;
+                }
+                .custom-confirm-btns button {
+                    flex: 1;
+                    height: 48px;
+                    border-radius: 12px;
+                    font-weight: 900;
+                    font-size: 0.85rem;
+                    letter-spacing: 0.5px;
+                    cursor: pointer;
+                    border: none;
+                    text-transform: uppercase;
+                }
+                .custom-confirm-ok { background: var(--primary-color); color: black; }
+                .custom-confirm-cancel { background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.1) !important; }
                 * { box-sizing: border-box !important; }
                 .creator-page { overflow-x: hidden !important; width: 100% !important; max-width: 100vw !important; }
                 .creator-layout { display: grid; grid-template-columns: 1fr 420px; gap: 48px; align-items: start; }
@@ -1363,7 +1440,7 @@ const TemplateCreator = () => {
                                                                                 <td>
                                                                                     <div className="flex gap-3" style={{ position: 'relative', zIndex: 100, justifyContent: 'center', width: '100%' }}>
                                                                                         <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={24} color="#FFFFFF" /></button>
-                                                                                        <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => { if (window.confirm("Remover esta linha?")) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={24} color="#FFFFFF" /></button>
+                                                                                        <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={async () => { const ok = await showConfirm("Remover esta linha?"); if (ok) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={24} color="#FFFFFF" /></button>
                                                                                     </div>
                                                                                 </td>
                                                                             </tr>
