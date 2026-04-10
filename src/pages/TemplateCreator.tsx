@@ -408,6 +408,7 @@ const TemplateCreator = () => {
                             accepted_by: user?.name,
                             timestamp: new Date().toISOString(),
                             language: selectedPayloadLanguage,
+                            origin: 'TEMPLATE_CREATOR',
                             ads: [{
                                 ad_name: currentName,
                                 template_type: headerType,

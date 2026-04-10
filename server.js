@@ -1326,6 +1326,7 @@ app.get('/api/client/submissions', async (req, res) => {
                 FROM client_submissions c
                 LEFT JOIN users u ON c.user_id = u.id
                 WHERE (c.user_id IN (${idPlaceholders}) OR c.submitted_by = (SELECT name FROM users WHERE id = ${parentParam}))
+                  AND (c.submitted_role IN ('CLIENT', 'PENDING_CLIENT'))
                   AND (c.origin != 'TEMPLATE_CREATOR' OR c.origin IS NULL)
                 ORDER BY c.timestamp DESC
             `;
@@ -1551,6 +1552,7 @@ app.get('/api/referral-submissions/:parentId', async (req, res) => {
              JOIN users u ON s.user_id = u.id 
              WHERE u.parent_id = $1 
              AND s.origin = 'CLIENT_FORM'
+             AND s.submitted_role IN ('CLIENT', 'PENDING_CLIENT')
              ORDER BY s.timestamp DESC`,
             [parentId]
         );
@@ -1586,14 +1588,14 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
 
             const result = await client.query(
                 `INSERT INTO client_submissions 
-                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, assigned_to, accepted_by, parent_approved, origin) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
+                (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, parent_approved, origin) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *`,
                 [
                     s.profile_photo, s.profile_name, s.ddd,
                     s.template_type, s.media_url, s.ad_copy, s.button_link, s.original_button_link || s.button_link || '',
                     s.ads ? JSON.stringify(s.ads) : '[]',
                     s.spreadsheet_url, finalStatus,
-                    s.user_id, s.submitted_by, s.assigned_to, s.accepted_by, parentApproved,
+                    s.user_id, s.submitted_by, s.submitted_role || null, s.assigned_to, s.accepted_by, parentApproved,
                     s.origin || 'CLIENT_FORM'
                 ]
             );
