@@ -58,6 +58,12 @@ const MetaPixel = () => {
       // Dispara o PageView
       if (typeof window.fbq === 'function') {
         window.fbq('track', 'PageView');
+        
+        // Dispara o evento de Lead apenas na página de obrigado
+        if (isRicardoThankYou) {
+          window.fbq('track', 'Lead');
+          console.log("Meta Pixel: Tracked Lead event for Ricardo Willer (Obrigado Page Load)");
+        }
       }
     }
   }, [location.pathname, searchParams]);

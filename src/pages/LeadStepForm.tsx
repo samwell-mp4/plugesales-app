@@ -129,13 +129,6 @@ const LeadStepForm = () => {
         let success = false;
 
         try {
-            // Se for o Ricardo Willer, dispara o evento de Lead no clique do botão (Finalizar)
-            const isRicardo = formData.agent_name === 'Ricardo Willer' || id === 'landing1';
-            if (isRicardo && window.fbq) {
-                window.fbq('track', 'Lead');
-                console.log("Meta Pixel: Tracked Lead event for Ricardo Willer (Button Click)");
-            }
-
             // Enviar para o Backend (O backend gerencia o Webhook centralizado)
             try {
                 const res = await dbService.addStepLead(formData);
@@ -145,7 +138,7 @@ const LeadStepForm = () => {
             }
 
             if (success) {
-                if (formData.method === 'Ainda não realizo disparos') {
+                if (formData.volume === 'Não possuo uma base de contatos') {
                     navigate('/finalizado');
                 } else {
                     // Mapeamento inverso para achar ID pelo nome do agente
@@ -298,7 +291,7 @@ const LeadStepForm = () => {
                         <div className="icon-badge">
                             <Globe size={24} />
                         </div>
-                        <h2 className="step-question">Como você realiza seus disparos hoje?</h2>
+                        <h2 className="step-question">Você já realiza disparos em massa hoje?</h2>
                         <div className="options-grid">
                             {[
                                 { id: 'A', text: 'Já utilizo API Oficial' },
@@ -329,7 +322,7 @@ const LeadStepForm = () => {
                         <div className="icon-badge">
                             <BarChart3 size={24} />
                         </div>
-                        <h2 className="step-question">Qual é o volume da sua base de Contatos?</h2>
+                        <h2 className="step-question">Você possui uma base de leads ativa?</h2>
                         <p className="step-hint text-center max-w-lg mx-auto">Trabalhamos com operações em escala. Volumes muito baixos podem não se enquadrar.</p>
                         <div className="options-list">
                             {[
