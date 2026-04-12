@@ -27,7 +27,9 @@ import {
     Copy as CopyIcon,
     SlidersHorizontal,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Bell,
+    X
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -79,8 +81,11 @@ const ClientSubmissions = () => {
     const [employees, setEmployees] = useState<string[]>([]);
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedClientFilter, setSelectedClientFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [assignedFilter, setAssignedFilter] = useState('ALL');
     const [viewMode, setViewMode] = useState<'grid' | 'list' | 'kanban'>('grid');
+    const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
+    const [selectedSubForChange, setSelectedSubForChange] = useState<any>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(12);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
@@ -403,6 +408,9 @@ const ClientSubmissions = () => {
                 return (
                     <div key={s.id} className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)} style={{ padding: '20px' }}>
                         <div className="card-actions">
+                            <button onClick={e => { e.stopPropagation(); setSelectedSubForChange(s); setShowChangeRequestModal(true); }} style={{ padding: '6px', background: 'rgba(56,189,248,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: '#38bdf8', display: 'flex' }} title="Pedir Alteração (Alerta)">
+                                <Bell size={13} />
+                            </button>
                             <button onClick={e => { e.stopPropagation(); handleDuplicate(s); }} style={{ padding: '6px', background: 'rgba(172,248,0,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: 'var(--primary-color)', display: 'flex' }} title="Duplicar">
                                 <CopyIcon size={13} />
                             </button>
@@ -568,6 +576,14 @@ const ClientSubmissions = () => {
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         {s.status !== 'CONCLUIDO' && (
                             <>
+                                <button 
+                                    className="list-btn" 
+                                    onClick={e => { e.stopPropagation(); setSelectedSubForChange(s); setShowChangeRequestModal(true); }}
+                                    style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }}
+                                    title="Pedir Alteração (Alerta)"
+                                >
+                                    <Bell size={16} />
+                                </button>
                                 <button 
                                     className="list-btn" 
                                     onClick={e => { e.stopPropagation(); handleDuplicate(s); }}
@@ -1075,6 +1091,84 @@ const ClientSubmissions = () => {
                 )}
             </div>
 
+            {showChangeRequestModal && selectedSubForChange && (
+                <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="supreme-modal-content" style={{ background: '#0f172a', border: '1px solid var(--surface-border-subtle)', borderRadius: '32px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '40px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+                        <button onClick={() => setShowChangeRequestModal(false)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+                        
+                        <div style={{ marginBottom: '32px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <Bell size={24} className="text-primary-color" />
+                                <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-1px' }}>Solicitar Alteração</h2>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>As mudanças serão enviadas para aprovação do Admin.</p>
+                        </div>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const requested_data = {
+                                template_type: formData.get('template_type'),
+                                media_url: formData.get('media_url'),
+                                ad_copy: formData.get('ad_copy'),
+                                button_link: formData.get('button_link'),
+                            };
+                            
+                            const original_data = {
+                                template_type: selectedSubForChange.template_type,
+                                media_url: selectedSubForChange.media_url,
+                                ad_copy: selectedSubForChange.ad_copy,
+                                button_link: selectedSubForChange.button_link,
+                            };
+
+                            const res = await dbService.addChangeRequest({
+                                submission_id: selectedSubForChange.id,
+                                user_id: user?.id,
+                                requested_data,
+                                original_data
+                            });
+
+                            if (res) {
+                                alert("Solicitação enviada com sucesso! Aguarde a aprovação.");
+                                setShowChangeRequestModal(false);
+                            } else {
+                                alert("Erro ao enviar solicitação.");
+                            }
+                        }}>
+                            <div style={{ display: 'grid', gap: '24px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Tipo de Template</label>
+                                    <select name="template_type" defaultValue={selectedSubForChange.template_type} style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '14px', color: 'white', outline: 'none' }}>
+                                        <option value="none">Apenas Texto</option>
+                                        <option value="image">Imagem</option>
+                                        <option value="video">Vídeo</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Link da Mídia (Imagem/Vídeo)</label>
+                                    <input name="media_url" defaultValue={selectedSubForChange.media_url} placeholder="https://..." style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '14px', color: 'white', outline: 'none' }} />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Link do Botão</label>
+                                    <input name="button_link" defaultValue={selectedSubForChange.button_link} placeholder="https://wa.me/..." style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '14px', color: 'white', outline: 'none' }} />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Cópia / Mensagem</label>
+                                    <textarea name="ad_copy" defaultValue={selectedSubForChange.ad_copy} rows={4} style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '14px', color: 'white', outline: 'none', resize: 'vertical' }} />
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '40px', display: 'flex', gap: '16px' }}>
+                                <button type="button" onClick={() => setShowChangeRequestModal(false)} style={{ flex: 1, padding: '16px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--surface-border-subtle)', color: 'white', borderRadius: '16px', fontWeight: 900, cursor: 'pointer' }}>CANCELAR</button>
+                                <button type="submit" style={{ flex: 2, padding: '16px', background: 'var(--primary-gradient)', border: 'none', color: 'black', borderRadius: '16px', fontWeight: 900, cursor: 'pointer', boxShadow: '0 10px 20px -5px rgba(172,248,0,0.3)' }}>ENVIAR SOLICITAÇÃO</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

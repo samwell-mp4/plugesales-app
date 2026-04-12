@@ -527,7 +527,7 @@ const CRMFunil = () => {
             {/* MODAL ADICIONAR LEAD SUPREME */}
             {isAddModalOpen && (
                 <div className="supreme-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
-                    <div className="crm-modal-content p-0" style={{ maxWidth: '800px', background: 'linear-gradient(135deg, #1e293b, #0f172a)' }} onClick={e => e.stopPropagation()}>
+                    <div className="supreme-modal-content p-0 crm-add-modal" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }} onClick={e => e.stopPropagation()}>
                         <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
                             <div className="flex items-center gap-5">
                                 <div className="w-14 h-14 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-xl shadow-primary-color/20"><Plus size={28} strokeWidth={3} /></div>
@@ -566,10 +566,11 @@ const CRMFunil = () => {
                                     <input type="text" className="crm-input" value={newLead.volume} onChange={e => setNewLead({...newLead, volume: e.target.value})} placeholder="Ex: 50/semana" />
                                 </div>
                             </div>
-
-                            <button className="btn-supreme w-full mt-10 py-5 text-sm tracking-widest font-black" onClick={handleAddLead} disabled={isUpdating}>
-                                {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={20} /> FINALIZAR CADASTRO SUPREME</>} 
-                            </button>
+                            <div className="supreme-modal-footer mt-10">
+                                <button className="btn-supreme w-full py-5 text-sm tracking-widest font-black" onClick={handleAddLead} disabled={isUpdating}>
+                                    {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={20} /> FINALIZAR CADASTRO SUPREME</>} 
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -727,7 +728,7 @@ const CRMFunil = () => {
                                 </div>
                             </section>
 
-                            <div className="flex justify-end gap-4 mt-8">
+                            <div className="supreme-modal-footer">
                                 <button className="btn-supreme py-5 px-10" onClick={() => handleUpdateLead(selectedLead.id, selectedLead)}>
                                     <Save size={20} /> SALVAR ALTERAÇÕES SUPREME
                                 </button>

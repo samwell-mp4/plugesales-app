@@ -529,6 +529,21 @@ const initDB = async () => {
         console.log('✅ Table consultative_actions verified/created.');
         // ============================================================
         // ============================================================
+        // CLIENT CHANGE REQUESTS (ALERTA)
+        // ============================================================
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS submission_change_requests (
+                id SERIAL PRIMARY KEY,
+                submission_id INTEGER REFERENCES client_submissions(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id),
+                requested_data JSONB NOT NULL,
+                original_data JSONB NOT NULL,
+                status TEXT DEFAULT 'PENDENTE',
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✅ Table submission_change_requests verified/created.');
+        // ============================================================
         console.log('✅ Database initialized and verified.');
 
     } catch (err) {
@@ -1650,6 +1665,79 @@ app.put('/api/client-submissions/:id', async (req, res) => {
 app.delete('/api/client-submissions/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM client_submissions WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Change Requests (Alerta) ---
+app.post('/api/change-requests', async (req, res) => {
+    const { submission_id, user_id, requested_data, original_data } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO submission_change_requests (submission_id, user_id, requested_data, original_data) 
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [submission_id, user_id, JSON.stringify(requested_data), JSON.stringify(original_data)]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/change-requests', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT cr.*, s.profile_name, u.name as requester_name 
+             FROM submission_change_requests cr
+             JOIN client_submissions s ON cr.submission_id = s.id
+             JOIN users u ON cr.user_id = u.id
+             WHERE cr.status = 'PENDENTE'
+             ORDER BY cr.created_at DESC`
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/change-requests/:id/approve', async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // 1. Get request data
+        const reqRes = await client.query('SELECT * FROM submission_change_requests WHERE id = $1', [id]);
+        if (reqRes.rows.length === 0) throw new Error('Solicitação não encontrada');
+        const changeReq = reqRes.rows[0];
+        
+        // 2. Update original submission
+        const data = typeof changeReq.requested_data === 'string' ? JSON.parse(changeReq.requested_data) : changeReq.requested_data;
+        const fields = Object.keys(data);
+        const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+        const values = [...fields.map(f => data[f]), changeReq.submission_id];
+        
+        await client.query(`UPDATE client_submissions SET ${setClause} WHERE id = $${values.length}`, values);
+        
+        // 3. Update request status
+        await client.query("UPDATE submission_change_requests SET status = 'APROVADO' WHERE id = $1", [id]);
+        
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+app.patch('/api/change-requests/:id/reject', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query("UPDATE submission_change_requests SET status = 'REJEITADO' WHERE id = $1", [id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

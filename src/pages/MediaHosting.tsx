@@ -145,6 +145,12 @@ const MediaHosting = () => {
                     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
                     gap: 24px;
                 }
+                @media (max-width: 640px) {
+                    .media-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 12px;
+                    }
+                }
 
                 .media-item {
                     overflow: hidden;
@@ -186,11 +192,31 @@ const MediaHosting = () => {
                 .field-input:focus { border-color: var(--primary-color); background: var(--card-bg-subtle); box-shadow: 0 0 20px rgba(172,248,0,0.1); }
                 
                 .info-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+
+                @media (max-width: 1024px) {
+                    .responsive-grid {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
+
+                @media (max-width: 768px) {
+                    .control-card { padding: 16px; }
+                    .upload-zone { padding: 24px; }
+                    .media-preview-box { height: 140px; }
+                    h1 { font-size: 2rem !important; }
+                }
+
+                @media (max-width: 480px) {
+                    .media-preview-box { height: 110px; }
+                    .action-btn { font-size: 8px; padding: 8px 12px; }
+                    h1 { font-size: 1.6rem !important; }
+                    .header-wrap { gap: 12px !important; margin-bottom: 24px !important; }
+                }
             `}</style>
 
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
                 {/* ── HEADER ── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '40px', flexWrap: 'wrap', gap: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '40px', flexWrap: 'wrap', gap: '24px' }} className="header-wrap">
                     <div>
                         <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.8rem', letterSpacing: '-2px', lineHeight: 1 }}>
                             Media <span className="text-primary-color">Hosting</span>
@@ -365,7 +391,7 @@ const MediaHosting = () => {
                         style={{ 
                             position: 'fixed', inset: 0, zIndex: 9999, background: 'var(--overlay-bg)', 
                             backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: '40px', animation: 'fadeIn 0.3s ease'
+                            padding: '20px', animation: 'fadeIn 0.3s ease'
                         }}
                         onClick={() => setPreviewFile(null)}
                     >
@@ -386,15 +412,15 @@ const MediaHosting = () => {
                                 <img src={previewFile.shortUrl} alt="" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: 'var(--shadow-md)' }} />
                             )}
                             
-                            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                                 <div>
-                                    <h2 style={{ margin: 0, fontWeight: 900, fontSize: '20px' }}>{previewFile.name.toUpperCase()}</h2>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 800 }}>ID: {previewFile.id}</p>
+                                    <h2 style={{ margin: 0, fontWeight: 900, fontSize: '18px' }}>{previewFile.name.toUpperCase()}</h2>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800 }}>ID: {previewFile.id}</p>
                                 </div>
                                 <button 
                                     onClick={() => copyToClipboard(previewFile.shortUrl, previewFile.id)}
                                     className="action-btn primary-btn" 
-                                    style={{ height: 48, padding: '0 24px' }}
+                                    style={{ height: 44, padding: '0 20px', width: '100%' }}
                                 >
                                     {copiedId === previewFile.id ? <Check size={18} /> : <Copy size={18} />}
                                     COPIAR URL

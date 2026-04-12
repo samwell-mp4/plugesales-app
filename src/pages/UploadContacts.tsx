@@ -119,7 +119,7 @@ const UploadContacts = () => {
                 let score = 0;
                 // Clean quotes and trim
                 const clean = part.replace(/^["']|["']$/g, '').trim();
-                
+
                 if (!clean) return { part: '', score: -1000 };
 
                 // 1. Heavy penalties for obviously non-name characters
@@ -229,13 +229,13 @@ const UploadContacts = () => {
                             return parsed;
                         } else {
                             const parts = line.split(separator);
-                            return { 
-                                telefone: normalizePhone(parts[phoneColIndex] || ''), 
-                                nome: (parts[phoneColIndex === 0 ? 1 : 0] || '').trim() 
+                            return {
+                                telefone: normalizePhone(parts[phoneColIndex] || ''),
+                                nome: (parts[phoneColIndex === 0 ? 1 : 0] || '').trim()
                             };
                         }
                     }).filter(c => c && c.telefone && c.telefone.length === 13);
-                    
+
                     setInvalidCount(lines.length - extractedContacts.length);
                 }
                 else {
@@ -300,7 +300,7 @@ const UploadContacts = () => {
                             }
                         }
                     }
-                    
+
                     setInvalidCount((json.length - startIndex) - extractedContacts.length);
                 }
 
@@ -583,49 +583,49 @@ const UploadContacts = () => {
                                 <h3 style={{ margin: 0, fontWeight: 900 }}>Pronto!</h3>
                             </div>
 
-                                <div className="flex flex-col gap-4">
-                                    <div className="p-5" style={{ background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
-                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Contatos Processados</span>
-                                        <div className="flex items-baseline gap-4">
-                                            <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)' }}>{totalContacts.toLocaleString()}</span>
-                                            <div className="flex flex-col">
-                                                {duplicateCount > 0 && <span style={{ fontSize: '0.65rem', color: '#fca5a5' }}>-{duplicateCount} Duplicados</span>}
-                                                {invalidCount > 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>-{invalidCount} Inválidos</span>}
-                                            </div>
+                            <div className="flex flex-col gap-4">
+                                <div className="p-5" style={{ background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Contatos Processados</span>
+                                    <div className="flex items-baseline gap-4">
+                                        <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)' }}>{totalContacts.toLocaleString()}</span>
+                                        <div className="flex flex-col">
+                                            {duplicateCount > 0 && <span style={{ fontSize: '0.65rem', color: '#fca5a5' }}>-{duplicateCount} Duplicados</span>}
+                                            {invalidCount > 0 && <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>-{invalidCount} Inválidos</span>}
                                         </div>
                                     </div>
-
-                                    {results.slice((currentResultsPage - 1) * resultsPerPage, currentResultsPage * resultsPerPage).map((r, i) => (
-                                        <div key={i} className="flex justify-between items-center p-4" style={{ background: 'rgba(172, 248, 0, 0.03)', border: '1px solid rgba(172, 248, 0, 0.1)', borderRadius: '14px' }}>
-                                            <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.9rem' }}>{r.tag}</span>
-                                            <span className="badge-premium" style={{ background: 'var(--primary-color)', color: 'black' }}>{r.count}</span>
-                                        </div>
-                                    ))}
-
-                                    {results.length > resultsPerPage && (
-                                        <div className="flex items-center justify-between mt-2 px-2">
-                                            <button 
-                                                className="btn-p-control" 
-                                                disabled={currentResultsPage === 1} 
-                                                onClick={() => setCurrentResultsPage(v => v - 1)}
-                                                style={{ opacity: currentResultsPage === 1 ? 0.3 : 1, cursor: currentResultsPage === 1 ? 'default' : 'pointer', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem' }}
-                                            >
-                                                ← Anterior
-                                            </button>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
-                                                {currentResultsPage} / {Math.ceil(results.length / resultsPerPage)}
-                                            </span>
-                                            <button 
-                                                className="btn-p-control" 
-                                                disabled={currentResultsPage === Math.ceil(results.length / resultsPerPage)} 
-                                                onClick={() => setCurrentResultsPage(v => v + 1)}
-                                                style={{ opacity: currentResultsPage === Math.ceil(results.length / resultsPerPage) ? 0.3 : 1, cursor: currentResultsPage === Math.ceil(results.length / resultsPerPage) ? 'default' : 'pointer', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem' }}
-                                            >
-                                                Próxima →
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
+
+                                {results.slice((currentResultsPage - 1) * resultsPerPage, currentResultsPage * resultsPerPage).map((r, i) => (
+                                    <div key={i} className="flex justify-between items-center p-4" style={{ background: 'rgba(172, 248, 0, 0.03)', border: '1px solid rgba(172, 248, 0, 0.1)', borderRadius: '14px' }}>
+                                        <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.9rem' }}>{r.tag}</span>
+                                        <span className="badge-premium" style={{ background: 'var(--primary-color)', color: 'black' }}>{r.count}</span>
+                                    </div>
+                                ))}
+
+                                {results.length > resultsPerPage && (
+                                    <div className="flex items-center justify-between mt-2 px-2">
+                                        <button
+                                            className="btn-p-control"
+                                            disabled={currentResultsPage === 1}
+                                            onClick={() => setCurrentResultsPage(v => v - 1)}
+                                            style={{ opacity: currentResultsPage === 1 ? 0.3 : 1, cursor: currentResultsPage === 1 ? 'default' : 'pointer', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem' }}
+                                        >
+                                            ← Anterior
+                                        </button>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                            {currentResultsPage} / {Math.ceil(results.length / resultsPerPage)}
+                                        </span>
+                                        <button
+                                            className="btn-p-control"
+                                            disabled={currentResultsPage === Math.ceil(results.length / resultsPerPage)}
+                                            onClick={() => setCurrentResultsPage(v => v + 1)}
+                                            style={{ opacity: currentResultsPage === Math.ceil(results.length / resultsPerPage) ? 0.3 : 1, cursor: currentResultsPage === Math.ceil(results.length / resultsPerPage) ? 'default' : 'pointer', color: 'var(--primary-color)', fontWeight: 800, fontSize: '0.7rem' }}
+                                        >
+                                            Próxima →
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="flex flex-col gap-3 mt-8">
                                 <button className="btn btn-secondary w-full btn-sm-custom" onClick={exportCSVs}>EXPORTAR CSV</button>

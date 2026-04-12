@@ -1037,5 +1037,47 @@ export const dbService = {
             body: JSON.stringify({ userId, text })
         });
         return await response.json();
+    },
+    // --- Change Requests (Alerta) ---
+    addChangeRequest: async (data: { submission_id: number; user_id: number; requested_data: any; original_data: any }) => {
+        try {
+            const res = await fetch(`${API_BASE}/change-requests`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error adding change request:", err);
+            return null;
+        }
+    },
+    getChangeRequests: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/change-requests`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching change requests:", err);
+            return [];
+        }
+    },
+    approveChangeRequest: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/change-requests/${id}/approve`, { method: 'PATCH' });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error approving change request:", err);
+            return { error: err.message };
+        }
+    },
+    rejectChangeRequest: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/change-requests/${id}/reject`, { method: 'PATCH' });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error rejecting change request:", err);
+            return { error: err.message };
+        }
     }
 };

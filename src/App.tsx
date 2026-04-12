@@ -36,7 +36,8 @@ import MyWallet from './pages/MyWallet';
 import TestCards from './pages/TestCards';
 import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
-import MetaPixel from './components/MetaPixel'; // Importando o Rastreador Condicional
+import AdminChanges from './pages/AdminChanges';
+import MetaPixel from './components/MetaPixel';
 import './index.css';
 import './crm.css';
 
@@ -86,7 +87,8 @@ function AppContent() {
     '/client-submissions',
     '/client-submissions/add',
     '/media',
-    '/dashboard'
+    '/dashboard',
+    '/admin/changes'
   ];
 
   if (isClient && adminOnlyRoutes.some(route => {
@@ -115,6 +117,7 @@ function AppContent() {
           <Route path="/" element={<Navigate to={isClient ? "/client-dashboard" : "/dashboard"} replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
+          <Route path="/admin/changes" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminChanges /> : <Navigate to="/dashboard" />} />
           <Route path="/live-chat" element={<LiveChat />} />
           <Route path="/templates" element={<TemplateCreator />} />
           <Route path="/client-submissions" element={<ClientSubmissions />} />

@@ -240,6 +240,11 @@ const ClientExternalForm = () => {
                                  radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
                                  #020617;
                 }
+                @media (max-width: 768px) {
+                    .form-container-wrapper {
+                        padding: 40px 12px;
+                    }
+                }
                 .glass-card {
                     background: rgba(255, 255, 255, 0.02);
                     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -250,6 +255,12 @@ const ClientExternalForm = () => {
                     max-width: 850px;
                     width: 100%;
                     transition: all 0.4s ease;
+                }
+                @media (max-width: 768px) {
+                    .glass-card {
+                        padding: 30px 20px;
+                        border-radius: 24px;
+                    }
                 }
                 .glass-card:hover {
                     border-color: rgba(172, 248, 0, 0.2);
@@ -282,6 +293,10 @@ const ClientExternalForm = () => {
                     text-transform: uppercase;
                     color: #fff;
                     margin-top: -5px;
+                }
+                @media (max-width: 480px) {
+                    .header-title { font-size: 2.2rem !important; }
+                    .header-subtitle { letter-spacing: 3px; font-size: 8px; }
                 }
                 .section-title {
                     font-size: 1.8rem;
@@ -593,6 +608,8 @@ const ClientExternalForm = () => {
                     .whatsapp-grid { grid-template-columns: 1fr; gap: 40px; }
                     .iphone-mockup { display: none !important; }
                     .header-title { font-size: 2.8rem; letter-spacing: -3px; }
+                    .nav-btn { width: 100%; justify-content: center; }
+                    .creative-card { flex: 1; min-width: 100px; }
                 }
 
                 .ad-dropdown {  /* This will be removed, replaced with chips */
