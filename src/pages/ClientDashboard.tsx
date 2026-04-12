@@ -457,42 +457,44 @@ const ClientDashboard = () => {
                 }
 
                 @media (max-width: 900px) {
-                    .container-root { padding: 20px 16px; }
-                    .stats-wrapper { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
-                    .header-content { flex-direction: column; align-items: flex-start !important; }
+                    .container-root { padding: 16px 12px !important; }
+                    .stats-wrapper { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+                    .header-content { flex-direction: column; align-items: stretch !important; gap: 20px !important; }
                     .submission-link { 
                         flex-direction: column !important; 
                         align-items: stretch !important; 
-                        padding: 20px !important;
-                        gap: 20px !important;
+                        padding: 16px !important;
+                        gap: 16px !important;
+                        width: 100% !important;
+                        box-sizing: border-box !important;
+                    }
+                    .submission-link-header {
+                        flex-direction: row;
+                        align-items: center;
+                        gap: 12px !important;
                     }
                     .submission-link-actions { 
-                        width: 100%;
+                        width: 100% !important;
                         justify-content: flex-start; 
                         border-top: 1px solid var(--surface-border-subtle);
-                        padding-top: 16px;
-                        gap: 10px !important;
-                    }
-                    .submission-link-actions > button {
-                        flex: 1;
-                        min-width: 44px;
+                        padding-top: 16px !important;
+                        gap: 8px !important;
                     }
                 }
 
                 @media (max-width: 600px) {
                     .stats-wrapper { grid-template-columns: 1fr !important; }
-                    .nav-tab { flex: 1; text-align: center; font-size: 9px; padding: 10px 8px; }
+                    .nav-tab { flex: 1; text-align: center; font-size: 9px; padding: 10px 8px; min-width: calc(50% - 8px); }
                     .header-actions { width: 100%; margin-top: 10px; }
+                    .submission-link-header {
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                        gap: 12px !important;
+                    }
                     .submission-link-actions { 
                         display: grid !important;
-                        grid-template-columns: repeat(2, 1fr);
-                    }
-                    .submission-link-actions .alert-bell-btn {
-                        grid-column: span 1;
-                    }
-                    .submission-link-actions button:last-child {
-                        grid-column: span 2;
-                        width: 100%;
+                        grid-template-columns: repeat(2, 1fr) !important;
+                        width: 100% !important;
                     }
                 }
 
