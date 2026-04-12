@@ -95,10 +95,10 @@ const GestaoConsultiva = () => {
         setActiveModal('edit');
     };
 
-    const openAddModal = () => {
+    const openAddModal = (date?: string) => {
         setActionForm({
             client_name: '',
-            action_date: new Date().toISOString().split('T')[0],
+            action_date: date || new Date().toISOString().split('T')[0],
             priority: 'MÉDIA',
             status: 'PENDENTE',
             notes: ''
@@ -179,7 +179,7 @@ const GestaoConsultiva = () => {
                     </select>
                 </div>
 
-                <button className="btn-supreme" onClick={openAddModal}>
+                <button className="btn-supreme" onClick={() => openAddModal()}>
                     <Plus size={18} /> NOVA AÇÃO
                 </button>
 
@@ -190,8 +190,8 @@ const GestaoConsultiva = () => {
                 </div>
             </div>
 
-            {/* MAIN CONTENT SPLIT - FORCED HORIZONTAL */}
-            <div style={{ display: 'flex', gap: '32px', width: '100%', alignItems: 'flex-start' }} className="gestiva-split-layout">
+            {/* MAIN CONTENT SPLIT - RESPONSIVE CLASSES */}
+            <div className="gestiva-split-layout">
                 {/* CALENDAR */}
                 <div className="crm-card p-10" style={{ flex: 1, minWidth: 0 }}>
                     <div className="flex justify-between items-center mb-10">
@@ -227,7 +227,10 @@ const GestaoConsultiva = () => {
                             const dayActions = getActionsByDay(day);
                             const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth();
                             return (
-                                <div key={day} className={`crm-day-box ${isToday ? 'is-today' : ''}`} onClick={() => dayActions.length > 0 && openEditModal(dayActions[0])}>
+                                <div key={day} className={`crm-day-box ${isToday ? 'is-today' : ''}`} onClick={() => {
+                                    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
+                                    openAddModal(dateStr);
+                                }}>
                                     <span className="crm-day-number">{day}</span>
                                     <div className="mt-1 flex flex-col gap-0.5 max-h-[70%] overflow-y-auto no-scrollbar">
                                         {dayActions.map((act, i) => (
@@ -243,7 +246,7 @@ const GestaoConsultiva = () => {
                 </div>
 
                 {/* SIDEBAR PANELS */}
-                <div style={{ width: '380px', flexShrink: 0 }} className="gestiva-sidebar-panels flex flex-col gap-6">
+                <div className="gestiva-sidebar-panels flex flex-col gap-6">
                     <div className="crm-card p-8 glow-border-red">
                         <div className="flex items-center gap-3 mb-8">
                             <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 shadow-lg shadow-red-500/20">

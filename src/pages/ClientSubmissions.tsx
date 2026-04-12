@@ -105,6 +105,7 @@ const ClientSubmissions = () => {
             
             .responsive-stack-mobile { display: flex; flex-wrap: wrap; gap: 8px; }
             .view-mode-container { display: flex; justify-content: flex-end; margin-bottom: 20px; gap: 8px; flex-wrap: wrap; }
+            .card-actions { display: flex; flex-direction: row; gap: 8px; position: absolute; top: 18px; right: 18px; }
 
             @media (max-width: 1024px) {
                 .responsive-stack-mobile { gap: 12px; }

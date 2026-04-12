@@ -1198,4 +1198,43 @@
         width: 100% !important;
         max-width: 100% !important;
     }
+
+    /* Consultiva Responsive */
+    .gestiva-split-layout {
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    .gestiva-sidebar-panels {
+        width: 100% !important;
+    }
+
+    .crm-calendar-inner {
+        gap: 4px !important;
+    }
+
+    .crm-day-box {
+        padding: 6px !important;
+    }
+
+    .crm-day-number {
+        font-size: 9px !important;
+    }
+
+    .crm-action-pill {
+        font-size: 7px !important;
+        padding: 2px 4px !important;
+    }
+}
+
+.gestiva-split-layout {
+    display: flex;
+    gap: 32px;
+    width: 100%;
+    align-items: flex-start;
+}
+
+.gestiva-sidebar-panels {
+    width: 380px;
+    flex-shrink: 0;
 }
