@@ -456,22 +456,44 @@ const ClientDashboard = () => {
                     .header-profile-info { flex-direction: column; align-items: flex-start !important; text-align: left; }
                 }
 
-                @media (max-width: 600px) {
-                    .container-root { padding: 16px 12px; }
-                    .stats-wrapper { grid-template-columns: 1fr !important; gap: 16px !important; }
-                    .nav-tab { flex: 1; text-align: center; min-width: 140px; }
-                    .header-actions { flex-direction: column; align-items: stretch; margin-top: 10px; }
-                    .header-actions .action-btn { width: 100%; }
-                    .primary-btn { margin-bottom: 8px; }
-                    .control-card { padding: 16px; }
-                    .submission-link { padding: 16px 12px; flex-direction: column; align-items: stretch; gap: 16px; }
-                    .submission-link-actions { justify-content: flex-start; gap: 6px; }
-                    .action-btn.ghost-btn { padding: 8px 12px; height: 36px; font-size: 10px; }
+                @media (max-width: 900px) {
+                    .container-root { padding: 20px 16px; }
+                    .stats-wrapper { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+                    .header-content { flex-direction: column; align-items: flex-start !important; }
+                    .submission-link { 
+                        flex-direction: column !important; 
+                        align-items: stretch !important; 
+                        padding: 20px !important;
+                        gap: 20px !important;
+                    }
+                    .submission-link-actions { 
+                        width: 100%;
+                        justify-content: flex-start; 
+                        border-top: 1px solid var(--surface-border-subtle);
+                        padding-top: 16px;
+                        gap: 10px !important;
+                    }
+                    .submission-link-actions > button {
+                        flex: 1;
+                        min-width: 44px;
+                    }
                 }
 
-                @media (max-width: 400px) {
-                    .submission-link-actions button span { display: none; }
-                    .action-btn { padding: 8px 10px; }
+                @media (max-width: 600px) {
+                    .stats-wrapper { grid-template-columns: 1fr !important; }
+                    .nav-tab { flex: 1; text-align: center; font-size: 9px; padding: 10px 8px; }
+                    .header-actions { width: 100%; margin-top: 10px; }
+                    .submission-link-actions { 
+                        display: grid !important;
+                        grid-template-columns: repeat(2, 1fr);
+                    }
+                    .submission-link-actions .alert-bell-btn {
+                        grid-column: span 1;
+                    }
+                    .submission-link-actions button:last-child {
+                        grid-column: span 2;
+                        width: 100%;
+                    }
                 }
 
                 .container-root { 
@@ -604,38 +626,40 @@ const ClientDashboard = () => {
                                 submissions.map((sub) => {
                                     const cfg = statusCfg(sub.status);
                                     return (
-                                        <div key={sub.id} className="submission-link">
-                                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                {sub.isReferral ? <Users size={20} style={{ opacity: 0.5, color: 'var(--primary-color)' }} /> : <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />}
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-primary)' }}>
-                                                    {sub.profile_name}
-                                                    {sub.isReferral && <span style={{ fontSize: '7px', background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(172,248,0,0.2)' }}>REFERRAL</span>}
-                                                    {sub.status === 'CONCLUÍDO' && <CheckCircle size={14} className="text-primary-color" />}
-                                                </h4>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
-                                                    <span style={{ color: 'var(--surface-border-subtle)' }}>•</span>
-                                                    <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
-                                                        {cfg.label.toUpperCase()}
-                                                    </span>
+                                        <div key={sub.id} className="submission-link" style={{ overflow: 'hidden', position: 'relative' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }} className="submission-link-header">
+                                                <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    {sub.isReferral ? <Users size={20} style={{ opacity: 0.5, color: 'var(--primary-color)' }} /> : <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />}
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {sub.profile_name}
+                                                        {sub.isReferral && <span style={{ fontSize: '7px', background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(172,248,0,0.2)' }}>REFERRAL</span>}
+                                                        {sub.status === 'CONCLUÍDO' && <CheckCircle size={14} className="text-primary-color" />}
+                                                    </h4>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>{new Date(sub.timestamp).toLocaleDateString()}</span>
+                                                        <span style={{ color: 'var(--surface-border-subtle)' }}>•</span>
+                                                        <span className="info-chip" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, padding: '2px 8px', fontSize: '8px', borderRadius: '6px' }}>
+                                                            {cfg.label.toUpperCase()}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="submission-link-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                            <div className="submission-link-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '16px', width: '100%' }}>
                                                 {sub.status === 'AGUARDANDO_APROVACAO_PAI' && sub.isReferral && (
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); handleApproveReferralSubmission(sub.id, true); }} 
                                                             className="action-btn ghost-btn" 
-                                                            style={{ height: 36, padding: '0 12px', fontSize: '9px', borderColor: '#22c55e', color: '#22c55e', background: 'rgba(34,197,94,0.05)' }}
+                                                            style={{ flex: 1, height: 36, fontSize: '9px', borderColor: '#22c55e', color: '#22c55e', background: 'rgba(34,197,94,0.05)' }}
                                                         >
                                                             <CheckCircle2 size={14} /> APROVAR
                                                         </button>
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); handleApproveReferralSubmission(sub.id, false); }} 
                                                             className="action-btn ghost-btn" 
-                                                            style={{ height: 36, padding: '0 12px', fontSize: '9px', borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.05)' }}
+                                                            style={{ flex: 1, height: 36, fontSize: '9px', borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.05)' }}
                                                         >
                                                             <XCircle size={14} /> REPROVAR
                                                         </button>
@@ -644,14 +668,14 @@ const ClientDashboard = () => {
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); setSelectedSubForChange(sub); setShowChangeRequestModal(true); }} 
                                                     className="action-btn ghost-btn alert-bell-btn" 
-                                                    style={{ height: 40, width: 40, padding: 0, color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }} 
+                                                    style={{ height: 40, flex: 1, padding: 0, color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }} 
                                                     title="Pedir Alteração (Alerta)"
                                                 >
                                                     <Bell size={18} />
                                                 </button>
-                                                <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={14} /></button>
-                                                <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0 }}><CopyIcon size={14} /></button>
-                                                <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 36, padding: '0 16px', fontSize: '9px' }}>DETALHES <ExternalLink size={14} /></button>
+                                                <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 40, flex: 1, padding: 0, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={16} /></button>
+                                                <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 40, flex: 1, padding: 0 }}><CopyIcon size={16} /></button>
+                                                <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 40, padding: '0 16px', fontSize: '9px', flex: 2 }}>DETALHES <ExternalLink size={14} /></button>
                                             </div>
                                         </div>
                                     );
