@@ -70,6 +70,17 @@ interface ClientSubmission {
     timestamp: string;
 }
 
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+    PENDENTE: { label: 'Pendente', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
+    EM_ANDAMENTO: { label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
+    'EM ANDAMENTO': { label: 'Em andamento', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
+    GERADO: { label: 'Gerado', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' },
+    CANCELADO: { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
+    CONCLUIDO: { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
+    'CONCLUÍDO': { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
+    AGUARDANDO_APROVACAO_PAI: { label: 'Aguardando Aprovação Parceiro', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' }
+};
+
 const ClientSubmissions = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -465,9 +476,16 @@ const ClientSubmissions = () => {
                             </div>
                         )}
                         <div style={{ position: 'absolute', top: '16px', right: '40px' }}>
-                            <span style={{ fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '999px', letterSpacing: '0.5px', textTransform: 'uppercase', background: s.assigned_to ? 'rgba(245,158,11,0.12)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.12)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.1)' : 'rgba(172,248,0,0.08)', color: s.assigned_to ? '#f59e0b' : s.status === 'GERADO' ? '#22c55e' : s.status === 'CONCLUIDO' ? '#10b981' : 'var(--primary-color)', border: `1px solid ${s.assigned_to ? 'rgba(245,158,11,0.2)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.2)' : s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.3)' : 'rgba(172,248,0,0.15)'}` }}>
-                                {s.assigned_to ? `EM MÃOS: ${s.assigned_to.toUpperCase()}` : s.status === 'CONCLUIDO' ? 'DISPARO CONCLUÍDO' : s.status}
-                            </span>
+                            {(() => {
+                                const cfg = s.assigned_to 
+                                    ? { label: `EM MÃOS: ${s.assigned_to.toUpperCase()}`, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.2)' }
+                                    : (STATUS_CONFIG[s.status] || STATUS_CONFIG['PENDENTE']);
+                                return (
+                                    <span className="status-badge-premium" style={{ '--bg': cfg.bg, '--color': cfg.color, '--border': cfg.border } as any}>
+                                        {cfg.label.toUpperCase()}
+                                    </span>
+                                );
+                            })()}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '30px', marginBottom: '16px' }}>
                             {s.profile_photo ? <img src={s.profile_photo} alt="" style={{ width: 48, height: 48, borderRadius: '14px', objectFit: 'cover', border: '1.5px solid var(--surface-border-subtle)', flexShrink: 0 }} /> : <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'var(--card-bg-subtle)', border: '1.5px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><User size={22} style={{ opacity: 0.2 }} /></div>}
@@ -593,13 +611,14 @@ const ClientSubmissions = () => {
                     </div>
 
                     <div>
-                        <span className="list-badge" style={{
-                            borderColor: s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.3)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.3)' : 'rgba(172,248,0,0.3)',
-                            color: s.status === 'CONCLUIDO' ? '#10b981' : s.status === 'GERADO' ? '#22c55e' : 'var(--primary-color)',
-                            background: s.status === 'CONCLUIDO' ? 'rgba(16,185,129,0.05)' : s.status === 'GERADO' ? 'rgba(34,197,94,0.05)' : 'rgba(172,248,0,0.05)'
-                        }}>
-                            {s.status === 'CONCLUIDO' ? 'CONCLUÍDO' : s.status}
-                        </span>
+                        {(() => {
+                            const cfg = STATUS_CONFIG[s.status] || STATUS_CONFIG['PENDENTE'];
+                            return (
+                                <span className="status-badge-premium" style={{ '--bg': cfg.bg, '--color': cfg.color, '--border': cfg.border } as any}>
+                                    {cfg.label.toUpperCase()}
+                                </span>
+                            );
+                        })()}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 700 }}>

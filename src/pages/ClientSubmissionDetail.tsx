@@ -522,9 +522,15 @@ const ClientSubmissionDetail = () => {
                     {/* STATUS */}
                     <div className="control-card">
                         <label className="field-label"><Zap size={14} /> FLUXO DE TRABALHO</label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+                        <div className="status-grid-responsive">
                             {STATUS_DISPLAY_KEYS.map(key => (
-                                <button key={key} className={`status-btn ${sub.status === key ? 'active' : ''}`} style={{ '--bg': STATUS_CONFIG[key].bg, '--color': STATUS_CONFIG[key].color, '--border': STATUS_CONFIG[key].border } as any} onClick={() => handleStatusChange(key)} disabled={user?.role === 'CLIENT'}>
+                                <button 
+                                    key={key} 
+                                    className={`status-btn ${sub.status === key ? 'active' : ''}`} 
+                                    style={{ '--bg': STATUS_CONFIG[key].bg, '--color': STATUS_CONFIG[key].color, '--border': STATUS_CONFIG[key].border } as any} 
+                                    onClick={() => handleStatusChange(key)} 
+                                    disabled={user?.role === 'CLIENT' || updatingStatus}
+                                >
                                     <CheckSquare size={14} /> {STATUS_CONFIG[key].label}
                                 </button>
                             ))}
