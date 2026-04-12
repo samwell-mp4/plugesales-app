@@ -103,14 +103,26 @@ const ClientSubmissions = () => {
             .supreme-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px; }
             .supreme-modal-content { background: #0f172a; border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: 40px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
             
+            .responsive-stack-mobile { display: flex; flex-wrap: wrap; gap: 8px; }
+            .view-mode-container { display: flex; justify-content: flex-end; margin-bottom: 20px; gap: 8px; flex-wrap: wrap; }
+
+            @media (max-width: 1024px) {
+                .responsive-stack-mobile { gap: 12px; }
+                .view-mode-container { justify-content: center; }
+            }
+
             @media (max-width: 768px) {
                 .supreme-modal-content { padding: 32px 24px; border-radius: 24px; max-height: 95vh; }
                 .supreme-modal-content h2 { font-size: 1.4rem !important; }
                 .card-actions { gap: 12px !important; }
                 .cs-grid { grid-template-columns: 1fr !important; }
+                .responsive-stack-mobile { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+                .secondary-filters-container.is-open { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+                .tab-pill { flex: 1; justify-content: center; }
             }
             @media (max-width: 480px) {
                 .supreme-modal-content { padding: 24px 20px; }
+                .view-mode-container button { flex: 1; }
             }
         `;
         document.head.appendChild(style);
@@ -1081,7 +1093,7 @@ const ClientSubmissions = () => {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', gap: '8px' }}>
+                <div className="view-mode-container">
                     {[{ id: 'grid', icon: <LayoutGrid size={16} />, label: 'GRADE' }, { id: 'list', icon: <List size={16} />, label: 'LISTA' }, { id: 'kanban', icon: <Trello size={16} />, label: 'KANBAN' }].map(mode => (
                         <button key={mode.id} onClick={() => { setViewMode(mode.id as any); setCurrentPage(1); }} className={`page-btn ${viewMode === mode.id ? 'active' : ''}`}>
                             {mode.icon} {mode.label}

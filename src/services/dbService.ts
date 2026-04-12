@@ -767,6 +767,40 @@ export const dbService = {
             throw err;
         }
     },
+
+    // --- Notifications ---
+    getNotifications: async (userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/notifications?user_id=${userId}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching notifications:", err);
+            return [];
+        }
+    },
+    markNotificationAsRead: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/notifications/${id}/read`, { method: 'PATCH' });
+            return await res.json();
+        } catch (err) {
+            console.error("Error marking notification as read:", err);
+            return null;
+        }
+    },
+    clearAllNotifications: async (userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/notifications/clear-all`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error clearing notifications:", err);
+            return null;
+        }
+    },
     // --- GESTÃO CONSULTIVA ---
     getConsultativeActions: async (responsavel?: string) => {
         try {

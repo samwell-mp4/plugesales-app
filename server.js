@@ -542,7 +542,18 @@ const initDB = async () => {
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log('✅ Table submission_change_requests verified/created.');
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                type TEXT DEFAULT 'info',
+                is_read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✅ Tables submission_change_requests and notifications verified/created.');
         // ============================================================
         console.log('✅ Database initialized and verified.');
 
@@ -1755,6 +1766,12 @@ app.patch('/api/change-requests/:id/approve', async (req, res) => {
         // 3. Update request status
         await client.query("UPDATE submission_change_requests SET status = 'APROVADO' WHERE id = $1", [id]);
         
+        // 4. Create Notification for the user
+        await client.query(
+            `INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4)`,
+            [changeReq.user_id, 'Alteração Aprovada!', `Sua solicitação para "${currentSub.profile_name}" foi aprovada e aplicada.`, 'success']
+        );
+        
         await client.query('COMMIT');
         res.json({ success: true });
     } catch (err) {
@@ -1769,7 +1786,55 @@ app.patch('/api/change-requests/:id/approve', async (req, res) => {
 app.patch('/api/change-requests/:id/reject', async (req, res) => {
     const { id } = req.params;
     try {
-        await pool.query("UPDATE submission_change_requests SET status = 'REJEITADO' WHERE id = $1", [id]);
+        const reqRes = await pool.query('SELECT * FROM submission_change_requests WHERE id = $1', [id]);
+        if (reqRes.rows.length > 0) {
+            const changeReq = reqRes.rows[0];
+            const subRes = await pool.query('SELECT profile_name FROM client_submissions WHERE id = $1', [changeReq.submission_id]);
+            const profileName = subRes.rows[0]?.profile_name || 'sua submissão';
+
+            await pool.query("UPDATE submission_change_requests SET status = 'REJEITADO' WHERE id = $1", [id]);
+            
+            // Create Notification
+            await pool.query(
+                `INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4)`,
+                [changeReq.user_id, 'Alteração Recusada', `Sua solicitação para "${profileName}" não foi aceita no momento.`, 'warning']
+            );
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Notifications API ---
+app.get('/api/notifications', async (req, res) => {
+    const { user_id } = req.query; // Normally this would come from the auth token
+    if (!user_id) return res.status(400).json({ error: 'User ID is required' });
+    try {
+        const result = await pool.query(
+            'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+            [user_id]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/notifications/:id/read', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('UPDATE notifications SET is_read = TRUE WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/notifications/clear-all', async (req, res) => {
+    const { user_id } = req.body;
+    try {
+        await pool.query('UPDATE notifications SET is_read = TRUE WHERE user_id = $1', [user_id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
