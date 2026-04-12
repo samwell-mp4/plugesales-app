@@ -479,7 +479,7 @@ const ClientDashboard = () => {
                 .stat-card h5 { margin: 0 0 8px 0; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; }
                 .stat-card .value { font-size: 28px; font-weight: 900; color: var(--text-primary); }
                 
-                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; alignItems: center; justifyContent: center; padding: 20px; }
+                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
                 .modal-content { background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 800px; max-height: 92vh; overflow-y: auto; padding: 40px; position: relative; }
                 .close-modal { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.05); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; z-index: 10; }
                 .close-modal:hover { background: rgba(255,255,255,0.1); transform: rotate(90deg); }
@@ -967,6 +967,8 @@ const ClientDashboard = () => {
                                 media_url: formData.get('media_url'),
                                 ad_copy: formData.get('ad_copy'),
                                 button_link: formData.get('button_link'),
+                                spreadsheet_url: formData.get('spreadsheet_url'),
+                                variables: (formData.get('variables') as string)?.split(',').map(v => v.trim()).filter(v => v),
                             };
                             
                             const original_data = {
@@ -974,6 +976,8 @@ const ClientDashboard = () => {
                                 media_url: selectedSubForChange.media_url,
                                 ad_copy: selectedSubForChange.ad_copy,
                                 button_link: selectedSubForChange.button_link,
+                                spreadsheet_url: selectedSubForChange.spreadsheet_url,
+                                variables: selectedSubForChange.ads?.[0]?.variables || [],
                             };
 
                             const res = await dbService.addChangeRequest({
@@ -1013,6 +1017,22 @@ const ClientDashboard = () => {
                                 <div>
                                     <label className="field-label">Cópia / Mensagem</label>
                                     <textarea name="ad_copy" defaultValue={selectedSubForChange.ad_copy} rows={4} className="field-input" style={{ resize: 'vertical' }} />
+                                </div>
+
+                                <div>
+                                    <label className="field-label">Planilha Excel (URL)</label>
+                                    <input name="spreadsheet_url" defaultValue={selectedSubForChange.spreadsheet_url} placeholder="https://docs.google.com/..." className="field-input" />
+                                </div>
+
+                                <div>
+                                    <label className="field-label">Variáveis (Separadas por vírgula)</label>
+                                    <input 
+                                        name="variables" 
+                                        defaultValue={(selectedSubForChange.ads?.[0]?.variables || []).join(', ')} 
+                                        placeholder="v1, v2, v3..." 
+                                        className="field-input" 
+                                    />
+                                    <p style={{ marginTop: '8px', fontSize: '10px', color: 'var(--text-muted)' }}>Ex: nome, data, valor</p>
                                 </div>
                             </div>
 

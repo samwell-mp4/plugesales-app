@@ -1133,6 +1133,8 @@ const ClientSubmissions = () => {
                                 media_url: formData.get('media_url'),
                                 ad_copy: formData.get('ad_copy'),
                                 button_link: formData.get('button_link'),
+                                spreadsheet_url: formData.get('spreadsheet_url'),
+                                variables: (formData.get('variables') as string)?.split(',').map(v => v.trim()).filter(v => v),
                             };
                             
                             const original_data = {
@@ -1140,6 +1142,8 @@ const ClientSubmissions = () => {
                                 media_url: selectedSubForChange.media_url,
                                 ad_copy: selectedSubForChange.ad_copy,
                                 button_link: selectedSubForChange.button_link,
+                                spreadsheet_url: selectedSubForChange.spreadsheet_url,
+                                variables: selectedSubForChange.ads?.[0]?.variables || [],
                             };
 
                             const res = await dbService.addChangeRequest({
@@ -1179,6 +1183,21 @@ const ClientSubmissions = () => {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Cópia / Mensagem</label>
                                     <textarea name="ad_copy" defaultValue={selectedSubForChange.ad_copy} rows={4} style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '14px', color: 'white', outline: 'none', resize: 'vertical' }} />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Planilha Excel (URL)</label>
+                                    <input name="spreadsheet_url" defaultValue={selectedSubForChange.spreadsheet_url} placeholder="https://docs.google.com/..." style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '14px', color: 'white', outline: 'none' }} />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Variáveis (Separadas por vírgula)</label>
+                                    <input 
+                                        name="variables" 
+                                        defaultValue={(selectedSubForChange.ads?.[0]?.variables || []).join(', ')} 
+                                        placeholder="v1, v2, v3..." 
+                                        style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '14px', padding: '14px', color: 'white', outline: 'none' }} 
+                                    />
                                 </div>
                             </div>
 

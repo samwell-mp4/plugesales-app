@@ -1713,11 +1713,42 @@ app.patch('/api/change-requests/:id/approve', async (req, res) => {
         if (reqRes.rows.length === 0) throw new Error('Solicitação não encontrada');
         const changeReq = reqRes.rows[0];
         
-        // 2. Update original submission
-        const data = typeof changeReq.requested_data === 'string' ? JSON.parse(changeReq.requested_data) : changeReq.requested_data;
-        const fields = Object.keys(data);
+        // 2. Prepare update data
+        const requested = typeof changeReq.requested_data === 'string' ? JSON.parse(changeReq.requested_data) : changeReq.requested_data;
+        
+        // Fetch current submission to sync 'ads' array
+        const subRes = await client.query('SELECT * FROM client_submissions WHERE id = $1', [changeReq.submission_id]);
+        if (subRes.rows.length === 0) throw new Error('Submissão original não encontrada');
+        const currentSub = subRes.rows[0];
+        
+        // Sync root fields into ads array
+        let currentAds = Array.isArray(currentSub.ads) ? currentSub.ads : [];
+        if (typeof currentSub.ads === 'string') {
+            try { currentAds = JSON.parse(currentSub.ads); } catch(e) { currentAds = []; }
+        }
+
+        const updatedAds = currentAds.map(ad => ({
+            ...ad,
+            template_type: requested.template_type || ad.template_type,
+            media_url: requested.media_url || ad.media_url,
+            ad_copy: requested.ad_copy || ad.ad_copy,
+            button_link: requested.button_link || ad.button_link,
+            variables: requested.variables || ad.variables
+        }));
+
+        // Filter requested fields to only those that exist as columns in client_submissions
+        const validColumns = ['template_type', 'media_url', 'ad_copy', 'button_link', 'spreadsheet_url'];
+        const updateObj = {};
+        validColumns.forEach(col => {
+            if (requested[col] !== undefined) updateObj[col] = requested[col];
+        });
+        
+        // Always update 'ads' to keep it in sync
+        updateObj.ads = JSON.stringify(updatedAds);
+
+        const fields = Object.keys(updateObj);
         const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
-        const values = [...fields.map(f => data[f]), changeReq.submission_id];
+        const values = [...fields.map(f => updateObj[f]), changeReq.submission_id];
         
         await client.query(`UPDATE client_submissions SET ${setClause} WHERE id = $${values.length}`, values);
         
@@ -1728,6 +1759,7 @@ app.patch('/api/change-requests/:id/approve', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         await client.query('ROLLBACK');
+        console.error('Approve Change Request Error:', err);
         res.status(500).json({ error: err.message });
     } finally {
         client.release();

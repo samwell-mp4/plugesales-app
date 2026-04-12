@@ -19,6 +19,7 @@ const AdminChanges = () => {
     const [requests, setRequests] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showOnlyChanged, setShowOnlyChanged] = useState(false);
 
     useEffect(() => {
         loadRequests();
@@ -61,7 +62,23 @@ const AdminChanges = () => {
     );
 
     const renderDiff = (original: any, requested: any) => {
-        const fields = Object.keys(requested);
+        let fields = Object.keys(requested);
+        if (showOnlyChanged) {
+            fields = fields.filter(f => {
+                const oVal = Array.isArray(original[f]) ? JSON.stringify(original[f]) : original[f];
+                const rVal = Array.isArray(requested[f]) ? JSON.stringify(requested[f]) : requested[f];
+                return oVal !== rVal;
+            });
+        }
+        
+        if (fields.length === 0) {
+            return (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}>
+                    Nenhuma alteração detectada nos campos selecionados.
+                </div>
+            );
+        }
+
         return (
             <div style={{ display: 'grid', gap: '16px' }}>
                 {fields.map(field => {
@@ -81,14 +98,14 @@ const AdminChanges = () => {
                                 <div style={{ flex: 1, minWidth: '150px' }}>
                                     <div style={{ fontSize: '10px', color: 'rgba(239,68,68,0.6)', fontWeight: 800, marginBottom: '4px' }}>ORIGINAL</div>
                                     <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', textDecoration: isChanged ? 'line-through' : 'none' }}>
-                                        {original[field] || '(Vazio)'}
+                                        {Array.isArray(original[field]) ? original[field].join(', ') : (original[field] || '(Vazio)')}
                                     </div>
                                 </div>
                                 <ArrowRight size={16} style={{ opacity: 0.2, color: 'var(--primary-color)' }} />
                                 <div style={{ flex: 1, minWidth: '150px' }}>
                                     <div style={{ fontSize: '10px', color: isChanged ? 'var(--primary-color)' : 'rgba(255,255,255,0.6)', fontWeight: 800, marginBottom: '4px' }}>SOLICITADO</div>
                                     <div style={{ fontSize: '13px', color: isChanged ? 'white' : 'rgba(255,255,255,0.6)', fontWeight: isChanged ? 700 : 400 }}>
-                                        {requested[field] || '(Vazio)'}
+                                        {Array.isArray(requested[field]) ? requested[field].join(', ') : (requested[field] || '(Vazio)')}
                                     </div>
                                 </div>
                             </div>
@@ -151,14 +168,21 @@ const AdminChanges = () => {
                         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>Revise e aprove solicitações de mudança nos dados dos clientes.</p>
                     </div>
 
-                    <div style={{ flex: 1, maxWidth: '400px', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '20px', padding: '0 16px' }}>
-                        <Search size={18} style={{ color: 'var(--text-muted)' }} />
-                        <input 
-                            value={searchTerm} 
-                            onChange={e => setSearchTerm(e.target.value)} 
-                            placeholder="Buscar por cliente ou solicitante..." 
-                            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', padding: '14px 0', fontSize: '14px', width: '100%' }} 
-                        />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, maxWidth: '600px' }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '20px', padding: '0 16px' }}>
+                            <Search size={18} style={{ color: 'var(--text-muted)' }} />
+                            <input 
+                                value={searchTerm} 
+                                onChange={e => setSearchTerm(e.target.value)} 
+                                placeholder="Buscar por cliente ou solicitante..." 
+                                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', padding: '14px 0', fontSize: '14px', width: '100%' }} 
+                            />
+                        </div>
+
+                        <div onClick={() => setShowOnlyChanged(!showOnlyChanged)} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', background: showOnlyChanged ? 'rgba(172,248,0,0.1)' : 'var(--card-bg-subtle)', border: `1px solid ${showOnlyChanged ? 'var(--primary-color)' : 'var(--surface-border-subtle)'}`, padding: '12px 20px', borderRadius: '20px', transition: 'all 0.3s' }}>
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: showOnlyChanged ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)', boxShadow: showOnlyChanged ? '0 0 10px var(--primary-color)' : 'none' }} />
+                            <span style={{ fontSize: '11px', fontWeight: 900, color: showOnlyChanged ? 'white' : 'var(--text-muted)', letterSpacing: '1px' }}>SOMENTE ALTERADOS</span>
+                        </div>
                     </div>
                 </div>
 
