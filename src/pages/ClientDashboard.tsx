@@ -392,84 +392,6 @@ const ClientDashboard = () => {
                     </p>
                 </div>
 
-            {showChangeRequestModal && selectedSubForChange && (
-                <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="modal-content" style={{ background: '#0f172a', border: '1px solid var(--surface-border-subtle)', borderRadius: '32px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '40px', position: 'relative' }}>
-                        <button onClick={() => setShowChangeRequestModal(false)} className="close-modal"><X size={20} /></button>
-                        
-                        <div style={{ marginBottom: '32px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                <Bell size={24} className="text-primary-color" />
-                                <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-1px' }}>Solicitar Alteração</h2>
-                            </div>
-                            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>As mudanças serão enviadas para aprovação do Admin.</p>
-                        </div>
-
-                        <form onSubmit={async (e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.currentTarget);
-                            const requested_data = {
-                                template_type: formData.get('template_type'),
-                                media_url: formData.get('media_url'),
-                                ad_copy: formData.get('ad_copy'),
-                                button_link: formData.get('button_link'),
-                            };
-                            
-                            const original_data = {
-                                template_type: selectedSubForChange.template_type,
-                                media_url: selectedSubForChange.media_url,
-                                ad_copy: selectedSubForChange.ad_copy,
-                                button_link: selectedSubForChange.button_link,
-                            };
-
-                            const res = await dbService.addChangeRequest({
-                                submission_id: selectedSubForChange.id,
-                                user_id: user?.id,
-                                requested_data,
-                                original_data
-                            });
-
-                            if (res) {
-                                alert("Solicitação enviada com sucesso! Aguarde a aprovação.");
-                                setShowChangeRequestModal(false);
-                            } else {
-                                alert("Erro ao enviar solicitação.");
-                            }
-                        }}>
-                            <div style={{ display: 'grid', gap: '24px' }}>
-                                <div>
-                                    <label className="field-label">Tipo de Template</label>
-                                    <select name="template_type" defaultValue={selectedSubForChange.template_type} className="field-input" style={{ appearance: 'none' }}>
-                                        <option value="none">Apenas Texto</option>
-                                        <option value="image">Imagem</option>
-                                        <option value="video">Vídeo</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="field-label">Link da Mídia (Imagem/Vídeo)</label>
-                                    <input name="media_url" defaultValue={selectedSubForChange.media_url} placeholder="https://..." className="field-input" />
-                                </div>
-
-                                <div>
-                                    <label className="field-label">Link do Botão</label>
-                                    <input name="button_link" defaultValue={selectedSubForChange.button_link} placeholder="https://wa.me/..." className="field-input" />
-                                </div>
-
-                                <div>
-                                    <label className="field-label">Cópia / Mensagem</label>
-                                    <textarea name="ad_copy" defaultValue={selectedSubForChange.ad_copy} rows={4} className="field-input" style={{ resize: 'vertical' }} />
-                                </div>
-                            </div>
-
-                            <div style={{ marginTop: '40px', display: 'flex', gap: '16px' }}>
-                                <button type="button" onClick={() => setShowChangeRequestModal(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '56px' }}>CANCELAR</button>
-                                <button type="submit" className="action-btn primary-btn" style={{ flex: 2, height: '56px' }}>ENVIAR SOLICITAÇÃO</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
             </div>
         );
     }
@@ -557,12 +479,25 @@ const ClientDashboard = () => {
                 .stat-card h5 { margin: 0 0 8px 0; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; }
                 .stat-card .value { font-size: 28px; font-weight: 900; color: var(--text-primary); }
                 
-                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-                .modal-content { background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; }
-                .close-modal { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.05); border: none; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; alignItems: center; justifyContent: center; padding: 20px; }
+                .modal-content { background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 800px; max-height: 92vh; overflow-y: auto; padding: 40px; position: relative; }
+                .close-modal { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.05); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; z-index: 10; }
+                .close-modal:hover { background: rgba(255,255,255,0.1); transform: rotate(90deg); }
                 
                 .chart-bar { height: 8px; background: rgba(172,248,0,0.1); border-radius: 4px; overflow: hidden; margin-top: 8px; }
                 .chart-fill { height: 100%; background: var(--primary-gradient); transition: width 1s ease-out; }
+
+                @media (max-width: 768px) {
+                    .modal-content { padding: 32px 24px; border-radius: 24px; width: 96vw; max-height: 95vh; }
+                    .modal-content h2 { font-size: 1.5rem !important; }
+                    .close-modal { top: 16px; right: 16px; width: 36px; height: 36px; }
+                }
+
+                @media (max-width: 480px) {
+                    .modal-content { padding: 24px 20px; }
+                    .action-btn { font-size: 10px; padding: 10px 14px; }
+                    .stats-wrapper { gap: 12px !important; }
+                }
             `}</style>
 
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
@@ -699,7 +634,14 @@ const ClientDashboard = () => {
                                                         </button>
                                                     </div>
                                                 )}
-                                                <button onClick={(e) => { e.stopPropagation(); setSelectedSubForChange(sub); setShowChangeRequestModal(true); }} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0, color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }} title="Pedir Alteração (Alerta)"><Bell size={14} /></button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedSubForChange(sub); setShowChangeRequestModal(true); }} 
+                                                    className="action-btn ghost-btn alert-bell-btn" 
+                                                    style={{ height: 40, width: 40, padding: 0, color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }} 
+                                                    title="Pedir Alteração (Alerta)"
+                                                >
+                                                    <Bell size={18} />
+                                                </button>
                                                 <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={14} /></button>
                                                 <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 36, width: 36, padding: 0 }}><CopyIcon size={14} /></button>
                                                 <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 36, padding: '0 16px', fontSize: '9px' }}>DETALHES <ExternalLink size={14} /></button>
@@ -1001,6 +943,85 @@ const ClientDashboard = () => {
             {copyFeedback && (
                 <div style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary-color)', color: '#000', padding: '12px 24px', borderRadius: '16px', fontWeight: 900, fontSize: '13px', boxShadow: '0 10px 40px rgba(172,248,0,0.3)', zIndex: 9999, animation: 'fadeInUp 0.3s ease-out' }}>
                     ✓ {copyFeedback.toUpperCase()} COPIADO COM SUCESSO!
+                </div>
+            )}
+
+            {showChangeRequestModal && selectedSubForChange && (
+                <div className="modal-overlay" style={{ zIndex: 10001 }}>
+                    <div className="modal-content" style={{ maxWidth: '600px' }}>
+                        <button onClick={() => setShowChangeRequestModal(false)} className="close-modal"><X size={20} /></button>
+                        
+                        <div style={{ marginBottom: '32px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <Bell size={24} className="text-primary-color" />
+                                <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-1px' }}>Solicitar Alteração</h2>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>As mudanças serão enviadas para aprovação do Admin.</p>
+                        </div>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const requested_data = {
+                                template_type: formData.get('template_type'),
+                                media_url: formData.get('media_url'),
+                                ad_copy: formData.get('ad_copy'),
+                                button_link: formData.get('button_link'),
+                            };
+                            
+                            const original_data = {
+                                template_type: selectedSubForChange.template_type,
+                                media_url: selectedSubForChange.media_url,
+                                ad_copy: selectedSubForChange.ad_copy,
+                                button_link: selectedSubForChange.button_link,
+                            };
+
+                            const res = await dbService.addChangeRequest({
+                                submission_id: selectedSubForChange.id,
+                                user_id: user?.id as number,
+                                requested_data,
+                                original_data
+                            });
+
+                            if (res) {
+                                alert("Solicitação enviada com sucesso! Aguarde a aprovação.");
+                                setShowChangeRequestModal(false);
+                            } else {
+                                alert("Erro ao enviar solicitação.");
+                            }
+                        }}>
+                            <div style={{ display: 'grid', gap: '20px' }}>
+                                <div>
+                                    <label className="field-label">Tipo de Template</label>
+                                    <select name="template_type" defaultValue={selectedSubForChange.template_type} className="field-input" style={{ appearance: 'none' }}>
+                                        <option value="none">Apenas Texto</option>
+                                        <option value="image">Imagem</option>
+                                        <option value="video">Vídeo</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="field-label">Mídia (Imagem/Vídeo)</label>
+                                    <input name="media_url" defaultValue={selectedSubForChange.media_url} placeholder="https://..." className="field-input" />
+                                </div>
+
+                                <div>
+                                    <label className="field-label">Link do Botão</label>
+                                    <input name="button_link" defaultValue={selectedSubForChange.button_link} placeholder="https://wa.me/..." className="field-input" />
+                                </div>
+
+                                <div>
+                                    <label className="field-label">Cópia / Mensagem</label>
+                                    <textarea name="ad_copy" defaultValue={selectedSubForChange.ad_copy} rows={4} className="field-input" style={{ resize: 'vertical' }} />
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '32px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                <button type="button" onClick={() => setShowChangeRequestModal(false)} className="action-btn ghost-btn" style={{ flex: 1, minWidth: '120px' }}>CANCELAR</button>
+                                <button type="submit" className="action-btn primary-btn" style={{ flex: 2, minWidth: '180px' }}>ENVIAR</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

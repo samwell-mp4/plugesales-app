@@ -98,6 +98,26 @@ const ClientSubmissions = () => {
     const [selectedClientFilter, setSelectedClientFilter] = useState('');
 
     useEffect(() => {
+        const style = document.createElement('style');
+        style.textContent = `
+            .supreme-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px; }
+            .supreme-modal-content { background: #0f172a; border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: 40px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+            
+            @media (max-width: 768px) {
+                .supreme-modal-content { padding: 32px 24px; border-radius: 24px; max-height: 95vh; }
+                .supreme-modal-content h2 { font-size: 1.4rem !important; }
+                .card-actions { gap: 12px !important; }
+                .cs-grid { grid-template-columns: 1fr !important; }
+            }
+            @media (max-width: 480px) {
+                .supreme-modal-content { padding: 24px 20px; }
+            }
+        `;
+        document.head.appendChild(style);
+        return () => { document.head.removeChild(style); };
+    }, []);
+
+    useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth <= 1024);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -408,9 +428,9 @@ const ClientSubmissions = () => {
                 const subTotalFaturado = adsArr.reduce((sum, ad) => sum + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
                 return (
                     <div key={s.id} className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)} style={{ padding: '20px' }}>
-                        <div className="card-actions">
-                            <button onClick={e => { e.stopPropagation(); setSelectedSubForChange(s); setShowChangeRequestModal(true); }} style={{ padding: '6px', background: 'rgba(56,189,248,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: '#38bdf8', display: 'flex' }} title="Pedir Alteração (Alerta)">
-                                <Bell size={13} />
+                        <div className="card-actions" style={{ gap: '8px', zIndex: 10 }}>
+                            <button onClick={e => { e.stopPropagation(); setSelectedSubForChange(s); setShowChangeRequestModal(true); }} style={{ padding: '8px', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.2)', borderRadius: '10px', cursor: 'pointer', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Pedir Alteração (Alerta)">
+                                <Bell size={16} />
                             </button>
                             <button onClick={e => { e.stopPropagation(); handleDuplicate(s); }} style={{ padding: '6px', background: 'rgba(172,248,0,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: 'var(--primary-color)', display: 'flex' }} title="Duplicar">
                                 <CopyIcon size={13} />
@@ -1093,9 +1113,9 @@ const ClientSubmissions = () => {
             </div>
 
             {showChangeRequestModal && selectedSubForChange && (
-                <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="supreme-modal-content" style={{ background: '#0f172a', border: '1px solid var(--surface-border-subtle)', borderRadius: '32px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '40px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-                        <button onClick={() => setShowChangeRequestModal(false)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+                <div className="supreme-modal-overlay">
+                    <div className="supreme-modal-content">
+                        <button onClick={() => setShowChangeRequestModal(false)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}><X size={20} /></button>
                         
                         <div style={{ marginBottom: '32px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
