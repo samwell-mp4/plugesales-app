@@ -391,146 +391,12 @@ const ClientDashboard = () => {
                         PLUG & SALES © 2026 • SEGURANÇA MÁXIMA
                     </p>
                 </div>
-
             </div>
         );
     }
 
     return (
         <div className="container-root">
-            <style>{`
-                @keyframes spin { to { transform: rotate(360deg); } }
-                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-                
-                .control-card { 
-                    background: var(--card-bg-subtle); 
-                    border: 1px solid var(--surface-border-subtle); 
-                    border-radius: 24px; 
-                    padding: 24px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    animation: fadeInUp 0.4s ease-out backwards;
-                }
-                .control-card:hover { 
-                    background: var(--card-bg-subtle); 
-                    border-color: var(--primary-color);
-                    transform: translateY(-2px);
-                    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.1);
-                }
-
-                .action-btn { padding: 12px 20px; border-radius: 14px; border: none; cursor: pointer; font-weight: 900; font-size: 11px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; text-transform: uppercase; }
-                .primary-btn { background: var(--primary-gradient); color: #000; box-shadow: 0 8px 20px -6px var(--primary); }
-                .ghost-btn { background: var(--card-bg-subtle); color: var(--text-muted); border: 1px solid var(--surface-border-subtle) !important; }
-                .ghost-btn:hover { background: var(--bg-primary); color: var(--text-primary); border-color: var(--primary-color) !important; }
-
-                .nav-tab { padding: 10px 18px; border-radius: 12px; border: 1px solid var(--surface-border-subtle); background: var(--card-bg-subtle); color: var(--text-muted); cursor: pointer; font-weight: 900; font-size: 10px; letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase; }
-                .nav-tab:hover { background: var(--bg-primary); color: var(--text-primary); }
-                .nav-tab.active { background: rgba(172,248,0,0.1); border-color: var(--primary-color); color: var(--primary-color); box-shadow: 0 0 15px rgba(172,248,0,0.05); }
-
-                .field-input { width: 100%; background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); border-radius: 16px; padding: 16px; color: var(--text-primary); font-size: 14px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
-                .field-input:focus { border-color: var(--primary-color); background: var(--bg-primary); box-shadow: 0 0 20px rgba(172,248,0,0.05); }
-                
-                .field-label { font-size: 10px; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-                .info-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
-                
-                .submission-link {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    padding: 16px;
-                    background: var(--card-bg-subtle);
-                    border: 1px solid var(--surface-border-subtle);
-                    border-radius: 18px;
-                    text-decoration: none;
-                    transition: all 0.3s;
-                    margin-bottom: 12px;
-                }
-                .submission-link:hover {
-                    background: var(--bg-primary);
-                    border-color: var(--primary-color);
-                    transform: scale(1.01);
-                }
-
-                    .stats-wrapper { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important; }
-                    .header-content { flex-direction: column; align-items: flex-start !important; gap: 24px !important; }
-                    .header-actions { width: 100%; justify-content: flex-start; gap: 12px; }
-                    .header-profile-info { flex-direction: column; align-items: flex-start !important; text-align: left; }
-                }
-
-                @media (max-width: 900px) {
-                    .container-root { padding: 16px 12px !important; }
-                    .stats-wrapper { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
-                    .header-content { flex-direction: column; align-items: stretch !important; gap: 20px !important; }
-                    .submission-link { 
-                        flex-direction: column !important; 
-                        align-items: stretch !important; 
-                        padding: 16px !important;
-                        gap: 16px !important;
-                        width: 100% !important;
-                        box-sizing: border-box !important;
-                    }
-                    .submission-link-header {
-                        flex-direction: row;
-                        align-items: center;
-                        gap: 12px !important;
-                    }
-                    .submission-link-actions { 
-                        width: 100% !important;
-                        justify-content: flex-start; 
-                        border-top: 1px solid var(--surface-border-subtle);
-                        padding-top: 16px !important;
-                        gap: 8px !important;
-                    }
-                }
-
-                @media (max-width: 600px) {
-                    .stats-wrapper { grid-template-columns: 1fr !important; }
-                    .nav-tab { flex: 1; text-align: center; font-size: 9px; padding: 10px 8px; min-width: calc(50% - 8px); }
-                    .header-actions { width: 100%; margin-top: 10px; }
-                    .submission-link-header {
-                        flex-direction: column !important;
-                        align-items: flex-start !important;
-                        gap: 12px !important;
-                    }
-                    .submission-link-actions { 
-                        display: grid !important;
-                        grid-template-columns: repeat(2, 1fr) !important;
-                        width: 100% !important;
-                    }
-                }
-
-                .container-root { 
-                    min-height: 100vh; 
-                    background: var(--bg-primary); 
-                    color: var(--text-primary); 
-                    padding: 28px 24px; 
-                }
-
-                .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
-                .stat-card { background: rgba(255,255,255,0.03); border: 1px solid var(--surface-border-subtle); border-radius: 20px; padding: 24px; }
-                .stat-card h5 { margin: 0 0 8px 0; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; }
-                .stat-card .value { font-size: 28px; font-weight: 900; color: var(--text-primary); }
-                
-                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-                .modal-content { background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 800px; max-height: 92vh; overflow-y: auto; padding: 40px; position: relative; }
-                .close-modal { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.05); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; z-index: 10; }
-                .close-modal:hover { background: rgba(255,255,255,0.1); transform: rotate(90deg); }
-                
-                .chart-bar { height: 8px; background: rgba(172,248,0,0.1); border-radius: 4px; overflow: hidden; margin-top: 8px; }
-                .chart-fill { height: 100%; background: var(--primary-gradient); transition: width 1s ease-out; }
-
-                @media (max-width: 768px) {
-                    .modal-content { padding: 32px 24px; border-radius: 24px; width: 96vw; max-height: 95vh; }
-                    .modal-content h2 { font-size: 1.5rem !important; }
-                    .close-modal { top: 16px; right: 16px; width: 36px; height: 36px; }
-                }
-
-                @media (max-width: 480px) {
-                    .modal-content { padding: 24px 20px; }
-                    .action-btn { font-size: 10px; padding: 10px 14px; }
-                    .stats-wrapper { gap: 12px !important; }
-                }
-            `}</style>
-
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
                 <div className="header-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', gap: '24px' }}>
                     <div className="header-profile-info" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -628,8 +494,8 @@ const ClientDashboard = () => {
                                 submissions.map((sub) => {
                                     const cfg = statusCfg(sub.status);
                                     return (
-                                        <div key={sub.id} className="submission-link" style={{ overflow: 'hidden', position: 'relative' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }} className="submission-link-header">
+                                        <div key={sub.id} className="submission-link">
+                                            <div className="submission-link-header">
                                                 <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                     {sub.isReferral ? <Users size={20} style={{ opacity: 0.5, color: 'var(--primary-color)' }} /> : <Smartphone size={20} style={{ opacity: 0.3, color: 'var(--text-primary)' }} />}
                                                 </div>
@@ -648,7 +514,7 @@ const ClientDashboard = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="submission-link-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '16px', width: '100%' }}>
+                                            <div className="submission-link-actions">
                                                 {sub.status === 'AGUARDANDO_APROVACAO_PAI' && sub.isReferral && (
                                                     <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                                                         <button 
@@ -670,14 +536,14 @@ const ClientDashboard = () => {
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); setSelectedSubForChange(sub); setShowChangeRequestModal(true); }} 
                                                     className="action-btn ghost-btn alert-bell-btn" 
-                                                    style={{ height: 40, flex: 1, padding: 0, color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }} 
+                                                    style={{ height: 40, border: '1px solid rgba(56,189,248,0.2)', color: '#38bdf8' }} 
                                                     title="Pedir Alteração (Alerta)"
                                                 >
                                                     <Bell size={18} />
                                                 </button>
-                                                <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 40, flex: 1, padding: 0, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={16} /></button>
-                                                <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 40, flex: 1, padding: 0 }}><CopyIcon size={16} /></button>
-                                                <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 40, padding: '0 16px', fontSize: '9px', flex: 2 }}>DETALHES <ExternalLink size={14} /></button>
+                                                <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 40, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={16} /></button>
+                                                <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 40 }}><CopyIcon size={16} /></button>
+                                                <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 40, padding: '0 16px', fontSize: '9px', flex: 1 }}>DETALHES <ExternalLink size={14} /></button>
                                             </div>
                                         </div>
                                     );
