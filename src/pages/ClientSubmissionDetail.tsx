@@ -86,7 +86,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
     GERADO: { label: 'Gerado', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' },
     CANCELADO: { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
     CONCLUIDO: { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
-    'CONCLUÍDO': { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
     AGUARDANDO_APROVACAO_PAI: { label: 'Aguardando Aprovação Parceiro', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' }
 };
 
@@ -526,7 +525,7 @@ const ClientSubmissionDetail = () => {
                             {STATUS_DISPLAY_KEYS.map(key => (
                                 <button 
                                     key={key} 
-                                    className={`status-btn ${sub.status === key ? 'active' : ''}`} 
+                                    className={`status-btn action-btn ghost-btn ${sub.status === key ? 'active' : ''}`} 
                                     style={{ '--bg': STATUS_CONFIG[key].bg, '--color': STATUS_CONFIG[key].color, '--border': STATUS_CONFIG[key].border } as any} 
                                     onClick={() => handleStatusChange(key)} 
                                     disabled={user?.role === 'CLIENT' || updatingStatus}
