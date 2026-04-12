@@ -433,34 +433,14 @@ const ClientSubmissionDetail = () => {
     const currentAd = (sub.ads || [])[activeAdIdx];
 
     return (
-        <div className="container-root" style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '28px 24px' }}>
-            <style>{`
-                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-                .control-card { background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); border-radius: 24px; padding: 24px; transition: all 0.3s; animation: fadeInUp 0.4s ease-out backwards; }
-                .control-card:hover { border-color: var(--primary-color); transform: translateY(-2px); }
-                .action-btn { padding: 12px 20px; border-radius: 14px; border: none; cursor: pointer; font-weight: 900; font-size: 11px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; text-transform: uppercase; }
-                .primary-btn { background: var(--primary-gradient); color: #000; box-shadow: 0 8px 20px -6px var(--primary); }
-                .ghost-btn { background: var(--card-bg-subtle); color: var(--text-muted); border: 1px solid var(--surface-border-subtle) !important; }
-                .ghost-btn:hover { border-color: var(--primary-color) !important; color: var(--text-primary); }
-                .status-btn { width: 100%; padding: 12px 16px; border-radius: 14px; border: 1px solid transparent; cursor: pointer; font-weight: 800; font-size: 10px; transition: all 0.2s; display: flex; align-items: center; gap: 10px; background: var(--card-bg-subtle); color: var(--text-muted); text-transform: uppercase; }
-                .status-btn.active { background: var(--bg); color: var(--color); border-color: var(--border); }
-                .ad-tab { padding: 10px 18px; border-radius: 12px; border: 1px solid var(--surface-border-subtle); background: var(--card-bg-subtle); color: var(--text-muted); cursor: pointer; font-weight: 900; font-size: 10px; transition: all 0.2s; }
-                .ad-tab.active { background: rgba(172,248,0,0.1); border-color: var(--primary-color); color: var(--primary-color); }
-                .field-input { width: 100%; background: var(--bg-primary); border: 1px solid var(--surface-border-subtle); border-radius: 16px; padding: 14px; color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; transition: all 0.2s; box-sizing: border-box; }
-                .field-input:focus { border-color: var(--primary-color); }
-                .field-label { font-size: 10px; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-                .info-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; }
-                .asset-link { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--card-bg-subtle); border: 1px solid var(--surface-border-subtle); border-radius: 18px; text-decoration: none; transition: all 0.3s; }
-                .asset-link:hover { border-color: var(--primary-color); transform: scale(1.02); }
-                @media (max-width: 1024px) { .controls-wrapper, .ad-analyzer-grid { grid-template-columns: 1fr !important; } }
-            `}</style>
+        <div className="container-root">
             
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
                 {/* HEADER */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', gap: '24px' }} className="header-content">
+                <div className="detail-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <button onClick={() => navigate(-1)} className="action-btn ghost-btn" style={{ width: 44, height: 44, padding: 0 }}><ChevronLeft size={20} /></button>
-                        <div style={{ position: 'relative' }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
                             {sub.profile_photo ? (
                                 <img src={sub.profile_photo} alt="" style={{ width: 64, height: 64, borderRadius: '20px', objectFit: 'cover' }} />
                             ) : (
@@ -468,25 +448,25 @@ const ClientSubmissionDetail = () => {
                             )}
                             <div style={{ position: 'absolute', bottom: -4, right: -4, width: 24, height: 24, borderRadius: '8px', background: statusCfg.color, border: '4px solid var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={12} color="#000" /></div>
                         </div>
-                        <div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
                             {isEditingTitle ? (
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <input className="field-input" value={titleVal} onChange={e => setTitleVal(e.target.value)} style={{ fontSize: '1.5rem', fontWeight: 900, minWidth: '300px' }} autoFocus />
+                                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                                    <input className="field-input" value={titleVal} onChange={e => setTitleVal(e.target.value)} style={{ fontSize: '1.5rem', fontWeight: 900, minWidth: 0, flex: 1 }} autoFocus />
                                     <button onClick={handleSaveSender} className="action-btn primary-btn" style={{ padding: '8px', width: 40 }}><CheckCircle size={18} /></button>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', letterSpacing: '-1px' }}>{sub.profile_name}</h1>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                    <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.8rem', letterSpacing: '-1px', wordBreak: 'break-word' }}>{sub.profile_name}</h1>
                                     <button onClick={() => setIsEditingTitle(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><Plus size={18} style={{ transform: 'rotate(45deg)' }} /></button>
                                 </div>
                             )}
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                                 <span className="info-chip" style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)' }}>REGIONAL {sub.ddd}</span>
                                 <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}><Clock size={14} /> {new Date(sub.timestamp).toLocaleString('pt-BR')}</span>
                             </div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {(String(sub.user_id) === String(user?.id) || String(sub.parent_id) === String(user?.id)) && (
                             <button onClick={handleDeleteSubmission} className="action-btn ghost-btn" style={{ color: '#ef4444', width: 44, height: 44, padding: 0 }} title="Excluir"><Trash2 size={18} /></button>
                         )}
@@ -497,7 +477,7 @@ const ClientSubmissionDetail = () => {
                             </>
                         )}
                         <button onClick={load} className="action-btn ghost-btn" style={{ width: 44, height: 44, padding: 0 }}><RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} /></button>
-                        <div className="info-chip" style={{ background: statusCfg.bg, color: statusCfg.color, border: `1px solid ${statusCfg.border}`, padding: '10px 20px' }}>{statusCfg.label.toUpperCase()}</div>
+                        <div className="info-chip" style={{ background: statusCfg.bg, color: statusCfg.color, border: `1px solid ${statusCfg.border}`, padding: '10px 20px', minWidth: '140px', justifyContent: 'center' }}>{statusCfg.label.toUpperCase()}</div>
                     </div>
                 </div>
 
@@ -537,7 +517,7 @@ const ClientSubmissionDetail = () => {
                 )}
 
                 {/* CONTROL GRID */}
-                <div className="controls-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
+                <div className="controls-wrapper">
                     
                     {/* STATUS */}
                     <div className="control-card">
@@ -663,7 +643,7 @@ const ClientSubmissionDetail = () => {
                     </div>
 
                     {currentAd ? (
-                        <div className="ad-analyzer-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '24px' }}>
+                        <div className="ad-analyzer-grid">
                             {/* COL LEFT */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)' }}>
@@ -715,18 +695,18 @@ const ClientSubmissionDetail = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid #3b82f6' }}>
+                                <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid #3b82f6', overflow: 'hidden' }}>
                                     <label className="field-label" style={{ fontSize: '9px', color: '#3b82f6' }}>LINK DO BOTÃO</label>
                                     {user?.role !== 'CLIENT' ? (
                                         <input className="field-input" style={{ borderStyle: 'dashed' }} value={currentAd.button_link || ''} onChange={e => handleUpdateAd(activeAdIdx, 'button_link', e.target.value)} />
-                                    ) : <p style={{ margin: 0, fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentAd.button_link || 'Nenhum'}</p>}
+                                    ) : <p className="break-word" style={{ margin: 0, fontWeight: 900 }}>{currentAd.button_link || 'Nenhum'}</p>}
                                 </div>
 
-                                <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid #ffaa00' }}>
+                                <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid #ffaa00', overflow: 'hidden' }}>
                                     <label className="field-label" style={{ fontSize: '9px', color: '#ffaa00' }}>LINK ORIGINAL (SEM ENCURTAR)</label>
                                     {user?.role !== 'CLIENT' ? (
                                         <input className="field-input" style={{ borderStyle: 'dashed' }} value={currentAd.original_button_link || ''} onChange={e => handleUpdateAd(activeAdIdx, 'original_button_link', e.target.value)} />
-                                    ) : <p style={{ margin: 0, fontWeight: 900, overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentAd.original_button_link || 'Nenhum'}</p>}
+                                    ) : <p className="break-word" style={{ margin: 0, fontWeight: 900 }}>{currentAd.original_button_link || 'Nenhum'}</p>}
                                 </div>
 
                                 <div style={{ padding: '16px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', borderLeft: '4px solid var(--primary-color)' }}>
