@@ -459,12 +459,19 @@ const ClientDashboard = () => {
                 @media (max-width: 600px) {
                     .container-root { padding: 16px 12px; }
                     .stats-wrapper { grid-template-columns: 1fr !important; gap: 16px !important; }
-                    .nav-tab { flex: 1; text-align: center; }
-                    .header-actions { flex-direction: column; align-items: stretch; }
+                    .nav-tab { flex: 1; text-align: center; min-width: 140px; }
+                    .header-actions { flex-direction: column; align-items: stretch; margin-top: 10px; }
                     .header-actions .action-btn { width: 100%; }
                     .primary-btn { margin-bottom: 8px; }
                     .control-card { padding: 16px; }
-                    .submission-link { padding: 12px; flex-direction: column; align-items: flex-start; gap: 12px; }
+                    .submission-link { padding: 16px 12px; flex-direction: column; align-items: stretch; gap: 16px; }
+                    .submission-link-actions { justify-content: flex-start; gap: 6px; }
+                    .action-btn.ghost-btn { padding: 8px 12px; height: 36px; font-size: 10px; }
+                }
+
+                @media (max-width: 400px) {
+                    .submission-link-actions button span { display: none; }
+                    .action-btn { padding: 8px 10px; }
                 }
 
                 .container-root { 
@@ -615,7 +622,7 @@ const ClientDashboard = () => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                            <div className="submission-link-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                                 {sub.status === 'AGUARDANDO_APROVACAO_PAI' && sub.isReferral && (
                                                     <div style={{ display: 'flex', gap: '8px' }}>
                                                         <button 
