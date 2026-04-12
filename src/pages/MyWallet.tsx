@@ -138,106 +138,91 @@ export default function MyWallet() {
     };
 
     if (loading || !data) return (
-        <div className="flex items-center justify-center" style={{ height: '70vh' }}>
-            <Loader size={40} className="animate-spin text-primary" />
+        <div className="crm-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '70vh' }}>
+            <Loader size={48} className="animate-spin text-primary" />
         </div>
     );
 
     const { wallet, ledger, purchases, gifts } = data;
 
     return (
-        <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 60 }}>
-            
+        <div className="crm-container">
             {/* Header section */}
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                    <div style={{ background: 'var(--primary-gradient)', padding: 12, borderRadius: 16, cursor: 'default', color: '#000', boxShadow: 'var(--shadow-glow)' }}>
-                        <Wallet size={24} />
+            <div className="crm-header-premium">
+                <div className="crm-title-group">
+                    <div className="crm-badge-small">
+                        <Wallet size={12} /> FINANCIAL WELLNESS
                     </div>
-                    <div>
-                        <h1 className="text-gradient" style={{ margin: 0, background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Minha Wallet</h1>
-                        <p className="subtitle" style={{ margin: 0, fontSize: '0.9rem' }}>Gestão inteligente de créditos Plug Cards</p>
-                    </div>
+                    <h1 className="crm-main-title">Minha Wallet</h1>
                 </div>
                 
-                <div className="flex gap-3">
-                    <button onClick={() => setShowRedeemModal(true)} className="btn btn-secondary">
-                        <ArrowDownLeft size={18} className="text-primary" /> Resgatar Gift
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button onClick={() => setShowRedeemModal(true)} className="action-btn ghost-btn" style={{ height: '48px' }}>
+                        <ArrowDownLeft size={18} /> RESGATAR
                     </button>
-                    <button onClick={() => setShowGiftModal(true)} className="btn btn-primary">
-                        <Gift size={18} /> Criar Gift Card
+                    <button onClick={() => setShowGiftModal(true)} className="action-btn primary-btn" style={{ height: '48px' }}>
+                        <Gift size={18} /> CRIAR GIFT
                     </button>
                 </div>
             </div>
 
             {/* Main Balance Card */}
-            <div className="glass-panel" style={{ 
-                borderRadius: 'var(--radius-lg)',
-                padding: '40px',
+            <div className="crm-card" style={{ 
                 marginBottom: '40px',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                 gap: '40px',
-                alignItems: 'center'
+                alignItems: 'center',
+                padding: '48px'
             }}>
-                <div style={{ position: 'absolute', top: -100, right: -100, width: 300, height: 300, background: 'var(--primary-glow)', filter: 'blur(100px)', borderRadius: '50%', opacity: 0.5 }} />
+                <div style={{ position: 'absolute', top: -100, right: -100, width: 300, height: 300, background: 'var(--primary-glow)', filter: 'blur(100px)', borderRadius: '50%', opacity: 0.1, pointerEvents: 'none' }} />
                 
                 <div>
-                    <div className="flex items-center gap-2 mb-2" style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--text-muted)' }}>
+                    <div className="field-label" style={{ marginBottom: '12px' }}>
                         <ShieldCheck size={14} style={{ color: 'var(--primary-color)' }} /> SALDO CONSOLIDADO
                     </div>
-                    <div className="flex items-baseline gap-3 mb-2">
-                        <span style={{ fontSize: '4rem', fontWeight: 950, letterSpacing: '-2px', lineHeight: 1 }}>{formatVolume(wallet?.total_credits_available || 0)}</span>
-                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-muted)' }}>CRÉDITOS</span>
+                    <div className="flex items-baseline gap-4 mb-4">
+                        <h2 style={{ fontSize: '4.5rem', fontWeight: 950, letterSpacing: '-3px', lineHeight: 1, margin: 0 }}>{formatVolume(wallet?.total_credits_available || 0)}</h2>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-muted)' }}>CRÉDITOS</span>
                     </div>
-                    <p className="subtitle" style={{ margin: 0 }}>Equivalente aproximado a <span style={{ color: 'var(--primary-color)', fontWeight: 700 }}>{formatPrice((wallet?.total_credits_available || 0) * 0.01)}</span> em infraestrutura ativa.</p>
+                    <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        Capacidade ativa: <span style={{ color: 'var(--primary-color)' }}>{formatPrice((wallet?.total_credits_available || 0) * 0.01)}</span>
+                    </p>
                 </div>
 
-                <div className="glass-card" style={{ background: 'rgba(255,255,255,0.02)', padding: '24px', border: '1px solid var(--surface-border-subtle)' }}>
-                    <div className="flex flex-col gap-4">
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)' }}>
+                    <div className="flex flex-col gap-5">
                         <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-secondary" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                <Clock size={16} /> Reservado
-                            </div>
-                            <span style={{ fontWeight: 800, color: 'var(--warning-color)' }}>{formatVolume(wallet?.total_credits_reserved || 0)}</span>
+                            <span className="field-label" style={{ margin: 0 }}>Reservado</span>
+                            <span style={{ fontWeight: 900, color: 'var(--warning-color)', fontSize: '1.1rem' }}>{formatVolume(wallet?.total_credits_reserved || 0)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-secondary" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                <ArrowUpRight size={16} /> Utilizado
-                            </div>
-                            <span style={{ fontWeight: 800, color: '#f97316' }}>{formatVolume(wallet?.total_credits_used || 0)}</span>
+                            <span className="field-label" style={{ margin: 0 }}>Utilizado</span>
+                            <span style={{ fontWeight: 900, color: '#f97316', fontSize: '1.1rem' }}>{formatVolume(wallet?.total_credits_used || 0)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-secondary" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                <Gift size={16} /> Gifted Out
-                            </div>
-                            <span style={{ fontWeight: 800, color: '#8b5cf6' }}>{formatVolume(wallet?.total_credits_gifted_out || 0)}</span>
+                            <span className="field-label" style={{ margin: 0 }}>Enviado (Gift)</span>
+                            <span style={{ fontWeight: 900, color: '#8b5cf6', fontSize: '1.1rem' }}>{formatVolume(wallet?.total_credits_gifted_out || 0)}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-2 mb-6 p-1 glass-card" style={{ width: 'fit-content', borderRadius: 'var(--radius-md)', padding: '6px' }}>
+            <div className="crm-card" style={{ padding: '8px', marginBottom: '32px', display: 'inline-flex', gap: '8px', flexWrap: 'wrap' }}>
                 {[
-                    { id: 'overview', name: 'Geral', icon: <LayoutDashboard size={16} /> },
-                    { id: 'purchases', name: 'Lotes', icon: <CreditCard size={16} /> },
-                    { id: 'ledger', name: 'Extrato', icon: <History size={16} /> },
-                    { id: 'gifts', name: 'Gifts', icon: <Gift size={16} /> },
+                    { id: 'overview', name: 'Geral', icon: <LayoutDashboard size={18} /> },
+                    { id: 'purchases', name: 'Lotes Ativos', icon: <CreditCard size={18} /> },
+                    { id: 'ledger', name: 'Extrato Global', icon: <History size={18} /> },
+                    { id: 'gifts', name: 'Gift Cards', icon: <Gift size={18} /> },
                 ].map(t => (
                     <button 
                         key={t.id} 
                         onClick={() => setActiveTab(t.id as any)}
-                        className={`btn ${activeTab === t.id ? 'btn-primary' : ''}`}
-                        style={{ 
-                            padding: '10px 20px', 
-                            borderRadius: 'var(--radius-sm)',
-                            background: activeTab === t.id ? '' : 'transparent',
-                            color: activeTab === t.id ? '' : 'var(--text-secondary)',
-                            minWidth: '110px'
-                        }}
+                        className={`action-btn ${activeTab === t.id ? 'primary-btn' : 'ghost-btn'}`}
+                        style={{ height: '44px', minWidth: '130px' }}
                     >
                         {t.icon} {t.name}
                     </button>
@@ -246,55 +231,55 @@ export default function MyWallet() {
 
             {/* Tab Contents */}
             {activeTab === 'overview' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+                <div className="card-grid-responsive">
                     {/* Active Batches Summary */}
-                    <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: 30 }}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 style={{ margin: 0, fontWeight: 900 }}>Lotes Ativos</h3>
-                            <button onClick={() => setActiveTab('purchases')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-color)' }}>VER TODOS</button>
+                    <div className="crm-card">
+                        <div className="flex justify-between items-center mb-8">
+                            <h3 style={{ margin: 0, fontWeight: 950, fontSize: '1.25rem' }}>Lotes de Capacidade</h3>
+                            <button onClick={() => setActiveTab('purchases')} className="action-btn ghost-btn" style={{ height: '32px', fontSize: '10px' }}>VER TODOS</button>
                         </div>
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-4">
                             {(purchases || []).slice(0, 3).map(p => (
-                                <div key={p.id} className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 16 }}>
-                                    <div style={{ background: 'var(--success-bg)', padding: 10, borderRadius: 12, color: 'var(--primary-color)' }}><Zap size={18} /></div>
+                                <div key={p.id} style={{ background: 'rgba(0,0,0,0.15)', padding: '20px', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', gap: 16 }}>
+                                    <div style={{ background: 'rgba(172, 248, 0, 0.05)', padding: 12, borderRadius: 14, color: 'var(--primary-color)' }}><Zap size={20} /></div>
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>{p.card_name}</div>
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatVolume(p.credits_available)} restantes</div>
+                                        <div style={{ fontSize: '0.9rem', fontWeight: 900 }}>{p.card_name}</div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>{formatVolume(p.credits_available)} restantes</div>
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', fontWeight: 900 }}>{Math.round((p.credits_available / p.credits_origin_total) * 100)}%</div>
+                                    <div style={{ fontSize: '1rem', fontWeight: 950, color: 'var(--primary-color)' }}>{Math.round((p.credits_available / p.credits_origin_total) * 100)}%</div>
                                 </div>
                             ))}
-                            {(purchases || []).length === 0 && <p className="text-muted text-center py-4">Nenhum lote ativo.</p>}
+                            {(purchases || []).length === 0 && <p style={{ textAlign: 'center', opacity: 0.3, padding: '20px' }}>Nenhum lote ativo.</p>}
                         </div>
                     </div>
 
-                    {/* Recent Transactions */}
-                    <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: 30 }}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 style={{ margin: 0, fontWeight: 900 }}>Atividade Recente</h3>
-                            <button onClick={() => setActiveTab('ledger')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-color)' }}>VER TUDO</button>
+                    {/* Recent Activity */}
+                    <div className="crm-card">
+                        <div className="flex justify-between items-center mb-8">
+                            <h3 style={{ margin: 0, fontWeight: 950, fontSize: '1.25rem' }}>Atividade Recente</h3>
+                            <button onClick={() => setActiveTab('ledger')} className="action-btn ghost-btn" style={{ height: '32px', fontSize: '10px' }}>VER TUDO</button>
                         </div>
                         <div className="flex flex-col gap-4">
-                            {(ledger || []).slice(0, 5).map(l => (
-                                <div key={l.id} className="flex items-center gap-4">
+                            {(ledger || []).slice(0, 5).map((l, i) => (
+                                <div key={i} className="flex items-center gap-5">
                                     <div style={{ 
-                                        width: 32, height: 32, borderRadius: '50%', 
-                                        background: l.direction === 'in' ? 'var(--success-bg)' : 'rgba(239,68,68,0.1)',
+                                        width: 44, height: 44, borderRadius: '16px', 
+                                        background: l.direction === 'in' ? 'rgba(74, 222, 128, 0.05)' : 'rgba(239, 68, 68, 0.05)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        color: l.direction === 'in' ? 'var(--success-color)' : 'var(--danger-color)'
+                                        color: l.direction === 'in' ? '#4ade80' : '#ef4444'
                                     }}>
-                                        {l.direction === 'in' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                                        {l.direction === 'in' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{
+                                        <div style={{ fontSize: '0.95rem', fontWeight: 900 }}>{
                                             l.entry_type === 'purchase_credit' ? 'Compra de Card' :
                                             l.entry_type === 'gift_redeem' ? 'Resgate de Gift' :
                                             l.entry_type === 'gift_issue' ? 'Emissão de Gift' :
                                             l.entry_type === 'reserve_credit' ? 'Reserva (Campanha)' : l.entry_type
                                         }</div>
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(l.created_at).toLocaleDateString()}</div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>{new Date(l.created_at).toLocaleDateString()}</div>
                                     </div>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: 900, color: l.direction === 'in' ? 'var(--success-color)' : 'var(--text-primary)' }}>
+                                    <div style={{ fontSize: '1rem', fontWeight: 950, color: l.direction === 'in' ? '#4ade80' : 'var(--text-primary)' }}>
                                         {l.direction === 'in' ? '+' : '-'}{formatVolume(l.amount)}
                                     </div>
                                 </div>
@@ -305,47 +290,51 @@ export default function MyWallet() {
             )}
 
             {activeTab === 'purchases' && (
-                <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                    <div style={{ overflowX: 'auto' }}>
+                <div className="crm-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div className="responsive-table-container" style={{ margin: 0, borderRadius: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                                    {['Card / ID', 'Original', 'Disponível', 'Status', 'Termo', 'Ação'].map(h => (
-                                        <th key={h} style={{ padding: '20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</th>
+                                    {['Card / ID', 'Volume Original', 'Disponível', 'Status', 'Expira em', 'Ações'].map(h => (
+                                        <th key={h} className="field-label" style={{ padding: '24px', textAlign: 'left', borderBottom: '1px solid var(--surface-border-subtle)' }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {(purchases || []).map(p => (
-                                    <tr key={p.id} style={{ borderTop: '1px solid var(--surface-border-subtle)' }}>
-                                        <td style={{ padding: '20px' }}>
-                                            <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{p.card_name}</div>
-                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{p.purchase_reference}</div>
+                                    <tr key={p.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                        <td style={{ padding: '24px' }}>
+                                            <div style={{ fontWeight: 950, fontSize: '1rem' }}>{p.card_name}</div>
+                                            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>{p.purchase_reference}</div>
                                         </td>
-                                        <td style={{ padding: '20px', fontWeight: 700 }}>{formatVolume(p.credits_origin_total)}</td>
-                                        <td style={{ padding: '20px' }}>
-                                            <div className="flex items-center gap-3">
-                                                <span style={{ fontWeight: 900, fontSize: '0.9rem' }}>{formatVolume(p.credits_available)}</span>
-                                                <div style={{ width: 60, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-                                                    <div style={{ width: `${(p.credits_available / p.credits_origin_total) * 100}%`, height: '100%', background: 'var(--primary-color)' }} />
+                                        <td style={{ padding: '24px', fontWeight: 800 }}>{formatVolume(p.credits_origin_total)}</td>
+                                        <td style={{ padding: '24px' }}>
+                                            <div className="flex items-center gap-4">
+                                                <span style={{ fontWeight: 950, color: 'var(--primary-color)' }}>{formatVolume(p.credits_available)}</span>
+                                                <div style={{ width: 80, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                                                    <div style={{ width: `${(p.credits_available / p.credits_origin_total) * 100}%`, height: '100%', background: 'var(--primary-gradient)' }} />
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '20px' }}>
-                                            <span className={`badge ${p.purchase_status === 'activated' ? 'badge-success' : ''}`} style={{ fontSize: '0.6rem' }}>
+                                        <td style={{ padding: '24px' }}>
+                                            <span className="status-badge-premium" style={{ 
+                                                '--bg': p.purchase_status === 'activated' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(255,255,255,0.05)',
+                                                '--color': p.purchase_status === 'activated' ? '#4ade80' : 'var(--text-muted)',
+                                                '--border': p.purchase_status === 'activated' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(255,255,255,0.1)'
+                                            } as any}>
                                                 {p.purchase_status}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '20px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                        <td style={{ padding: '24px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>
                                             {p.refund_deadline_at ? new Date(p.refund_deadline_at).toLocaleDateString() : 'N/A'}
                                         </td>
-                                        <td style={{ padding: '20px' }}>
+                                        <td style={{ padding: '24px' }}>
                                             {p.credits_available > 0 && p.purchase_status === 'activated' && (
                                                 <button 
                                                     onClick={() => { setSelectedPurchase(p); setShowRefundModal(true); }}
-                                                    className="btn"
-                                                    style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger-color)', padding: '6px 12px', fontSize: '0.7rem', border: 'none' }}
-                                                >Reembolso</button>
+                                                    className="action-btn"
+                                                    style={{ height: '32px', fontSize: '10px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                                                >REEMBOLSO</button>
                                             )}
                                         </td>
                                     </tr>
@@ -357,27 +346,27 @@ export default function MyWallet() {
             )}
 
             {activeTab === 'ledger' && (
-                <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                    <div style={{ overflowX: 'auto' }}>
+                <div className="crm-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div className="responsive-table-container" style={{ margin: 0, borderRadius: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                                    {['Data', 'Tipo', 'Variação', 'Antes', 'Depois'].map(h => (
-                                        <th key={h} style={{ padding: '20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</th>
+                                    {['Data da Transação', 'Tipo de Operação', 'Variação', 'Saldo Anterior', 'Novo Saldo'].map(h => (
+                                        <th key={h} className="field-label" style={{ padding: '24px', textAlign: 'left', borderBottom: '1px solid var(--surface-border-subtle)' }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {(ledger || []).map(l => (
-                                    <tr key={l.id} style={{ borderTop: '1px solid var(--surface-border-subtle)' }}>
-                                        <td style={{ padding: '20px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(l.created_at).toLocaleString()}</td>
-                                        <td style={{ padding: '20px' }}>
-                                            <div className="flex items-center gap-2">
+                                {(ledger || []).map((l, i) => (
+                                    <tr key={i} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                        <td style={{ padding: '24px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>{new Date(l.created_at).toLocaleString()}</td>
+                                        <td style={{ padding: '24px' }}>
+                                            <div className="flex items-center gap-3">
                                                 <div style={{ 
-                                                    width: 8, height: 8, borderRadius: '50%', 
-                                                    background: l.direction === 'in' ? 'var(--success-color)' : l.direction === 'hold' ? 'var(--warning-color)' : 'var(--danger-color)' 
+                                                    width: 10, height: 10, borderRadius: '50%', 
+                                                    background: l.direction === 'in' ? '#4ade80' : l.direction === 'hold' ? 'var(--warning-color)' : '#ef4444' 
                                                 }} />
-                                                <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{
+                                                <span style={{ fontWeight: 900 }}>{
                                                     l.entry_type === 'purchase_credit' ? 'Compra' :
                                                     l.entry_type === 'gift_redeem' ? 'Resgate' :
                                                     l.entry_type === 'gift_issue' ? 'Envio Gift' :
@@ -385,11 +374,11 @@ export default function MyWallet() {
                                                 }</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '20px', fontWeight: 900, color: l.direction === 'in' ? 'var(--success-color)' : l.direction === 'hold' ? 'var(--warning-color)' : 'var(--text-primary)' }}>
+                                        <td style={{ padding: '24px', fontWeight: 950, color: l.direction === 'in' ? '#4ade80' : l.direction === 'hold' ? 'var(--warning-color)' : 'var(--text-primary)' }}>
                                             {l.direction === 'in' ? '+' : '-'}{formatVolume(l.amount)}
                                         </td>
-                                        <td style={{ padding: '20px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{formatVolume(l.balance_before)}</td>
-                                        <td style={{ padding: '20px', fontWeight: 800, fontSize: '0.85rem' }}>{formatVolume(l.balance_after)}</td>
+                                        <td style={{ padding: '24px', color: 'var(--text-muted)', fontWeight: 700 }}>{formatVolume(l.balance_before)}</td>
+                                        <td style={{ padding: '24px', fontWeight: 950, fontSize: '1rem' }}>{formatVolume(l.balance_after)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -399,112 +388,120 @@ export default function MyWallet() {
             )}
 
             {activeTab === 'gifts' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 24 }}>
-                    <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: 30 }}>
-                        <h3 className="mb-6" style={{ margin: 0, fontWeight: 900 }}>Gifts Enviados</h3>
-                        <div className="flex flex-col gap-3">
-                            {(gifts || []).filter(g => g.creator_user_id == user?.id).map(g => (
-                                <div key={g.id} className="glass-card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="card-grid-responsive">
+                    <div className="crm-card">
+                        <h3 className="mb-8" style={{ margin: 0, fontWeight: 950, fontSize: '1.25rem' }}>Gifts Emitidos</h3>
+                        <div className="flex flex-col gap-4">
+                            {(gifts || []).filter(g => g.creator_user_id == user?.id).map((g, i) => (
+                                <div key={i} style={{ background: 'rgba(0,0,0,0.15)', padding: '20px', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>{g.code}</div>
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{g.recipient_email || 'Link público'}</div>
+                                        <div style={{ fontSize: '1rem', fontWeight: 950, color: 'var(--primary-color)', letterSpacing: '1px' }}>{g.code}</div>
+                                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>{g.recipient_email || 'Carga Direta'}</div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontWeight: 800 }}>{formatVolume(g.amount)}</div>
-                                        <span className={`badge ${g.gift_status === 'redeemed' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.55rem' }}>{g.gift_status}</span>
+                                        <div style={{ fontWeight: 950, fontSize: '1.1rem' }}>{formatVolume(g.amount)}</div>
+                                        <span className="status-badge-premium" style={{ fontSize: '8px', padding: '2px 8px' }}>{g.gift_status}</span>
                                     </div>
                                 </div>
                             ))}
-                            {(gifts || []).filter(g => g.creator_user_id == user?.id).length === 0 && <p className="text-muted text-center py-4">Nenhum gift enviado.</p>}
                         </div>
                     </div>
-                    <div className="glass-panel" style={{ borderRadius: 'var(--radius-lg)', padding: 30 }}>
-                        <h3 className="mb-6" style={{ margin: 0, fontWeight: 900 }}>Gifts Recebidos</h3>
-                        <div className="flex flex-col gap-3">
-                            {(gifts || []).filter(g => g.recipient_user_id == user?.id).map(g => (
-                                <div key={g.id} className="glass-card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="crm-card">
+                        <h3 className="mb-8" style={{ margin: 0, fontWeight: 950, fontSize: '1.25rem' }}>Gifts Recebidos</h3>
+                        <div className="flex flex-col gap-4">
+                            {(gifts || []).filter(g => g.recipient_user_id == user?.id).map((g, i) => (
+                                <div key={i} style={{ background: 'rgba(0,0,0,0.15)', padding: '20px', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: 900 }}>{g.code}</div>
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Recebido em {new Date(g.redeemed_at).toLocaleDateString()}</div>
+                                        <div style={{ fontSize: '1rem', fontWeight: 950 }}>{g.code}</div>
+                                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>Recebido em {new Date(g.redeemed_at).toLocaleDateString()}</div>
                                     </div>
-                                    <div style={{ fontWeight: 900, color: 'var(--primary-color)' }}>+{formatVolume(g.amount)}</div>
+                                    <div style={{ fontWeight: 950, color: 'var(--primary-color)', fontSize: '1.1rem' }}>+{formatVolume(g.amount)}</div>
                                 </div>
                             ))}
-                            {(gifts || []).filter(g => g.recipient_user_id == user?.id).length === 0 && <p className="text-muted text-center py-4">Nenhum gift recebido.</p>}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Modals */}
+            {/* Standard Modal Implementation */}
             {(showGiftModal || showRedeemModal || showRefundModal) && (
-                <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg)', backdropFilter: 'blur(12px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-                    <div className="glass-panel animate-fade-in" style={{ borderRadius: 'var(--radius-lg)', padding: 40, maxWidth: 500, width: '100%', position: 'relative' }}>
-                        <button onClick={() => { setShowGiftModal(false); setShowRedeemModal(false); setShowRefundModal(false); }} style={{ position: 'absolute', top: 24, right: 24, background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}><X size={24} /></button>
+                <div className="modal-overlay">
+                    <div className="modal-content animate-fade-in" style={{ maxWidth: '500px' }}>
+                        <button className="close-modal" onClick={() => { setShowGiftModal(false); setShowRedeemModal(false); setShowRefundModal(false); }}>
+                            <X size={24} />
+                        </button>
                         
                         {showGiftModal && (
-                            <>
-                                <h2 className="text-gradient" style={{ background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Criar Gift Card</h2>
-                                <p className="subtitle">Transfira créditos instantaneamente para outro parceiro.</p>
-                                <form onSubmit={handleCreateGift}>
-                                    <div className="input-group">
-                                        <label>MONTANTE EM CRÉDITOS</label>
-                                        <input type="number" required value={giftAmount} onChange={e => setGiftAmount(e.target.value)} className="input-field" placeholder="Ex: 50000" />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                                <div>
+                                    <h2 style={{ fontSize: '2rem', fontWeight: 950, margin: '0 0 8px 0', letterSpacing: '-1px' }}>Criar Gift Card</h2>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 700, margin: 0 }}>Transfira créditos instantaneamente.</p>
+                                </div>
+                                <form onSubmit={handleCreateGift} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <div>
+                                        <label className="field-label">Montante em Créditos</label>
+                                        <input type="number" required value={giftAmount} onChange={e => setGiftAmount(e.target.value)} className="field-input" placeholder="Ex: 50000" />
                                     </div>
-                                    <div className="input-group">
-                                        <label>EMAIL DO DESTINATÁRIO (OPCIONAL)</label>
-                                        <input type="email" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)} className="input-field" placeholder="parceiro@exemplo.com" />
+                                    <div>
+                                        <label className="field-label">E-mail do Receptor (Opcional)</label>
+                                        <input type="email" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)} className="field-input" placeholder="contato@plugsales.com" />
                                     </div>
-                                    <button disabled={isProcessing} className="btn btn-primary w-full mt-4" style={{ padding: '16px' }}>
+                                    <button disabled={isProcessing} className="action-btn primary-btn w-full" style={{ height: '56px' }}>
                                         {isProcessing ? <Loader className="animate-spin" size={20} /> : 'GERAR CÓDIGO DE ATIVAÇÃO'}
                                     </button>
                                 </form>
-                            </>
+                            </div>
                         )}
 
                         {showRedeemModal && (
-                            <>
-                                <h2 className="text-gradient" style={{ background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Resgatar Gift Card</h2>
-                                <p className="subtitle">Insira o código para carregar seu saldo.</p>
-                                <form onSubmit={handleRedeemGift}>
-                                    <div className="input-group">
-                                        <label>CÓDIGO GIFT</label>
-                                        <input type="text" required value={redeemCode} onChange={e => setRedeemCode(e.target.value.toUpperCase())} className="input-field text-center" style={{ letterSpacing: 4, fontWeight: 900, fontSize: '1.2rem' }} placeholder="GIFT-XXXXX" />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                                <div>
+                                    <h2 style={{ fontSize: '2rem', fontWeight: 950, margin: '0 0 8px 0', letterSpacing: '-1px' }}>Resgatar Créditos</h2>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 700, margin: 0 }}>Carga instantânea no seu saldo.</p>
+                                </div>
+                                <form onSubmit={handleRedeemGift} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <div>
+                                        <label className="field-label">Código Gift</label>
+                                        <input type="text" required value={redeemCode} onChange={e => setRedeemCode(e.target.value.toUpperCase())} className="field-input" style={{ textAlign: 'center', letterSpacing: '4px', fontSize: '1.25rem', fontWeight: 950 }} placeholder="GIFT-XXXXX" />
                                     </div>
-                                    <button disabled={isProcessing} className="btn btn-primary w-full mt-4" style={{ padding: '16px' }}>
-                                        {isProcessing ? <Loader className="animate-spin" size={20} /> : 'ATIVAR CRÉDITOS NA CONTA'}
+                                    <button disabled={isProcessing} className="action-btn primary-btn w-full" style={{ height: '56px' }}>
+                                        {isProcessing ? <Loader className="animate-spin" size={20} /> : 'ATIVAR CRÉDITOS AGORA'}
                                     </button>
                                 </form>
-                            </>
+                            </div>
                         )}
 
                         {showRefundModal && (
-                            <>
-                                <h2 style={{ color: 'var(--danger-color)' }}>Solicitar Reembolso</h2>
-                                <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 20 }}>
-                                    <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--danger-color)', fontWeight: 800, fontSize: '0.85rem' }}>
-                                        <AlertCircle size={16} /> ATENÇÃO AOS REQUISITOS
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                                <div>
+                                    <h2 style={{ fontSize: '2rem', fontWeight: 950, margin: '0 0 8px 0', letterSpacing: '-1px', color: '#ef4444' }}>Solicitar Reembolso</h2>
+                                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '24px', padding: '20px', marginTop: '16px' }}>
+                                        <div className="flex items-center gap-2 mb-3" style={{ color: '#ef4444', fontWeight: 900, fontSize: '12px' }}>
+                                            <AlertCircle size={16} /> REGRAS DE CANCELAMENTO
+                                        </div>
+                                        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+                                            <li>Prazo máximo de 7 dias após a compra.</li>
+                                            <li>Lote deve estar com mais de 90% disponível.</li>
+                                            <li>Taxa fixa de 10% para processamento financeiro.</li>
+                                        </ul>
                                     </div>
-                                    <ul className="text-muted" style={{ margin: 0, paddingLeft: 20, fontSize: '0.75rem', lineHeight: 1.6 }}>
-                                        <li>Prazo: Até 7 dias (168h) após a compra.</li>
-                                        <li>Uso: O lote deve conter pelo menos 90% dos créditos.</li>
-                                        <li>Taxa: 10% de processamento.</li>
-                                    </ul>
                                 </div>
-                                <div className="mb-4">
-                                    <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>ESTIMATIVA DE RECOUP</div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 950 }}>{formatPrice((selectedPurchase?.credits_available / selectedPurchase?.credits_origin_total) * selectedPurchase?.price_paid * 0.9)}</div>
+                                
+                                <div style={{ background: 'rgba(0,0,0,0.15)', padding: '24px', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)' }}>
+                                    <div className="field-label" style={{ marginBottom: '8px' }}>Retorno Estimado</div>
+                                    <div style={{ fontSize: '2.5rem', fontWeight: 950, letterSpacing: '-1.5px' }}>{formatPrice((selectedPurchase?.credits_available / selectedPurchase?.credits_origin_total) * selectedPurchase?.price_paid * 0.9)}</div>
                                 </div>
-                                <form onSubmit={handleRequestRefund}>
-                                    <div className="input-group">
-                                        <label>MOTIVO DO CANCELAMENTO</label>
-                                        <textarea required value={refundReason} onChange={e => setRefundReason(e.target.value)} className="input-field" style={{ height: 100, resize: 'none' }} placeholder="Explique brevemente..." />
+
+                                <form onSubmit={handleRequestRefund} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <div>
+                                        <label className="field-label">Motivo (Breve Relato)</label>
+                                        <textarea required value={refundReason} onChange={e => setRefundReason(e.target.value)} className="field-input" style={{ height: '100px', padding: '16px', resize: 'none' }} placeholder="..." />
                                     </div>
-                                    <button disabled={isProcessing} className="btn w-full mt-4" style={{ background: 'var(--danger-color)', color: '#fff', padding: '16px', border: 'none' }}>
+                                    <button disabled={isProcessing} className="action-btn w-full" style={{ height: '56px', background: '#ef4444', color: 'white' }}>
                                         {isProcessing ? <Loader className="animate-spin" size={20} /> : 'CONFIRMAR SOLICITAÇÃO'}
                                     </button>
                                 </form>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>

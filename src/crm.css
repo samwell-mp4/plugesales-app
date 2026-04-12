@@ -1638,4 +1638,60 @@
 .gestiva-sidebar-panels {
     width: 380px;
     flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+}
+
+.gestiva-main-content {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 1200px) {
+    .gestiva-split-layout {
+        flex-direction: column;
+    }
+
+    .gestiva-sidebar-panels {
+        width: 100%;
+        position: static;
+        margin-bottom: 32px;
+    }
+}
+
+.w-full {
+    width: 100% !important;
+}
+
+.h-auto {
+    height: auto !important;.responsive-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 24px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.card-grid-responsive {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    .crm-container {
+        padding: 0 16px 40px;
+    }
+    
+    .crm-card {
+        padding: 20px;
+        border-radius: 20px;
+    }
+    
+    .card-grid-responsive {
+        grid-template-columns: 1fr;
+    }
+}
 }

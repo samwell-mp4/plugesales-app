@@ -82,7 +82,6 @@ export default function MyPlugCards() {
             .order('created_at', { ascending: false });
 
         if (!error && data) {
-            // Flatten the nested plug_cards object into the card
             const flat = data.map((row: any) => ({
                 ...row,
                 card_name: row.plug_cards?.name ?? '',
@@ -108,70 +107,59 @@ export default function MyPlugCards() {
     const activeCards = cards.filter(c => c.status === 'active').length;
 
     return (
-        <div style={{ fontFamily: 'var(--font-family)', maxWidth: 1100, margin: '0 auto', paddingBottom: 60 }}>
-
-            {/* Page Header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                        <div style={{ background: 'linear-gradient(135deg,#acf800,#84c000)', padding: 10, borderRadius: 14, display: 'flex', boxShadow: '0 0 20px rgba(172,248,0,0.3)' }}>
-                            <CreditCard color="#000" size={22} />
-                        </div>
-                        <div>
-                            <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.6rem', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-                                Meus <span style={{ color: 'var(--primary-color)' }}>Plug Cards</span>
-                            </h1>
-                            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sua wallet de capacidade de disparo</p>
-                        </div>
+        <div className="crm-container">
+            {/* Header section */}
+            <div className="crm-header-premium">
+                <div className="crm-title-group">
+                    <div className="crm-badge-small">
+                        <CreditCard size={12} /> INVENTORY SYSTEM
                     </div>
+                    <h1 className="crm-main-title">Meus Plug Cards</h1>
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={fetchCards} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--surface-border)', color: 'var(--text-secondary)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.85rem' }}>
-                        <RefreshCw size={14} /> Atualizar
+                
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button onClick={fetchCards} className="action-btn ghost-btn" style={{ height: '48px' }}>
+                        <RefreshCw size={18} /> ATUALIZAR
                     </button>
-                    <a href="/plug-cards" style={{ background: 'linear-gradient(135deg,#acf800,#84c000)', color: '#000', borderRadius: 10, padding: '10px 18px', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
-                        <ShoppingCart size={14} /> Comprar Cards
-                    </a>
-                    <a href="/my-wallet" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--surface-border)', color: '#fff', borderRadius: 10, padding: '10px 18px', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
-                        <Wallet size={14} color="#acf800" /> Minha Wallet
+                    <a href="/plug-cards" className="action-btn primary-btn" style={{ height: '48px', textDecoration: 'none' }}>
+                        <ShoppingCart size={18} /> COMPRAR CARDS
                     </a>
                 </div>
             </div>
 
-            {/* Stats Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 16, marginBottom: 32 }}>
+            {/* Stats Cards */}
+            <div className="metrics-grid-row" style={{ marginBottom: '48px' }}>
                 {[
-                    { label: 'Cards Ativos', value: activeCards, icon: <CreditCard size={16} />, color: '#acf800' },
-                    { label: 'Volume Total', value: formatVolume(totalVolume), icon: <Zap size={16} />, color: '#06b6d4' },
-                    { label: 'Vol. Utilizado', value: formatVolume(usedVolume), icon: <TrendingUp size={16} />, color: '#8b5cf6' },
-                    { label: 'Total Investido', value: formatPrice(totalSpent), icon: <ShoppingCart size={16} />, color: '#eab308' },
-                ].map(s => (
-                    <div key={s.label} style={{ background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: 16, padding: '20px', backdropFilter: 'blur(12px)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: s.color }}>
-                            {s.icon}
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>{s.label}</span>
+                    { label: 'Cards Ativos', value: activeCards, icon: <CreditCard size={18} />, color: '#acf800' },
+                    { label: 'Volume Total', value: formatVolume(totalVolume), icon: <Zap size={18} />, color: '#06b6d4' },
+                    { label: 'Vol. Utilizado', value: formatVolume(usedVolume), icon: <TrendingUp size={18} />, color: '#8b5cf6' },
+                    { label: 'Total Investido', value: formatPrice(totalSpent), icon: <ShoppingCart size={18} />, color: '#eab308' },
+                ].map((s, i) => (
+                    <div key={i} className="crm-card" style={{ padding: '24px', borderLeft: `4px solid ${s.color}` }}>
+                        <div className="field-label" style={{ color: s.color, marginBottom: '12px' }}>
+                            {s.icon} {s.label}
                         </div>
-                        <div style={{ color: 'var(--text-primary)', fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.5px' }}>{s.value}</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 950, letterSpacing: '-1px' }}>{s.value}</div>
                     </div>
                 ))}
             </div>
 
-            {/* Cards list */}
+            {/* Cards List */}
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                    <Loader size={36} color="#acf800" style={{ animation: 'spin 1s linear infinite' }} />
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}>
+                    <Loader size={48} className="animate-spin text-primary" />
                 </div>
             ) : cards.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '80px 20px', background: 'var(--surface-color)', border: '1px solid var(--surface-border)', borderRadius: 20, backdropFilter: 'blur(12px)' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: 16 }}>🃏</div>
-                    <h3 style={{ color: 'var(--text-primary)', marginBottom: 8 }}>Nenhum card adquirido</h3>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: '0.9rem' }}>Acesse o Exchange para comprar seu primeiro Plug Card.</p>
-                    <a href="/plug-cards" style={{ background: 'linear-gradient(135deg,#acf800,#84c000)', color: '#000', borderRadius: 12, padding: '14px 28px', fontWeight: 900, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <ShoppingCart size={16} /> Ver Exchange
+                <div className="crm-card" style={{ textAlign: 'center', padding: '100px 40px' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '24px', opacity: 0.1 }}>🃏</div>
+                    <h3 style={{ opacity: 0.3, fontWeight: 950, fontSize: '1.5rem', marginBottom: '8px' }}>Sua carteira está vazia</h3>
+                    <p style={{ opacity: 0.2, fontSize: '14px', fontWeight: 700, marginBottom: '32px' }}>Acesse o Exchange para expandir sua capacidade.</p>
+                    <a href="/plug-cards" className="action-btn primary-btn" style={{ height: '54px', textDecoration: 'none', display: 'inline-flex', alignSelf: 'center' }}>
+                        <ShoppingCart size={18} /> VER EXCHANGE
                     </a>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="flex-col gap-5">
                     {cards.map(card => {
                         const t = TIER_CONFIG[card.tier] || TIER_CONFIG.foundation;
                         const usedPct = card.total_volume > 0 ? Math.round((card.used_volume / card.total_volume) * 100) : 0;
@@ -183,98 +171,92 @@ export default function MyPlugCards() {
                                 key={card.id}
                                 onMouseEnter={() => setHoveredId(card.id)}
                                 onMouseLeave={() => setHoveredId(null)}
+                                className="crm-card"
                                 style={{
-                                    background: 'rgba(15,23,42,0.7)',
-                                    backdropFilter: 'blur(20px)',
-                                    border: `1px solid ${isHovered ? t.border : 'var(--surface-border)'}`,
-                                    borderRadius: 18,
-                                    padding: '24px 28px',
-                                    transition: 'all 0.3s ease',
-                                    boxShadow: isHovered ? `0 8px 40px ${t.glow}` : 'none',
-                                    position: 'relative', overflow: 'hidden'
+                                    border: `1px solid ${isHovered ? t.border : 'rgba(255,255,255,0.05)'}`,
+                                    padding: '32px',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    boxShadow: isHovered ? `0 20px 40px ${t.glow}` : '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
                                 }}
                             >
-                                {/* Glow bg */}
-                                <div style={{ position: 'absolute', top: -20, left: -20, width: 80, height: 80, borderRadius: '50%', background: t.glow, filter: 'blur(40px)', pointerEvents: 'none' }} />
+                                <div style={{ position: 'absolute', top: -20, left: -20, width: 100, height: 100, background: t.glow, filter: 'blur(50px)', opacity: 0.5, pointerEvents: 'none' }} />
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 20, alignItems: 'start' }}>
-                                    {/* Left info */}
-                                    <div>
-                                        {/* Title row */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-                                            <span style={{ fontSize: '1.4rem' }}>{t.emoji}</span>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px', alignItems: 'start' }}>
+                                    {/* Left Content */}
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '2rem' }}>{t.emoji}</span>
                                             <div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.2px' }}>
+                                                <div className="flex items-center gap-3 mb-1 flex-wrap">
+                                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 950, letterSpacing: '-0.5px' }}>
                                                         {card.card_name.split(' | ')[0]}
                                                     </h3>
-                                                    <span style={{ background: `${t.badge}20`, color: t.badge, border: `1px solid ${t.badge}30`, borderRadius: 30, padding: '2px 10px', fontSize: '0.62rem', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>
+                                                    <span className="status-badge-premium" style={{ '--bg': `${t.badge}20`, '--color': t.badge, '--border': `${t.badge}30` } as any}>
                                                         {t.label}
                                                     </span>
-                                                    <span style={{ background: card.status === 'active' ? 'rgba(172,248,0,0.1)' : 'rgba(100,116,139,0.1)', color: card.status === 'active' ? '#acf800' : '#64748b', border: `1px solid ${card.status === 'active' ? 'rgba(172,248,0,0.3)' : 'rgba(100,116,139,0.3)'}`, borderRadius: 30, padding: '2px 10px', fontSize: '0.62rem', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>
-                                                        {card.status === 'active' ? '● Ativo' : '● Concluído'}
+                                                    <span className="status-badge-premium" style={{ 
+                                                        '--bg': card.status === 'active' ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.05)',
+                                                        '--color': card.status === 'active' ? '#acf800' : 'var(--text-muted)',
+                                                        '--border': card.status === 'active' ? 'rgba(172,248,0,0.3)' : 'rgba(255,255,255,0.1)'
+                                                    } as any}>
+                                                        {card.status === 'active' ? '● Ativo' : '● Concluido'}
                                                     </span>
                                                 </div>
-                                                <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                                                    {card.copy || card.card_name.split(' | ')[1]} • Adquirido em {new Date(card.created_at).toLocaleDateString('pt-BR')}
+                                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 700 }}>
+                                                    {card.copy || card.card_name.split(' | ')[1]} • Desde {new Date(card.created_at).toLocaleDateString()}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        {/* Volume bar */}
-                                        <div style={{ marginBottom: 16 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>Volume Restante</span>
-                                                <span style={{ color: t.badge, fontSize: '0.8rem', fontWeight: 800 }}>
+                                        {/* Progress Section */}
+                                        <div style={{ marginBottom: '24px' }}>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="field-label" style={{ margin: 0 }}>Capacidade Disponível</span>
+                                                <span style={{ color: t.badge, fontWeight: 950, fontSize: '1rem' }}>
                                                     {formatVolume(card.remaining_volume)} / {formatVolume(card.total_volume)} ({remainPct}%)
                                                 </span>
                                             </div>
-                                            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 30, height: 8, overflow: 'hidden' }}>
-                                                <div style={{ background: t.barColor, width: `${remainPct}%`, height: '100%', borderRadius: 30, transition: 'width 0.8s ease', boxShadow: `0 0 8px ${t.glow}` }} />
+                                            <div style={{ height: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '5px', overflow: 'hidden' }}>
+                                                <div style={{ width: `${remainPct}%`, height: '100%', background: t.barColor, transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: `0 0 15px ${t.glow}` }} />
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>Utilizado: {formatVolume(card.used_volume)}</span>
-                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>{usedPct}% usado</span>
+                                            <div className="flex justify-between mt-3">
+                                                <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>Utilizado: {formatVolume(card.used_volume)}</span>
+                                                <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>Taxa de Uso: {usedPct}%</span>
                                             </div>
                                         </div>
 
-                                        {/* Resources */}
-                                        {card.features?.resources && (
-                                            <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                                {card.features.resources.map((res, idx) => (
-                                                    <span key={idx} style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.03)', padding: '2px 8px', borderRadius: 6 }}>
-                                                        <Check size={10} color="#acf800" /> {res}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Specs grid */}
-                                        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                                        {/* Specs Grid */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '20px' }}>
                                             {[
-                                                { label: 'Chips', value: card.max_chips === 99 ? '∞' : card.max_chips, icon: <Cpu size={12} /> },
-                                                { label: 'Campanhas', value: card.max_campaigns === 99 ? '∞' : card.max_campaigns, icon: <Zap size={12} /> },
-                                                { label: 'Prioridade', value: card.priority_level, icon: <TrendingUp size={12} /> },
-                                                { label: 'Anti-Ban', value: card.anti_ban_level, icon: <Shield size={12} /> },
-                                                { label: 'Pagamento', value: PM_LABELS[card.payment_method] || card.payment_method, icon: <CreditCard size={12} /> },
-                                            ].map(s => (
-                                                <div key={s.label}>
-                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+                                                { label: 'Chips', value: card.max_chips === 99 ? '∞' : card.max_chips, icon: <Cpu size={14} /> },
+                                                { label: 'Campanhas', value: card.max_campaigns === 99 ? '∞' : card.max_campaigns, icon: <Zap size={14} /> },
+                                                { label: 'Speed', value: card.speed, icon: <TrendingUp size={14} /> },
+                                                { label: 'Segurança', value: card.anti_ban_level, icon: <Shield size={14} /> },
+                                            ].map((s, i) => (
+                                                <div key={i}>
+                                                    <div className="field-label" style={{ fontSize: '9px', marginBottom: '4px' }}>
                                                         {s.icon} {s.label}
                                                     </div>
-                                                    <div style={{ color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.82rem', textTransform: 'capitalize' }}>{s.value}</div>
+                                                    <div style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '0.9rem', textTransform: 'uppercase' }}>{s.value}</div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
 
-                                    {/* Right — price & tx */}
-                                    <div style={{ textAlign: 'right', minWidth: 130 }}>
-                                        <div style={{ color: 'var(--text-primary)', fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.5px', marginBottom: 4 }}>
-                                            {formatPrice(card.purchased_price)}
+                                    {/* Right Section / Billing */}
+                                    <div style={{ borderLeft: '1px solid var(--surface-border-subtle)', paddingLeft: '32px', minWidth: '200px' }}>
+                                        <div style={{ marginBottom: '24px' }}>
+                                            <div className="field-label">Investimento Total</div>
+                                            <div style={{ fontSize: '2.5rem', fontWeight: 950, letterSpacing: '-1.5px', color: 'var(--text-primary)' }}>{formatPrice(card.purchased_price)}</div>
                                         </div>
-                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontFamily: 'monospace', marginBottom: 8, wordBreak: 'break-all' }}>
-                                            {card.payment_ref}
+                                        <div style={{ marginBottom: '24px' }}>
+                                            <div className="field-label">Método de Pagamento</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#acf800' }}>{PM_LABELS[card.payment_method] || card.payment_method}</div>
+                                        </div>
+                                        <div>
+                                            <div className="field-label">Referência / TXID</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 700, opacity: 0.3, fontFamily: 'monospace', wordBreak: 'break-all' }}>{card.payment_ref}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -283,7 +265,6 @@ export default function MyPlugCards() {
                     })}
                 </div>
             )}
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 }

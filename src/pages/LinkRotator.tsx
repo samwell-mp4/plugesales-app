@@ -124,197 +124,115 @@ const LinkRotator = () => {
 
     const calculatePercentage = (weight: number) => {
         const total = targets.reduce((sum, t) => sum + (Number(t.weight) || 1), 0);
-        return ((weight / total) * 100).toFixed(1);
+        return total === 0 ? "0.0" : ((weight / total) * 100).toFixed(1);
     };
 
     const filteredRotators = rotators.filter(r => 
-        r.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        r.slug.toLowerCase().includes(searchTerm.toLowerCase())
+        (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (r.slug || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
-        <div className="container-root" style={{ minHeight: '100vh', padding: '28px 24px', overflowX: 'hidden' }}>
-            <style>{`
-                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        <div className="crm-container">
+            {/* --- HEADER --- */}
+            <div className="crm-header-premium">
+                <div className="crm-title-group">
+                    <div className="crm-badge-small">
+                        <Zap size={12} /> PRO LINK SYSTEM
+                    </div>
+                    <h1 className="crm-main-title">Links Inteligentes</h1>
+                </div>
                 
-                .glass-card { 
-                    background: var(--card-bg-subtle); 
-                    border: 1px solid var(--surface-border-subtle); 
-                    border-radius: 24px; 
-                    padding: 24px;
-                    backdrop-filter: blur(12px);
-                    animation: fadeInUp 0.4s ease-out backwards;
-                }
-                .glass-card:hover { 
-                    border-color: var(--surface-border);
-                }
+                <div className="search-group" style={{ position: 'relative' }}>
+                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                    <input 
+                        className="field-input"
+                        placeholder="Buscar rotacionador..."
+                        style={{ width: '280px', paddingLeft: '48px', height: '48px' }}
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
 
-                .action-btn { 
-                    padding: 12px 24px; 
-                    border-radius: 14px; 
-                    border: none; 
-                    cursor: pointer; 
-                    font-weight: 900; 
-                    font-size: 11px; 
-                    letter-spacing: 1px; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center; 
-                    gap: 10px; 
-                    transition: all 0.2s; 
-                    text-transform: uppercase; 
-                }
-                .primary-btn { background: var(--primary-gradient); color: #000; box-shadow: 0 8px 20px -6px var(--primary); }
-                .primary-btn:hover { transform: scale(1.02); }
-                .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-                .input-field { 
-                    width: 100%; 
-                    background: var(--card-bg-subtle); 
-                    border: 1px solid var(--surface-border-subtle); 
-                    border-radius: 16px; 
-                    padding: 14px; 
-                    color: var(--text-primary); 
-                    font-size: 14px; 
-                    font-weight: 600; 
-                    outline: none; 
-                    transition: all 0.2s; 
-                    box-sizing: border-box; 
-                }
-                .input-field:focus { 
-                    border-color: var(--primary-color); 
-                    box-shadow: 0 0 20px rgba(172,248,0,0.1); 
-                }
-
-                .rotator-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 24px;
-                    padding: 24px;
-                    background: var(--card-bg-subtle);
-                    border: 1px solid var(--surface-border-subtle);
-                    border-radius: 24px;
-                    transition: all 0.3s;
-                    margin-bottom: 20px;
-                }
-                .rotator-item:hover {
-                    border-color: var(--surface-border);
-                    transform: translateX(4px);
-                }
-
-                .icon-button {
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 12px;
-                    background: var(--card-bg-subtle);
-                    border: 1px solid var(--surface-border-subtle);
-                    color: var(--text-muted);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .icon-button:hover {
-                    color: var(--text-primary);
-                    border-color: var(--surface-border);
-                    transform: translateY(-2px);
-                }
-                .icon-button.delete:hover {
-                    background: rgba(239, 68, 68, 0.1);
-                    color: #ef4444;
-                }
-
-                .weight-badge {
-                    background: rgba(172, 248, 0, 0.1);
-                    color: var(--primary-color);
-                    padding: 4px 8px;
-                    border-radius: 8px;
-                    font-size: 10px;
-                    font-weight: 900;
-                    text-transform: uppercase;
-                }
-            `}</style>
-
-            <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: '32px' }}>
-                    
-                    {/* ── CREATE SECTION ── */}
-                    <div className="glass-card" style={{ height: 'fit-content', position: 'sticky', top: '24px' }}>
+            <div className="gestiva-split-layout">
+                {/* --- SIDEBAR: CREATE SECTION --- */}
+                <div className="gestiva-sidebar-panels">
+                    <div className="crm-card">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-                            <div style={{ background: 'var(--primary-gradient)', padding: '8px', borderRadius: '12px', boxShadow: '0 0 20px rgba(172, 248, 0, 0.2)' }}>
-                                <Zap size={20} color="black" />
+                            <div style={{ background: 'var(--primary-gradient)', padding: '10px', borderRadius: '14px', boxShadow: '0 8px 20px rgba(172, 248, 0, 0.2)' }}>
+                                <Plus size={22} color="black" />
                             </div>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900 }}>Novo Rotacionador PRO</h2>
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 950, letterSpacing: '-0.5px' }}>Novo Rotacionador</h2>
                         </div>
 
                         <form onSubmit={handleCreateRotator} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '1px' }}>Título</label>
+                                <label className="field-label">Título da Campanha</label>
                                 <input 
-                                    className="input-field"
-                                    placeholder="Ex: Rodízio WhatsApp Vendas"
+                                    className="field-input"
+                                    placeholder="Ex: Vendas WhatsApp"
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '1px' }}>Custom Slug (Opcional)</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '12px', opacity: 0.5 }}>/r/</span>
+                                <label className="field-label">Identificador (Slug)</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 900, opacity: 0.4 }}>/r/</span>
                                     <input 
-                                        className="input-field"
-                                        placeholder="whatsapp-vendas"
+                                        className="field-input"
+                                        placeholder="whatsapp-loja"
                                         value={slug}
                                         onChange={e => setSlug(e.target.value)}
                                     />
                                 </div>
                             </div>
 
-                            <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '20px' }}>
+                            <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '24px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                    <label style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Links de Destino & Pesos</label>
+                                    <label className="field-label">Destinos & Pesos</label>
                                     <button 
                                         type="button" 
                                         onClick={handleAddTarget}
-                                        style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontSize: '10px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                        className="action-btn"
+                                        style={{ background: 'rgba(172, 248, 0, 0.05)', color: 'var(--primary-color)', fontSize: '10px', height: '32px', padding: '0 12px' }}
                                     >
                                         <Plus size={12} /> ADD LINK
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     {targets.map((target, idx) => (
-                                        <div key={idx} style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
-                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                                        <div key={idx} style={{ background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
+                                            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
                                                 <input 
-                                                    className="input-field"
-                                                    style={{ paddingTop: '10px', paddingBottom: '10px' }}
-                                                    placeholder="https://wa.me/..."
+                                                    className="field-input"
+                                                    style={{ height: '42px', fontSize: '13px' }}
+                                                    placeholder="URL de destino..."
                                                     value={target.url}
                                                     onChange={e => handleTargetChange(idx, 'url', e.target.value)}
                                                 />
                                                 {targets.length > 1 && (
-                                                    <button type="button" onClick={() => handleRemoveTarget(idx)} className="icon-button delete" style={{ width: '44px', height: '44px' }}>
+                                                    <button type="button" onClick={() => handleRemoveTarget(idx)} className="action-btn" style={{ width: '42px', height: '42px', padding: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
                                                         <Trash2 size={16} />
                                                     </button>
                                                 )}
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ flex: 1 }}>
-                                                    <input 
-                                                        type="range"
-                                                        min="1"
-                                                        max="100"
-                                                        style={{ width: '100%', accentColor: 'var(--primary-color)' }}
-                                                        value={target.weight}
-                                                        onChange={e => handleTargetChange(idx, 'weight', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '45px' }}>
-                                                    <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)' }}>{calculatePercentage(target.weight)}%</span>
-                                                    <span style={{ fontSize: '9px', opacity: 0.5 }}>FREQUÊNCIA</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                <input 
+                                                    type="range"
+                                                    min="1"
+                                                    max="100"
+                                                    className="w-full"
+                                                    style={{ accentColor: 'var(--primary-color)' }}
+                                                    value={target.weight}
+                                                    onChange={e => handleTargetChange(idx, 'weight', e.target.value)}
+                                                />
+                                                <div style={{ textAlign: 'right', minWidth: '60px' }}>
+                                                    <div style={{ fontSize: '14px', fontWeight: 950, color: 'var(--primary-color)' }}>{calculatePercentage(target.weight)}%</div>
+                                                    <div style={{ fontSize: '9px', fontWeight: 800, opacity: 0.5 }}>PESO</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -322,89 +240,75 @@ const LinkRotator = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={isCreating} className="action-btn primary-btn" style={{ paddingTop: '16px', paddingBottom: '16px' }}>
+                            <button type="submit" disabled={isCreating} className="action-btn primary-btn w-full" style={{ height: '54px', fontSize: '12px' }}>
                                 <Zap size={16} />
-                                {isCreating ? 'Criando...' : 'Criar Rotacionador'}
+                                {isCreating ? 'PROCESSANDO...' : 'CRIAR ROTACIONADOR'}
                             </button>
                         </form>
                     </div>
+                </div>
 
-                    {/* ── LIST SECTION ── */}
-                    <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 900 }}>Seus Rotacionadores</h2>
-                                <span className="weight-badge" style={{ paddingLeft: '12px', paddingRight: '12px', paddingTop: '6px', paddingBottom: '6px', fontSize: '12px' }}>PRO</span>
-                            </div>
-                            
-                            <div style={{ position: 'relative' }}>
-                                <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
-                                <input 
-                                    className="input-field"
-                                    placeholder="Buscar rotacionador..."
-                                    style={{ width: '280px', paddingLeft: '48px' }}
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                />
-                            </div>
+                {/* --- MAIN CONTENT: LIST SECTION --- */}
+                <div className="gestiva-main-content">
+                    {isLoading ? (
+                        <div style={{ padding: '100px 0', textAlign: 'center', opacity: 0.5 }}>
+                            <div className="crm-badge-small" style={{ justifyContent: 'center', marginBottom: '10px' }}>Carregando dados...</div>
                         </div>
-
-                        {isLoading ? (
-                            <div style={{ paddingTop: '100px', paddingBottom: '100px', textAlign: 'center', opacity: 0.5 }}>Carregando seus rotacionadores...</div>
-                        ) : filteredRotators.length === 0 ? (
-                            <div className="glass-card" style={{ textAlign: 'center', paddingTop: '100px', paddingBottom: '100px' }}>
-                                <Globe size={64} style={{ opacity: 0.05, marginBottom: '24px' }} />
-                                <h3 style={{ opacity: 0.3, fontWeight: 900 }}>Nenhum rotacionador encontrado</h3>
-                                <p style={{ opacity: 0.2, fontSize: '14px' }}>Crie seu primeiro link inteligente agora mesmo.</p>
-                            </div>
-                        ) : (
-                            <div>
-                                {filteredRotators.map((r) => (
-                                    <div key={r.id} className="rotator-item">
-                                        <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.1)' }}>
-                                            <Zap size={24} />
+                    ) : filteredRotators.length === 0 ? (
+                        <div className="crm-card" style={{ textAlign: 'center', padding: '100px 40px' }}>
+                            <Globe size={64} style={{ opacity: 0.05, marginBottom: '24px' }} />
+                            <h3 style={{ opacity: 0.3, fontWeight: 950, fontSize: '1.5rem', marginBottom: '8px' }}>Nenhum rotacionador</h3>
+                            <p style={{ opacity: 0.2, fontSize: '14px', fontWeight: 700 }}>Crie seu primeiro link inteligente no painel lateral.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            {filteredRotators.map((r) => (
+                                <div key={r.id} className="crm-card" style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
+                                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.1)', flexShrink: 0 }}>
+                                        <Zap size={28} />
+                                    </div>
+                                    
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 950, letterSpacing: '-0.5px' }}>{r.title}</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 850, color: 'var(--primary-color)' }}>{window.location.host}/r/{r.slug}</span>
+                                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)', opacity: 0.2 }}></span>
+                                            <span className="info-chip" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+                                                {r.targets?.length || 0} DESTINOS
+                                            </span>
                                         </div>
                                         
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 900 }}>{r.title}</h3>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--primary-color)' }}>{window.location.host}/r/{r.slug}</span>
-                                                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)', opacity: 0.2 }}></span>
-                                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>{r.targets?.length || 0} LINKS DESTINO</span>
-                                            </div>
-                                            
-                                            <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                {r.targets?.map((t: any, i: number) => (
-                                                    <div key={i} title={t.url} style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <span style={{ fontWeight: 900, color: 'var(--primary-color)' }}>%{calculatePercentage(t.weight)}</span>
-                                                        <span style={{ opacity: 0.3, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.url}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>{r.total_clicks || 0}</div>
-                                                <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>CLICKS TOTAIS</div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button onClick={() => navigate(`/rotator-stats/${r.id}`)} className="icon-button" title="Ver Detalhes">
-                                                    <BarChart3 size={16} />
-                                                </button>
-                                                <button onClick={() => copyToClipboard(r.slug)} className="icon-button" title="Copiar Link Short">
-                                                    <Copy size={16} />
-                                                </button>
-                                                <button onClick={() => handleDeleteRotator(r.id)} className="icon-button delete" title="Excluir">
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
+                                        <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                            {r.targets?.map((t: any, i: number) => (
+                                                <div key={i} title={t.url} style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <span style={{ fontWeight: 950, color: 'var(--primary-color)' }}>%{calculatePercentage(t.weight)}</span>
+                                                    <span style={{ opacity: 0.4, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>{t.url}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', flexShrink: 0 }}>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '32px', fontWeight: 950, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-1px' }}>{r.total_clicks || 0}</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '1px' }}>CLICKS</div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <button onClick={() => navigate(`/rotator-stats/${r.id}`)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8' }} title="Análise">
+                                                <BarChart3 size={18} />
+                                            </button>
+                                            <button onClick={() => copyToClipboard(r.slug)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)' }} title="Copiar URL">
+                                                <Copy size={18} />
+                                            </button>
+                                            <button onClick={() => handleDeleteRotator(r.id)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }} title="Excluir">
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

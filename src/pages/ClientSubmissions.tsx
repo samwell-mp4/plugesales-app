@@ -77,6 +77,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
     GERADO: { label: 'Gerado', color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.2)' },
     CANCELADO: { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
     CONCLUIDO: { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
+    'CONCLUÍDO': { label: 'Disparo Concluído', color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
     AGUARDANDO_APROVACAO_PAI: { label: 'Aguardando Aprovação Parceiro', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' }
 };
 
@@ -115,7 +116,7 @@ const ClientSubmissions = () => {
             
             .responsive-stack-mobile { display: flex; flex-wrap: wrap; gap: 8px; }
             .view-mode-container { display: flex; justify-content: flex-end; margin-bottom: 20px; gap: 8px; flex-wrap: wrap; }
-            .card-actions { display: flex; flex-direction: row; gap: 8px; position: absolute; top: 18px; right: 18px; }
+            .card-actions { display: flex; flex-direction: row; gap: 8px; position: absolute; top: 18px; left: 50px; }
 
             @media (max-width: 1024px) {
                 .responsive-stack-mobile { gap: 12px; }
