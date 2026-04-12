@@ -95,6 +95,7 @@ const ClientSubmissions = () => {
     const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
     const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('');
     const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
+    const [selectedClientFilter, setSelectedClientFilter] = useState('');
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth <= 1024);
@@ -1123,7 +1124,7 @@ const ClientSubmissions = () => {
 
                             const res = await dbService.addChangeRequest({
                                 submission_id: selectedSubForChange.id,
-                                user_id: user?.id,
+                                user_id: user?.id as number,
                                 requested_data,
                                 original_data
                             });
