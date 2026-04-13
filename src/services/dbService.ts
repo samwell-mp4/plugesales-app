@@ -1,4 +1,9 @@
-const API_BASE = '/api';
+import { Capacitor } from '@capacitor/core';
+
+// Detecta se está rodando em dispositivo nativo (iOS/Android) ou web
+const API_BASE = Capacitor.isNativePlatform() 
+    ? 'https://seu-dominio-producao.com/api' // FIXME: Substitua pelo URL real do seu servidor de produção
+    : '/api';
 
 export const dbService = {
     // --- Settings ---

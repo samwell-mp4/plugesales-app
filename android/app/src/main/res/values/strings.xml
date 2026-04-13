@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Plug &amp; Sales</string>
+    <string name="title_activity_main">Plug &amp; Sales</string>
+    <string name="package_name">com.plugesales.app</string>
+    <string name="custom_url_scheme">com.plugesales.app</string>
+</resources>

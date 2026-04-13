@@ -37,6 +37,7 @@ import MyWallet from './pages/MyWallet';
 import TestCards from './pages/TestCards';
 import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
+import Download from './pages/Download';
 import AdminChanges from './pages/AdminChanges';
 import MetaPixel from './components/MetaPixel';
 import './index.css';
@@ -56,6 +57,7 @@ function AppContent() {
     location.pathname.startsWith('/landing') || 
     location.pathname.startsWith('/obrigado') || 
     location.pathname === '/finalizado' || 
+    location.pathname === '/download' || 
     location.pathname === '/lead-flow' || 
     location.pathname.startsWith('/l/') || 
     location.pathname.startsWith('/r/') || 
@@ -142,6 +144,7 @@ function AppContent() {
           <Route path="/rotator-stats/:id" element={<RotatorDetails />} />
           <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
+          <Route path="/download" element={<Download />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/landing/:id" element={<LandingPage />} />
           <Route path="/lead-flow" element={<LeadStepForm />} />
