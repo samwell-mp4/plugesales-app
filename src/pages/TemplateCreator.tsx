@@ -242,10 +242,13 @@ const TemplateCreator = () => {
 
         const structure: any = {
             body: {
-                text: bodyText,
-                examples: examples // Plural 'examples' as array of strings (matches user's base structure)
+                text: bodyText
             }
         };
+
+        if (examples.length > 0) {
+            structure.body.examples = examples;
+        }
 
         const effectiveHeaderType = overrideHeaderType || headerType;
 
