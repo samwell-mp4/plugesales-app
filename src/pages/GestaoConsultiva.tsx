@@ -505,22 +505,24 @@ const GestaoConsultiva = () => {
             {activeModal && (
                 <div className="crm-modal-overlay" onClick={() => setActiveModal(null)}>
                     <div className="crm-modal-content max-w-[500px]" onClick={e => e.stopPropagation()}>
-                        <header className="p-8 border-b border-white/5 flex justify-between items-center">
-                            <h2 className="text-xl font-black text-white uppercase tracking-tight">{activeModal === 'add' ? 'Nova Ação' : 'Editar Ação'}</h2>
-                            <button className="p-2 hover:bg-white/5 rounded-lg text-gray-400" onClick={() => setActiveModal(null)}><X size={20} /></button>
+                        <header>
+                            <h2 className="text-lg font-black text-white uppercase tracking-tight">{activeModal === 'add' ? 'Nova Ação Controlada' : 'Editar Ação Estratégica'}</h2>
+                            <button className="p-3 hover:bg-white/10 rounded-xl text-gray-400 transition-all hover:text-white" onClick={() => setActiveModal(null)}><X size={20} /></button>
                         </header>
-                        <div className="p-8">
+                        
+                        <div className="crm-modal-body">
                             <div className="crm-input-group">
-                                <label>Nome do Cliente</label>
-                                <input type="text" className="crm-input" placeholder="Ex: Cliente Alpha" value={actionForm.client_name} onChange={e => setActionForm({...actionForm, client_name: e.target.value})} />
+                                <label>Identificação do Cliente</label>
+                                <input type="text" className="crm-input" placeholder="Ex: Cliente Alpha Solutions" value={actionForm.client_name} onChange={e => setActionForm({...actionForm, client_name: e.target.value})} />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            
+                            <div className="grid grid-cols-2 gap-6">
                                 <div className="crm-input-group">
-                                    <label>Data Agenda</label>
+                                    <label>Data de Execução</label>
                                     <input type="date" className="crm-input" value={actionForm.action_date} onChange={e => setActionForm({...actionForm, action_date: e.target.value})} />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label>Prioridade</label>
+                                    <label>Nível de Prioridade</label>
                                     <select className="crm-input" value={actionForm.priority} onChange={e => setActionForm({...actionForm, priority: e.target.value})}>
                                         <option>BAIXA</option>
                                         <option>MÉDIA</option>
@@ -528,32 +530,38 @@ const GestaoConsultiva = () => {
                                     </select>
                                 </div>
                             </div>
+                            
                             <div className="crm-input-group">
-                                <label>Observações</label>
-                                <textarea className="crm-input h-24 resize-none" placeholder="..." value={actionForm.notes} onChange={e => setActionForm({...actionForm, notes: e.target.value})}></textarea>
+                                <label>Notas e Observações Estratégicas</label>
+                                <textarea 
+                                    className="crm-input h-32 resize-none" 
+                                    placeholder="Detalhe os próximos passos aqui..." 
+                                    value={actionForm.notes} 
+                                    onChange={(e) => setActionForm({...actionForm, notes: e.target.value})}
+                                ></textarea>
                             </div>
 
                             {googleToken && (
-                                <div className="flex items-center gap-2 mb-4 p-3 bg-white/5 rounded-xl border border-white/5">
-                                    <div className={`w-3 h-3 rounded-full ${actionForm.google_event_id ? 'bg-primary-color animate-pulse' : 'bg-white/20'}`}></div>
-                                    <span className="text-[10px] font-black text-white/50 uppercase tracking-widest flex-1">
-                                        {actionForm.google_event_id ? 'Vinculado ao Google Calendar' : 'Sincronizar Automaticamente'}
+                                <div className="flex items-center gap-3 p-3 bg-primary-color/5 rounded-xl border border-primary-color/20 mb-4">
+                                    <div className={`w-2 h-2 rounded-full ${actionForm.google_event_id ? 'bg-primary-color animate-pulse' : 'bg-white/10'}`}></div>
+                                    <span className="text-[9px] font-black text-white/60 uppercase tracking-widest flex-1">
+                                        {actionForm.google_event_id ? 'Sincronizado' : 'Pronto para Google'}
                                     </span>
                                     <Globe size={14} className={actionForm.google_event_id ? 'text-primary-color' : 'text-white/20'} />
                                 </div>
                             )}
-                            
-                            <div className="mt-8 flex gap-4">
-                                <button className="btn-supreme flex-1 py-4 text-sm" onClick={handleSaveAction} disabled={isUpdating}>
-                                    {isUpdating ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
-                                    {activeModal === 'add' ? 'Criar Ação' : 'Salvar Alterações'}
+                        </div>
+
+                        <div className="crm-modal-footer">
+                            <button className="btn-supreme flex-1 py-3.5 text-[10px] tracking-[0.2em]" onClick={handleSaveAction} disabled={isUpdating}>
+                                {isUpdating ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+                                {activeModal === 'add' ? 'CRIAR AÇÃO' : 'SALVAR ALTERAÇÕES'}
+                            </button>
+                            {activeModal === 'edit' && (
+                                <button className="p-3.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-red-500/20 shadow-lg shadow-red-500/10" onClick={() => handleDeleteAction(selectedAction.id)}>
+                                    <Trash2 size={18} />
                                 </button>
-                                {activeModal === 'edit' && (
-                                    <button className="p-4 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-red-500/20" onClick={() => handleDeleteAction(selectedAction.id)}>
-                                        <Trash2 size={20} />
-                                    </button>
-                                )}
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>

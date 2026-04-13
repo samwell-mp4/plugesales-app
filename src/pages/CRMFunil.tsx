@@ -676,7 +676,7 @@ const CRMFunil = () => {
             {/* MODAL ADICIONAR LEAD SUPREME */}
             {isAddModalOpen && (
                 <div className="supreme-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
-                    <div className="supreme-modal-content crm-add-modal max-w-[800px] h-auto" onClick={e => e.stopPropagation()}>
+                    <div className="supreme-modal-content crm-add-modal max-w-[800px]" onClick={e => e.stopPropagation()}>
                         <header>
                             <div className="flex items-center gap-5">
                                 <div className="w-14 h-14 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-xl shadow-primary-color/20"><Plus size={28} strokeWidth={3} /></div>
@@ -718,8 +718,8 @@ const CRMFunil = () => {
                         </div>
 
                         <div className="supreme-modal-footer">
-                            <button className="btn-supreme w-full py-5 text-sm tracking-widest font-black" onClick={handleAddLead} disabled={isUpdating}>
-                                {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={20} /> FINALIZAR CADASTRO SUPREME</>} 
+                            <button className="btn-supreme w-full py-4 text-xs tracking-[0.2em] font-black" onClick={handleAddLead} disabled={isUpdating}>
+                                {isUpdating ? <RefreshCw size={20} className="animate-spin" /> : <><Save size={18} /> FINALIZAR CADASTRO SUPREME</>} 
                             </button>
                         </div>
                     </div>
@@ -782,7 +782,7 @@ const CRMFunil = () => {
                         </aside>
 
                         {/* Main Content */}
-                        <main className="supreme-modal-main flex-1 overflow-y-auto p-12">
+                        <main className="supreme-modal-main flex-1 supreme-modal-body">
                             <div className="flex justify-between items-center mb-12">
                                 <div className="flex items-center gap-4">
                                     <div className="w-2 h-12 bg-primary-gradient rounded-full"></div>
@@ -906,13 +906,13 @@ const CRMFunil = () => {
                     <div className="supreme-modal-content max-w-[450px]" onClick={e => e.stopPropagation()}>
                         <header>
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-primary-color/10 flex items-center justify-center text-primary-color"><Calendar size={24} /></div>
+                                <div className="w-10 h-10 rounded-xl bg-primary-color/10 flex items-center justify-center text-primary-color"><Calendar size={20} /></div>
                                 <div>
-                                    <h2 className="text-lg font-black text-white leading-none mb-1">AGENDAR REUNIÃO</h2>
-                                    <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest">{isScheduling.nome}</p>
+                                    <h2 className="text-sm font-black text-white leading-none mb-1">AGENDAR REUNIÃO</h2>
+                                    <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">{isScheduling.nome}</p>
                                 </div>
                             </div>
-                            <button className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white" onClick={() => setIsScheduling(null)}><X size={20} /></button>
+                            <button className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center text-white" onClick={() => setIsScheduling(null)}><X size={18} /></button>
                         </header>
                         <div className="supreme-modal-body">
                             {!googleToken ? (

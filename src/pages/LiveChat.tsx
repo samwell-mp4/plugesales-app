@@ -152,15 +152,16 @@ const LiveChat = () => {
                     flex: 1;
                     display: flex;
                     flex-direction: column;
-                    background: var(--card-bg-subtle);
-                    border: 1px solid var(--surface-border-subtle);
-                    border-radius: 24px;
+                    background: rgba(15, 23, 42, 0.8);
+                    border: 1px solid rgba(172, 248, 0, 0.2);
+                    border-radius: 32px;
                     overflow: hidden;
-                    backdrop-filter: blur(20px);
-                    max-width: 1000px;
+                    backdrop-filter: blur(40px);
+                    max-width: 1100px;
                     margin: 0 auto;
                     width: 100%;
-                    box-shadow: var(--shadow-md);
+                    box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+                    height: calc(100vh - 180px);
                 }
 
                 .chat-header {
@@ -175,53 +176,67 @@ const LiveChat = () => {
                 .messages-area {
                     flex: 1;
                     overflow-y: auto;
-                    padding: 24px;
+                    padding: 32px;
                     display: flex;
                     flex-direction: column;
                     gap: 16px;
-                    background: radial-gradient(circle at top right, rgba(172,248,0,0.02), transparent);
+                    background: radial-gradient(circle at bottom left, rgba(172,248,0,0.03), transparent);
+                    scrollbar-width: thin;
+                    scrollbar-color: var(--primary-color) transparent;
+                }
+
+                .messages-area::-webkit-scrollbar {
+                    width: 6px;
+                }
+
+                .messages-area::-webkit-scrollbar-thumb {
+                    background: rgba(172, 248, 0, 0.3);
+                    border-radius: 10px;
                 }
 
                 .message-bubble {
-                    max-width: 75%;
-                    padding: 12px 18px;
-                    border-radius: 20px;
-                    font-size: 0.9rem;
-                    line-height: 1.5;
+                    max-width: 80%;
+                    padding: 16px 20px;
+                    border-radius: 24px;
+                    font-size: 0.95rem;
+                    line-height: 1.6;
                     font-weight: 500;
                     position: relative;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    word-wrap: break-word;
                 }
 
                 .message-inbound {
                     align-self: flex-start;
-                    background: var(--bg-color);
-                    border: 1px solid var(--surface-border-subtle);
-                    color: var(--text-primary);
+                    background: rgba(30, 41, 59, 0.8);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    color: white;
                     border-bottom-left-radius: 4px;
                 }
 
                 .message-outbound {
                     align-self: flex-end;
-                    background: var(--primary-color);
+                    background: var(--primary-gradient);
                     color: black;
-                    font-weight: 800;
+                    font-weight: 900;
                     border-bottom-right-radius: 4px;
-                    box-shadow: 0 4px 15px rgba(172, 248, 0, 0.1);
+                    box-shadow: 0 8px 25px rgba(172, 248, 0, 0.2);
                 }
 
                 .message-time {
-                    font-size: 10px;
-                    opacity: 0.5;
-                    margin-top: 6px;
+                    font-size: 9px;
+                    opacity: 0.6;
+                    margin-top: 8px;
                     display: block;
                     text-align: right;
-                    font-weight: 700;
+                    font-weight: 900;
+                    text-transform: uppercase;
                 }
 
                 .chat-input-area {
-                    padding: 24px;
-                    border-top: 1px solid var(--surface-border-subtle);
-                    background: rgba(255,255,255,0.01);
+                    padding: 32px;
+                    border-top: 1px solid rgba(255, 255, 255, 0.05);
+                    background: rgba(15, 23, 42, 0.4);
                 }
 
                 .search-command-center {
@@ -230,13 +245,14 @@ const LiveChat = () => {
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    max-width: 600px;
-                    margin: 40px auto;
+                    max-width: 650px;
+                    margin: 20px auto;
                     text-align: center;
-                    background: var(--command-center-bg);
-                    padding: 60px 40px;
-                    border-radius: 32px;
-                    border: 1px solid var(--surface-border-subtle);
+                    background: rgba(15, 23, 42, 0.4);
+                    padding: 60px;
+                    border-radius: 40px;
+                    border: 1px solid rgba(172, 248, 0, 0.2);
+                    backdrop-filter: blur(20px);
                     box-shadow: var(--shadow-md);
                 }
 
