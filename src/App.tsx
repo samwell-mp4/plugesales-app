@@ -39,7 +39,7 @@ import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
 import Download from './pages/Download';
 import AdminChanges from './pages/AdminChanges';
-import metaPixel from './components/MetaPixel';
+import MetaPixel from './components/MetaPixel';
 import SupremeLoading from './components/SupremeLoading';
 import './index.css';
 import './crm.css';
