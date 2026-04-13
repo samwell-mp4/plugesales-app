@@ -236,7 +236,26 @@ const Accounts = () => {
                 @media (max-width: 1024px) {
                     .accounts-page { padding: 20px; padding-bottom: 120px; }
                     .header-row { flex-direction: column; align-items: flex-start; gap: 16px; }
-                    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+                    /* MOBILE STATS CAROUSEL */
+                    .stats-grid { 
+                        display: flex !important;
+                        overflow-x: auto !important;
+                        padding: 10px 24px 30px !important;
+                        margin: 0 -24px !important;
+                        gap: 16px !important;
+                        scroll-snap-type: x mandatory !important;
+                        -webkit-overflow-scrolling: touch !important;
+                        scrollbar-width: none;
+                    }
+                    .stats-grid::-webkit-scrollbar { display: none; }
+                    .stats-grid > div {
+                        flex: 0 0 260px !important;
+                        scroll-snap-align: center !important;
+                        background: rgba(255, 255, 255, 0.03) !important;
+                        border-color: rgba(255, 255, 255, 0.08) !important;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+                    }
+
                     .filter-tabs { width: 100%; overflow-x: auto; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none; display: flex; gap: 8px; }
                     .filter-tabs::-webkit-scrollbar { display: none; }
                     .config-command-center { padding: 20px; border-radius: 20px; }

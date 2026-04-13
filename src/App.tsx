@@ -122,10 +122,10 @@ function AppContent() {
       )}
       <main className={`main-content ${isPublicRoute ? 'no-padding' : ''}`}>
         <Routes>
-          <Route path="/" element={<Navigate to={isClient ? "/client-dashboard" : "/dashboard"} replace />} />
+          <Route path="/" element={<Navigate to={isClient ? "/client-dashboard" : "/accounts"} replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
-          <Route path="/admin/changes" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminChanges /> : <Navigate to="/dashboard" />} />
+          <Route path="/admin/changes" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminChanges /> : <Navigate to="/accounts" />} />
           <Route path="/live-chat" element={<LiveChat />} />
           <Route path="/templates" element={<TemplateCreator />} />
           <Route path="/client-submissions" element={<ClientSubmissions />} />
@@ -152,9 +152,9 @@ function AppContent() {
           <Route path="/obrigado/:id" element={<Obrigado />} />
           <Route path="/finalizado" element={<Finalizado />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/client-add/:parentId/:submissionId?" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <ClientForClientForm /> : <Navigate to="/dashboard" />} />
-          <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/dashboard" />} />
-          <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/dashboard" />} />
+          <Route path="/client-add/:parentId/:submissionId?" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <ClientForClientForm /> : <Navigate to="/accounts" />} />
+          <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/accounts" />} />
+          <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/accounts" />} />
           <Route path="/crm/analise" element={<CRMAnalise />} />
           <Route path="/crm/funil" element={<CRMFunil />} />
           <Route path="/crm/consultiva" element={<GestaoConsultiva />} />
