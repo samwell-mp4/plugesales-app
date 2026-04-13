@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     ChevronLeft, ChevronRight,
     Plus, Search, Filter, AlertTriangle, CheckCircle2,
     Clock, MoreHorizontal, User,
-    Trash2, Edit3, X, Save, RefreshCw
+    Trash2, Edit3, X, Save, RefreshCw,
+    Globe, Calendar as CalendarIcon, Check
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { googleCalendarService } from '../services/googleCalendarService';
 
 const GestaoConsultiva = () => {
     const { user } = useAuth();
@@ -17,19 +19,74 @@ const GestaoConsultiva = () => {
     const [selectedAction, setSelectedAction] = useState<any | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     
+    // --- Google Calendar State ---
+    const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('gcal_token'));
+    const [calendars, setCalendars] = useState<any[]>([]);
+    const [selectedCalendarId, setSelectedCalendarId] = useState<string>(localStorage.getItem('gcal_selected_id') || '');
+    const [googleEvents, setGoogleEvents] = useState<any[]>([]);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
     const [actionForm, setActionForm] = useState({
         client_name: '',
         action_date: new Date().toISOString().split('T')[0],
         priority: 'MÉDIA',
         status: 'PENDENTE',
-        notes: ''
+        notes: '',
+        google_event_id: ''
     });
 
     const [activeModal, setActiveModal] = useState<'add' | 'edit' | null>(null);
 
+    // Initialize GIS and load events
     useEffect(() => {
         fetchActions();
+        
+        googleCalendarService.initClient((token) => {
+            setGoogleToken(token);
+            localStorage.setItem('gcal_token', token);
+            loadCalendars(token);
+        });
     }, []);
+
+    useEffect(() => {
+        if (googleToken && selectedCalendarId) {
+            fetchGoogleEvents();
+        }
+    }, [googleToken, selectedCalendarId, currentDate]);
+
+    const loadCalendars = async (token: string) => {
+        try {
+            const list = await googleCalendarService.listCalendars(token);
+            setCalendars(list);
+            if (!selectedCalendarId && list.length > 0) {
+                const primary = list.find((c: any) => c.primary) || list[0];
+                setSelectedCalendarId(primary.id);
+                localStorage.setItem('gcal_selected_id', primary.id);
+            }
+        } catch (err) {
+            console.error("Error loading calendars:", err);
+        }
+    };
+
+    const fetchGoogleEvents = async () => {
+        if (!googleToken || !selectedCalendarId) return;
+        setIsGoogleLoading(true);
+        try {
+            const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
+            const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
+            
+            const events = await googleCalendarService.listEvents(googleToken, selectedCalendarId, startOfMonth, endOfMonth);
+            setGoogleEvents(events);
+        } catch (err) {
+            console.error("Error fetching Google events:", err);
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    };
+
+    const handleGoogleConnect = () => {
+        googleCalendarService.requestToken();
+    };
 
     const fetchActions = async () => {
         setIsLoading(true);
@@ -47,28 +104,62 @@ const GestaoConsultiva = () => {
     const handleSaveAction = async () => {
         setIsUpdating(true);
         try {
+            let googleId = actionForm.google_event_id;
+
+            // Sincronização com Google Calendar
+            if (googleToken && selectedCalendarId) {
+                const gEvent = {
+                    summary: `[Plug] ${actionForm.client_name}`,
+                    description: `Status: ${actionForm.status}\nPrioridade: ${actionForm.priority}\nNotas: ${actionForm.notes}`,
+                    start: { dateTime: `${actionForm.action_date}T09:00:00Z` },
+                    end: { dateTime: `${actionDateToISO(actionForm.action_date)}T10:00:00Z` },
+                };
+
+                if (activeModal === 'edit' && googleId) {
+                    await googleCalendarService.updateEvent(googleToken, selectedCalendarId, googleId, gEvent);
+                } else {
+                    const created = await googleCalendarService.createEvent(googleToken, selectedCalendarId, gEvent);
+                    googleId = created.id;
+                }
+            }
+
+            const payload = { ...actionForm, google_event_id: googleId };
+
             if (activeModal === 'edit' && selectedAction) {
-                await dbService.updateConsultativeAction(selectedAction.id, actionForm);
+                await dbService.updateConsultativeAction(selectedAction.id, payload);
             } else {
                 await dbService.addConsultativeAction({
-                    ...actionForm,
+                    ...payload,
                     responsavel: user?.name
                 });
             }
+            
             setActiveModal(null);
             fetchActions();
+            if (googleToken) fetchGoogleEvents();
         } catch (err) {
             console.error(err);
+            alert("Erro na sincronização. Verifique sua conexão com o Google.");
         } finally {
             setIsUpdating(false);
         }
+    };
+    
+    // Helper to ensure date is ISO for Google
+    const actionDateToISO = (dateStr: string) => {
+        return dateStr; // action_date is already YYYY-MM-DD
     };
 
     const handleDeleteAction = async (id: string | number) => {
         if (!window.confirm("Deseja excluir esta ação permanentemente?")) return;
         try {
+            const actionToDelete = actions.find(a => a.id === id);
+            if (actionToDelete?.google_event_id && googleToken && selectedCalendarId) {
+                await googleCalendarService.deleteEvent(googleToken, selectedCalendarId, actionToDelete.google_event_id);
+            }
             await dbService.deleteConsultativeAction(id);
             fetchActions();
+            if (googleToken) fetchGoogleEvents();
         } catch (err) {
             console.error(err);
         }
@@ -76,8 +167,17 @@ const GestaoConsultiva = () => {
 
     const handleUpdateStatus = async (id: string | number, status: string) => {
         try {
+            const action = actions.find(a => a.id === id);
             await dbService.updateConsultativeAction(id, { status });
+            
+            // Sync status to Google if linked
+            if (action?.google_event_id && googleToken && selectedCalendarId) {
+                const description = `Status: ${status}\nPrioridade: ${action.priority}\nNotas: ${action.notes || ''}`;
+                await googleCalendarService.updateEvent(googleToken, selectedCalendarId, action.google_event_id, { description });
+            }
+            
             fetchActions();
+            if (googleToken) fetchGoogleEvents();
         } catch (err) {
             console.error(err);
         }
@@ -90,7 +190,8 @@ const GestaoConsultiva = () => {
             action_date: action.action_date.split('T')[0],
             priority: action.priority,
             status: action.status,
-            notes: action.notes || ''
+            notes: action.notes || '',
+            google_event_id: action.google_event_id || ''
         });
         setActiveModal('edit');
     };
@@ -101,9 +202,29 @@ const GestaoConsultiva = () => {
             action_date: date || new Date().toISOString().split('T')[0],
             priority: 'MÉDIA',
             status: 'PENDENTE',
-            notes: ''
+            notes: '',
+            google_event_id: ''
         });
         setActiveModal('add');
+    };
+
+    const openGoogleEventModal = (gEvent: any) => {
+        // Se já existe uma ação local vinculada, abre ela no modo edit
+        const linkedAction = actions.find(a => a.google_event_id === gEvent.id);
+        if (linkedAction) {
+            openEditModal(linkedAction);
+        } else {
+            // Se não, abre o modal de ADD pré-preenchido
+            setActionForm({
+                client_name: gEvent.summary?.replace('[Plug] ', '') || 'Evento Google',
+                action_date: (gEvent.start?.dateTime || gEvent.start?.date || '').split('T')[0],
+                priority: 'MÉDIA',
+                status: 'PENDENTE',
+                notes: gEvent.description || '',
+                google_event_id: gEvent.id
+            });
+            setActiveModal('add');
+        }
     };
 
     // --- Stats calculation ---
@@ -129,14 +250,61 @@ const GestaoConsultiva = () => {
     const days = Array.from({ length: getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth()) }, (_, i) => i + 1);
 
     const getActionsByDay = (day: number) => {
-        const d = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-        const dStr = d.toISOString().split('T')[0];
-        return actions.filter(a => a.action_date.startsWith(dStr));
+        const dStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
+        const local = actions.filter(a => a.action_date.startsWith(dStr));
+        
+        // Filter out Google events that are already represented as local actions
+        const localGoogleIds = new Set(actions.map(a => a.google_event_id).filter(id => !!id));
+        const google = googleEvents.filter(ge => {
+            const geDate = (ge.start?.dateTime || ge.start?.date || '').split('T')[0];
+            return geDate === dStr && !localGoogleIds.has(ge.id);
+        });
+
+        return { local, google };
     };
 
     return (
         <div className="crm-container">
-            <h1 className="text-2xl font-black text-white mb-8">Gestão Consultiva</h1>
+            <header className="flex justify-between items-center mb-8 gap-4 flex-wrap">
+                <h1 className="text-2xl font-black text-white">Gestão Consultiva</h1>
+                
+                {/* GOOGLE CALENDAR CONTROLS */}
+                <div className="flex items-center gap-3 bg-white/5 p-2 px-4 rounded-2xl border border-white/10 ml-auto">
+                    {!googleToken ? (
+                        <button className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest hover:text-primary-color transition-colors" onClick={handleGoogleConnect}>
+                            <Globe size={14} /> Conectar Google
+                        </button>
+                    ) : (
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-[10px] font-black text-primary-color uppercase tracking-widest">
+                                <Check size={14} /> Conectado
+                            </div>
+                            <div className="flex items-center gap-2 group relative">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase">Agenda:</span>
+                                <select 
+                                    className="bg-transparent border-none text-white text-[11px] font-black focus:ring-0 cursor-pointer p-0 appearance-none pr-4"
+                                    value={selectedCalendarId}
+                                    onChange={(e) => {
+                                        setSelectedCalendarId(e.target.value);
+                                        localStorage.setItem('gcal_selected_id', e.target.value);
+                                    }}
+                                >
+                                    {calendars.map(c => <option key={c.id} value={c.id} className="bg-[#0f172a]">{c.summary}</option>)}
+                                </select>
+                                <ChevronDown size={10} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                            </div>
+                            <button className="text-gray-500 hover:text-white transition-colors" onClick={() => { 
+                                if(window.confirm('Desconectar agenda do Google?')) {
+                                    localStorage.removeItem('gcal_token'); 
+                                    setGoogleToken(null); 
+                                }
+                            }} title="Sair do Google">
+                                <X size={14} />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </header>
 
             {/* KPI ROW */}
             <div className="metrics-grid-row mb-8">
@@ -185,7 +353,7 @@ const GestaoConsultiva = () => {
 
                 <div className="flex gap-2">
                     <button className="btn-icon-only" onClick={fetchActions}>
-                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        <RefreshCw size={18} className={isLoading || isGoogleLoading ? 'animate-spin' : ''} />
                     </button>
                 </div>
             </div>
@@ -224,7 +392,7 @@ const GestaoConsultiva = () => {
                             <div key={`empty-${i}`} className="bg-white/[0.01] rounded-xl"></div>
                         ))}
                         {days.map(day => {
-                            const dayActions = getActionsByDay(day);
+                            const { local, google } = getActionsByDay(day);
                             const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth();
                             return (
                                 <div key={day} className={`crm-day-box ${isToday ? 'is-today' : ''}`} onClick={() => {
@@ -233,9 +401,18 @@ const GestaoConsultiva = () => {
                                 }}>
                                     <span className="crm-day-number">{day}</span>
                                     <div className="mt-1 flex flex-col gap-0.5 max-h-[70%] overflow-y-auto no-scrollbar">
-                                        {dayActions.map((act, i) => (
-                                            <div key={i} className={`crm-action-pill priority-${act.priority.toLowerCase().replace('é','e')}`} onClick={(e) => { e.stopPropagation(); openEditModal(act); }}>
-                                                {act.client_name}
+                                        {/* LOCAL CRM ACTIONS */}
+                                        {local.map((act, i) => (
+                                            <div key={`local-${i}`} className={`crm-action-pill priority-${act.priority.toLowerCase().replace('é','e')}`} title={act.client_name} onClick={(e) => { e.stopPropagation(); openEditModal(act); }}>
+                                                <span className="truncate">{act.client_name}</span>
+                                                {act.google_event_id && <Globe size={8} className="ml-auto opacity-50 shrink-0" />}
+                                            </div>
+                                        ))}
+                                        {/* GOOGLE EXTERNAL EVENTS */}
+                                        {google.map((ge, i) => (
+                                            <div key={`google-${i}`} className="crm-action-pill !bg-white/5 !text-white/60 !border-white/10 flex items-center group/pill" onClick={(e) => { e.stopPropagation(); openGoogleEventModal(ge); }}>
+                                                <CalendarIcon size={8} className="mr-1 shrink-0 group-hover/pill:text-primary-color" />
+                                                <span className="truncate">{ge.summary || '(Sem Título)'}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -331,6 +508,16 @@ const GestaoConsultiva = () => {
                                 <label>Observações</label>
                                 <textarea className="crm-input h-24 resize-none" placeholder="..." value={actionForm.notes} onChange={e => setActionForm({...actionForm, notes: e.target.value})}></textarea>
                             </div>
+
+                            {googleToken && (
+                                <div className="flex items-center gap-2 mb-4 p-3 bg-white/5 rounded-xl border border-white/5">
+                                    <div className={`w-3 h-3 rounded-full ${actionForm.google_event_id ? 'bg-primary-color animate-pulse' : 'bg-white/20'}`}></div>
+                                    <span className="text-[10px] font-black text-white/50 uppercase tracking-widest flex-1">
+                                        {actionForm.google_event_id ? 'Vinculado ao Google Calendar' : 'Sincronizar Automaticamente'}
+                                    </span>
+                                    <Globe size={14} className={actionForm.google_event_id ? 'text-primary-color' : 'text-white/20'} />
+                                </div>
+                            )}
                             
                             <div className="mt-8 flex gap-4">
                                 <button className="btn-supreme flex-1 py-4 text-sm" onClick={handleSaveAction} disabled={isUpdating}>
