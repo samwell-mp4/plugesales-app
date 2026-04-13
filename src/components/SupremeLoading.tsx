@@ -9,7 +9,7 @@ const SupremeLoading: React.FC<SupremeLoadingProps> = ({ fullScreen = true }) =>
   return (
     <div className={`
       flex flex-col items-center justify-center 
-      ${fullScreen ? 'fixed inset-0 z-[9999] bg-[#05070a]' : 'w-full h-full p-12'}
+      ${fullScreen ? 'fixed inset-0 z-[9999] bg-[#05070a] h-[100dvh] w-full' : 'w-full h-full p-12'}
     `}>
       {/* Background radial glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-color/5 blur-[120px] rounded-full -z-10"></div>
@@ -22,7 +22,7 @@ const SupremeLoading: React.FC<SupremeLoadingProps> = ({ fullScreen = true }) =>
                 <div className="h-full bg-primary-gradient w-1/3 absolute left-0 animate-[loading-bar_1.5s_infinite_ease-in-out]"></div>
             </div>
             <span className="text-[10px] text-primary-color font-black uppercase tracking-[0.3em] animate-pulse mt-4">
-                Sincronizando Supreme
+                Loading...
             </span>
         </div>
       </div>
