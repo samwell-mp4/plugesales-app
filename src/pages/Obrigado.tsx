@@ -25,6 +25,7 @@ const Obrigado = () => {
     // Mapeamento de Telefones dos Agentes para Redirecionamento de WhatsApp
     const agentPhoneMap: Record<string, string> = {
         '1': '5511999999999',
+        '10': '5531983804904',
         '11': '5531981081012',
         '12': '5531999958066'
     };

@@ -539,7 +539,7 @@ export const dbService = {
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching employees:", err);
-            return ['Italo', 'Augusto', 'Otavio', 'Lucas', 'Geraldo', 'Ricardo', 'Gisele', 'Joyce', 'Thiago']; // Fallback
+            return ['Italo Clovis', 'Augusto Fagundes', 'Otávio Augusto', 'Lucas', 'Geraldo', 'Ricardo Willer', 'Gisele Vieira', 'Joyce Vieira', 'Thiago Rocha']; // Fallback
         }
     },
     getLinkStats: async (id: number) => {

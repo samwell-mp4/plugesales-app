@@ -31,17 +31,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const VALID_USERS = [
     { name: 'Admin', role: 'ADMIN' as Role, password: 'admin123' },
     { name: 'geraldo', role: 'ADMIN' as Role, password: 'geraldo876' },
-    { name: 'Italo', role: 'EMPLOYEE' as Role, password: 'italo982' },
-    { name: 'Augusto', role: 'EMPLOYEE' as Role, password: 'augusto451' },
-    { name: 'Otavio', role: 'EMPLOYEE' as Role, password: 'otavio319' },
+    { name: 'Italo Clovis', role: 'EMPLOYEE' as Role, password: 'italo982' },
+    { name: 'Augusto Fagundes', role: 'EMPLOYEE' as Role, password: 'augusto451' },
+    { name: 'Otávio Augusto', role: 'EMPLOYEE' as Role, password: 'otavio319' },
     { name: 'luis', role: 'ADMIN' as Role, password: 'luis762' },
-    { name: 'Ricardo', role: 'EMPLOYEE' as Role, password: 'ricardo883' },
+    { name: 'Ricardo Willer', role: 'EMPLOYEE' as Role, password: 'ricardo883' },
     { name: 'gabriel', role: 'EMPLOYEE' as Role, password: 'gabriel123' },
     { name: 'lucas2', role: 'EMPLOYEE' as Role, password: 'lucas762' },
     { name: 'sidao', role: 'EMPLOYEE' as Role, password: 'charlesbravo@123' },
-    { name: 'Gisele', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
-    { name: 'Joyce', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
-    { name: 'Thiago', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'Gisele Vieira', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'Joyce Vieira', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'Thiago Rocha', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
 ];
 
 import { dbService } from '../services/dbService';
@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const dbRes = await dbService.register({
                 name: foundStatic.name,
-                email: `${foundStatic.name.toLowerCase()}@internal.system`,
+                email: `${foundStatic.name.toLowerCase().replace(/\s+/g, '.')}@plugsales.com.br`,
                 phone: '0000000000',
                 password: foundStatic.password,
                 role: foundStatic.role
