@@ -80,18 +80,27 @@ export const googleCalendarService = {
         description: string;
         start: { dateTime: string };
         end: { dateTime: string };
-    }) => {
-        const response = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-            {
-                method: 'POST',
-                headers: { 
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(event)
-            }
-        );
+        conferenceData?: any;
+    }, createMeetLink: boolean = false) => {
+        const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`);
+        if (createMeetLink) {
+            url.searchParams.set('conferenceDataVersion', '1');
+            event.conferenceData = {
+                createRequest: {
+                    requestId: Math.random().toString(36).substring(7),
+                    conferenceSolutionKey: { type: 'hangoutsMeet' }
+                }
+            };
+        }
+
+        const response = await fetch(url.toString(), {
+            method: 'POST',
+            headers: { 
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(event)
+        });
         return await response.json();
     },
 
