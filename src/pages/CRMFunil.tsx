@@ -376,6 +376,9 @@ const CRMFunil = () => {
     const toggleFavorite = async (lead: any) => {
         const updated = { ...lead, is_favorite: !lead.is_favorite };
         setLeads(leads.map(l => l.id === lead.id ? updated : l));
+        if (selectedLead && selectedLead.id === lead.id) {
+            setSelectedLead(updated);
+        }
         try {
             await dbService.updateCRMLead(lead.id, { is_favorite: updated.is_favorite });
         } catch (err) {
