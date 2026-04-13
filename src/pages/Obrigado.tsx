@@ -18,13 +18,15 @@ const Obrigado = () => {
         '8': 'Thales Henrique',
         '9': 'Ramon Gomes',
         '10': 'Gisele Vieira',
-        '11': 'Joyce Vieira'
+        '11': 'Joyce Vieira',
+        '12': 'Thiago Rocha'
     };
 
     // Mapeamento de Telefones dos Agentes para Redirecionamento de WhatsApp
     const agentPhoneMap: Record<string, string> = {
         '1': '5511999999999',
-        '11': '5531981081012'
+        '11': '5531981081012',
+        '12': '5531999958066'
     };
 
     const agentName = id ? agentMap[id] : null;

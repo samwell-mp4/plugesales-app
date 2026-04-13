@@ -52,7 +52,8 @@ const LeadStepForm = () => {
         '8': 'Thales Henrique',
         '9': 'Ramon Gomes',
         '10': 'Gisele Vieira',
-        '11': 'Joyce Vieira'
+        '11': 'Joyce Vieira',
+        '12': 'Thiago Rocha'
     };
 
     useEffect(() => {
