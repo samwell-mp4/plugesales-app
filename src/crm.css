@@ -277,9 +277,9 @@
 
 .supreme-modal-content {
     background: linear-gradient(135deg, rgba(30, 41, 59, 1), rgba(15, 23, 42, 1));
-    width: 950px;
-    max-width: 90vw;
-    height: 85vh;
+    width: 1200px;
+    max-width: 95vw;
+    height: 90vh;
     border-radius: 40px;
     border: 1px solid rgba(172, 248, 0, 0.2);
     box-shadow: 0 50px 100px rgba(0, 0, 0, 0.9), 0 0 40px rgba(172, 248, 0, 0.1);
@@ -702,11 +702,12 @@
 }
 
 .kanban-col {
-    min-width: 340px;
-    max-width: 340px;
+    min-width: 400px;
+    width: 400px;
     display: flex;
     flex-direction: column;
     height: 100%;
+    flex-shrink: 0;
 }
 
 .kanban-col-header-premium {
@@ -782,6 +783,45 @@
 }
 
 /* Premium Lead Card */
+/* Status Internal Buttons Styled */
+.lead-card-details-expanded .flex-wrap {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.lead-card-details-expanded button {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    padding: 10px 8px !important;
+    border-radius: 10px !important;
+    text-transform: uppercase !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.lead-card-details-expanded button:hover {
+    background: var(--primary-color) !important;
+    color: #000 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(172, 248, 0, 0.2);
+    border-color: var(--primary-color) !important;
+}
+
+/* Animations and selection */
+@keyframes pulse-border {
+    0% { border-color: rgba(172, 248, 0, 0.3); }
+    50% { border-color: rgba(172, 248, 0, 1); box-shadow: 0 0 20px rgba(172, 248, 0, 0.2); }
+    100% { border-color: rgba(172, 248, 0, 0.3); }
+}
+
+.animate-pulse-border {
+    animation: pulse-border 2s infinite;
+}
+
 .lead-card-glass {
     background: rgba(30, 41, 59, 0.5);
     backdrop-filter: blur(24px) saturate(180%);

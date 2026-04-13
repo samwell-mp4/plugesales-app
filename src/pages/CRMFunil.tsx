@@ -213,10 +213,16 @@ const CRMFunil = () => {
         if (!token) return;
         try {
             const list = await googleCalendarService.listCalendars(token);
-            setCalendars(list);
-            if (!selectedCalendarId || !list.some((c: any) => c.id === selectedCalendarId)) {
-                const primary = list.find((c: any) => c.primary) || list[0];
-                if (primary) {
+            if (list && list.length > 0) {
+                setCalendars(list);
+                // Sincroniza com o ID salvo globalmente
+                const savedId = localStorage.getItem('gcal_selected_id');
+                const exists = list.some((c: any) => c.id === savedId);
+                
+                if (savedId && exists) {
+                    setSelectedCalendarId(savedId);
+                } else {
+                    const primary = list.find((c: any) => c.primary) || list[0];
                     setSelectedCalendarId(primary.id);
                     localStorage.setItem('gcal_selected_id', primary.id);
                 }
