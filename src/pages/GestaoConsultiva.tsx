@@ -46,25 +46,49 @@ const GestaoConsultiva = () => {
             localStorage.setItem('gcal_token', token);
             loadCalendars(token);
         });
+
+        // Se já temos um token, mas o script ainda não carregou as agendas (ex: F5)
+        // O initClient acima cuidará do carregamento assim que o script estiver pronto.
+        // Adicionamos uma pequena verificação de segurança
+        if (googleToken) {
+            // Aguardamos um pouco para garantir que o script carregou (caso não seja a primeira vez)
+            const checkAndLoad = setInterval(() => {
+                if ((window as any).google?.accounts?.oauth2) {
+                    loadCalendars(googleToken);
+                    clearInterval(checkAndLoad);
+                }
+            }, 500);
+            return () => clearInterval(checkAndLoad);
+        }
     }, []);
 
     useEffect(() => {
-        if (googleToken && selectedCalendarId) {
+        if (googleToken && selectedCalendarId && calendars.length > 0) {
             fetchGoogleEvents();
         }
-    }, [googleToken, selectedCalendarId, currentDate]);
+    }, [googleToken, selectedCalendarId, currentDate, calendars.length]);
 
     const loadCalendars = async (token: string) => {
+        if (!token) return;
         try {
             const list = await googleCalendarService.listCalendars(token);
-            setCalendars(list);
-            if (!selectedCalendarId && list.length > 0) {
-                const primary = list.find((c: any) => c.primary) || list[0];
-                setSelectedCalendarId(primary.id);
-                localStorage.setItem('gcal_selected_id', primary.id);
+            if (list && list.length > 0) {
+                setCalendars(list);
+                // Se não temos um selecionado, ou o atual não está na lista, selecionamos o primário
+                const currentExists = list.some((c: any) => c.id === selectedCalendarId);
+                if (!selectedCalendarId || !currentExists) {
+                    const primary = list.find((c: any) => c.primary) || list[0];
+                    setSelectedCalendarId(primary.id);
+                    localStorage.setItem('gcal_selected_id', primary.id);
+                }
             }
         } catch (err) {
             console.error("Error loading calendars:", err);
+            // Se o token expirou (401), deslogamos
+            if ((err as any).status === 401) {
+                setGoogleToken(null);
+                localStorage.removeItem('gcal_token');
+            }
         }
     };
 

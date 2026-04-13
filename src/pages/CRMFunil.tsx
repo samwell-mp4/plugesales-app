@@ -5,14 +5,16 @@ import {
     MessageSquare, Tag, List, Trello, Star,
     Save, Plus, Trash2, Edit3, X, DollarSign,
     Phone, Mail, Calendar, MapPin, TrendingUp, Target, PieChart, Zap,
-    ChevronRight, Briefcase, Globe, Info, Clock, CheckCircle
+    ChevronRight, Briefcase, Globe, Info, Clock, CheckCircle,
+    AlertTriangle, ChevronDown
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { dbService } from '../services/dbService';
+import { googleCalendarService } from '../services/googleCalendarService';
 
 // --- Memoized Components for Performance ---
 
-const LeadCard = memo(({ lead, index, onEdit, onFavorite, onDelete, onWhatsApp, formatDate, getInitials }: any) => {
+const LeadCard = memo(({ lead, index, onEdit, onFavorite, onWhatsApp, onSchedule, formatDate, getInitials }: any) => {
     return (
         <Draggable draggableId={lead.id.toString()} index={index}>
             {(provided, snapshot) => (
@@ -57,6 +59,13 @@ const LeadCard = memo(({ lead, index, onEdit, onFavorite, onDelete, onWhatsApp, 
                         </div>
                         <div className="lead-quick-actions">
                             <button 
+                                className="btn-card-action bg-primary-color/10 text-primary-color hover:bg-primary-color hover:text-black"
+                                onClick={(e) => { e.stopPropagation(); onSchedule(lead); }}
+                                title="Agendar Reunião Google"
+                            >
+                                <Calendar size={14} />
+                            </button>
+                            <button 
                                 className={`lead-favorite-btn ${lead.is_favorite ? 'active' : ''}`}
                                 onClick={(e) => { e.stopPropagation(); onFavorite(lead); }}
                             >
@@ -71,15 +80,6 @@ const LeadCard = memo(({ lead, index, onEdit, onFavorite, onDelete, onWhatsApp, 
                                 title="WhatsApp"
                             >
                                 <MessageSquare size={14} />
-                            </button>
-                            <button 
-                                className="btn-card-action delete" 
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    onDelete(lead.id); 
-                                }}
-                            >
-                                <Trash2 size={14} />
                             </button>
                         </div>
                     </div>
@@ -109,6 +109,19 @@ const CRMFunil = () => {
     const [selectedLead, setSelectedLead] = useState<any | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
+
+    // --- Google Calendar State ---
+    const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('gcal_token'));
+    const [isScheduling, setIsScheduling] = useState<any | null>(null);
+    const [calendars, setCalendars] = useState<any[]>([]);
+    const [selectedCalendarId, setSelectedCalendarId] = useState<string>(localStorage.getItem('gcal_selected_id') || '');
+
+    const [scheduleForm, setScheduleForm] = useState({
+        date: new Date().toISOString().split('T')[0],
+        time: '10:00',
+        duration: 60,
+        createMeet: true
+    });
     
     // New Lead State
     const [newLead, setNewLead] = useState({
@@ -125,7 +138,44 @@ const CRMFunil = () => {
 
     useEffect(() => {
         fetchLeads();
+
+        googleCalendarService.initClient((token) => {
+            setGoogleToken(token);
+            localStorage.setItem('gcal_token', token);
+            loadCalendars(token);
+        });
+
+        if (googleToken) {
+            const checkAndLoad = setInterval(() => {
+                if ((window as any).google?.accounts?.oauth2) {
+                    loadCalendars(googleToken);
+                    clearInterval(checkAndLoad);
+                }
+            }, 500);
+            return () => clearInterval(checkAndLoad);
+        }
     }, []);
+
+    const loadCalendars = async (token: string) => {
+        if (!token) return;
+        try {
+            const list = await googleCalendarService.listCalendars(token);
+            setCalendars(list);
+            if (!selectedCalendarId || !list.some((c: any) => c.id === selectedCalendarId)) {
+                const primary = list.find((c: any) => c.primary) || list[0];
+                if (primary) {
+                    setSelectedCalendarId(primary.id);
+                    localStorage.setItem('gcal_selected_id', primary.id);
+                }
+            }
+        } catch (err) {
+            console.error("Error loading calendars:", err);
+            if ((err as any).status === 401) {
+                setGoogleToken(null);
+                localStorage.removeItem('gcal_token');
+            }
+        }
+    };
 
     const fetchLeads = async () => {
         setIsLoading(true);
@@ -165,6 +215,48 @@ const CRMFunil = () => {
             });
         } catch (err: any) {
             alert("Erro ao adicionar: " + err.message);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleScheduleMeeting = async () => {
+        if (!googleToken || !selectedCalendarId || !isScheduling) return;
+        setIsUpdating(true);
+        try {
+            const startDateTime = `${scheduleForm.date}T${scheduleForm.time}:00`;
+            const endDate = new Date(new Date(startDateTime).getTime() + scheduleForm.duration * 60000);
+            const endDateTime = endDate.toISOString();
+
+            const event = {
+                summary: `[Plug] Reunião: ${isScheduling.nome}`,
+                description: `Lead: ${isScheduling.nome}\nTelefone: ${isScheduling.numero}\nEmail: ${isScheduling.email || 'Não informado'}\n\nAgendado via CRM Plug & Sales`,
+                start: { dateTime: new Date(startDateTime).toISOString() },
+                end: { dateTime: endDateTime }
+            };
+
+            const created = await googleCalendarService.createEvent(
+                googleToken, 
+                selectedCalendarId, 
+                event, 
+                scheduleForm.createMeet
+            );
+
+            // Atualiza o lead no CRM
+            const updatedData = {
+                status: 'Agendamento Realizado',
+                google_event_id: created.id,
+                meeting_date: startDateTime,
+                meeting_link: created.conferenceData?.entryPoints?.find((e: any) => e.entryPointType === 'video')?.uri || ''
+            };
+
+            await dbService.updateCRMLead(isScheduling.id, updatedData);
+            await fetchLeads();
+            setIsScheduling(null);
+            alert("Agendamento realizado com sucesso!");
+        } catch (err: any) {
+            console.error("Schedule Error:", err);
+            alert("Erro ao agendar: " + err.message);
         } finally {
             setIsUpdating(false);
         }
@@ -725,6 +817,18 @@ const CRMFunil = () => {
                                             onChange={(e) => setSelectedLead({...selectedLead, responsavel: e.target.value})}
                                         />
                                     </div>
+                                    {selectedLead.meeting_link && (
+                                        <div className="supreme-info-card lg:col-span-2 border-primary-color/30 bg-primary-color/5">
+                                            <span className="supreme-info-label text-primary-color">Link da Reunião (Google Meet)</span>
+                                            <div className="flex items-center justify-between mt-1">
+                                                <a href={selectedLead.meeting_link} target="_blank" rel="noreferrer" className="text-white font-black text-sm underline truncate decoration-primary-color underline-offset-4">
+                                                    {selectedLead.meeting_link}
+                                                </a>
+                                                <Globe size={16} className="text-primary-color animate-pulse" />
+                                            </div>
+                                            <span className="text-[9px] text-gray-500 font-bold uppercase mt-2 block">Data: {new Date(selectedLead.meeting_date).toLocaleString('pt-BR')}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </section>
 
@@ -734,6 +838,86 @@ const CRMFunil = () => {
                                 </button>
                             </div>
                         </main>
+                    </div>
+                </div>
+            )}
+            {/* GOOGLE SCHEDULING MODAL */}
+            {isScheduling && (
+                <div className="supreme-modal-overlay" onClick={() => setIsScheduling(null)}>
+                    <div className="supreme-modal-content max-w-[450px]" onClick={e => e.stopPropagation()}>
+                        <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-primary-color/10 flex items-center justify-center text-primary-color"><Calendar size={24} /></div>
+                                <div>
+                                    <h2 className="text-lg font-black text-white leading-none mb-1">AGENDAR REUNIÃO</h2>
+                                    <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest">{isScheduling.nome}</p>
+                                </div>
+                            </div>
+                            <button className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white" onClick={() => setIsScheduling(null)}><X size={20} /></button>
+                        </header>
+                        <div className="p-8">
+                            {!googleToken ? (
+                                <div className="text-center py-10">
+                                    <AlertTriangle size={48} className="text-amber-500 mx-auto mb-4" />
+                                    <p className="text-sm font-bold text-white mb-6">Você precisa conectar sua conta Google primeiro.</p>
+                                    <button className="btn-supreme w-full py-4" onClick={() => googleCalendarService.requestToken()}>
+                                        <Globe size={18} /> CONECTAR GOOGLE CALENDAR
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-6">
+                                    <div className="crm-input-group">
+                                        <label className="text-[10px] uppercase font-black text-gray-500 mb-2 block">Agenda Destino</label>
+                                        <div className="relative">
+                                            <select 
+                                                className="crm-input appearance-none"
+                                                value={selectedCalendarId}
+                                                onChange={(e) => {
+                                                    setSelectedCalendarId(e.target.value);
+                                                    localStorage.setItem('gcal_selected_id', e.target.value);
+                                                }}
+                                            >
+                                                {calendars.map(c => <option key={c.id} value={c.id} className="bg-[#0f172a]">{c.summary}</option>)}
+                                            </select>
+                                            <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="crm-input-group">
+                                            <label className="text-[10px] uppercase font-black text-gray-500 mb-2 block">Data</label>
+                                            <input type="date" className="crm-input" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
+                                        </div>
+                                        <div className="crm-input-group">
+                                            <label className="text-[10px] uppercase font-black text-gray-500 mb-2 block">Horário</label>
+                                            <input type="time" className="crm-input" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
+                                        </div>
+                                    </div>
+
+                                    <div className="crm-input-group">
+                                        <label className="text-[10px] uppercase font-black text-gray-500 mb-2 block text-primary-color flex items-center gap-2">
+                                            <TrendingUp size={12} /> Sugestão de Perfil: {isScheduling.metodo || 'Padrão'}
+                                        </label>
+                                        <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                                            <input 
+                                                type="checkbox" 
+                                                id="meet-link"
+                                                className="w-5 h-5 rounded border-white/10 bg-white/5 text-primary-color focus:ring-primary-color"
+                                                checked={scheduleForm.createMeet}
+                                                onChange={e => setScheduleForm({...scheduleForm, createMeet: e.target.checked})}
+                                            />
+                                            <label htmlFor="meet-link" className="text-xs font-bold text-white cursor-pointer select-none">
+                                                Gerar Link Automático do Google Meet
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <button className="btn-supreme w-full py-5 text-sm" onClick={handleScheduleMeeting} disabled={isUpdating}>
+                                        {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={20} /> FINALIZAR AGENDAMENTO</>}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
