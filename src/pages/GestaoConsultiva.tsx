@@ -159,6 +159,8 @@ const GestaoConsultiva = () => {
                         event_type: 'consultative_action_created',
                         ...actionForm,
                         meeting_link: meetLink,
+                        agent_name: user?.name,
+                        agent_numero: user?.notification_number || user?.phone || '',
                         responsavel: user?.name,
                         google_id: googleId
                     });

@@ -329,6 +329,8 @@ const CRMFunil = () => {
                 event_type: 'crm_lead_scheduled',
                 ...isScheduling,
                 ...updatedData,
+                agent_name: user?.name,
+                agent_numero: user?.notification_number || user?.phone || '',
                 responsavel: user?.name
             });
 
