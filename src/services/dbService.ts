@@ -1163,16 +1163,38 @@ export const dbService = {
     sendMeetingWebhook: async (data: any) => {
         try {
             const webhookUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/email-sender';
+            
+            // Mapeamento de agentes para IDs externos
+            const agentMap: Record<string, string> = {
+                'Ricardo Willer': '1',
+                'Otávio Augusto': '2',
+                'Augusto Fagundes': '3',
+                'Luis Henrique': '4',
+                'Gabriel Martins': '5',
+                'Italo Clovis': '6',
+                'Samwell Souza': '7',
+                'Thales Henrique': '8',
+                'Ramon Gomes': '9',
+                'Gisele Vieira': '10',
+                'Joyce Vieira': '11',
+                'Thiago Rocha': '12'
+            };
+
+            const agent_name = data.responsavel || data.agent_name || '';
+            const agent_numero = agent_name ? (agentMap[agent_name] || '0') : '0';
+
             await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...data,
+                    agent_name,
+                    agent_numero,
                     timestamp: new Date().toISOString(),
                     source: 'Plug & Sales CRM'
                 })
             });
-            console.log("Webhook sent successfully to n8n");
+            console.log("Webhook sent successfully to n8n with agent info");
         } catch (err) {
             console.error("Error sending meeting webhook:", err);
         }
