@@ -259,14 +259,12 @@ const Accounts = () => {
                     }
                     td { 
                         border: none;
-                        padding: 8px 0;
+                        padding: 12px 0;
                         position: relative;
-                        padding-left: 50%;
                         font-size: 0.85rem;
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
-                        text-align: right;
                     }
                     td::before { 
                         content: attr(data-label);
@@ -276,7 +274,13 @@ const Accounts = () => {
                         font-size: 0.7rem;
                         text-align: left;
                     }
-                    td:last-child { border-bottom: 0; border-top: 1px solid var(--surface-border-subtle); margin-top: 10px; padding-top: 15px; }
+                    td:last-child { 
+                        border-bottom: 0; 
+                        border-top: 1px solid var(--surface-border-subtle); 
+                        margin-top: 12px; 
+                        padding-top: 20px; 
+                        justify-content: center;
+                    }
                 }
                 
                 .recent-tag {
@@ -497,20 +501,20 @@ const Accounts = () => {
                             filteredTemplates.slice((templatesPage - 1) * itemsPerPage, templatesPage * itemsPerPage).map((t, index) => (
                                 <tr key={index} className="hover-row">
                                     <td data-label="Template">
-                                        <div className="flex flex-col text-right md:text-left">
+                                        <div className="flex flex-col text-right">
                                             <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{t.name}</span>
                                             <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', opacity: 0.6, fontFamily: 'monospace', marginTop: '2px' }}>{t.id.slice(0, 15)}...</span>
                                         </div>
                                     </td>
                                     <td data-label="Categoria">
-                                        <div className="flex flex-col text-right md:text-left">
+                                        <div className="flex flex-col text-right">
                                             <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t.category}</span>
                                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>pt_BR</span>
                                         </div>
                                     </td>
                                     <td data-label="Status">{getStatusBadge(t.status, t.rejectionReason)}</td>
                                     <td data-label="Sincronizado">
-                                        <div className="flex items-center justify-end md:justify-start gap-2" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                        <div className="flex items-center justify-end gap-2" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                             <Clock size={12} opacity={0.4} />
                                             {formatDate(t.lastUpdatedAt || t.createdAt)}
                                         </div>
