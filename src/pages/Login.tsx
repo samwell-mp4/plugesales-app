@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, ShieldCheck, Lock, User } from 'lucide-react';
+import SupremeLogo from '../components/SupremeLogo';
 
 const Login = () => {
     const { login } = useAuth();

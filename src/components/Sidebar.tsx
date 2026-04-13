@@ -31,6 +31,9 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 
+import SupremeLogo from './SupremeLogo';
+
+
 // --- Submenu Component ---
 const SubMenu = ({ item, activePath }: { item: any, activePath: string }) => {
     const hasActiveChild = useMemo(() => 
@@ -284,10 +287,6 @@ const Sidebar = () => {
     return (
         <aside className="sidebar-supreme">
             <div className="sidebar-supreme-logo">
-                <div className="w-10 h-10 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-lg shadow-primary-color/20">
-                    <Zap size={22} fill="currentColor" />
-                </div>
-                <div>
                 <SupremeLogo size={28} animate="shimmer" />
                 <span className="logo-text-supreme">
                     PLUG <span className="logo-text-highlight-supreme">&</span> SALES

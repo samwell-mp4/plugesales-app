@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import SupremeLogo from '../components/SupremeLogo';
 import { 
   Smartphone, 
   Apple, 
