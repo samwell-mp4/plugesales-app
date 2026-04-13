@@ -29,6 +29,18 @@ interface CampaignBatch {
     collapsed?: boolean;
 }
 
+// --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
+const LEANDRO_BODY_4 = 'Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇';
+const LEANDRO_BODY_5 = 'Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇';
+const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
+const LEANDRO_EXAMPLES = [
+    "Leandro", // {{1}}
+    "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
+    "O comprovante digital já se encontra disponível para conferência", // {{3}}
+    "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
+    "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
+];
+
 const TemplateCreator = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -221,34 +233,20 @@ const TemplateCreator = () => {
     };
 
     const buildInfobipPayload = (name: string, _overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
-        // --- UNIQUE VARIABLE TAG DETECTION ---
-        // Match numbers between double curly braces: {{1}}, {{2}}, etc.
-        const tagMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];
-        const uniqueIndices = [...new Set(tagMatches.map(m => m.match(/\d+/)![0]))]
-            .map(Number)
-            .sort((a, b) => a - b);
-
-        const varCount = uniqueIndices.length;
-
-        // --- STANDARD UTILITY EXAMPLES (ALWAYS PORTUGUESE) ---
-        const standardExamples = [
-            "Leandro", // {{1}}
-            "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
-            "O comprovante digital já se encontra disponível para conferência", // {{3}}
-            "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
-            "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
-        ];
-        const examples = standardExamples.slice(0, varCount);
+        // --- LEANDRO STANDARD ENFORCEMENT ---
+        // We ALWAYS use the hardcoded Leandro strings for the API payload to ensure Meta approval.
+        // Lead-specific data from cards is only for display/logging, NOT for the template structure.
+        const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
+        const footerValue = LEANDRO_FOOTER;
+        const varCount = isFiveVars ? 5 : 4;
+        const examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
         const structure: any = {
             body: {
-                text: bodyText
+                text: bodyValue,
+                examples: examples
             }
         };
-
-        if (examples.length > 0) {
-            structure.body.examples = examples;
-        }
 
         const effectiveHeaderType = overrideHeaderType || headerType;
 
@@ -261,9 +259,8 @@ const TemplateCreator = () => {
             };
         }
 
-        if (footerText && footerText.trim()) {
-            structure.footer = { text: footerText.trim() };
-        }
+        // Footer is always hardcoded per Leandro Standard
+        structure.footer = { text: LEANDRO_FOOTER };
 
         const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
 
