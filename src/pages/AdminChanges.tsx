@@ -46,6 +46,17 @@ const AdminChanges = () => {
                 : await dbService.rejectChangeRequest(id);
 
             if (res.success) {
+                // Notify the user who requested the change
+                const req = requests.find(r => r.id === id);
+                if (req && req.user_id) {
+                    await dbService.addNotification({
+                        user_id: req.user_id,
+                        title: action === 'approve' ? 'Solicitação Aprovada' : 'Solicitação Rejeitada',
+                        message: `Sua solicitação de alteração para ${req.profile_name} foi ${action === 'approve' ? 'APROVADA' : 'REJEITADA'} pelo administrador.`,
+                        type: action === 'approve' ? 'success' : 'alert'
+                    });
+                }
+
                 alert(`Solicitação ${action === 'approve' ? 'aprovada' : 'rejeitada'} com sucesso!`);
                 loadRequests();
             } else {

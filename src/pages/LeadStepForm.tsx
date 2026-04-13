@@ -138,6 +138,13 @@ const LeadStepForm = () => {
             }
 
             if (success) {
+                // Notify Admins
+                await dbService.notifyAdmins(
+                    'Novo Lead Capturado',
+                    `Lead: ${formData.name} entrou via Lead-Flow. (Agente: ${formData.agent_name || 'N/A'})`,
+                    'success'
+                );
+
                 if (formData.volume === 'Não possuo uma base de contatos') {
                     navigate('/finalizado');
                 } else {
@@ -153,6 +160,7 @@ const LeadStepForm = () => {
                         navigate(`/obrigado/${agentId}`);
                     }
                 }
+                setCurrentStep(7);
             } else {
                 alert("Ocorreu um erro ao enviar seus dados. Por favor, tente novamente.");
             }

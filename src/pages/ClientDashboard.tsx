@@ -887,6 +887,13 @@ const ClientDashboard = () => {
                             });
 
                             if (res) {
+                                // Notify Admins
+                                await dbService.notifyAdmins(
+                                    'Nova Solicitação de Alteração',
+                                    `O cliente ${user?.name} solicitou mudanças no template da submission #${selectedSubForChange.id}.`,
+                                    'alert'
+                                );
+
                                 alert("Solicitação enviada com sucesso! Aguarde a aprovação.");
                                 setShowChangeRequestModal(false);
                             } else {

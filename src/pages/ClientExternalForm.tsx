@@ -242,7 +242,7 @@ const ClientExternalForm = () => {
                 }
                 @media (max-width: 768px) {
                     .form-container-wrapper {
-                        padding: 40px 12px;
+                        padding: 40px 16px;
                     }
                 }
                 .glass-card {
@@ -256,9 +256,15 @@ const ClientExternalForm = () => {
                     width: 100%;
                     transition: all 0.4s ease;
                 }
-                @media (max-width: 768px) {
+                @media (max-width: 1024px) {
                     .glass-card {
-                        padding: 30px 20px;
+                        padding: 40px 30px;
+                        border-radius: 32px;
+                    }
+                }
+                @media (max-width: 640px) {
+                    .glass-card {
+                        padding: 24px 20px;
                         border-radius: 24px;
                     }
                 }
@@ -272,6 +278,11 @@ const ClientExternalForm = () => {
                     gap: 60px; 
                     max-width: 1350px; 
                     width: 100%;
+                }
+                @media (max-width: 1200px) {
+                    .whatsapp-grid {
+                        gap: 32px;
+                    }
                 }
                 .header-title { 
                     font-size: 2.8rem; 
@@ -294,8 +305,8 @@ const ClientExternalForm = () => {
                     color: #fff;
                     margin-top: -5px;
                 }
-                @media (max-width: 480px) {
-                    .header-title { font-size: 2.2rem !important; }
+                @media (max-width: 640px) {
+                    .header-title { font-size: 2rem !important; letter-spacing: -1px; }
                     .header-subtitle { letter-spacing: 3px; font-size: 8px; }
                 }
                 .section-title {
@@ -304,6 +315,9 @@ const ClientExternalForm = () => {
                     letter-spacing: -1.5px;
                     margin-bottom: 8px;
                     color: #fff;
+                }
+                @media (max-width: 640px) {
+                    .section-title { font-size: 1.4rem; }
                 }
                 .section-subtitle {
                     font-size: 14px;
@@ -356,6 +370,13 @@ const ClientExternalForm = () => {
                     flex-shrink: 0;
                     box-shadow: 0 10px 20px rgba(0,0,0,0.2);
                 }
+                @media (max-width: 640px) {
+                    .photo-uploader {
+                        width: 100px;
+                        height: 100px;
+                        border-radius: 28px;
+                    }
+                }
                 .photo-uploader:hover {
                     border-color: #acf800;
                     background: rgba(172, 248, 0, 0.05);
@@ -366,21 +387,6 @@ const ClientExternalForm = () => {
                     width: 100%;
                     height: 100%;
                     object-fit: contain;
-                }
-                .ad-selector-btn {
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 16px;
-                    padding: 10px 20px;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                }
-                .ad-selector-btn:hover {
-                    background: rgba(255, 255, 255, 0.08);
-                    border-color: #acf800;
                 }
 
                 .preview-side {
@@ -457,6 +463,11 @@ const ClientExternalForm = () => {
                     width: 100%;
                     padding: 40px;
                 }
+                @media (max-width: 640px) {
+                    .upload-zone {
+                        padding: 30px 20px;
+                    }
+                }
                 .upload-zone:hover {
                     border-color: #acf800;
                     background: rgba(172, 248, 0, 0.04);
@@ -487,6 +498,9 @@ const ClientExternalForm = () => {
                     cursor: pointer;
                     letter-spacing: 1px;
                 }
+                @media (max-width: 480px) {
+                    .mode-btn { padding: 8px 12px; font-size: 9px; }
+                }
                 .mode-btn.active {
                     background: #fff;
                     color: #000;
@@ -507,6 +521,9 @@ const ClientExternalForm = () => {
                     border: none;
                     cursor: pointer;
                 }
+                @media (max-width: 640px) {
+                    .nav-btn { padding: 16px 24px; font-size: 11px; letter-spacing: 1px; }
+                }
                 .nav-btn-primary {
                     background: #acf800;
                     color: #000;
@@ -520,9 +537,6 @@ const ClientExternalForm = () => {
                     background: rgba(255,255,255,0.04);
                     color: #fff;
                     border: 1px solid rgba(255,255,255,0.08);
-                }
-                .nav-btn-secondary:hover {
-                    background: rgba(255,255,255,0.08);
                 }
 
                 .custom-switch {
@@ -568,6 +582,9 @@ const ClientExternalForm = () => {
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                 }
+                @media (max-width: 640px) {
+                    .creative-card { width: 100px; height: 100px; }
+                }
                 .creative-card:hover {
                     background: rgba(255, 255, 255, 0.05);
                     border-color: rgba(255, 255, 255, 0.2);
@@ -599,10 +616,7 @@ const ClientExternalForm = () => {
                     font-weight: 800;
                     text-transform: uppercase;
                     letter-spacing: 1.5px;
-                    transition: all 0.3s ease;
                 }
-                .creative-card.active .creative-label { color: #acf800; }
-                .creative-card:not(.active) .creative-label { color: rgba(255, 255, 255, 0.3); }
 
                 @media (max-width: 1024px) {
                     .whatsapp-grid { grid-template-columns: 1fr; gap: 40px; }
@@ -611,14 +625,10 @@ const ClientExternalForm = () => {
                     .nav-btn { width: 100%; justify-content: center; }
                     .creative-card { flex: 1; min-width: 100px; }
                 }
+                @media (max-width: 640px) {
+                    .header-title { font-size: 2.2rem !important; letter-spacing: -1.5px !important; }
+                }
 
-                .ad-dropdown {  /* This will be removed, replaced with chips */
-                    display: none;
-                }
-                @keyframes slideUp {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
                 .ad-chip {
                     padding: 10px 18px;
                     border-radius: 14px;
@@ -658,12 +668,6 @@ const ClientExternalForm = () => {
                     color: #acf800;
                     cursor: pointer;
                     transition: all 0.2s;
-                }
-                .add-ad-btn:hover {
-                    background: #acf800;
-                    color: #000;
-                    transform: scale(1.1);
-                    border-style: solid;
                 }
             `}</style>
 
@@ -737,7 +741,7 @@ const ClientExternalForm = () => {
 
                             {step === 1 && (
                                 <div className="glass-card animate-fade-in space-y-16">
-                                    <div className="flex flex-col md:flex-row gap-20 items-center md:items-start text-center md:text-left">
+                                    <div className="flex flex-col md:flex-row gap-8 md:gap-20 items-center md:items-start text-center md:text-left">
                                         <div className="flex flex-col items-center gap-8">
                                             <div
                                                 className="photo-uploader group"
@@ -767,7 +771,7 @@ const ClientExternalForm = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="pt-24 border-t border-white/5 flex gap-8">
+                                    <div className="pt-12 md:pt-24 border-t border-white/5 flex flex-col sm:flex-row gap-4 sm:gap-8">
                                         <button onClick={prevStep} className="nav-btn nav-btn-secondary flex-1 justify-center">VOLTAR</button>
                                         <button onClick={nextStep} className="nav-btn nav-btn-primary flex-2 justify-center">PRÓXIMO PASSO <ArrowRight size={18} /></button>
                                     </div>
@@ -914,7 +918,7 @@ const ClientExternalForm = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
                                             <div className="form-group">
                                                 <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Link do Botão (HTTPS)</label>
                                                 <div className="relative group">
@@ -984,7 +988,7 @@ const ClientExternalForm = () => {
                                         </div>
 
                                         {formData.ads[formData.currentAdIndex].message_mode === 'manual' ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6 pt-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 md:gap-x-12 gap-y-4 md:gap-y-6 pt-4">
                                                 {[1, 2, 3, 4, 5].map(vNum => {
                                                     if (vNum === 5 && !formData.ads[formData.currentAdIndex].showFifthVariable) return null;
                                                     return (
@@ -1047,7 +1051,7 @@ const ClientExternalForm = () => {
                                         )}
                                     </div>
 
-                                    <div className="pt-24 border-t border-white/5 flex gap-8">
+                                    <div className="pt-12 md:pt-24 border-t border-white/5 flex flex-col sm:flex-row gap-4 sm:gap-8">
                                         <button onClick={prevStep} className="nav-btn nav-btn-secondary flex-1 justify-center">VOLTAR</button>
                                         <button onClick={nextStep} className="nav-btn nav-btn-primary flex-2 justify-center">PRÓXIMO PASSO <ArrowRight size={18} /></button>
                                     </div>
@@ -1073,7 +1077,7 @@ const ClientExternalForm = () => {
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="pt-16 border-t border-white/5 flex gap-8">
+                                    <div className="pt-12 md:pt-16 border-t border-white/5 flex flex-col sm:flex-row gap-4 sm:gap-8">
                                         <button onClick={prevStep} className="nav-btn nav-btn-secondary flex-1 justify-center">VOLTAR</button>
                                         <button onClick={handleSubmit} disabled={isSubmitting} className="nav-btn nav-btn-primary flex-2 justify-center">
                                             {isSubmitting ? <Activity className="animate-spin" size={18} /> : <>FINALIZAR E ENVIAR <Send size={18} /></>}
@@ -1149,7 +1153,7 @@ const ClientExternalForm = () => {
                                 <h1 className="text-4xl font-black tracking-tighter">SUCESSO!</h1>
                                 <p className="text-white/40 font-medium text-sm px-10">Sua campanha foi enviada para processamento com sucesso.</p>
                             </div>
-                            <div className="flex flex-col gap-4 mt-12 px-6">
+                            <div className="flex flex-col gap-4 mt-8 md:mt-12 px-2 sm:px-6">
                                 <button
                                     onClick={() => window.location.reload()}
                                     className="nav-btn nav-btn-primary w-full justify-center"

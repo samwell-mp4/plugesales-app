@@ -801,6 +801,46 @@ export const dbService = {
             return null;
         }
     },
+    addNotification: async (data: { user_id: number; title: string; message: string; type: 'success' | 'warning' | 'info' | 'alert' }) => {
+        try {
+            const res = await fetch(`${API_BASE}/notifications`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error adding notification:", err);
+            return null;
+        }
+    },
+    notifyAdmins: async (title: string, message: string, type: 'info' | 'warning' | 'alert' | 'success' = 'info') => {
+        try {
+            // Get internal team
+            const team = await fetch(`${API_BASE}/users/team`).then(r => r.json());
+            const notifications = team.map((member: any) => ({
+                user_id: member.id,
+                title,
+                message,
+                type
+            }));
+
+            // Bulk add (the backend might support this or we do it one by one)
+            // For simplicity in this env, we'll do one by one or assume a bulk endpoint exists
+            // Since I don't see a bulk endpoint, I'll do a Promise.all
+            await Promise.all(notifications.map((n: any) => 
+                fetch(`${API_BASE}/notifications`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(n)
+                })
+            ));
+            return { success: true };
+        } catch (err) {
+            console.error("Error notifying admins:", err);
+            return { error: err };
+        }
+    },
     // --- GESTÃO CONSULTIVA ---
     getConsultativeActions: async (responsavel?: string) => {
         try {
