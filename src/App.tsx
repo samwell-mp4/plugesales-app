@@ -39,7 +39,8 @@ import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
 import Download from './pages/Download';
 import AdminChanges from './pages/AdminChanges';
-import MetaPixel from './components/MetaPixel';
+import metaPixel from './components/MetaPixel';
+import SupremeLoading from './components/SupremeLoading';
 import './index.css';
 import './crm.css';
 
@@ -47,11 +48,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Control from './pages/Control';
 
-
-
 function AppContent() {
-  const { user, theme } = useAuth();
+  const { user, theme, isLoading } = useAuth();
   const location = useLocation();
+
+  if (isLoading) {
+    return <SupremeLoading />;
+  }
 
   const isPublicRoute = 
     location.pathname.startsWith('/landing') || 

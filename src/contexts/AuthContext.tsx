@@ -22,6 +22,7 @@ interface AuthContextType {
     setUser: (user: User | null) => void;
     theme: 'dark' | 'light';
     toggleTheme: () => void;
+    isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +45,7 @@ const VALID_USERS = [
 import { dbService } from '../services/dbService';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState<User | null>(() => {
         const saved = localStorage.getItem('auth_user');
         return saved ? JSON.parse(saved) : null;
@@ -83,6 +85,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("Auto-repair error:", err);
         }
     };
+    
+    // Initial loading effect
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 1200); // 1.2s splash duration
+        return () => clearTimeout(timer);
+    }, []);
 
     // Use an effect to auto-repair sessions missing an ID
     useEffect(() => {
@@ -175,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (
         <AuthContext.Provider value={{
             user, login, register, logout, setUser: handleSetUser,
-            theme, toggleTheme
+            theme, toggleTheme, isLoading
         }}>
             {children}
         </AuthContext.Provider>
