@@ -190,6 +190,7 @@ const TemplateDispatch = () => {
     useEffect(() => {
         // Fetch all templates if none passed
         const fetchTemplates = async () => {
+            if (!apiKey || !fromNumber || fromNumber.length < 8) return;
             try {
                 const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${fromNumber}/templates`, {
                     headers: { 'Authorization': `App ${apiKey}` }
@@ -214,15 +215,20 @@ const TemplateDispatch = () => {
             setAvailableTags([...new Set(tags)] as string[]);
         };
 
-        if (apiKey && fromNumber) {
-            fetchTemplates();
+        let handler: NodeJS.Timeout;
+        if (apiKey && fromNumber && fromNumber.length >= 8) {
+            handler = setTimeout(fetchTemplates, 800);
         }
         loadTags();
 
         if (passedTemplate) {
             autoConfigureTemplate(passedTemplate);
         }
-    }, [passedTemplate]);
+
+        return () => {
+            if (handler) clearTimeout(handler);
+        };
+    }, [apiKey, fromNumber, passedTemplate]);
 
     const autoConfigureTemplate = (template: InfobipTemplate) => {
         setTemplateName(template.name);

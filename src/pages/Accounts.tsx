@@ -161,10 +161,17 @@ const Accounts = () => {
     };
 
     useEffect(() => {
-        if (apiKey && senderNumber) {
-            fetchTemplates();
-            const interval = setInterval(fetchTemplates, 20000); // Relaxed for quota
-            return () => clearInterval(interval);
+        if (apiKey && senderNumber && senderNumber.length >= 8) {
+            const handler = setTimeout(() => {
+                fetchTemplates();
+            }, 800); // 800ms debounce to wait for user to finish typing
+            
+            const interval = setInterval(fetchTemplates, 45000); // Periodic refresh
+            
+            return () => {
+                clearTimeout(handler);
+                clearInterval(interval);
+            };
         }
     }, [senderNumber, apiKey]);
 

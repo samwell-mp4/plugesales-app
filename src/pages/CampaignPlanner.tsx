@@ -47,9 +47,10 @@ const CampaignPlanner = () => {
             }
 
             // Load Templates from Infobip
-            const tResponse = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${fromNumber}/templates`, {
-                headers: { 'Authorization': `App ${apiKey}` }
-            });
+            if (fromNumber && fromNumber.length >= 8) {
+                const tResponse = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${fromNumber}/templates`, {
+                    headers: { 'Authorization': `App ${apiKey}` }
+                });
             const tData = await tResponse.json();
             setAvailableTemplates(tData.templates || []);
 
