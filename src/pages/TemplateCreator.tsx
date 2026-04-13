@@ -75,7 +75,11 @@ const TemplateCreator = () => {
             if (data.templateName) setModelName(data.templateName);
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
             if (data.clientId) setSelectedClientId(data.clientId);
-            if (data.bodyText) _setBodyText(data.bodyText);
+            if (data.bodyText) {
+                _setBodyText(data.bodyText);
+                const varMatch = data.bodyText.match(/\{\{(\d+)\}\}/g) || [];
+                if (varMatch.length >= 5) setIsFiveVars(true);
+            }
             if (data.language) setSelectedPayloadLanguage(data.language);
 
             if (data.campaigns && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
@@ -95,10 +99,18 @@ const TemplateCreator = () => {
                 if (initializedCampaigns[0]?.rows?.[0]) {
                     const firstRow = initializedCampaigns[0].rows[0];
                     if (firstRow.mediaUrl) setHeaderMediaUrl(firstRow.mediaUrl);
-                    const firstUrl = firstRow.buttonUrl || (firstRow.buttonUrls && firstRow.buttonUrls[0]);
-                    if (firstUrl) {
-                        setButtons([{ type: 'url', text: 'Clique Aqui', url: firstUrl }]);
+                    
+                    const firstUrls = firstRow.buttonUrls || (firstRow.buttonUrl ? [firstRow.buttonUrl] : []);
+                    const firstTexts = firstRow.buttonTexts || (firstRow.buttonUrl ? ['Clique Aqui'] : []);
+                    
+                    if (firstUrls.length > 0) {
+                        setButtons(firstUrls.map((url: string, i: number) => ({
+                            type: 'url', 
+                            text: firstTexts[i] || 'Clique Aqui', 
+                            url: url 
+                        })));
                     }
+
                     if (firstRow.variables && firstRow.variables.length > 0) {
                         _setVariablesExample(firstRow.variables);
                     }
@@ -118,8 +130,16 @@ const TemplateCreator = () => {
                 }]);
 
                 if (initializedRows[0]?.mediaUrl) setHeaderMediaUrl(initializedRows[0].mediaUrl);
-                if (initializedRows[0]?.buttonUrl) {
-                    setButtons([{ type: 'url', text: 'Clique Aqui', url: initializedRows[0].buttonUrl }]);
+                
+                const firstUrls = initializedRows[0].buttonUrls || (initializedRows[0].buttonUrl ? [initializedRows[0].buttonUrl] : []);
+                const firstTexts = initializedRows[0].buttonTexts || (initializedRows[0].buttonUrl ? ['Clique Aqui'] : []);
+                
+                if (firstUrls.length > 0) {
+                    setButtons(firstUrls.map((url: string, i: number) => ({
+                        type: 'url', 
+                        text: firstTexts[i] || 'Clique Aqui', 
+                        url: url 
+                    })));
                 }
 
                 // Set global variables from the first row for preview/MODEL mode
@@ -132,7 +152,7 @@ const TemplateCreator = () => {
 
     // --- MODEL STATE ---
     const [modelName, setModelName] = useState('pagamento_confirmado');
-    const [selectedPayloadLanguage, setSelectedPayloadLanguage] = useState('pt_BR');
+    const [selectedPayloadLanguage, setSelectedPayloadLanguage] = useState('en_US');
 
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
     const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/B7sl2Kg.jpg');
@@ -259,8 +279,8 @@ const TemplateCreator = () => {
 
         return {
             name: name,
-            language: overrideLanguage || selectedPayloadLanguage,
-            category: selectedCategory,
+            language: 'en_US', // HARD FORCED PER USER REQUEST (Leandro Standard)
+            category: 'UTILITY', // HARD FORCED PER USER REQUEST (Leandro Standard)
             structure: structure
         };
     };
@@ -1165,25 +1185,7 @@ const TemplateCreator = () => {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3">
-                                <label>Categoria do Template (Infobip)</label>
-                                <div className="flex gap-2 responsive-stack-mobile">
-                                    {[
-                                        { code: 'UTILITY', label: 'UTILITÁRIO' },
-                                        { code: 'MARKETING', label: 'MARKETING' }
-                                    ].map(cat => (
-                                        <button
-                                            key={cat.code}
-                                            onClick={() => setSelectedCategory(cat.code as any)}
-                                            className={`global-tile-btn ${selectedCategory === cat.code ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
-                                            style={{ flex: 1, height: '44px', fontSize: '11px', fontWeight: 900 }}
-                                        >
-                                            {cat.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                <span style={{ fontSize: '10px', opacity: 0.5, fontStyle: 'italic' }}>* Recomendado: UTILITÁRIO para notificações de serviço.</span>
-                            </div>
+                            {/* Category selection removed per user request - Forced to UTILITY */}
                         </div>
 
                         <div className="tab-btns flex gap-4 responsive-stack-mobile" style={{ marginBottom: '32px', padding: '5px 0' }}>

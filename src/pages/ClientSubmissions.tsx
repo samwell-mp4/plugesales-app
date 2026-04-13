@@ -335,6 +335,8 @@ const ClientSubmissions = () => {
         const preFillData = {
             clientId: firstSub.user_id,
             clientName: firstSub.client_name,
+            templateName: `${firstSub.profile_name.toLowerCase().replace(/[\s-@]/g, '_')}_${firstSub.ddd}`,
+            senderNumber: firstSub.sender_number || '',
             templateType: firstSub.template_type || (firstAds.length > 0 ? firstAds[0]?.template_type : 'TEXT'),
             bodyText: (firstAds.length > 0 ? firstAds[0]?.ad_copy : firstSub.ad_copy) || '',
             campaigns: campaigns
