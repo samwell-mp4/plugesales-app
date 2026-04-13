@@ -217,7 +217,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
+    const buildInfobipPayload = (name: string, _overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
         // --- UNIQUE VARIABLE TAG DETECTION ---
         // Match numbers between double curly braces: {{1}}, {{2}}, etc.
         const tagMatches = bodyText.match(/\{\{(\d+)\}\}/g) || [];

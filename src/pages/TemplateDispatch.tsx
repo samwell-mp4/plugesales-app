@@ -215,7 +215,7 @@ const TemplateDispatch = () => {
             setAvailableTags([...new Set(tags)] as string[]);
         };
 
-        let handler: NodeJS.Timeout;
+        let handler: any;
         if (apiKey && fromNumber && fromNumber.length >= 8) {
             handler = setTimeout(fetchTemplates, 800);
         }

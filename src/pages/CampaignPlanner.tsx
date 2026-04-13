@@ -51,9 +51,9 @@ const CampaignPlanner = () => {
                 const tResponse = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${fromNumber}/templates`, {
                     headers: { 'Authorization': `App ${apiKey}` }
                 });
-            const tData = await tResponse.json();
-            setAvailableTemplates(tData.templates || []);
-
+                const tData = await tResponse.json();
+                setAvailableTemplates(tData.templates || []);
+            }
         } catch (error) {
             console.error('Erro ao carregar dados para a Dashboard:', error);
         } finally {
