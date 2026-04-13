@@ -1158,5 +1158,23 @@ export const dbService = {
             console.error("Error rejecting change request:", err);
             return { error: err.message };
         }
+    },
+    // --- Webhooks Outsourcing ---
+    sendMeetingWebhook: async (data: any) => {
+        try {
+            const webhookUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/email-sender';
+            await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...data,
+                    timestamp: new Date().toISOString(),
+                    source: 'Plug & Sales CRM'
+                })
+            });
+            console.log("Webhook sent successfully to n8n");
+        } catch (err) {
+            console.error("Error sending meeting webhook:", err);
+        }
     }
 };

@@ -323,6 +323,15 @@ const CRMFunil = () => {
 
             await dbService.updateCRMLead(isScheduling.id, updatedData);
             await fetchLeads();
+            
+            // Envia Webhook com todos os parâmetros
+            await dbService.sendMeetingWebhook({
+                event_type: 'crm_lead_scheduled',
+                ...isScheduling,
+                ...updatedData,
+                responsavel: user?.name
+            });
+
             setRecentMeetLink(meetLink);
             // Removi o setIsScheduling(null) daqui para mostrar o link no modal
         } catch (err: any) {

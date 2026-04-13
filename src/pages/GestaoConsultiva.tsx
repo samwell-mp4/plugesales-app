@@ -152,6 +152,16 @@ const GestaoConsultiva = () => {
                 } else {
                     const created = await googleCalendarService.createEvent(googleToken, selectedCalendarId, gEvent, true);
                     googleId = created.id;
+
+                    // Envia Webhook se for uma nova criação com Google Meet
+                    const meetLink = created.conferenceData?.entryPoints?.find((e: any) => e.entryPointType === 'video')?.uri || '';
+                    await dbService.sendMeetingWebhook({
+                        event_type: 'consultative_action_created',
+                        ...actionForm,
+                        meeting_link: meetLink,
+                        responsavel: user?.name,
+                        google_id: googleId
+                    });
                 }
             }
 
