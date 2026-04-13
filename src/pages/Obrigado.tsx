@@ -24,7 +24,7 @@ const Obrigado = () => {
 
     // Mapeamento de Telefones dos Agentes para Redirecionamento de WhatsApp
     const agentPhoneMap: Record<string, string> = {
-        '1': '5511999999999',
+        '1': '553193737757',
         '10': '5531983804904',
         '11': '5531981081012',
         '12': '5531999958066'
@@ -133,9 +133,9 @@ const Obrigado = () => {
                 <div className="icon-box">
                     <Target size={60} color="#000" strokeWidth={3} />
                 </div>
-                
+
                 <h1 className="title">Tudo Pronto!</h1>
-                
+
                 {id && !isExcluded ? (
                     <p className="subtitle">
                         Suas informações foram recebidas. Um consultor entrará em contato em breve para alinhar os próximos passos da sua operação.
@@ -152,7 +152,7 @@ const Obrigado = () => {
 
                 {id && agentPhoneMap[id] && (
                     <div style={{ marginTop: '48px', padding: '0 40px' }}>
-                        <button 
+                        <button
                             className="cta-btn"
                             onClick={() => window.open(`https://wa.me/${agentPhoneMap[id]}?text=Olá ${agentMap[id] || ''}, acabei de preencher o formulário e gostaria de mais informações!`, '_blank')}
                         >
