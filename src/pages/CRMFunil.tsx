@@ -676,8 +676,8 @@ const CRMFunil = () => {
             {/* MODAL ADICIONAR LEAD SUPREME */}
             {isAddModalOpen && (
                 <div className="supreme-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
-                    <div className="supreme-modal-content p-0 crm-add-modal max-w-[800px] h-auto max-h-[90vh]" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }} onClick={e => e.stopPropagation()}>
-                        <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
+                    <div className="supreme-modal-content crm-add-modal max-w-[800px] h-auto" onClick={e => e.stopPropagation()}>
+                        <header>
                             <div className="flex items-center gap-5">
                                 <div className="w-14 h-14 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-xl shadow-primary-color/20"><Plus size={28} strokeWidth={3} /></div>
                                 <div>
@@ -688,38 +688,39 @@ const CRMFunil = () => {
                             <button className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white" onClick={() => setIsAddModalOpen(false)}><X size={20} /></button>
                         </header>
 
-                        <div className="p-10 overflow-y-auto">
+                        <div className="supreme-modal-body">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="crm-input-group">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Identificação</label>
+                                    <label>Identificação</label>
                                     <input type="text" className="crm-input" value={newLead.nome} onChange={e => setNewLead({...newLead, nome: e.target.value})} placeholder="Nome do Cliente" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Contato WhatsApp</label>
+                                    <label>Contato WhatsApp</label>
                                     <input type="text" className="crm-input" value={newLead.numero} onChange={e => setNewLead({...newLead, numero: e.target.value})} placeholder="5511999999999" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">E-mail</label>
+                                    <label>E-mail</label>
                                     <input type="email" className="crm-input" value={newLead.email} onChange={e => setNewLead({...newLead, email: e.target.value})} placeholder="email@exemplo.com" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Nicho de Atuação</label>
+                                    <label>Nicho de Atuação</label>
                                     <input type="text" className="crm-input" value={newLead.nicho} onChange={e => setNewLead({...newLead, nicho: e.target.value})} placeholder="Ex: Estética, Imobiliário..." />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Método</label>
+                                    <label>Método</label>
                                     <input type="text" className="crm-input" value={newLead.metodo} onChange={e => setNewLead({...newLead, metodo: e.target.value})} placeholder="Ex: Tráfego Pago" />
                                 </div>
                                 <div className="crm-input-group">
-                                    <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Volume Estimado</label>
+                                    <label>Volume Estimado</label>
                                     <input type="text" className="crm-input" value={newLead.volume} onChange={e => setNewLead({...newLead, volume: e.target.value})} placeholder="Ex: 50/semana" />
                                 </div>
                             </div>
-                            <div className="supreme-modal-footer mt-10">
-                                <button className="btn-supreme w-full py-5 text-sm tracking-widest font-black" onClick={handleAddLead} disabled={isUpdating}>
-                                    {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={20} /> FINALIZAR CADASTRO SUPREME</>} 
-                                </button>
-                            </div>
+                        </div>
+
+                        <div className="supreme-modal-footer">
+                            <button className="btn-supreme w-full py-5 text-sm tracking-widest font-black" onClick={handleAddLead} disabled={isUpdating}>
+                                {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={20} /> FINALIZAR CADASTRO SUPREME</>} 
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -902,8 +903,8 @@ const CRMFunil = () => {
             {/* GOOGLE SCHEDULING MODAL */}
             {isScheduling && (
                 <div className="supreme-modal-overlay" onClick={() => setIsScheduling(null)}>
-                    <div className="supreme-modal-content max-w-[450px] max-h-[80vh]" onClick={e => e.stopPropagation()}>
-                        <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
+                    <div className="supreme-modal-content max-w-[450px]" onClick={e => e.stopPropagation()}>
+                        <header>
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-xl bg-primary-color/10 flex items-center justify-center text-primary-color"><Calendar size={24} /></div>
                                 <div>
@@ -913,7 +914,7 @@ const CRMFunil = () => {
                             </div>
                             <button className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white" onClick={() => setIsScheduling(null)}><X size={20} /></button>
                         </header>
-                        <div className="p-8 overflow-y-auto">
+                        <div className="supreme-modal-body">
                             {!googleToken ? (
                                 <div className="text-center py-10">
                                     <AlertTriangle size={48} className="text-amber-500 mx-auto mb-4" />
@@ -925,7 +926,7 @@ const CRMFunil = () => {
                             ) : (
                                 <div className="flex flex-col gap-6">
                                     <div className="crm-input-group">
-                                        <label className="text-[10px] uppercase font-black text-gray-500 mb-2 block">Agenda Destino</label>
+                                        <label>Agenda Destino</label>
                                         <div className="relative">
                                             <select 
                                                 className="crm-input appearance-none"
@@ -943,19 +944,16 @@ const CRMFunil = () => {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="crm-input-group">
-                                            <label className="text-[10px] uppercase font-black text-gray-500 mb-2 block">Data</label>
+                                            <label>Data</label>
                                             <input type="date" className="crm-input" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
                                         </div>
                                         <div className="crm-input-group">
-                                            <label className="text-[10px] uppercase font-black text-gray-500 mb-2 block">Horário</label>
+                                            <label>Horário</label>
                                             <input type="time" className="crm-input" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
                                         </div>
                                     </div>
 
                                     <div className="crm-input-group">
-                                        <label className="text-[10px] uppercase font-black text-gray-500 mb-2 block text-primary-color flex items-center gap-2">
-                                            <TrendingUp size={12} /> Sugestão de Perfil: {isScheduling.metodo || 'Padrão'}
-                                        </label>
                                         <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
                                             <input 
                                                 type="checkbox" 

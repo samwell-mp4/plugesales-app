@@ -293,6 +293,37 @@
     z-index: 100;
 }
 
+/* Variant for Small Supreme Modals */
+.supreme-modal-content.max-w-\[450px\],
+.supreme-modal-content.max-w-\[800px\] {
+    flex-direction: column !important;
+    padding: 0 !important;
+}
+
+.supreme-modal-content header {
+    padding: 30px 40px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.supreme-modal-body {
+    padding: 40px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.supreme-modal-footer {
+    padding: 30px 40px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(15, 23, 42, 0.4);
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+}
+
 .supreme-modal-sidebar {
     width: 320px;
     background: rgba(255, 255, 255, 0.02);
@@ -575,15 +606,15 @@
 
 .crm-modal-content {
     background: linear-gradient(165deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
-    border: 1px solid rgba(172, 248, 0, 0.2);
+    border: 1px solid rgba(172, 248, 0, 0.3);
     border-radius: 32px;
     box-shadow:
         0 0 0 1px rgba(172, 248, 0, 0.1),
-        0 40px 100px -20px rgba(0, 0, 0, 0.9),
-        0 0 60px rgba(172, 248, 0, 0.05);
-    width: 500px;
-    max-width: 90vw;
-    max-height: 85vh;
+        0 40px 120px -20px rgba(0, 0, 0, 0.9),
+        0 0 80px rgba(172, 248, 0, 0.1);
+    width: 600px;
+    max-width: 95vw;
+    max-height: 90vh;
     overflow: hidden;
     position: relative;
     display: flex;
@@ -591,6 +622,26 @@
     animation: modalSlideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     padding: 0;
     margin: auto;
+}
+
+.crm-modal-content header {
+    padding: 30px 40px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.crm-modal-body {
+    padding: 40px;
+    overflow-y: auto;
+}
+
+.crm-modal-footer {
+    padding: 24px 40px;
+    background: rgba(15, 23, 42, 0.4);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
 }
 
 .crm-modal-content::before {
