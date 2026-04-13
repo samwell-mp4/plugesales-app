@@ -562,12 +562,39 @@ const GestaoConsultiva = () => {
                             </div>
 
                             {googleToken && (
-                                <div className="flex items-center gap-3 p-3 bg-primary-color/5 rounded-xl border border-primary-color/20 mb-4">
-                                    <div className={`w-2 h-2 rounded-full ${actionForm.google_event_id ? 'bg-primary-color animate-pulse' : 'bg-white/10'}`}></div>
-                                    <span className="text-[9px] font-black text-white/60 uppercase tracking-widest flex-1">
-                                        {actionForm.google_event_id ? 'Sincronizado' : 'Pronto para Google'}
-                                    </span>
-                                    <Globe size={14} className={actionForm.google_event_id ? 'text-primary-color' : 'text-white/20'} />
+                                <div className="space-y-4 mb-4">
+                                    <div className="flex items-center gap-3 p-3 bg-primary-color/5 rounded-xl border border-primary-color/20">
+                                        <div className={`w-2 h-2 rounded-full ${actionForm.google_event_id ? 'bg-primary-color animate-pulse' : 'bg-white/10'}`}></div>
+                                        <span className="text-[9px] font-black text-white/60 uppercase tracking-widest flex-1">
+                                            {actionForm.google_event_id ? 'Sincronizado' : 'Pronto para Google'}
+                                        </span>
+                                        <Globe size={14} className={actionForm.google_event_id ? 'text-primary-color' : 'text-white/20'} />
+                                    </div>
+
+                                    {actionForm.google_event_id && googleEvents.find(e => e.id === actionForm.google_event_id) && (
+                                        (() => {
+                                            const ge = googleEvents.find(e => e.id === actionForm.google_event_id);
+                                            const meetLink = ge.conferenceData?.entryPoints?.find((ep: any) => ep.entryPointType === 'video')?.uri;
+                                            if (!meetLink) return null;
+                                            return (
+                                                <div className="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in-up">
+                                                    <div className="flex flex-col flex-1 min-w-0">
+                                                        <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                                            <Globe size={10} className="text-primary-color" /> Link da Reunião
+                                                        </span>
+                                                        <span className="text-[11px] font-bold text-primary-color truncate underline decoration-primary-color/20">{meetLink}</span>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => copyToClipboard(meetLink, 'modal-meet')}
+                                                        className="w-full sm:w-auto px-5 py-2.5 bg-primary-color text-black rounded-xl flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all font-black text-[9px] uppercase tracking-widest shadow-lg shadow-primary-color/10"
+                                                    >
+                                                        {copyFeedback === 'modal-meet' ? <Check size={14} /> : <Copy size={14} />}
+                                                        {copyFeedback === 'modal-meet' ? 'COPIADO' : 'COPIAR'}
+                                                    </button>
+                                                </div>
+                                            );
+                                        })()
+                                    )}
                                 </div>
                             )}
                         </div>

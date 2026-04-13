@@ -937,31 +937,34 @@ const CRMFunil = () => {
                         </header>
                         <div className="supreme-modal-body">
                             {recentMeetLink ? (
-                                <div className="text-center py-6 flex flex-col items-center animate-fade-in-up">
-                                    <div className="w-16 h-16 rounded-full bg-primary-color/20 flex items-center justify-center text-primary-color mb-4">
-                                        <Check size={32} strokeWidth={3} />
+                                <div className="p-8 text-center flex flex-col items-center animate-fade-in-up">
+                                    <div className="w-20 h-20 rounded-full bg-primary-gradient flex items-center justify-center text-black mb-6 shadow-[0_0_30px_rgba(172,248,0,0.3)]">
+                                        <CheckCircle size={40} strokeWidth={3} />
                                     </div>
-                                    <h3 className="text-white font-black text-lg mb-2">AGENDADO COM SUCESSO!</h3>
-                                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-8">O evento foi sincronizado e o link gerado:</p>
+                                    <h3 className="text-white font-black text-xl mb-2 italic tracking-tight">AGENDADO COM SUCESSO!</h3>
+                                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.2em] mb-10 max-w-[280px]">O evento foi sincronizado com seu Google Calendar e o link de videoconferência está pronto.</p>
                                     
-                                    <div className="w-full bg-white/5 p-4 rounded-2xl border border-primary-color/20 flex items-center justify-between gap-4 mb-8">
-                                        <span className="text-primary-color font-black text-xs truncate underline decoration-primary-color/30 flex-1">{recentMeetLink}</span>
+                                    <div className="w-full bg-white/5 p-1 rounded-2xl border border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-10 overflow-hidden">
+                                        <div className="flex-1 px-4 py-3 text-primary-color font-black text-[11px] truncate bg-primary-color/5 rounded-xl border border-primary-color/10">
+                                            {recentMeetLink}
+                                        </div>
                                         <button 
                                             onClick={() => copyToClipboard(recentMeetLink, 'recent-sched')}
-                                            className="w-10 h-10 bg-primary-color text-black rounded-xl flex items-center justify-center hover:scale-105 transition-all shadow-lg shadow-primary-color/20"
+                                            className="px-6 py-3 bg-primary-color text-black rounded-xl flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-color/20"
                                         >
-                                            {copiedId === 'recent-sched' ? <Check size={18} /> : <Copy size={18} />}
+                                            {copiedId === 'recent-sched' ? <Check size={16} /> : <Copy size={16} />}
+                                            {copiedId === 'recent-sched' ? 'COPIADO' : 'COPIAR LINK'}
                                         </button>
                                     </div>
 
                                     <button 
-                                        className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-white transition-colors"
+                                        className="btn-supreme w-full py-4 text-[10px] tracking-[0.3em]"
                                         onClick={() => {
                                             setIsScheduling(null);
                                             setRecentMeetLink(null);
                                         }}
                                     >
-                                        FECHAR MODAL
+                                        FINALIZAR E SAIR
                                     </button>
                                 </div>
                             ) : !googleToken ? (
