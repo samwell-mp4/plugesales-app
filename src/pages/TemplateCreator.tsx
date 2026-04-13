@@ -176,6 +176,9 @@ const TemplateCreator = () => {
     const [queueSize, setQueueSize] = useState(5);
     const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
     const [selectedCategory, setSelectedCategory] = useState<'UTILITY' | 'MARKETING'>('UTILITY');
+    const [operationErrors, setOperationErrors] = useState<{ name: string, error: string, timestamp: string }[]>([]);
+    const [currentPages, setCurrentPages] = useState<{ [campaignId: string]: number }>({});
+    const rowsPerPage = 10;
 
     // --- CUSTOM CONFIRM MODAL (replaces window.confirm which is blocked on mobile) ---
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
@@ -458,6 +461,11 @@ const TemplateCreator = () => {
                         });
                     } else {
                         lastError = res.error || 'Erro desconhecido';
+                        setOperationErrors(prev => [{
+                            name: currentName,
+                            error: lastError,
+                            timestamp: new Date().toLocaleTimeString()
+                        }, ...prev].slice(0, 50));
                     }
 
                     if (currentOp < totalOps) await new Promise(r => setTimeout(r, 4000));
@@ -557,7 +565,13 @@ const TemplateCreator = () => {
                             price_per_msg: undefined
                         });
                     } else {
-                        errors.push(`${name}: ${res.error}`);
+                        const errorMsg = res.error || 'Erro desconhecido';
+                        errors.push(`${name}: ${errorMsg}`);
+                        setOperationErrors(prev => [{
+                            name,
+                            error: errorMsg,
+                            timestamp: new Date().toLocaleTimeString()
+                        }, ...prev].slice(0, 50));
                     }
 
                     if (currentOpTotal < totalTotal) await new Promise(r => setTimeout(r, 5000));
@@ -1097,6 +1111,100 @@ const TemplateCreator = () => {
                 .animate-fade-in {
                     animation: fadeIn 0.4s ease-out forwards;
                 }
+
+                /* Pagination Styles */
+                .pagination-container {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    margin-top: 24px;
+                    padding: 12px;
+                    background: rgba(255, 255, 255, 0.02);
+                    border-radius: 16px;
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                }
+                .pagination-btn {
+                    padding: 6px 14px;
+                    border-radius: 10px;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    background: rgba(255, 255, 255, 0.05);
+                    color: white;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+                .pagination-btn:hover:not(:disabled) {
+                    background: rgba(172, 248, 0, 0.1);
+                    border-color: var(--primary-color);
+                    color: var(--primary-color);
+                }
+                .pagination-btn:disabled {
+                    opacity: 0.3;
+                    cursor: not-allowed;
+                }
+                .pagination-btn.active {
+                    background: var(--primary-color);
+                    color: black;
+                    border-color: var(--primary-color);
+                    box-shadow: 0 0 10px rgba(172, 248, 0, 0.3);
+                }
+
+                /* Error Log Styles */
+                .error-log-container {
+                    margin-top: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                    padding-right: 8px;
+                }
+                .error-log-container::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .error-log-container::-webkit-scrollbar-thumb {
+                    background: rgba(239, 68, 68, 0.3);
+                    border-radius: 10px;
+                }
+                .error-item {
+                    background: rgba(239, 68, 68, 0.05);
+                    border: 1px solid rgba(239, 68, 68, 0.15);
+                    border-radius: 12px;
+                    padding: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    animation: slideInLeft 0.3s ease-out;
+                }
+                @keyframes slideInLeft {
+                    from { opacity: 0; transform: translateX(-20px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                .error-item-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+                    padding-bottom: 6px;
+                    margin-bottom: 4px;
+                }
+                .error-item-name {
+                    font-size: 0.75rem;
+                    font-weight: 900;
+                    color: #ef4444;
+                    text-transform: uppercase;
+                }
+                .error-item-time {
+                    font-size: 0.65rem;
+                    opacity: 0.5;
+                }
+                .error-item-msg {
+                    font-size: 0.8rem;
+                    color: rgba(255, 255, 255, 0.85);
+                    line-height: 1.4;
+                }
             `}</style>
 
             <div className="p-4 md:p-8 creator-page min-h-screen">
@@ -1419,35 +1527,78 @@ const TemplateCreator = () => {
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    {(camp.rows || []).map((row, rIdx) => {
-                                                                        const fullName = `${camp.prefix}${row.suffix}`.toLowerCase().trim();
-                                                                        const allNames: string[] = [];
-                                                                        (campaigns || []).forEach(c => (c.rows || []).forEach(r => allNames.push(`${c.prefix}${r.suffix}`.toLowerCase().trim())));
-                                                                        const isFullDuplicate = fullName !== "" && allNames.filter(n => n === fullName).length > 1;
-                                                                        const isSuffixDuplicateInCamp = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim().toLowerCase() === row.suffix.trim().toLowerCase() && row.suffix.trim() !== "");
-                                                                        const isError = isFullDuplicate || isSuffixDuplicateInCamp;
+                                                                    {(() => {
+                                                                        const currentPage = currentPages[camp.id] || 1;
+                                                                        const startIndex = (currentPage - 1) * rowsPerPage;
+                                                                        const slicedRows = (camp.rows || []).slice(startIndex, startIndex + rowsPerPage);
+                                                                        const totalPages = Math.ceil((camp.rows || []).length / rowsPerPage);
 
                                                                         return (
-                                                                            <tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}>
-                                                                                <td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
-                                                                                <td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
-                                                                                <td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>
-                                                                                <td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
-                                                                                {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
-                                                                                    <Fragment key={urlIdx}>
-                                                                                        <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
-                                                                                        <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
-                                                                                    </Fragment>
-                                                                                ))}
-                                                                                <td>
-                                                                                    <div className="flex gap-3" style={{ position: 'relative', zIndex: 100, justifyContent: 'center', width: '100%' }}>
-                                                                                        <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={24} color="#FFFFFF" /></button>
-                                                                                        <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={async () => { const ok = await showConfirm("Remover esta linha?"); if (ok) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={24} color="#FFFFFF" /></button>
-                                                                                    </div>
-                                                                                </td>
-                                                                            </tr>
+                                                                            <Fragment>
+                                                                                {slicedRows.map((row, sIdx) => {
+                                                                                    const rIdx = startIndex + sIdx; // Actual index in camp.rows
+                                                                                    const fullName = `${camp.prefix}${row.suffix}`.toLowerCase().trim();
+                                                                                    const allNames: string[] = [];
+                                                                                    (campaigns || []).forEach(c => (c.rows || []).forEach(r => allNames.push(`${c.prefix}${r.suffix}`.toLowerCase().trim())));
+                                                                                    const isFullDuplicate = fullName !== "" && allNames.filter(n => n === fullName).length > 1;
+                                                                                    const isSuffixDuplicateInCamp = camp.rows.some((r, i) => i !== rIdx && r.suffix.trim().toLowerCase() === row.suffix.trim().toLowerCase() && row.suffix.trim() !== "");
+                                                                                    const isError = isFullDuplicate || isSuffixDuplicateInCamp;
+
+                                                                                    return (
+                                                                                        <tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}>
+                                                                                            <td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
+                                                                                            <td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
+                                                                                            <td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>
+                                                                                            <td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
+                                                                                            {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
+                                                                                                <Fragment key={urlIdx}>
+                                                                                                    <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
+                                                                                                    <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
+                                                                                                </Fragment>
+                                                                                            ))}
+                                                                                            <td>
+                                                                                                <div className="flex gap-3" style={{ position: 'relative', zIndex: 100, justifyContent: 'center', width: '100%' }}>
+                                                                                                    <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={24} color="#FFFFFF" /></button>
+                                                                                                    <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={async () => { const ok = await showConfirm("Remover esta linha?"); if (ok) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={24} color="#FFFFFF" /></button>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    );
+                                                                                })}
+                                                                                {totalPages > 1 && (
+                                                                                    <tr>
+                                                                                        <td colSpan={100}>
+                                                                                            <div className="pagination-container">
+                                                                                                <button 
+                                                                                                    className="pagination-btn" 
+                                                                                                    disabled={currentPage === 1}
+                                                                                                    onClick={() => setCurrentPages(prev => ({ ...prev, [camp.id]: currentPage - 1 }))}
+                                                                                                >
+                                                                                                    Anterior
+                                                                                                </button>
+                                                                                                {Array.from({ length: totalPages }).map((_, i) => (
+                                                                                                    <button 
+                                                                                                        key={i} 
+                                                                                                        className={`pagination-btn ${currentPage === i + 1 ? 'active' : ''}`}
+                                                                                                        onClick={() => setCurrentPages(prev => ({ ...prev, [camp.id]: i + 1 }))}
+                                                                                                    >
+                                                                                                        {i + 1}
+                                                                                                    </button>
+                                                                                                ))}
+                                                                                                <button 
+                                                                                                    className="pagination-btn" 
+                                                                                                    disabled={currentPage === totalPages}
+                                                                                                    onClick={() => setCurrentPages(prev => ({ ...prev, [camp.id]: currentPage + 1 }))}
+                                                                                                >
+                                                                                                    Próximo
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                )}
+                                                                            </Fragment>
                                                                         );
-                                                                    })}
+                                                                    })()}
                                                                 </tbody>
                                                             </table>
                                                         </div>
@@ -1503,6 +1654,31 @@ const TemplateCreator = () => {
                                         <code>{JSON.stringify(buildInfobipPayload(modelName, selectedPayloadLanguage), null, 2)}</code>
                                     </pre>
                                 </div>
+
+                                {operationErrors.length > 0 && (
+                                    <div className="mt-8 animate-fade-in">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 style={{ color: '#ef4444', margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Motivo dos Erros Recentes</h4>
+                                            <button 
+                                                onClick={() => setOperationErrors([])}
+                                                style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+                                            >
+                                                LIMPAR LOG
+                                            </button>
+                                        </div>
+                                        <div className="error-log-container">
+                                            {operationErrors.map((err, i) => (
+                                                <div key={i} className="error-item">
+                                                    <div className="error-item-header">
+                                                        <span className="error-item-name">{err.name}</span>
+                                                        <span className="error-item-time">{err.timestamp}</span>
+                                                    </div>
+                                                    <div className="error-item-msg">{err.error}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
