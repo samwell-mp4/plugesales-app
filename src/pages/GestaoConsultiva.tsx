@@ -5,7 +5,7 @@ import {
     Plus, Search, Filter, AlertTriangle, CheckCircle2,
     Clock, MoreHorizontal, User,
     Trash2, Edit3, X, Save, RefreshCw,
-    Globe, Calendar as CalendarIcon, Check
+    Globe, Calendar as CalendarIcon, Check, Copy
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { googleCalendarService } from '../services/googleCalendarService';
@@ -92,6 +92,14 @@ const GestaoConsultiva = () => {
         }
     };
 
+    const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+    const copyToClipboard = (text: string, id: string) => {
+        navigator.clipboard.writeText(text);
+        setCopyFeedback(id);
+        setTimeout(() => setCopyFeedback(null), 2000);
+    };
+
     const fetchGoogleEvents = async () => {
         if (!googleToken || !selectedCalendarId) return;
         setIsGoogleLoading(true);
@@ -142,7 +150,7 @@ const GestaoConsultiva = () => {
                 if (activeModal === 'edit' && googleId) {
                     await googleCalendarService.updateEvent(googleToken, selectedCalendarId, googleId, gEvent);
                 } else {
-                    const created = await googleCalendarService.createEvent(googleToken, selectedCalendarId, gEvent);
+                    const created = await googleCalendarService.createEvent(googleToken, selectedCalendarId, gEvent, true);
                     googleId = created.id;
                 }
             }
@@ -433,12 +441,24 @@ const GestaoConsultiva = () => {
                                             </div>
                                         ))}
                                         {/* GOOGLE EXTERNAL EVENTS */}
-                                        {google.map((ge, i) => (
-                                            <div key={`google-${i}`} className="crm-action-pill !bg-white/5 !text-white/60 !border-white/10 flex items-center group/pill" onClick={(e) => { e.stopPropagation(); openGoogleEventModal(ge); }}>
-                                                <CalendarIcon size={8} className="mr-1 shrink-0 group-hover/pill:text-primary-color" />
-                                                <span className="truncate">{ge.summary || '(Sem Título)'}</span>
-                                            </div>
-                                        ))}
+                                        {google.map((ge, i) => {
+                                            const meetLink = ge.conferenceData?.entryPoints?.find((ep: any) => ep.entryPointType === 'video')?.uri;
+                                            return (
+                                                <div key={`google-${i}`} className="crm-action-pill !bg-white/5 !text-white/60 !border-white/10 flex items-center group/pill" onClick={(e) => { e.stopPropagation(); openGoogleEventModal(ge); }}>
+                                                    <CalendarIcon size={8} className="mr-1 shrink-0 group-hover/pill:text-primary-color" />
+                                                    <span className="truncate flex-1">{ge.summary || '(Sem Título)'}</span>
+                                                    {meetLink && (
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); copyToClipboard(meetLink, `calendar-${ge.id}`); }}
+                                                            className="ml-1 text-primary-color hover:scale-125 transition-all"
+                                                            title="Copiar Link Meet"
+                                                        >
+                                                            {copyFeedback === `calendar-${ge.id}` ? <Check size={8} /> : <Copy size={8} />}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             );

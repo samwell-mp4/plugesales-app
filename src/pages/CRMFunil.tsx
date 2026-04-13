@@ -6,7 +6,7 @@ import {
     Save, Plus, Trash2, Edit3, X, DollarSign,
     Phone, Mail, Calendar, MapPin, TrendingUp, Target, PieChart, Zap,
     ChevronRight, Briefcase, Globe, Info, Clock, CheckCircle,
-    AlertTriangle, ChevronDown, ChevronUp, ArrowRightLeft, Check
+    AlertTriangle, ChevronDown, ChevronUp, ArrowRightLeft, Check, Copy
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { googleCalendarService } from '../services/googleCalendarService';
@@ -154,6 +154,7 @@ const CRMFunil = () => {
     const [isScheduling, setIsScheduling] = useState<any | null>(null);
     const [calendars, setCalendars] = useState<any[]>([]);
     const [selectedCalendarId, setSelectedCalendarId] = useState<string>(localStorage.getItem('gcal_selected_id') || '');
+    const [recentMeetLink, setRecentMeetLink] = useState<string | null>(null);
 
     const [scheduleForm, setScheduleForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -161,8 +162,17 @@ const CRMFunil = () => {
         duration: 60,
         createMeet: true
     });
-    
-    // New Lead State
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+
+    const copyToClipboard = (text: string, id: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    /**
+     * Handlers for Lead Actions
+     */
     const [newLead, setNewLead] = useState({
         nome: '',
         numero: '',
@@ -301,18 +311,20 @@ const CRMFunil = () => {
                 scheduleForm.createMeet
             );
 
+            const meetLink = created.conferenceData?.entryPoints?.find((e: any) => e.entryPointType === 'video')?.uri || '';
+
             // Atualiza o lead no CRM
             const updatedData = {
                 status: 'Agendamento Realizado',
                 google_event_id: created.id,
                 meeting_date: startDateTime,
-                meeting_link: created.conferenceData?.entryPoints?.find((e: any) => e.entryPointType === 'video')?.uri || ''
+                meeting_link: meetLink
             };
 
             await dbService.updateCRMLead(isScheduling.id, updatedData);
             await fetchLeads();
-            setIsScheduling(null);
-            alert("Agendamento realizado com sucesso!");
+            setRecentMeetLink(meetLink);
+            // Removi o setIsScheduling(null) daqui para mostrar o link no modal
         } catch (err: any) {
             console.error("Schedule Error:", err);
             alert("Erro ao agendar: " + err.message);
@@ -878,11 +890,20 @@ const CRMFunil = () => {
                                     {selectedLead.meeting_link && (
                                         <div className="supreme-info-card lg:col-span-2 border-primary-color/30 bg-primary-color/5">
                                             <span className="supreme-info-label text-primary-color">Link da Reunião (Google Meet)</span>
-                                            <div className="flex items-center justify-between mt-1">
-                                                <a href={selectedLead.meeting_link} target="_blank" rel="noreferrer" className="text-white font-black text-sm underline truncate decoration-primary-color underline-offset-4">
+                                            <div className="flex items-center justify-between mt-1 gap-4">
+                                                <a href={selectedLead.meeting_link} target="_blank" rel="noreferrer" className="text-white font-black text-sm underline truncate decoration-primary-color underline-offset-4 flex-1">
                                                     {selectedLead.meeting_link}
                                                 </a>
-                                                <Globe size={16} className="text-primary-color animate-pulse" />
+                                                <div className="flex items-center gap-2">
+                                                    <button 
+                                                        onClick={() => copyToClipboard(selectedLead.meeting_link, 'detail-link')}
+                                                        className="p-2 hover:bg-white/10 rounded-lg text-primary-color transition-all"
+                                                        title="Copiar Link"
+                                                    >
+                                                        {copiedId === 'detail-link' ? <Check size={16} /> : <Copy size={16} />}
+                                                    </button>
+                                                    <Globe size={16} className="text-primary-color animate-pulse" />
+                                                </div>
                                             </div>
                                             <span className="text-[9px] text-gray-500 font-bold uppercase mt-2 block">Data: {new Date(selectedLead.meeting_date).toLocaleString('pt-BR')}</span>
                                         </div>
@@ -915,7 +936,35 @@ const CRMFunil = () => {
                             <button className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center text-white" onClick={() => setIsScheduling(null)}><X size={18} /></button>
                         </header>
                         <div className="supreme-modal-body">
-                            {!googleToken ? (
+                            {recentMeetLink ? (
+                                <div className="text-center py-6 flex flex-col items-center animate-fade-in-up">
+                                    <div className="w-16 h-16 rounded-full bg-primary-color/20 flex items-center justify-center text-primary-color mb-4">
+                                        <Check size={32} strokeWidth={3} />
+                                    </div>
+                                    <h3 className="text-white font-black text-lg mb-2">AGENDADO COM SUCESSO!</h3>
+                                    <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-8">O evento foi sincronizado e o link gerado:</p>
+                                    
+                                    <div className="w-full bg-white/5 p-4 rounded-2xl border border-primary-color/20 flex items-center justify-between gap-4 mb-8">
+                                        <span className="text-primary-color font-black text-xs truncate underline decoration-primary-color/30 flex-1">{recentMeetLink}</span>
+                                        <button 
+                                            onClick={() => copyToClipboard(recentMeetLink, 'recent-sched')}
+                                            className="w-10 h-10 bg-primary-color text-black rounded-xl flex items-center justify-center hover:scale-105 transition-all shadow-lg shadow-primary-color/20"
+                                        >
+                                            {copiedId === 'recent-sched' ? <Check size={18} /> : <Copy size={18} />}
+                                        </button>
+                                    </div>
+
+                                    <button 
+                                        className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-white transition-colors"
+                                        onClick={() => {
+                                            setIsScheduling(null);
+                                            setRecentMeetLink(null);
+                                        }}
+                                    >
+                                        FECHAR MODAL
+                                    </button>
+                                </div>
+                            ) : !googleToken ? (
                                 <div className="text-center py-10">
                                     <AlertTriangle size={48} className="text-amber-500 mx-auto mb-4" />
                                     <p className="text-sm font-bold text-white mb-6">Você precisa conectar sua conta Google primeiro.</p>
@@ -954,6 +1003,17 @@ const CRMFunil = () => {
                                     </div>
 
                                     <div className="crm-input-group">
+                                        <label>Duração (Minutos)</label>
+                                        <select className="crm-input" value={scheduleForm.duration} onChange={e => setScheduleForm({...scheduleForm, duration: parseInt(e.target.value)})}>
+                                            <option value={15}>15 minutos</option>
+                                            <option value={30}>30 minutos</option>
+                                            <option value={45}>45 minutos</option>
+                                            <option value={60}>1 hora</option>
+                                            <option value={90}>1 hora e 30 min</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="crm-input-group">
                                         <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
                                             <input 
                                                 type="checkbox" 
@@ -968,8 +1028,8 @@ const CRMFunil = () => {
                                         </div>
                                     </div>
 
-                                    <button className="btn-supreme w-full py-5 text-sm" onClick={handleScheduleMeeting} disabled={isUpdating}>
-                                        {isUpdating ? <RefreshCw size={22} className="animate-spin" /> : <><Save size={20} /> FINALIZAR AGENDAMENTO</>}
+                                    <button className="btn-supreme w-full py-4" onClick={handleScheduleMeeting} disabled={isUpdating}>
+                                        {isUpdating ? <RefreshCw size={18} className="animate-spin" /> : <><Save size={18} /> AGENDAR AGORA</>}
                                     </button>
                                 </div>
                             )}
