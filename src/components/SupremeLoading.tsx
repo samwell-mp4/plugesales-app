@@ -7,10 +7,24 @@ interface SupremeLoadingProps {
 
 const SupremeLoading: React.FC<SupremeLoadingProps> = ({ fullScreen = true }) => {
   return (
-    <div className={`
-      flex flex-col items-center justify-center 
-      ${fullScreen ? 'fixed inset-0 z-[9999] bg-[#05070a] h-[100dvh] w-full' : 'w-full h-full p-12'}
-    `}>
+    <div 
+      className={`z-[9999] bg-[#05070a] flex flex-col items-center justify-center`}
+      style={fullScreen ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      } : {
+        width: '100%',
+        height: '100%',
+        padding: '3rem'
+      }}
+    >
       {/* Background radial glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-color/5 blur-[120px] rounded-full -z-10"></div>
       
