@@ -51,7 +51,8 @@ const LeadStepForm = () => {
         '7': 'Samwell Souza',
         '8': 'Thales Henrique',
         '9': 'Ramon Gomes',
-        '10': 'Gisele Vieira'
+        '10': 'Gisele Vieira',
+        '11': 'Joyce Vieira'
     };
 
     useEffect(() => {

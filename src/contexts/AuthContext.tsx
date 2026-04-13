@@ -40,6 +40,7 @@ const VALID_USERS = [
     { name: 'lucas2', role: 'EMPLOYEE' as Role, password: 'lucas762' },
     { name: 'sidao', role: 'EMPLOYEE' as Role, password: 'charlesbravo@123' },
     { name: 'Gisele', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'Joyce', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
 ];
 
 import { dbService } from '../services/dbService';

@@ -17,7 +17,14 @@ const Obrigado = () => {
         '7': 'Samwell Souza',
         '8': 'Thales Henrique',
         '9': 'Ramon Gomes',
-        '10': 'Gisele Vieira'
+        '10': 'Gisele Vieira',
+        '11': 'Joyce Vieira'
+    };
+
+    // Mapeamento de Telefones dos Agentes para Redirecionamento de WhatsApp
+    const agentPhoneMap: Record<string, string> = {
+        '1': '5511999999999',
+        '11': '5531981081012'
     };
 
     const agentName = id ? agentMap[id] : null;
@@ -139,6 +146,17 @@ const Obrigado = () => {
                 <p style={{ marginTop: '40px', color: '#1e293b', fontSize: '0.9rem', fontWeight: 800, letterSpacing: 2 }}>
                     (OBRIGADO{id && !isExcluded ? `-${id}` : ''})
                 </p>
+
+                {id && agentPhoneMap[id] && (
+                    <div style={{ marginTop: '48px', padding: '0 40px' }}>
+                        <button 
+                            className="cta-btn"
+                            onClick={() => window.open(`https://wa.me/${agentPhoneMap[id]}?text=Olá ${agentMap[id] || ''}, acabei de preencher o formulário e gostaria de mais informações!`, '_blank')}
+                        >
+                            <ArrowRight size={20} /> FALAR COM O ESPECIALISTA
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
