@@ -1664,7 +1664,10 @@
 }
 
 .h-auto {
-    height: auto !important;.responsive-table-container {
+    height: auto !important;
+}
+
+.responsive-table-container {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -1734,5 +1737,24 @@
         width: auto !important;
         max-width: none !important;
     }
+}.global-header-actions {
+    position: fixed;
+    top: 24px;
+    right: 32px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    pointer-events: none; /* Allow clicks through to content if needed, but the children should re-enable it */
 }
+
+.global-header-actions > * {
+    pointer-events: auto;
+}
+
+@media (max-width: 600px) {
+    .global-header-actions {
+        top: 16px;
+        right: 20px;
+    }
 }

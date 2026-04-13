@@ -29,7 +29,7 @@ import {
     Bell
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import NotificationCenter from './NotificationCenter';
+
 
 // --- Submenu Component ---
 const SubMenu = ({ item, activePath }: { item: any, activePath: string }) => {
@@ -233,7 +233,6 @@ const Sidebar = () => {
                             <span className="font-black text-white text-lg tracking-tighter">Plug & Sales</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <NotificationCenter />
                             <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-white/30"><X size={20} /></button>
                         </div>
                     </div>
@@ -293,9 +292,7 @@ const Sidebar = () => {
                     <span className="text-[9px] font-black text-primary-color tracking-[0.2em] uppercase opacity-60">Operations Center</span>
                 </div>
 
-                <div className="ml-auto">
-                    <NotificationCenter />
-                </div>
+
             </div>
 
             <nav className="nav-scroll flex-1">

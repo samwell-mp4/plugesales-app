@@ -1,5 +1,6 @@
 import { useLocation, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
+import NotificationCenter from './components/NotificationCenter';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
 import LiveChat from './pages/LiveChat';
@@ -112,6 +113,11 @@ function AppContent() {
     <div className={`app-layout ${theme === 'light' ? 'light-theme' : ''}`}>
       <MetaPixel /> {/* Rastreador Condicional para Ricardo Willer */}
       {!isPublicRoute && <Sidebar />}
+      {!isPublicRoute && (
+        <div className="global-header-actions">
+          <NotificationCenter />
+        </div>
+      )}
       <main className={`main-content ${isPublicRoute ? 'no-padding' : ''}`}>
         <Routes>
           <Route path="/" element={<Navigate to={isClient ? "/client-dashboard" : "/dashboard"} replace />} />

@@ -70,7 +70,7 @@ const NotificationCenter = () => {
     };
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className="notification-wrapper" style={{ position: 'relative' }} ref={dropdownRef}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
                 className={`action-btn ${unreadCount > 0 ? '' : 'ghost-btn'}`}
@@ -107,7 +107,15 @@ const NotificationCenter = () => {
             </button>
 
             {isOpen && (
-                <div className="notification-card-dropdown absolute top-full right-0 mt-4 w-96 z-[1000] overflow-hidden animate-fade-in">
+                <div className="notification-card-dropdown" style={{ 
+                    position: 'absolute', 
+                    top: 'calc(100% + 15px)', 
+                    right: 0, 
+                    width: '380px', 
+                    zIndex: 1000, 
+                    overflow: 'hidden',
+                    animation: 'fadeIn 0.3s ease-out'
+                }}>
                     <div style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)' }}>
                         <div>
                             <div className="field-label" style={{ fontSize: '9px', marginBottom: '2px' }}>HUB DE AVISOS</div>
@@ -139,10 +147,10 @@ const NotificationCenter = () => {
                                     className={`notification-item-premium ${!notification.is_read ? 'unread' : ''}`}
                                     style={{ cursor: 'pointer', opacity: notification.is_read ? 0.6 : 1 }}
                                 >
-                                    <div className="flex gap-4">
+                                    <div style={{ display: 'flex', gap: '16px' }}>
                                         <div style={{ flexShrink: 0 }}>{getIcon(notification.type)}</div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div className="flex items-center justify-between mb-2">
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                                                 <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 950, letterSpacing: '-0.2px' }}>{notification.title}</h4>
                                                 <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                     <Clock size={10} /> {new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
