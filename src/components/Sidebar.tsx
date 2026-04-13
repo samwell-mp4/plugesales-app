@@ -288,11 +288,10 @@ const Sidebar = () => {
                     <Zap size={22} fill="currentColor" />
                 </div>
                 <div>
-                    <span className="font-black text-white text-lg tracking-tighter block leading-tight">Plug & Sales</span>
-                    <span className="text-[9px] font-black text-primary-color tracking-[0.2em] uppercase opacity-60">Operations Center</span>
-                </div>
-
-
+                <SupremeLogo size={28} animate="shimmer" />
+                <span className="logo-text-supreme">
+                    PLUG <span className="logo-text-highlight-supreme">&</span> SALES
+                </span>
             </div>
 
             <nav className="nav-scroll flex-1">

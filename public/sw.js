@@ -1,23 +1,16 @@
-// Basic Service Worker for PWA
-const CACHE_NAME = 'plug-sales-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
+// PASS-THROUGH SERVICE WORKER
+// This satisfies PWA installation requirements without interfering with network requests.
+// Essential for Vite-based projects with dynamic asset hashing.
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', () => {
+  // Let the browser handle everything normally
+  return;
 });

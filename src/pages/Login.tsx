@@ -257,9 +257,7 @@ const Login = () => {
             <div className="login-card-container">
                 <div className="premium-login-card">
                     <div className="flex flex-col items-center mb-10 text-center">
-                        <div className="brand-icon">
-                            <MessageSquare color="black" size={36} fill="black" />
-                        </div>
+                        <SupremeLogo size={80} animate="pulse" className="mb-6 rotate-[-5deg]" />
                         <h1 className="login-title">Plug & Sales</h1>
                         <p style={{ color: '#94a3b8', fontSize: '0.95rem', fontWeight: 500 }}>
                             Gestão inteligente para sua operação

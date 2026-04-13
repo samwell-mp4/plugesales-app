@@ -4,8 +4,8 @@
   "description": "Gestão e Performance para Negócios Premium",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#acf800",
+  "background_color": "#05070a",
+  "theme_color": "#05070a",
   "icons": [
     {
       "src": "/favicon.svg",

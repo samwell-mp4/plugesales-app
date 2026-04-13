@@ -79,18 +79,17 @@ const DownloadPage = () => {
 
                 <div className="lp-hero-mockup" style={{ textAlign: 'center' }}>
                      <div className="relative inline-block">
-                        <div className="w-64 h-[500px] bg-[#0a0e14] border-[8px] border-[#1e293b] rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col items-center justify-center p-6">
+                        <div className="w-64 h-[500px] bg-[#05070a] border-[8px] border-[#1e293b] rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col items-center justify-center p-6">
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-[#1e293b] rounded-b-2xl z-20"></div>
                             
-                            <div className="text-primary-color mb-4 animate-pulse">
-                                <Zap size={48} fill="currentColor" />
-                            </div>
-                            <div className="text-white font-black text-xl tracking-tighter text-center">
-                                PLUG & <br /> SALES
+                            <SupremeLogo size={80} animate="shimmer" />
+
+                            <div className="text-white font-black text-xl tracking-tighter text-center mt-6">
+                                PLUG & <br /> <span className="text-primary-color">SALES</span>
                             </div>
                             
                             <div className="absolute bottom-10 w-4/5 h-1 bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary-color w-2/3 animate-[loading_2s_infinite]"></div>
+                                <div className="h-full bg-primary-gradient w-2/3 animate-[loading_2s_infinite]"></div>
                             </div>
                         </div>
                         
