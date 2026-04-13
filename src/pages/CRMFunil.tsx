@@ -6,42 +6,48 @@ import {
     Save, Plus, Trash2, Edit3, X, DollarSign,
     Phone, Mail, Calendar, MapPin, TrendingUp, Target, PieChart, Zap,
     ChevronRight, Briefcase, Globe, Info, Clock, CheckCircle,
-    AlertTriangle, ChevronDown
+    AlertTriangle, ChevronDown, ChevronUp, ArrowRightLeft, Check
 } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { dbService } from '../services/dbService';
 import { googleCalendarService } from '../services/googleCalendarService';
 
-// --- Memoized Components for Performance ---
+// --- Components ---
 
-const LeadCard = memo(({ lead, index, onEdit, onFavorite, onWhatsApp, onSchedule, formatDate, getInitials }: any) => {
+const LeadCard = memo(({ 
+    lead, onEdit, onFavorite, onWhatsApp, onSchedule, 
+    isExpanded, onToggleExpand, leadToMove, onSetLeadToMove, 
+    statusList, onMove, formatDate, getInitials 
+}: any) => {
+    const isMovingThis = leadToMove?.id === lead.id;
+
     return (
-        <Draggable draggableId={lead.id.toString()} index={index}>
-            {(provided, snapshot) => (
-                <div 
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className={`lead-card-glass group ${snapshot.isDragging ? 'dragging-card' : ''}`} 
-                    onClick={() => onEdit(lead)}
-                    style={{
-                        ...provided.draggableProps.style,
-                        transition: snapshot.isDragging ? 'none' : provided.draggableProps.style?.transition
-                    }}
-                >
-                    <div className="lead-card-header">
-                        <div className="lead-name-group">
-                            <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
-                            <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
-                        </div>
-                        <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
-                    </div>
+        <div 
+            className={`lead-card-glass group ${isExpanded ? 'is-expanded' : ''} ${isMovingThis ? 'is-selected-move animate-pulse-border' : ''}`} 
+            onClick={() => onEdit(lead)}
+        >
+            <div className="lead-card-header">
+                <div className="lead-name-group">
+                    <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
+                    <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button 
+                        className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:text-white transition-all"
+                        onClick={(e) => { e.stopPropagation(); onToggleExpand(lead.id); }}
+                    >
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                    <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
+                </div>
+            </div>
 
-                    <div className="lead-info-grid">
-                        <div className="lead-info-item text-primary-color">
-                            <Zap size={11} fill="currentColor" /> 
-                            {lead.metodo || 'Sem Método'} | {lead.volume || '0'}
-                        </div>
+            <div className="lead-info-grid">
+                <div className="lead-info-item text-primary-color">
+                    <Zap size={11} fill="currentColor" /> 
+                    {lead.metodo || 'Sem Método'} | {lead.volume || '0'}
+                </div>
+                {isExpanded && (
+                    <>
                         <div className="lead-info-item">
                             <Phone size={11} /> 
                             {lead.numero}
@@ -50,42 +56,71 @@ const LeadCard = memo(({ lead, index, onEdit, onFavorite, onWhatsApp, onSchedule
                             <UserIcon size={11} />
                             {lead.responsavel}
                         </div>
-                    </div>
+                    </>
+                )}
+            </div>
 
-                    <div className="lead-footer-actions">
-                        <div className="lead-date-badge">
-                            <Calendar size={10} />
-                            {formatDate(lead.created_at)}
+            {isExpanded && (
+                <div className="lead-card-details-expanded animate-fade-in mt-4 pt-4 border-t border-white/5">
+                     {lead.email && <div className="text-[10px] text-gray-500 mb-2 truncate"><Mail size={10} className="inline mr-1" /> {lead.email}</div>}
+                     {lead.nicho && <div className="text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-widest"><Target size={10} className="inline mr-1" /> {lead.nicho}</div>}
+                     
+                     {/* B) MOVIMENTAÇÃO INTERNA NO CARD */}
+                     <div className="mt-4 p-3 bg-white/3 rounded-xl border border-white/5">
+                        <p className="text-[9px] font-black text-primary-color uppercase mb-2 tracking-widest flex items-center gap-2">
+                            <ArrowRightLeft size={10} /> Mover para outro Status:
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                            {statusList.filter((s: string) => s !== lead.status).map((status: string) => (
+                                <button 
+                                    key={status}
+                                    className="px-2 py-1 bg-white/5 hover:bg-primary-color/20 text-[8px] font-black text-white/50 hover:text-primary-color rounded-md transition-all border border-white/5"
+                                    onClick={(e) => { e.stopPropagation(); onMove(lead.id, status); }}
+                                >
+                                    {status.toUpperCase()}
+                                </button>
+                            ))}
                         </div>
-                        <div className="lead-quick-actions">
-                            <button 
-                                className="btn-card-action bg-primary-color/10 text-primary-color hover:bg-primary-color hover:text-black"
-                                onClick={(e) => { e.stopPropagation(); onSchedule(lead); }}
-                                title="Agendar Reunião Google"
-                            >
-                                <Calendar size={14} />
-                            </button>
-                            <button 
-                                className={`lead-favorite-btn ${lead.is_favorite ? 'active' : ''}`}
-                                onClick={(e) => { e.stopPropagation(); onFavorite(lead); }}
-                            >
-                                <Star size={14} fill={lead.is_favorite ? 'currentColor' : 'none'} />
-                            </button>
-                            <button 
-                                className="btn-card-action whatsapp" 
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    onWhatsApp(lead.numero); 
-                                }}
-                                title="WhatsApp"
-                            >
-                                <MessageSquare size={14} />
-                            </button>
-                        </div>
-                    </div>
+                     </div>
                 </div>
             )}
-        </Draggable>
+
+            <div className="lead-footer-actions">
+                <div className="lead-date-badge">
+                    <Calendar size={10} />
+                    {formatDate(lead.created_at)}
+                </div>
+                <div className="lead-quick-actions">
+                    <button 
+                        className={`btn-card-action ${isMovingThis ? 'active-move' : 'bg-white/5 text-gray-400'}`}
+                        onClick={(e) => { e.stopPropagation(); onSetLeadToMove(isMovingThis ? null : lead); }}
+                        title="Mover (Clique aqui e depois no topo da coluna destino)"
+                    >
+                        <ArrowRightLeft size={14} />
+                    </button>
+                    <button 
+                        className="btn-card-action bg-primary-color/10 text-primary-color hover:bg-primary-color hover:text-black"
+                        onClick={(e) => { e.stopPropagation(); onSchedule(lead); }}
+                        title="Agendar Reunião Google"
+                    >
+                        <Calendar size={14} />
+                    </button>
+                    <button 
+                        className={`lead-favorite-btn ${lead.is_favorite ? 'active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); onFavorite(lead); }}
+                    >
+                        <Star size={14} fill={lead.is_favorite ? 'currentColor' : 'none'} />
+                    </button>
+                    <button 
+                        className="btn-card-action whatsapp" 
+                        onClick={(e) => { e.stopPropagation(); onWhatsApp(lead.numero); }}
+                        title="WhatsApp"
+                    >
+                        <MessageSquare size={14} />
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 });
 
@@ -109,6 +144,10 @@ const CRMFunil = () => {
     const [selectedLead, setSelectedLead] = useState<any | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
+
+    // --- Interaction States ---
+    const [expandedCards, setExpandedCards] = useState<Set<string | number>>(new Set());
+    const [leadToMove, setLeadToMove] = useState<any | null>(null);
 
     // --- Google Calendar State ---
     const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('gcal_token'));
@@ -155,6 +194,20 @@ const CRMFunil = () => {
             return () => clearInterval(checkAndLoad);
         }
     }, []);
+
+    // Desktop/Laptop default expanded
+    useEffect(() => {
+        if (!isLoading && leads.length > 0 && window.innerWidth > 1024) {
+             setExpandedCards(new Set(leads.map(l => l.id.toString())));
+        }
+    }, [isLoading, leads.length]);
+
+    const toggleExpand = (id: string | number) => {
+        const next = new Set(expandedCards);
+        if (next.has(id.toString())) next.delete(id.toString());
+        else next.add(id.toString());
+        setExpandedCards(next);
+    };
 
     const loadCalendars = async (token: string) => {
         if (!token) return;
@@ -275,6 +328,31 @@ const CRMFunil = () => {
         }
     };
 
+    // --- CLICK TO MOVE LOGIC ---
+    const handleMoveLead = async (leadId: string | number, newStatus: string) => {
+        setIsUpdating(true);
+        const originalLeads = [...leads];
+        // Optimistic update
+        setLeads(leads.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
+        setLeadToMove(null);
+
+        try {
+            await dbService.updateCRMLead(leadId, { status: newStatus });
+        } catch (err) {
+            console.error("Error updating status:", err);
+            setLeads(originalLeads); // rollback
+            alert("Erro ao mover lead.");
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleColumnHeaderClick = (status: string) => {
+        if (leadToMove && leadToMove.status !== status) {
+            handleMoveLead(leadToMove.id, status);
+        }
+    };
+
     const handleDeleteLead = async (id: string | number) => {
         if (!window.confirm("Tem certeza que deseja excluir este lead permanentemente?")) return;
         setIsUpdating(true);
@@ -291,38 +369,14 @@ const CRMFunil = () => {
 
     const toggleFavorite = async (lead: any) => {
         const updated = { ...lead, is_favorite: !lead.is_favorite };
-        // Optimistic update
         setLeads(leads.map(l => l.id === lead.id ? updated : l));
         try {
             await dbService.updateCRMLead(lead.id, { is_favorite: updated.is_favorite });
         } catch (err) {
             console.error("Error toggling favorite:", err);
-            fetchLeads(); // rollback
+            fetchLeads();
         }
     };
-
-    const onDragEnd = async (result: DropResult) => {
-        const { source, destination, draggableId } = result;
-        if (!destination) return;
-        if (source.droppableId === destination.droppableId && source.index === destination.index) return;
-
-        const leadId = draggableId;
-        const newStatus = destination.droppableId;
-
-        // Optimistic update
-        const updatedLeads = leads.map(l => 
-            l.id.toString() === leadId ? { ...l, status: newStatus } : l
-        );
-        setLeads(updatedLeads);
-
-        try {
-            await dbService.updateCRMLead(leadId, { status: newStatus });
-        } catch (err) {
-            console.error("Error updating status on drag:", err);
-            fetchLeads(); // rollback
-        }
-    };
-
 
     const filteredLeads = useMemo(() => {
         return leads.filter(lead => {
@@ -338,7 +392,6 @@ const CRMFunil = () => {
         });
     }, [leads, searchTerm, filterStatus]);
 
-    // Group leads by status for efficient rendering
     const leadsByStatus = useMemo(() => {
         const groups: Record<string, any[]> = {};
         statusList.forEach(status => groups[status] = []);
@@ -350,29 +403,21 @@ const CRMFunil = () => {
         return groups;
     }, [filteredLeads]);
 
-    // Metrics Calculations
     const metrics = useMemo(() => {
         const totalLeads = filteredLeads.length;
         const pendingLeads = filteredLeads.filter(l => l.status !== 'Venda Realizada' && l.status !== 'Não Fechou').length;
         const convertedLeads = filteredLeads.filter(l => l.status === 'Venda Realizada').length;
         const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : '0';
 
-        // Leads Today
         const today = new Date().toISOString().split('T')[0];
         const leadsToday = leads.filter(l => {
             const leadDate = l.created_at ? new Date(l.created_at).toISOString().split('T')[0] : '';
             return leadDate === today;
         }).length;
 
-        return {
-            totalLeads,
-            leadsToday,
-            pendingLeads,
-            conversionRate
-        };
+        return { totalLeads, leadsToday, pendingLeads, conversionRate };
     }, [filteredLeads, leads]);
 
-    
     const getInitials = useCallback((name: string) => {
         if (!name) return '??';
         const parts = name.trim().split(/\s+/);
@@ -561,57 +606,60 @@ const CRMFunil = () => {
                             </table>
                         </div>
                     ) : (
-                        <DragDropContext onDragEnd={onDragEnd}>
-                            <div className="kanban-view">
-                                {statusList.map(status => (
-                                    <Droppable key={status} droppableId={status}>
-                                        {(provided, snapshot) => (
-                                            <div 
-                                                ref={provided.innerRef} 
-                                                {...provided.droppableProps}
-                                                className={`kanban-col ${snapshot.isDraggingOver ? 'drop-indicator-active' : ''}`}
-                                            >
-                                                <div className="kanban-col-header-premium">
-                                                    <div className="kanban-col-title-row">
-                                                        <div className="kanban-col-title">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary-color shadow-[0_0_8px_var(--primary-color)]"></div>
-                                                            {status}
-                                                        </div>
-                                                        <span className="kanban-col-badge">
-                                                            {filteredLeads.filter(l => l.status === status).length}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="kanban-cards-container">
-                                                    {(leadsByStatus[status] || []).map((lead, index) => (
-                                                        <LeadCard 
-                                                            key={lead.id} 
-                                                            lead={lead} 
-                                                            index={index} 
-                                                            onEdit={setSelectedLead}
-                                                            onFavorite={toggleFavorite}
-                                                            onDelete={handleDeleteLead}
-                                                            onWhatsApp={handleWhatsApp}
-                                                            formatDate={formatDate}
-                                                            getInitials={getInitials}
-                                                        />
-                                                    ))}
-                                                    {provided.placeholder}
-
-                                                    {(leadsByStatus[status] || []).length === 0 && !snapshot.isDraggingOver && (
-                                                        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/5 rounded-[24px] opacity-10">
-                                                            <Zap size={24} className="mb-2" />
-                                                            <span className="text-[10px] font-black tracking-widest uppercase">Sem Leads</span>
-                                                        </div>
-                                                    )}
-                                                </div>
+                        <div className="kanban-view">
+                            {statusList.map(status => (
+                                <div key={status} className="kanban-col">
+                                    <div 
+                                        className={`kanban-col-header-premium cursor-pointer transition-all rounded-2xl ${leadToMove ? 'bg-primary-color/10 ring-1 ring-primary-color/30' : ''}`}
+                                        onClick={() => handleColumnHeaderClick(status)}
+                                    >
+                                        <div className="kanban-col-title-row">
+                                            <div className="kanban-col-title">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-primary-color shadow-[0_0_8px_var(--primary-color)]"></div>
+                                                {status}
+                                            </div>
+                                            <span className="kanban-col-badge">
+                                                {filteredLeads.filter(l => l.status === status).length}
+                                            </span>
+                                        </div>
+                                        {leadToMove && leadToMove.status !== status && (
+                                            <div className="flex items-center justify-center gap-2 mt-2 py-2 bg-primary-color/20 rounded-xl animate-pulse">
+                                                <ArrowRightLeft size={12} className="text-primary-color" />
+                                                <span className="text-[9px] font-black text-primary-color italic">CLIQUE AQUI PARA MOVER</span>
                                             </div>
                                         )}
-                                    </Droppable>
-                                ))}
-                            </div>
-                        </DragDropContext>
+                                    </div>
+
+                                    <div className="kanban-cards-container">
+                                        {(leadsByStatus[status] || []).map((lead) => (
+                                            <LeadCard 
+                                                key={lead.id} 
+                                                lead={lead} 
+                                                isExpanded={expandedCards.has(lead.id.toString())}
+                                                onToggleExpand={toggleExpand}
+                                                leadToMove={leadToMove}
+                                                onSetLeadToMove={setLeadToMove}
+                                                statusList={statusList}
+                                                onMove={handleMoveLead}
+                                                onEdit={setSelectedLead}
+                                                onFavorite={toggleFavorite}
+                                                onWhatsApp={handleWhatsApp}
+                                                onSchedule={setIsScheduling}
+                                                formatDate={formatDate}
+                                                getInitials={getInitials}
+                                            />
+                                        ))}
+
+                                        {(leadsByStatus[status] || []).length === 0 && (
+                                            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/5 rounded-[24px] opacity-10">
+                                                <Zap size={24} className="mb-2" />
+                                                <span className="text-[10px] font-black tracking-widest uppercase">Sem Leads</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )
                 )}
             </main>
@@ -619,7 +667,7 @@ const CRMFunil = () => {
             {/* MODAL ADICIONAR LEAD SUPREME */}
             {isAddModalOpen && (
                 <div className="supreme-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
-                    <div className="supreme-modal-content p-0 crm-add-modal" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }} onClick={e => e.stopPropagation()}>
+                    <div className="supreme-modal-content p-0 crm-add-modal max-w-[800px] h-auto max-h-[90vh]" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }} onClick={e => e.stopPropagation()}>
                         <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
                             <div className="flex items-center gap-5">
                                 <div className="w-14 h-14 rounded-2xl bg-primary-gradient flex items-center justify-center text-black shadow-xl shadow-primary-color/20"><Plus size={28} strokeWidth={3} /></div>
@@ -631,7 +679,7 @@ const CRMFunil = () => {
                             <button className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white" onClick={() => setIsAddModalOpen(false)}><X size={20} /></button>
                         </header>
 
-                        <div className="p-10">
+                        <div className="p-10 overflow-y-auto">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="crm-input-group">
                                     <label className="text-[10px] uppercase tracking-widest text-gray-500 font-black mb-2 block">Identificação</label>
@@ -671,7 +719,7 @@ const CRMFunil = () => {
             {/* SUPREME MODAL DETALHES LEAD */}
             {selectedLead && (
                 <div className="supreme-modal-overlay" onClick={() => setSelectedLead(null)}>
-                    <div className="supreme-modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="supreme-modal-content max-w-[1000px] h-[85vh]" onClick={e => e.stopPropagation()}>
                         {/* Sidebar */}
                         <aside className="supreme-modal-sidebar">
                             <div className="flex flex-col items-center text-center gap-4 mb-8">
@@ -724,7 +772,7 @@ const CRMFunil = () => {
                         </aside>
 
                         {/* Main Content */}
-                        <main className="supreme-modal-main">
+                        <main className="supreme-modal-main flex-1 overflow-y-auto p-12">
                             <div className="flex justify-between items-center mb-12">
                                 <div className="flex items-center gap-4">
                                     <div className="w-2 h-12 bg-primary-gradient rounded-full"></div>
@@ -841,10 +889,11 @@ const CRMFunil = () => {
                     </div>
                 </div>
             )}
+
             {/* GOOGLE SCHEDULING MODAL */}
             {isScheduling && (
                 <div className="supreme-modal-overlay" onClick={() => setIsScheduling(null)}>
-                    <div className="supreme-modal-content max-w-[450px]" onClick={e => e.stopPropagation()}>
+                    <div className="supreme-modal-content max-w-[450px] max-h-[80vh]" onClick={e => e.stopPropagation()}>
                         <header className="p-8 border-b border-white/5 flex justify-between items-center bg-white/2">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-xl bg-primary-color/10 flex items-center justify-center text-primary-color"><Calendar size={24} /></div>
@@ -855,7 +904,7 @@ const CRMFunil = () => {
                             </div>
                             <button className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white" onClick={() => setIsScheduling(null)}><X size={20} /></button>
                         </header>
-                        <div className="p-8">
+                        <div className="p-8 overflow-y-auto">
                             {!googleToken ? (
                                 <div className="text-center py-10">
                                     <AlertTriangle size={48} className="text-amber-500 mx-auto mb-4" />
