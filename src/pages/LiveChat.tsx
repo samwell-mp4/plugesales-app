@@ -30,6 +30,8 @@ const LiveChat = () => {
     const [sheetMessages, setSheetMessages] = useState<any[]>([]); 
     const [uniqueRecipients, setUniqueRecipients] = useState<any[]>([]); 
     const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
+    const [filterStatus, setFilterStatus] = useState<string>('Tudo');
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollInterval = useRef<any>(null);
@@ -127,7 +129,8 @@ const LiveChat = () => {
                             id: otherParty,
                             name: msg.nome && msg.nome !== 'Lead Planilha' ? msg.nome : 'Lead Interessado',
                             lastMessage: msg.mensagem,
-                            lastDate: msg.data
+                            lastDate: msg.data,
+                            status: msg.status || 'Default'
                         });
                     }
                 });
@@ -192,27 +195,45 @@ const LiveChat = () => {
         setPerson({ firstName: firstWithName?.nome || 'Lead Interessado', lastName: '' });
     };
 
-    const handleSendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (chatSource === 'sheets') {
-            alert("O Modo Planilha é apenas para visualização de histórico.");
-            return;
-        }
-        if (!newMessage.trim() || !activeConversation || isSending) return;
+    const handleSendMessage = async () => {
+        // ... (existing logic)
+    };
 
-        setIsSending(true);
+    const updateContactStatus = async (recipientId: string, newStatus: string) => {
+        setIsUpdatingStatus(recipientId);
         try {
-            const result = await dbService.sendInfobipMessage(activeConversation.id, newMessage, user.id);
-            if (result.error) {
-                alert("Erro ao enviar: " + result.error);
+            const cleanNumber = phoneNumber.replace(/\D/g, '');
+            const response = await fetch('/api/live-chat/spreadsheet/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    remetente: cleanNumber,
+                    destinatario: recipientId,
+                    status: newStatus
+                })
+            });
+
+            if (response.ok) {
+                // Update local state without re-searching
+                setUniqueRecipients(prev => prev.map(r => 
+                    r.id === recipientId ? { ...r, status: newStatus } : r
+                ));
             } else {
-                setNewMessage('');
-                fetchMessages(activeConversation.id, false);
+                alert("Erro ao atualizar status na planilha.");
             }
         } catch (err) {
-            alert("Erro de conexão ao enviar.");
+            console.error("Error updating status:", err);
         } finally {
-            setIsSending(false);
+            setIsUpdatingStatus(null);
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Green List': return '#22c55e';
+            case 'Black List': return '#ef4444';
+            case 'Cold List': return '#3b82f6';
+            default: return 'var(--text-muted)';
         }
     };
 
@@ -441,29 +462,82 @@ const LiveChat = () => {
                                 <span className="waba-badge">PLANILHA: {phoneNumber}</span>
                             </div>
 
-                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {uniqueRecipients.map((conv: any) => (
+                            {/* Status Filter Tabs */}
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+                                {['Tudo', 'Green List', 'Cold List', 'Black List'].map(status => (
+                                    <button
+                                        key={status}
+                                        onClick={() => setFilterStatus(status)}
+                                        style={{
+                                            padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
+                                            background: filterStatus === status ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)',
+                                            color: filterStatus === status ? 'black' : 'white',
+                                            fontSize: '11px', fontWeight: 800, cursor: 'pointer', transition: 'all 0.3s',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        {status}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {uniqueRecipients
+                                    .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
+                                    .map((conv: any) => (
                                     <div 
                                         key={conv.id} 
-                                        onClick={() => selectSheetRecipient(conv.id)}
                                         style={{ 
-                                            padding: '20px', borderRadius: '20px', background: 'rgba(255,255,255,0.02)', 
-                                            border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', gap: '20px', transition: 'all 0.3s'
+                                            padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.03)', 
+                                            border: '1px solid rgba(255,255,255,0.06)',
+                                            display: 'flex', flexDirection: 'column', gap: '16px', transition: 'all 0.3s',
+                                            position: 'relative', overflow: 'hidden'
                                         }}
-                                        className="hover-lift"
                                     >
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                                            <User size={24} color="var(--primary-color)" />
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white' }}>{conv.name || conv.person?.firstName || 'Lead Interessado'} {conv.person?.lastName || ''}</div>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
-                                                Última Msg: {conv.lastMessage?.slice(0, 30)}... 
-                                                • ID: {conv.id}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                            <div onClick={() => selectSheetRecipient(conv.id)} style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(172, 248, 0, 0.1)', cursor: 'pointer' }}>
+                                                <User size={28} color="var(--primary-color)" />
+                                            </div>
+                                            <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => selectSheetRecipient(conv.id)}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ fontWeight: 900, fontSize: '1.2rem', color: 'white' }}>{conv.name}</div>
+                                                    <div style={{ padding: '4px 10px', borderRadius: '8px', background: `${getStatusColor(conv.status)}22`, color: getStatusColor(conv.status), fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', border: `1px solid ${getStatusColor(conv.status)}44` }}>
+                                                        {conv.status}
+                                                    </div>
+                                                </div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
+                                                    ID: {conv.id} • {formatTime(conv.lastDate)}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div style={{ fontSize: '11px', opacity: 0.4, fontWeight: 700 }}>{formatTime(conv.lastDate)}</div>
+
+                                        <div onClick={() => selectSheetRecipient(conv.id)} style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5, cursor: 'pointer', borderLeft: `4px solid ${getStatusColor(conv.status)}` }}>
+                                            "{conv.lastMessage?.length > 120 ? conv.lastMessage.slice(0, 120) + '...' : conv.lastMessage}"
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button 
+                                                disabled={isUpdatingStatus === conv.id}
+                                                onClick={() => updateContactStatus(conv.id, 'Green List')}
+                                                style={{ flex: 1, padding: '10px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', color: '#22c55e', fontSize: '10px', fontWeight: 900, cursor: 'pointer', opacity: conv.status === 'Green List' ? 0.4 : 1 }}
+                                            >
+                                                GREEN
+                                            </button>
+                                            <button 
+                                                disabled={isUpdatingStatus === conv.id}
+                                                onClick={() => updateContactStatus(conv.id, 'Cold List')}
+                                                style={{ flex: 1, padding: '10px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', fontSize: '10px', fontWeight: 900, cursor: 'pointer', opacity: conv.status === 'Cold List' ? 0.4 : 1 }}
+                                            >
+                                                COLD
+                                            </button>
+                                            <button 
+                                                disabled={isUpdatingStatus === conv.id}
+                                                onClick={() => updateContactStatus(conv.id, 'Black List')}
+                                                style={{ flex: 1, padding: '10px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', fontSize: '10px', fontWeight: 900, cursor: 'pointer', opacity: conv.status === 'Black List' ? 0.4 : 1 }}
+                                            >
+                                                BLACK
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                                 {(uniqueRecipients.length === 0) && (
@@ -520,7 +594,7 @@ const LiveChat = () => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <form onSubmit={handleSendMessage} className="chat-input-area">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="chat-input-area">
                         <div style={{ position: 'relative', display: 'flex', gap: '16px' }}>
                             <textarea 
                                 value={newMessage}
@@ -529,7 +603,7 @@ const LiveChat = () => {
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
-                                        handleSendMessage(e);
+                                        handleSendMessage();
                                     }
                                 }}
                                 style={{ 

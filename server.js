@@ -748,7 +748,7 @@ app.get('/api/live-chat/spreadsheet', async (req, res) => {
 
         // Reutiliza o ID da planilha do CRM conforme solicitado
         const spreadsheetId = '1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0';
-        const range = 'innfobip!A2:E'; 
+        const range = 'innfobip!A2:F'; 
 
         // Timeout wrapper para chamadas de biblioteca
         const response = await Promise.race([
@@ -767,13 +767,67 @@ app.get('/api/live-chat/spreadsheet', async (req, res) => {
                 destinatario: (row[1] || '').replace(/\D/g, ''),
                 mensagem: row[2] || '',
                 nome: row[3] || 'Lead Planilha',
-                data: row[4] || new Date().toISOString()
+                data: row[4] || new Date().toISOString(),
+                status: row[5] || 'Default'
             }))
             .filter(msg => msg.remetente === cleanSearch || msg.destinatario === cleanSearch);
 
         res.json(filtered);
     } catch (err) {
         console.error("Spreadsheet Chat Error:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+// --- UPDATE CONTACT STATUS IN SPREADSHEET ---
+app.post('/api/live-chat/spreadsheet/status', async (req, res) => {
+    try {
+        const { remetente, destinatario, status } = req.body;
+        if (!remetente || !destinatario || !status) {
+            return res.status(400).json({ error: 'Remetente, destinatário e status são obrigatórios.' });
+        }
+
+        const sheets = await getSheetsClient();
+        const spreadsheetId = '1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0';
+        
+        // 1. Ler os dados atuais para encontrar as linhas certas
+        const getResponse = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'innfobip!A2:B', // Só precisamos das colunas A e B
+        });
+
+        const rows = getResponse.data.values;
+        if (!rows) return res.status(404).json({ error: 'Nenhum dado encontrado na planilha.' });
+
+        const cleanR = remetente.replace(/\D/g, '');
+        const cleanD = destinatario.replace(/\D/g, '');
+
+        // 2. Identificar linhas que casam com o par de contatos
+        const updates = [];
+        rows.forEach((row, index) => {
+            const r = (row[0] || '').replace(/\D/g, '');
+            const d = (row[1] || '').replace(/\D/g, '');
+            
+            if ((r === cleanR && d === cleanD) || (r === cleanD && d === cleanR)) {
+                updates.push({
+                    range: `innfobip!F${index + 2}`, // Coluna F, 1-indexed (A2 é index 0 + 2)
+                    values: [[status]]
+                });
+            }
+        });
+
+        if (updates.length > 0) {
+            await sheets.spreadsheets.values.batchUpdate({
+                spreadsheetId,
+                resource: {
+                    data: updates,
+                    valueInputOption: 'USER_ENTERED'
+                }
+            });
+            return res.json({ success: true, updatedRows: updates.length });
+        }
+
+        res.status(404).json({ error: 'Contato não encontrado na planilha.' });
+    } catch (err) {
+        console.error('Error updating status:', err);
         res.status(500).json({ error: err.message });
     }
 });
