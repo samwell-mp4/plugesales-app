@@ -713,7 +713,7 @@ const fetchInfluencerLeads = async (sheets, spreadsheetId) => {
         nicho: row[3] || '',
         volume: row[4] || '',
         metodo: row[5] || '',
-        status: row[6] || 'NOVO',
+        status: row[6] || 'Aguardando Atendimento',
         rowIndex: index + 2,
         sheetName: usedRange // Guardamos o nome da aba usada para o update
     }));
