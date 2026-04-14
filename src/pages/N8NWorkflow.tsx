@@ -43,11 +43,21 @@ const N8NWorkflow = () => {
         setError(null);
         try {
             const response = await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/check-database');
-            if (!response.ok) throw new Error('Falha ao buscar dados do monitor.');
+            if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
             
-            const data = await response.json();
-            // Assumindo que data é um array de mensagens similar à planilha
-            processMessages(data);
+            const text = await response.text();
+            if (!text || text.trim() === '') {
+                setUniqueRecipients([]);
+                return;
+            }
+
+            try {
+                const data = JSON.parse(text);
+                processMessages(data);
+            } catch (jsonErr) {
+                console.error("JSON Parse Error:", jsonErr, "Raw text:", text);
+                throw new Error('O servidor retornou um formato inválido (não JSON).');
+            }
         } catch (err: any) {
             console.error("Monitor Error:", err);
             setError(err.message);
