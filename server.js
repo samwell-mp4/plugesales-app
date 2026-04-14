@@ -642,38 +642,73 @@ const getSheetsClient = async () => {
 
 // --- INFLUENCER CRM HELPERS ---
 const fetchInfluencerLeads = async (sheets, spreadsheetId) => {
-    const response = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: 'Form_Responses!A2:G', // Mapeamento: A=Data, B=Nome, C=Zap, D=Nicho, E=Contatos, F=Metodo, G=Status
-    });
-    const rows = response.data.values;
-    if (!rows) return [];
+    // Tenta nomes comuns em português e inglês para a aba de respostas do Forms
+    const potentialRanges = [
+        'Respostas ao formulário 1!A2:G',
+        'Form Responses 1!A2:G',
+        'Página1!A2:G',
+        'Sheet1!A2:G'
+    ];
+
+    let rows = null;
+    let usedRange = '';
+
+    for (const range of potentialRanges) {
+        try {
+            const response = await sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range,
+            });
+            if (response.data.values && response.data.values.length > 0) {
+                rows = response.data.values;
+                usedRange = range.split('!')[0];
+                break;
+            }
+        } catch (e) {
+            // Continua tentando o próximo range se falhar
+            continue;
+        }
+    }
+
+    if (!rows) {
+        console.error("CRM Influencer: Nenhuma aba válida encontrada ou planilha vazia.");
+        return [];
+    }
 
     return rows.map((row, index) => ({
         id: index + 2, // Row index in sheets (starting from 2 as A2 is row 2)
         created_at: row[0] || new Date().toISOString(),
-        nome: row[1] || 'Influencer Lead',
+        nome: row[1] || 'Lead Sem Nome',
         numero: row[2] || '',
         phone: row[2] || '',
         nicho: row[3] || '',
         volume: row[4] || '',
         metodo: row[5] || '',
         status: row[6] || 'NOVO',
-        rowIndex: index + 2
+        rowIndex: index + 2,
+        sheetName: usedRange // Guardamos o nome da aba usada para o update
     }));
 };
 
 const updateInfluencerLead = async (sheets, spreadsheetId, rowIndex, data) => {
-    // If status is updated, it goes to Col G
+    // Para atualizar, primeiro precisamos saber o nome da aba.
+    // Como o ID passado é o rowIndex, vamos tentar os nomes comuns novamente ou 
+    // assumir o padrão se não tivermos persistido.
+    const possibleNames = ['Respostas ao formulário 1', 'Form Responses 1', 'Página1', 'Sheet1'];
+    
     if (data.status) {
-        await sheets.spreadsheets.values.update({
-            spreadsheetId,
-            range: `Form_Responses!G${rowIndex}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[data.status]] }
-        });
+        for (const name of possibleNames) {
+            try {
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `${name}!G${rowIndex}`,
+                    valueInputOption: 'USER_ENTERED',
+                    requestBody: { values: [[data.status]] }
+                });
+                return; // Sucesso
+            } catch (e) { continue; }
+        }
     }
-    // We can extend this to update other columns if needed
 };
 
 app.get('/api/crm/leads', async (req, res) => {
