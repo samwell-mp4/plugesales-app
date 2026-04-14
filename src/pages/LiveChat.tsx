@@ -68,8 +68,6 @@ const LiveChat = () => {
         setPerson(null);
         setActiveConversation(null);
         setMessages([]);
-        setIsWaba(false);
-        setWabaConversations([]);
         setSelectedRecipient(null);
         setSheetMessages([]);
         setUniqueRecipients([]);
@@ -104,19 +102,8 @@ const LiveChat = () => {
                     return;
                 }
 
-                if (result.isWaba) {
-                    setIsWaba(true);
-                    setWabaConversations(result.conversations || []);
-                } else {
-                    setPerson(result.person);
-                    const active = result.conversations?.find((c: any) => c.status === 'OPEN' || c.status === 'WAITING' || c.status === 'CLOSED');
-                    if (active) {
-                        setActiveConversation(active);
-                        await fetchMessages(active.id); // Aguarda o fetch secundário
-                    } else {
-                        setError('Nenhuma conversa encontrada para este número.');
-                    }
-                }
+            if (chatSource === 'api') {
+                // ... (API logic assumed disabled or handled elsewhere)
             } else {
                 // SPREADSHEET MODE
                 const data = await dbService.fetchSpreadsheetMessages(cleanNumber);
@@ -445,7 +432,7 @@ const LiveChat = () => {
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--card-bg-subtle)', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)', padding: '32px', width: '100%', maxWidth: '800px', margin: '0 auto', backdropFilter: 'blur(20px)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <button onClick={() => { setIsWaba(false); setUniqueRecipients([]); }} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <button onClick={() => { setUniqueRecipients([]); }} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <ArrowLeft size={20} />
                                     </button>
                                     <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>
@@ -456,7 +443,7 @@ const LiveChat = () => {
                             </div>
 
                             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {(chatSource === 'api' ? wabaConversations : uniqueRecipients).map((conv: any) => (
+                                {uniqueRecipients.map((conv: any) => (
                                     <div 
                                         key={conv.id} 
                                         onClick={() => selectSheetRecipient(conv.id)}
