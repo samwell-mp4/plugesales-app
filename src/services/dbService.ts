@@ -1177,5 +1177,17 @@ export const dbService = {
         } catch (err) {
             console.error("Error sending meeting webhook:", err);
         }
+    },
+
+    // --- Google Sheets Live Chat ---
+    fetchSpreadsheetMessages: async (remetente: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/live-chat/spreadsheet?remetente=${encodeURIComponent(remetente)}`);
+            if (!res.ok) throw new Error("Erro ao buscar mensagens da planilha");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching spreadsheet messages:", err);
+            return [];
+        }
     }
 };

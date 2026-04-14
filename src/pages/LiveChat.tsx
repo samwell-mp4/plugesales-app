@@ -25,6 +25,12 @@ const LiveChat = () => {
     const [error, setError] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
     
+    // --- Google Sheets Chat States ---
+    const [chatSource, setChatSource] = useState<'api' | 'sheets'>('api');
+    const [sheetMessages, setSheetMessages] = useState<any[]>([]); // All messages for the sender
+    const [uniqueRecipients, setUniqueRecipients] = useState<any[]>([]); // Grouped recipients
+    const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
+    
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollInterval = useRef<any>(null);
 
@@ -64,29 +70,59 @@ const LiveChat = () => {
         setMessages([]);
         setIsWaba(false);
         setWabaConversations([]);
+        setSelectedRecipient(null);
+        setSheetMessages([]);
+        setUniqueRecipients([]);
 
         try {
             const cleanNumber = phoneNumber.replace(/\D/g, '');
-            const result = await dbService.resolveInfobipNumber(cleanNumber, user.id);
             
-            if (result.error) {
-                setError(result.error);
-                return;
-            }
-
-            if (result.isWaba) {
-                setIsWaba(true);
-                setWabaConversations(result.conversations || []);
-            } else {
-                setPerson(result.person);
-                // Find active conversation
-                const active = result.conversations?.find((c: any) => c.status === 'OPEN' || c.status === 'WAITING' || c.status === 'CLOSED');
-                if (active) {
-                    setActiveConversation(active);
-                    fetchMessages(active.id);
-                } else {
-                    setError('Nenhuma conversa encontrada para este número.');
+            if (chatSource === 'api') {
+                const result = await dbService.resolveInfobipNumber(cleanNumber, user.id);
+                
+                if (result.error) {
+                    setError(result.error);
+                    return;
                 }
+
+                if (result.isWaba) {
+                    setIsWaba(true);
+                    setWabaConversations(result.conversations || []);
+                } else {
+                    setPerson(result.person);
+                    const active = result.conversations?.find((c: any) => c.status === 'OPEN' || c.status === 'WAITING' || c.status === 'CLOSED');
+                    if (active) {
+                        setActiveConversation(active);
+                        fetchMessages(active.id);
+                    } else {
+                        setError('Nenhuma conversa encontrada para este número.');
+                    }
+                }
+            } else {
+                // SPREADSHEET MODE
+                const data = await dbService.fetchSpreadsheetMessages(cleanNumber);
+                if (!data || data.length === 0) {
+                    setError('Nenhum dado encontrado para este remetente na planilha.');
+                    return;
+                }
+
+                setSheetMessages(data);
+                
+                // Group by destinatario
+                const recipientsMap = new Map();
+                data.forEach((msg: any) => {
+                    const dest = msg.destinatario;
+                    if (!recipientsMap.has(dest)) {
+                        recipientsMap.set(dest, {
+                            id: dest,
+                            name: msg.nome || 'Lead Planilha',
+                            lastMessage: msg.mensagem,
+                            lastDate: msg.data
+                        });
+                    }
+                });
+
+                setUniqueRecipients(Array.from(recipientsMap.values()));
             }
         } catch (err: any) {
             setError('Falha ao conectar com o servidor.');
@@ -121,8 +157,25 @@ const LiveChat = () => {
         }
     };
 
+    const selectSheetRecipient = (recipientId: string) => {
+        setSelectedRecipient(recipientId);
+        const filtered = sheetMessages.filter(m => m.destinatario === recipientId);
+        // Map to standard message format
+        setMessages(filtered.map((m, idx) => ({
+            id: `sheet-${idx}`,
+            direction: m.remetente === phoneNumber.replace(/\D/g, '') ? 'OUTBOUND' : 'INBOUND',
+            content: { text: m.mensagem },
+            createdAt: m.data
+        })));
+        setPerson({ firstName: filtered[0]?.nome || 'Contato', lastName: '' });
+    };
+
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (chatSource === 'sheets') {
+            alert("O Modo Planilha é apenas para visualização de histórico.");
+            return;
+        }
         if (!newMessage.trim() || !activeConversation || isSending) return;
 
         setIsSending(true);
@@ -298,33 +351,77 @@ const LiveChat = () => {
             `}</style>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
-                <div style={{ padding: '14px', background: 'var(--primary-gradient)', borderRadius: '20px', color: 'black', boxShadow: '0 8px 25px rgba(172, 248, 0, 0.2)' }}>
-                    <MessageSquare size={28} />
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <button 
+                        onClick={() => { setChatSource('api'); setActiveConversation(null); setMessages([]); }}
+                        style={{ 
+                            padding: '10px 20px', borderRadius: '12px', border: 'none', 
+                            background: chatSource === 'api' ? 'var(--primary-color)' : 'transparent',
+                            color: chatSource === 'api' ? 'black' : 'white',
+                            fontWeight: 800, cursor: 'pointer', transition: 'all 0.3s',
+                            fontSize: '11px', textTransform: 'uppercase'
+                        }}
+                    >
+                        Infobip API
+                    </button>
+                    <button 
+                        onClick={() => { setChatSource('sheets'); setActiveConversation(null); setMessages([]); }}
+                        style={{ 
+                            padding: '10px 20px', borderRadius: '12px', border: 'none', 
+                            background: chatSource === 'sheets' ? 'var(--primary-color)' : 'transparent',
+                            color: chatSource === 'sheets' ? 'black' : 'white',
+                            fontWeight: 800, cursor: 'pointer', transition: 'all 0.3s',
+                            fontSize: '11px', textTransform: 'uppercase'
+                        }}
+                    >
+                        Planilha Google
+                    </button>
                 </div>
-                <div>
-                    <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-2px', textTransform: 'uppercase' }}>ATENDIMENTO <span style={{ color: 'var(--primary-color)' }}>AO VIVO</span></h1>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '11px', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>Central de Mensagens Cloud API</p>
+
+                <div style={{ flex: 1 }} />
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div style={{ padding: '14px', background: 'var(--primary-gradient)', borderRadius: '20px', color: 'black', boxShadow: '0 8px 25px rgba(172, 248, 0, 0.2)' }}>
+                        <MessageSquare size={28} />
+                    </div>
+                    <div>
+                        <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-2px', textTransform: 'uppercase' }}>ATENDIMENTO <span style={{ color: 'var(--primary-color)' }}>AO VIVO</span></h1>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '11px', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>
+                            {chatSource === 'api' ? 'Central de Mensagens Cloud API' : 'Histórico de Mensagens Planilha'}
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            {!activeConversation ? (
+            {!activeConversation && !selectedRecipient ? (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'center' }}>
-                    {!isWaba ? (
+                    {!isWaba && uniqueRecipients.length === 0 ? (
                         <div className="search-command-center">
                              <div className={`pulse-loader`} style={{ marginBottom: '32px', padding: '24px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                                <Smartphone size={56} color="var(--primary-color)" strokeWidth={1} />
+                                {chatSource === 'api' ? (
+                                    <Smartphone size={56} color="var(--primary-color)" strokeWidth={1} />
+                                ) : (
+                                    <RefreshCcw size={56} color="var(--primary-color)" strokeWidth={1} />
+                                )}
                             </div>
-                            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '12px', letterSpacing: '-1px' }}>Carregar Conversa</h2>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '12px', letterSpacing: '-1px' }}>
+                                {chatSource === 'api' ? 'Carregar Conversa' : 'Buscar na Planilha'}
+                            </h2>
                             <p style={{ color: 'var(--text-muted)', marginBottom: '40px', fontSize: '0.95rem', fontWeight: 500, lineHeight: 1.6 }}>
-                                Sincronize o histórico de mensagens via WABA.<br/>
-                                <span style={{ color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Insira o número com DDI + DDD</span>
+                                {chatSource === 'api' ? (
+                                    <>Sincronize o histórico de mensagens via WABA.<br/>
+                                    <span style={{ color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Insira o número com DDI + DDD</span></>
+                                ) : (
+                                    <>Visualize o histórico de disparos e respostas.<br/>
+                                    <span style={{ color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Filtre as mensagens pelo número do remetente</span></>
+                                )}
                             </p>
 
                             <form onSubmit={handleSearch} style={{ width: '100%', position: 'relative', maxWidth: '450px' }}>
                                 <input 
                                     className="premium-input"
                                     type="text" 
-                                    placeholder="Ex: 5511999999999"
+                                    placeholder={chatSource === 'api' ? "Ex: 5511999999999" : "Número do Remetente"}
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
                                     disabled={isLoading}
@@ -347,19 +444,21 @@ const LiveChat = () => {
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--card-bg-subtle)', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)', padding: '32px', width: '100%', maxWidth: '800px', margin: '0 auto', backdropFilter: 'blur(20px)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <button onClick={() => setIsWaba(false)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <button onClick={() => { setIsWaba(false); setUniqueRecipients([]); }} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <ArrowLeft size={20} />
                                     </button>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>Sessões Ativas</h2>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>
+                                        {chatSource === 'api' ? 'Sessões Ativas' : 'Destinatários Encontrados'}
+                                    </h2>
                                 </div>
-                                <span className="waba-badge">ID: {phoneNumber}</span>
+                                <span className="waba-badge">{chatSource === 'api' ? 'WABA' : 'SHEETS'}: {phoneNumber}</span>
                             </div>
 
                             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {wabaConversations.map((conv: any) => (
+                                {(chatSource === 'api' ? wabaConversations : uniqueRecipients).map((conv: any) => (
                                     <div 
                                         key={conv.id} 
-                                        onClick={() => selectConversation(conv)}
+                                        onClick={() => chatSource === 'api' ? selectConversation(conv) : selectSheetRecipient(conv.id)}
                                         style={{ 
                                             padding: '20px', borderRadius: '20px', background: 'rgba(255,255,255,0.02)', 
                                             border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer',
@@ -371,14 +470,19 @@ const LiveChat = () => {
                                             <User size={24} color="var(--primary-color)" />
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white' }}>{conv.person?.firstName || 'Lead Interessado'} {conv.person?.lastName || ''}</div>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Status: <span style={{ color: 'var(--primary-color)' }}>{conv.status}</span> • ID: {conv.person?.id?.slice(0,10)}...</div>
+                                            <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white' }}>{conv.name || conv.person?.firstName || 'Lead Interessado'} {conv.person?.lastName || ''}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
+                                                {chatSource === 'api' ? `Status: ${conv.status}` : `Última Msg: ${conv.lastMessage?.slice(0, 30)}...`} 
+                                                • ID: {conv.id?.slice(0,12)}
+                                            </div>
                                         </div>
-                                        <div style={{ fontSize: '11px', opacity: 0.4, fontWeight: 700 }}>{formatTime(conv.updatedAt)}</div>
+                                        <div style={{ fontSize: '11px', opacity: 0.4, fontWeight: 700 }}>{formatTime(conv.lastDate || conv.updatedAt)}</div>
                                     </div>
                                 ))}
-                                {wabaConversations.length === 0 && (
-                                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Nenhuma conversa encontrada neste remetente.</div>
+                                {(chatSource === 'api' ? wabaConversations.length === 0 : uniqueRecipients.length === 0) && (
+                                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                                        Nenhuma conversa ou destinatário encontrado para este número.
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -394,7 +498,7 @@ const LiveChat = () => {
                 <div className="chat-container">
                     <div className="chat-header" style={{ backdropFilter: 'blur(30px)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            <button onClick={() => setActiveConversation(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <button onClick={() => { setActiveConversation(null); setSelectedRecipient(null); }} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <ArrowLeft size={20} />
                             </button>
                             <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--surface-border-subtle)', position: 'relative' }}>
@@ -406,13 +510,15 @@ const LiveChat = () => {
                                     {person?.firstName || 'Lead'} {person?.lastName || ''}
                                 </div>
                                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>
-                                    CLIENTE ONLINE • {phoneNumber}
+                                    {chatSource === 'api' ? 'CLIENTE ONLINE' : 'HISTÓRICO PLANILHA'} • {chatSource === 'api' ? phoneNumber : selectedRecipient}
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => fetchMessages(activeConversation.id)} style={{ background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', width: '44px', height: '44px', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <RefreshCcw size={20} className={isLoading ? 'animate-spin' : ''} />
-                        </button>
+                        {chatSource === 'api' && (
+                            <button onClick={() => fetchMessages(activeConversation.id)} style={{ background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', width: '44px', height: '44px', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <RefreshCcw size={20} className={isLoading ? 'animate-spin' : ''} />
+                            </button>
+                        )}
                     </div>
 
                     <div className="messages-area">

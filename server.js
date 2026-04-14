@@ -710,6 +710,46 @@ app.put('/api/crm/leads/:id', async (req, res) => {
     }
 });
 
+// --- LIVE CHAT SPREADSHEET ENDPOINT ---
+app.get('/api/live-chat/spreadsheet', async (req, res) => {
+    try {
+        const { remetente } = req.query;
+        if (!remetente) return res.status(400).json({ error: 'Número do remetente é obrigatório.' });
+
+        const sheets = await getSheetsClient();
+        if (!sheets) throw new Error('Google Sheets client not available.');
+
+        // Reutiliza o ID da planilha do CRM conforme solicitado
+        const spreadsheetId = '1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0';
+        const range = 'innfobip!A2:E'; 
+
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range,
+        });
+
+        const rows = response.data.values;
+        if (!rows) return res.json([]);
+
+        // Filtra pelo remetente ignorando formatação não numérica
+        const cleanSearch = remetente.replace(/\D/g, '');
+        const filtered = rows
+            .map((row) => ({
+                remetente: (row[0] || '').replace(/\D/g, ''),
+                destinatario: (row[1] || '').replace(/\D/g, ''),
+                mensagem: row[2] || '',
+                nome: row[3] || 'Lead Planilha',
+                data: row[4] || new Date().toISOString()
+            }))
+            .filter(msg => msg.remetente === cleanSearch || msg.destinatario === cleanSearch);
+
+        res.json(filtered);
+    } catch (err) {
+        console.error("Spreadsheet Chat Error:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.delete('/api/crm/leads/:id', async (req, res) => {
     const { id } = req.params;
     try {
