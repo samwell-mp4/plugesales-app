@@ -117,7 +117,7 @@ const Sidebar = () => {
             id: 'CRM',
             label: 'CRM E GESTÃO',
             items: [
-                { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'INFLUENCER'] },
                 { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE'] },
             ]
@@ -163,6 +163,26 @@ const Sidebar = () => {
     ];
 
     const filteredCats = useMemo(() => {
+        // Restricted Sidebar for Influencers
+        if (user?.role === 'INFLUENCER') {
+            return [
+                {
+                    id: 'CRM',
+                    label: 'CRM E GESTÃO',
+                    items: [
+                        { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users /> }
+                    ]
+                },
+                {
+                    id: 'SISTEMA',
+                    label: 'SISTEMA',
+                    items: [
+                        { name: 'Meu Perfil', path: '/profile', icon: <User /> }
+                    ]
+                }
+            ];
+        }
+
         return menuData.map(cat => ({
             ...cat,
             items: cat.items.filter((item: any) => {

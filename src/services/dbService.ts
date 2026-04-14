@@ -707,9 +707,10 @@ export const dbService = {
         } catch (err) { return []; }
     },
     // --- CRM / Google Sheets ---
-    getCRMLeads: async () => {
+    getCRMLeads: async (userId?: number) => {
         try {
-            const res = await fetch(`${API_BASE}/crm/leads`);
+            const url = userId ? `${API_BASE}/crm/leads?userId=${userId}` : `${API_BASE}/crm/leads`;
+            const res = await fetch(url);
             if (!res.ok) {
                 const errData = await res.json();
                 throw new Error(errData.error || 'Erro ao carregar dados da planilha.');
@@ -735,9 +736,10 @@ export const dbService = {
             throw err;
         }
     },
-    updateCRMLead: async (id: string | number, data: any) => {
+    updateCRMLead: async (id: string | number, data: any, userId?: number) => {
         try {
-            const res = await fetch(`${API_BASE}/crm/leads/${id}`, {
+            const url = userId ? `${API_BASE}/crm/leads/${id}?userId=${userId}` : `${API_BASE}/crm/leads/${id}`;
+            const res = await fetch(url, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)

@@ -640,9 +640,59 @@ const getSheetsClient = async () => {
     return null;
 };
 
+// --- INFLUENCER CRM HELPERS ---
+const fetchInfluencerLeads = async (sheets, spreadsheetId) => {
+    const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'Form_Responses!A2:G', // Mapeamento: A=Data, B=Nome, C=Zap, D=Nicho, E=Contatos, F=Metodo, G=Status
+    });
+    const rows = response.data.values;
+    if (!rows) return [];
+
+    return rows.map((row, index) => ({
+        id: index + 2, // Row index in sheets (starting from 2 as A2 is row 2)
+        created_at: row[0] || new Date().toISOString(),
+        nome: row[1] || 'Influencer Lead',
+        numero: row[2] || '',
+        phone: row[2] || '',
+        nicho: row[3] || '',
+        volume: row[4] || '',
+        metodo: row[5] || '',
+        status: row[6] || 'NOVO',
+        rowIndex: index + 2
+    }));
+};
+
+const updateInfluencerLead = async (sheets, spreadsheetId, rowIndex, data) => {
+    // If status is updated, it goes to Col G
+    if (data.status) {
+        await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `Form_Responses!G${rowIndex}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[data.status]] }
+        });
+    }
+    // We can extend this to update other columns if needed
+};
+
 app.get('/api/crm/leads', async (req, res) => {
     try {
-        const { responsavel } = req.query;
+        const { responsavel, userId } = req.query;
+
+        // If userId is provided, check if it's an influencer
+        if (userId) {
+            const userRes = await pool.query('SELECT role, crm_spreadsheet_id FROM users WHERE id = $1', [userId]);
+            const user = userRes.rows[0];
+            
+            if (user && user.role === 'INFLUENCER' && user.crm_spreadsheet_id) {
+                const sheets = await getSheetsClient();
+                if (!sheets) throw new Error('Google Sheets client not available.');
+                const leads = await fetchInfluencerLeads(sheets, user.crm_spreadsheet_id);
+                return res.json(leads);
+            }
+        }
+
         let query = supabase.from('crm_leads').select('*').order('created_at', { ascending: false });
         
         if (responsavel) {
@@ -654,7 +704,7 @@ app.get('/api/crm/leads', async (req, res) => {
         
         res.json(data || []);
     } catch (err) {
-        console.error("CRM Leads Error (Supabase):", err.message);
+        console.error("CRM Leads Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });
@@ -723,7 +773,20 @@ app.post('/api/crm/migrate', async (req, res) => {
 
 app.put('/api/crm/leads/:id', async (req, res) => {
     const { id } = req.params;
+    const { userId } = req.query;
     try {
+        if (userId) {
+            const userRes = await pool.query('SELECT role, crm_spreadsheet_id FROM users WHERE id = $1', [userId]);
+            const user = userRes.rows[0];
+            
+            if (user && user.role === 'INFLUENCER' && user.crm_spreadsheet_id) {
+                const sheets = await getSheetsClient();
+                if (!sheets) throw new Error('Google Sheets client not available.');
+                await updateInfluencerLead(sheets, user.crm_spreadsheet_id, id, req.body);
+                return res.json({ success: true });
+            }
+        }
+
         const { error } = await supabase
             .from('crm_leads')
             .update(req.body)
@@ -732,7 +795,7 @@ app.put('/api/crm/leads/:id', async (req, res) => {
         if (error) throw error;
         res.json({ success: true });
     } catch (err) {
-        console.error("CRM Update Error (Supabase):", err.message);
+        console.error("CRM Update Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1000,7 +1063,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/employees', async (req, res) => {
     try {
         // We can use a static list or query the DB for users with role = 'EMPLOYEE'
-        const result = await pool.query("SELECT name FROM users WHERE role = 'EMPLOYEE' OR role = 'ADMIN'");
+        const result = await pool.query("SELECT name FROM users WHERE (role = 'EMPLOYEE' OR role = 'ADMIN') AND role != 'INFLUENCER'");
         // Merge with static list if needed, or just rely on DB
         // For now, let's return combined set of names
         const staticNames = ['Italo', 'Augusto', 'Otavio', 'Lucas', 'Geraldo', 'Ricardo'];
@@ -1015,7 +1078,7 @@ app.get('/api/employees', async (req, res) => {
 // Admin: Get all users
 app.get('/api/admin/users', async (req, res) => {
     try {
-        const result = await pool.query('SELECT id, name, email, role FROM users ORDER BY name ASC');
+        const result = await pool.query("SELECT id, name, email, role FROM users WHERE role != 'INFLUENCER' ORDER BY name ASC");
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });

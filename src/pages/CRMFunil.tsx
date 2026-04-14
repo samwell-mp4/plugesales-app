@@ -246,23 +246,17 @@ const CRMFunil = () => {
         }
     };
 
-    const fetchLeads = async () => {
+    const fetchLeads = useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getCRMLeads();
-            let filteredData = data;
-            if (user?.role === 'EMPLOYEE') {
-                filteredData = data.filter((l: any) => 
-                    (l.responsavel || '').toLowerCase() === (user.name || '').toLowerCase()
-                );
-            }
-            setLeads(filteredData);
+            const data = await dbService.getCRMLeads(user?.id);
+            setLeads(data);
         } catch (err: any) {
             console.error("CRM Funil Error:", err);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [user?.id]);
 
     const handleAddLead = async () => {
         if (!newLead.nome || !newLead.numero) return alert("Nome e Número são obrigatórios.");
@@ -321,7 +315,7 @@ const CRMFunil = () => {
                 meeting_link: meetLink
             };
 
-            await dbService.updateCRMLead(isScheduling.id, updatedData);
+            await dbService.updateCRMLead(isScheduling.id, updatedData, user?.id);
             await fetchLeads();
             
             // Envia Webhook com todos os parâmetros
@@ -347,7 +341,7 @@ const CRMFunil = () => {
     const handleUpdateLead = async (id: string | number, updatedData: any) => {
         setIsUpdating(true);
         try {
-            await dbService.updateCRMLead(id, updatedData);
+            await dbService.updateCRMLead(id, updatedData, user?.id);
             await fetchLeads(); 
             setSelectedLead(null);
         } catch (err: any) {
@@ -366,7 +360,7 @@ const CRMFunil = () => {
         setLeadToMove(null);
 
         try {
-            await dbService.updateCRMLead(leadId, { status: newStatus });
+            await dbService.updateCRMLead(leadId, { status: newStatus }, user?.id);
         } catch (err) {
             console.error("Error updating status:", err);
             setLeads(originalLeads); // rollback
