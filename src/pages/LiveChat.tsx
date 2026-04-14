@@ -102,7 +102,6 @@ const LiveChat = () => {
                     return;
                 }
 
-            if (chatSource === 'api') {
                 // ... (API logic assumed disabled or handled elsewhere)
             } else {
                 // SPREADSHEET MODE
