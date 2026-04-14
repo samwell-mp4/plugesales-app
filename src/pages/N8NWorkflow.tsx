@@ -66,8 +66,13 @@ const N8NWorkflow = () => {
         }
     };
 
-    const processMessages = (allMsgs: any[]) => {
-        if (!Array.isArray(allMsgs)) return;
+    const processMessages = (response: any) => {
+        const allMsgs = Array.isArray(response) ? response : (response?.dados || []);
+        
+        if (!Array.isArray(allMsgs)) {
+            console.error("Dados inválidos recebidos:", response);
+            return;
+        }
         
         const recipientsMap = new Map();
         
