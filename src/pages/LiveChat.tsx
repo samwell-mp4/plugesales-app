@@ -9,7 +9,9 @@ import {
     RefreshCcw,
     AlertCircle,
     ArrowLeft,
-    Smartphone
+    Smartphone,
+    FileSpreadsheet,
+    ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -237,6 +239,33 @@ const LiveChat = () => {
         }
     };
 
+    const downloadCSV = () => {
+        const filteredData = uniqueRecipients.filter(r => filterStatus === 'Tudo' || r.status === filterStatus);
+        if (filteredData.length === 0) return alert("Nenhum dado para baixar.");
+
+        const headers = ['ID', 'Nome', 'Status', 'Ultima Mensagem', 'Data'];
+        const csvRows = [
+            headers.join(','),
+            ...filteredData.map(row => [
+                `"${row.id}"`,
+                `"${row.name}"`,
+                `"${row.status}"`,
+                `"${(row.lastMessage || '').replace(/"/g, '""')}"`,
+                `"${row.lastDate}"`
+            ].join(','))
+        ];
+        
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `lista_${filterStatus.toLowerCase().replace(' ', '_')}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const formatTime = (dateStr: string) => {
         if (!dateStr) return '';
         const date = new Date(dateStr);
@@ -389,43 +418,112 @@ const LiveChat = () => {
                     transition: all 0.3s;
                     width: 100%;
                 }
-                .premium-input:focus {
-                    outline: none;
-                    border-color: var(--primary-color);
-                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.1);
+                .chat-responsive-container {
+                    display: grid;
+                    grid-template-columns: 400px 1fr;
+                    gap: 32px;
+                    height: calc(100vh - 180px); /* Ajuste dinâmico */
+                    min-height: 600px;
+                }
+
+                @media (max-width: 1200px) {
+                    .chat-responsive-container {
+                        grid-template-columns: 350px 1fr;
+                        gap: 20px;
+                    }
+                }
+
+                @media (max-width: 968px) {
+                    .chat-responsive-container {
+                        display: flex;
+                        flex-direction: column;
+                        height: auto;
+                        gap: 24px;
+                    }
+                    
+                    .chat-sidebar-section {
+                        width: 100% !important;
+                        height: auto !important;
+                        max-height: 500px;
+                    }
+
+                    .messages-area {
+                        height: 500px !important;
+                    }
+                }
+
+                .supreme-card {
+                    background: var(--card-bg-subtle);
+                    backdrop-filter: blur(25px);
+                    border: 1px solid rgba(172, 248, 0, 0.08);
+                    border-radius: 28px;
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                .supreme-card:hover {
+                    border-color: rgba(172, 248, 0, 0.2);
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                }
+
+                .pulse-loading {
+                    animation: pulse-border 2s infinite;
+                }
+
+                @keyframes pulse-border {
+                    0% { box-shadow: 0 0 0 0 rgba(172, 248, 0, 0.4); }
+                    70% { box-shadow: 0 0 0 15px rgba(172, 248, 0, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(172, 248, 0, 0); }
                 }
             `}</style>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <div style={{ padding: '14px', background: 'var(--primary-gradient)', borderRadius: '20px', color: 'black', boxShadow: '0 8px 25px rgba(172, 248, 0, 0.2)' }}>
-                        <RefreshCcw size={28} />
+                        <FileSpreadsheet size={28} />
                     </div>
                     <div>
-                        <h1 style={{ margin: 0, fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-2px', textTransform: 'uppercase' }}>HISTÓRICO <span style={{ color: 'var(--primary-color)' }}>DE PLANILHA</span></h1>
+                        <h1 style={{ margin: 0, fontWeight: 950, fontSize: '2.5rem', letterSpacing: '-2px', textTransform: 'uppercase', background: 'linear-gradient(to right, #fff, var(--primary-color))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            HISTÓRICO <span style={{ opacity: 0.7 }}>DE PLANILHA</span>
+                        </h1>
                         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '11px', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>
                             Visualização de disparos e mensagens do Google Sheets
                         </p>
                     </div>
                 </div>
+
+                {uniqueRecipients.length > 0 && (
+                    <button 
+                        onClick={downloadCSV}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', 
+                            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '16px', color: 'white', fontWeight: 800, fontSize: '12px',
+                            cursor: 'pointer', transition: 'all 0.3s'
+                        }}
+                        className="hover-lift"
+                    >
+                        <FileSpreadsheet size={18} color="var(--primary-color)" />
+                        BAIXAR {filterStatus.toUpperCase()} (CSV)
+                    </button>
+                )}
             </div>
 
             {!selectedRecipient ? (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'center' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
                     {uniqueRecipients.length === 0 ? (
-                        <div className="search-command-center">
-                            <div className={`pulse-loader`} style={{ marginBottom: '32px', padding: '24px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                                <RefreshCcw size={56} color="var(--primary-color)" strokeWidth={1} />
+                        <div className="supreme-card" style={{ padding: '60px', textAlign: 'center', maxWidth: '500px', width: '100%' }}>
+                            <div className={`pulse-loading`} style={{ margin: '0 auto 32px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <Search size={40} color="var(--primary-color)" />
                             </div>
-                            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '12px', letterSpacing: '-1px' }}>
+                            <h2 style={{ fontSize: '2.2rem', fontWeight: 950, marginBottom: '12px', letterSpacing: '-1.5px', color: 'white' }}>
                                 Buscar na Planilha
                             </h2>
-                            <p style={{ color: 'var(--text-muted)', marginBottom: '40px', fontSize: '0.95rem', fontWeight: 500, lineHeight: 1.6 }}>
-                                Visualize o histórico de disparos e respostas.<br/>
-                                <span style={{ color: 'var(--primary-color)', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Filtre as mensagens pelo número do remetente</span>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '40px', fontSize: '1.05rem', fontWeight: 500, lineHeight: 1.6 }}>
+                                Visualize o histórico de disparos e respostas filtrando pelo número do remetente.
                             </p>
 
-                            <form onSubmit={handleSearch} style={{ width: '100%', position: 'relative', maxWidth: '450px' }}>
+                            <form onSubmit={handleSearch} style={{ width: '100%', position: 'relative' }}>
                                 <input 
                                     className="premium-input"
                                     type="text" 
@@ -433,201 +531,193 @@ const LiveChat = () => {
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
                                     disabled={isLoading}
+                                    style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '2px solid rgba(172, 248, 0, 0.1)', borderRadius: '20px', padding: '18px 24px', color: 'white', fontWeight: 600, fontSize: '1.1rem' }}
                                 />
                                 <button 
+                                    className="premium-button"
                                     type="submit" 
-                                    disabled={isLoading || !phoneNumber}
-                                    style={{ 
-                                        position: 'absolute', right: '10px', top: '10px', bottom: '10px',
-                                        padding: '0 24px', borderRadius: '14px', background: 'var(--primary-color)',
-                                        color: 'black', fontWeight: 900, border: 'none', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem'
-                                    }}
+                                    disabled={isLoading}
+                                    style={{ position: 'absolute', right: '8px', top: '8px', padding: '10px 24px', borderRadius: '14px', background: 'var(--primary-color)', color: 'black', fontWeight: 900, border: 'none', cursor: 'pointer' }}
                                 >
-                                    {isLoading ? <Loader2 className="animate-spin" size={18} /> : <><Search size={18} /> BUSCAR</>}
+                                    {isLoading ? <RefreshCcw size={18} className="animate-spin" /> : 'BUSCAR'}
                                 </button>
                             </form>
                         </div>
                     ) : (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--card-bg-subtle)', borderRadius: '24px', border: '1px solid var(--surface-border-subtle)', padding: '32px', width: '100%', maxWidth: '800px', margin: '0 auto', backdropFilter: 'blur(20px)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <button onClick={() => { setUniqueRecipients([]); }} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <ArrowLeft size={20} />
+                        <div className="chat-responsive-container" style={{ width: '100%' }}>
+                             {/* Sidebar de Resultados */}
+                             <div className="supreme-card chat-sidebar-section" style={{ display: 'flex', flexDirection: 'column', padding: '24px', overflow: 'hidden' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, letterSpacing: '-0.5px', color: 'white' }}>
+                                        CONTATOS
+                                    </h3>
+                                    <button onClick={() => setUniqueRecipients([])} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', padding: '8px', borderRadius: '10px' }}>
+                                        <ArrowLeft size={16} />
                                     </button>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>
-                                        Destinatários Encontrados
-                                    </h2>
                                 </div>
-                                <span className="waba-badge">PLANILHA: {phoneNumber}</span>
-                            </div>
 
-                            {/* Status Filter Tabs */}
-                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
-                                {['Tudo', 'Green List', 'Cold List', 'Black List'].map(status => (
-                                    <button
-                                        key={status}
-                                        onClick={() => setFilterStatus(status)}
-                                        style={{
-                                            padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
-                                            background: filterStatus === status ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)',
-                                            color: filterStatus === status ? 'black' : 'white',
-                                            fontSize: '11px', fontWeight: 800, cursor: 'pointer', transition: 'all 0.3s',
-                                            whiteSpace: 'nowrap'
-                                        }}
-                                    >
-                                        {status}
-                                    </button>
-                                ))}
-                            </div>
+                                <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '8px' }}>
+                                    {['Tudo', 'Green List', 'Cold List', 'Black List'].map(status => (
+                                        <button
+                                            key={status}
+                                            onClick={() => setFilterStatus(status)}
+                                            style={{
+                                                padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)',
+                                                background: filterStatus === status ? 'var(--primary-color)' : 'rgba(255,255,255,0.03)',
+                                                color: filterStatus === status ? 'black' : 'white',
+                                                fontSize: '10px', fontWeight: 900, cursor: 'pointer', transition: 'all 0.3s',
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            {status}
+                                        </button>
+                                    ))}
+                                </div>
 
-                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {uniqueRecipients
-                                    .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
-                                    .map((conv: any) => (
-                                    <div 
-                                        key={conv.id} 
-                                        style={{ 
-                                            padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.03)', 
-                                            border: '1px solid rgba(255,255,255,0.06)',
-                                            display: 'flex', flexDirection: 'column', gap: '16px', transition: 'all 0.3s',
-                                            position: 'relative', overflow: 'hidden'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <div onClick={() => selectSheetRecipient(conv.id)} style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(172, 248, 0, 0.1)', cursor: 'pointer' }}>
-                                                <User size={28} color="var(--primary-color)" />
-                                            </div>
-                                            <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => selectSheetRecipient(conv.id)}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <div style={{ fontWeight: 900, fontSize: '1.2rem', color: 'white' }}>{conv.name}</div>
-                                                    <div style={{ padding: '4px 10px', borderRadius: '8px', background: `${getStatusColor(conv.status)}22`, color: getStatusColor(conv.status), fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', border: `1px solid ${getStatusColor(conv.status)}44` }}>
-                                                        {conv.status}
+                                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
+                                    {uniqueRecipients
+                                        .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
+                                        .map((conv: any) => (
+                                        <div 
+                                            key={conv.id} 
+                                            className="hover-lift"
+                                            style={{ 
+                                                padding: '20px', borderRadius: '22px', background: 'rgba(255,255,255,0.02)', 
+                                                border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer',
+                                                transition: 'all 0.3s'
+                                            }}
+                                            onClick={() => selectSheetRecipient(conv.id)}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
+                                                <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                                    <User size={22} color="var(--primary-color)" />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'white' }}>{conv.name}</div>
+                                                    <div style={{ fontSize: '10px', color: getStatusColor(conv.status), fontWeight: 900 }}>
+                                                        {conv.status.toUpperCase()}
                                                     </div>
                                                 </div>
-                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
-                                                    ID: {conv.id} • {formatTime(conv.lastDate)}
-                                                </div>
+                                                <div style={{ fontSize: '10px', opacity: 0.3, fontWeight: 700 }}>{formatTime(conv.lastDate)}</div>
+                                            </div>
+                                            <div style={{ padding: '10px', background: 'rgba(0,0,0,0.15)', borderRadius: '12px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                                                {conv.lastMessage?.length > 45 ? conv.lastMessage.slice(0, 45) + '...' : conv.lastMessage}
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
+                             </div>
 
-                                        <div onClick={() => selectSheetRecipient(conv.id)} style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5, cursor: 'pointer', borderLeft: `4px solid ${getStatusColor(conv.status)}` }}>
-                                            "{conv.lastMessage?.length > 120 ? conv.lastMessage.slice(0, 120) + '...' : conv.lastMessage}"
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button 
-                                                disabled={isUpdatingStatus === conv.id}
-                                                onClick={() => updateContactStatus(conv.id, 'Green List')}
-                                                style={{ flex: 1, padding: '10px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', color: '#22c55e', fontSize: '10px', fontWeight: 900, cursor: 'pointer', opacity: conv.status === 'Green List' ? 0.4 : 1 }}
-                                            >
-                                                GREEN
-                                            </button>
-                                            <button 
-                                                disabled={isUpdatingStatus === conv.id}
-                                                onClick={() => updateContactStatus(conv.id, 'Cold List')}
-                                                style={{ flex: 1, padding: '10px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', fontSize: '10px', fontWeight: 900, cursor: 'pointer', opacity: conv.status === 'Cold List' ? 0.4 : 1 }}
-                                            >
-                                                COLD
-                                            </button>
-                                            <button 
-                                                disabled={isUpdatingStatus === conv.id}
-                                                onClick={() => updateContactStatus(conv.id, 'Black List')}
-                                                style={{ flex: 1, padding: '10px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', fontSize: '10px', fontWeight: 900, cursor: 'pointer', opacity: conv.status === 'Black List' ? 0.4 : 1 }}
-                                            >
-                                                BLACK
-                                            </button>
-                                        </div>
+                             {/* Visualização de Seleção */}
+                             <div className="supreme-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', textAlign: 'center' }}>
+                                <div>
+                                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <MessageSquare size={32} color="white" style={{ opacity: 0.2 }} />
                                     </div>
-                                ))}
-                                {(uniqueRecipients.length === 0) && (
-                                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                                        Nenhuma conversa ou destinatário encontrado para este número.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {error && (
-                        <div style={{ marginTop: '24px', padding: '12px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 700 }}>
-                            <AlertCircle size={18} /> {error}
+                                    <h4 style={{ color: 'white', fontWeight: 800, fontSize: '1.2rem', marginBottom: '8px' }}>Selecione um contato</h4>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px' }}>
+                                        Clique em um dos destinatários ao lado para visualizar o chat completo.
+                                    </p>
+                                </div>
+                             </div>
                         </div>
                     )}
                 </div>
             ) : (
-                <div className="chat-container">
-                    <div className="chat-header" style={{ backdropFilter: 'blur(30px)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            <button onClick={() => { setActiveConversation(null); setSelectedRecipient(null); }} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="chat-responsive-container">
+                    <div className="supreme-card chat-sidebar-section" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <button onClick={() => setSelectedRecipient(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '10px', borderRadius: '12px', cursor: 'pointer' }}>
                                 <ArrowLeft size={20} />
                             </button>
-                            <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--surface-border-subtle)', position: 'relative' }}>
-                                <User color="var(--primary-color)" size={28} />
-                                <div style={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#22c55e', border: '3px solid var(--card-bg-subtle)' }} />
-                            </div>
                             <div>
-                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>
-                                    {person?.firstName || 'Lead'} {person?.lastName || ''}
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, color: 'white' }}>DETALHES</h3>
+                                <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>Histórico Completo</p>
+                            </div>
+                        </div>
+
+                        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                                <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'var(--primary-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black' }}>
+                                    <User size={32} />
                                 </div>
-                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>
-                                    HISTÓRICO PLANILHA • {selectedRecipient}
+                                <div>
+                                    <h2 style={{ fontSize: '1.4rem', fontWeight: 950, margin: 0 }}>{person?.firstName || 'Lead'}</h2>
+                                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px' }}>{selectedRecipient}</span>
                                 </div>
                             </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {['Green List', 'Cold List', 'Black List'].map(status => {
+                                    const isActive = uniqueRecipients.find(r => r.id === selectedRecipient)?.status === status;
+                                    const color = getStatusColor(status);
+                                    return (
+                                        <button 
+                                            key={status}
+                                            onClick={() => updateContactStatus(selectedRecipient, status)}
+                                            style={{ 
+                                                width: '100%', padding: '14px', borderRadius: '16px', 
+                                                background: isActive ? `${color}22` : 'rgba(255,255,255,0.02)',
+                                                border: `1px solid ${isActive ? color : 'rgba(255,255,255,0.05)'}`,
+                                                color: isActive ? color : 'white',
+                                                fontSize: '11px', fontWeight: 900, textAlign: 'left',
+                                                cursor: 'pointer', transition: 'all 0.3s',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                                            }}
+                                        >
+                                            {status.toUpperCase()}
+                                            {isActive && <ShieldCheck size={14} />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+                             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px' }}>
+                                Atividade Recente
+                             </div>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {uniqueRecipients
+                                    .filter(r => r.id !== selectedRecipient)
+                                    .slice(0, 5)
+                                    .map(r => (
+                                        <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.01)', borderRadius: '14px' }}>
+                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: getStatusColor(r.status) }}></div>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white', flex: 1 }}>{r.name}</div>
+                                            <div style={{ fontSize: '9px', opacity: 0.3 }}>{formatTime(r.lastDate)}</div>
+                                        </div>
+                                    ))}
+                             </div>
                         </div>
                     </div>
 
-                    <div className="messages-area">
-                        {messages.length === 0 && !isLoading && (
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>
-                                <MessageSquare size={48} className="mb-4" />
-                                <p style={{ fontWeight: 800 }}>Inicie a conversa...</p>
+                    <div className="supreme-card messages-area" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+                        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 10px #22c55e' }}></div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>CONVERSA ATIVA</h3>
                             </div>
-                        )}
-                        
-                        {messages.map((msg: any) => (
-                            <div key={msg.id} className={`message-bubble ${msg.direction === 'INBOUND' ? 'message-inbound' : 'message-outbound'}`}>
-                                {msg.content?.text || '[Mídia ou Conteúdo não suportado]'}
-                                <span className="message-time">{formatTime(msg.createdAt)}</span>
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="chat-input-area">
-                        <div style={{ position: 'relative', display: 'flex', gap: '16px' }}>
-                            <textarea 
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Pressione Shift+Enter para quebrar linha ou Enter para enviar..."
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSendMessage();
-                                    }
-                                }}
-                                style={{ 
-                                    flex: 1, padding: '20px 24px', borderRadius: '20px', background: 'var(--bg-color)',
-                                    border: '1px solid var(--surface-border-subtle)', color: 'white', resize: 'none',
-                                    maxHeight: '120px', minHeight: '60px', fontSize: '0.95rem', outline: 'none',
-                                    fontWeight: 500, transition: 'border-color 0.3s'
-                                }}
-                            />
-                            <button 
-                                type="submit"
-                                disabled={!newMessage.trim() || isSending}
-                                style={{ 
-                                    width: '60px', height: '60px', borderRadius: '20px', 
-                                    background: 'var(--primary-color)', color: 'black',
-                                    border: 'none', cursor: 'pointer', display: 'flex',
-                                    alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s',
-                                    boxShadow: '0 8px 20px rgba(172, 248, 0, 0.2)'
-                                }}
-                            >
-                                {isSending ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}
-                            </button>
                         </div>
-                    </form>
+
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(0,0,0,0.1)' }}>
+                            {messages.map((msg: any) => (
+                                <div key={msg.id} className={`message-bubble ${msg.direction === 'INBOUND' ? 'message-inbound' : 'message-outbound'}`}>
+                                    {msg.content?.text || '[Mídia ou Conteúdo não suportado]'}
+                                    <span className="message-time">{formatTime(msg.createdAt)}</span>
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        <div className="chat-input-area" style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.2)' }}>
+                            <div style={{ textAlign: 'center', padding: '12px', borderRadius: '16px', background: 'rgba(172, 248, 0, 0.05)', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                                    MOSTRANDO APENAS HISTÓRICO DA PLANILHA
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -4,6 +4,7 @@ import NotificationCenter from './components/NotificationCenter';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
 import LiveChat from './pages/LiveChat';
+import N8NWorkflow from './pages/N8NWorkflow';
 import TemplateCreator from './pages/TemplateCreator';
 import UploadContacts from './pages/UploadContacts';
 import CampaignPlanner from './pages/CampaignPlanner';
@@ -130,6 +131,7 @@ function AppContent() {
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/admin/changes" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminChanges /> : <Navigate to="/accounts" />} />
           <Route path="/live-chat" element={<LiveChat />} />
+          <Route path="/crm/n8n-monitor" element={<N8NWorkflow />} />
           <Route path="/templates" element={<TemplateCreator />} />
           <Route path="/client-submissions" element={<ClientSubmissions />} />
           <Route path="/client-submissions/:id" element={<ClientSubmissionDetail />} />
