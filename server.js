@@ -777,6 +777,8 @@ app.get('/api/live-chat/spreadsheet', async (req, res) => {
         console.error("Spreadsheet Chat Error:", err.message);
         res.status(500).json({ error: err.message });
     }
+});
+
 // --- UPDATE CONTACT STATUS IN SPREADSHEET ---
 app.post('/api/live-chat/spreadsheet/status', async (req, res) => {
     try {
