@@ -437,8 +437,14 @@ const CRMFunil = () => {
 
         const today = new Date().toISOString().split('T')[0];
         const leadsToday = leads.filter(l => {
-            const leadDate = l.created_at ? new Date(l.created_at).toISOString().split('T')[0] : '';
-            return leadDate === today;
+            try {
+                if (!l.created_at) return false;
+                const d = new Date(l.created_at);
+                if (isNaN(d.getTime())) return false;
+                return d.toISOString().split('T')[0] === today;
+            } catch (e) {
+                return false;
+            }
         }).length;
 
         return { totalLeads, leadsToday, pendingLeads, conversionRate };
@@ -453,8 +459,13 @@ const CRMFunil = () => {
 
     const formatDate = useCallback((dateStr: string) => {
         if (!dateStr) return 'Recente';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return 'Recent';
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        } catch (e) {
+            return 'Recent';
+        }
     }, []);
 
     const handleWhatsApp = useCallback((numero: string) => {

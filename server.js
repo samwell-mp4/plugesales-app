@@ -604,6 +604,35 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "PASTE_YOUR_SEC
 const CRM_SPREADSHEET_ID = "1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0";
 const SERVICE_ACCOUNT_FILE = path.join(__dirname, 'service-account.json');
 
+// --- GOOGLE SHEETS CONFIG ---
+const parseGoogleDate = (dateStr) => {
+    if (!dateStr) return new Date().toISOString();
+    
+    // Tenta converter formatos comuns do Google Sheets (DD/MM/YYYY ou MM/DD/YYYY)
+    // Ex: 14/04/2026 15:30:11 -> 2026-04-14T15:30:11
+    try {
+        const parts = dateStr.split(/[/\s:]/);
+        if (parts.length >= 3) {
+            let day, month, year, hour = '00', min = '00', sec = '00';
+            
+            // Assume DD/MM/YYYY se o primeiro for dia (maior que 12) ou heurística
+            // Google Sheets em PT-BR costuma ser DD/MM/YYYY
+            if (parseInt(parts[0]) > 12) {
+                 [day, month, year, hour, min, sec] = parts;
+            } else {
+                 [month, day, year, hour, min, sec] = parts;
+            }
+            
+            const date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${(hour||'00').padStart(2, '0')}:${(min||'00').padStart(2, '0')}:${(sec||'00').padStart(2, '0')}`);
+            if (!isNaN(date.getTime())) return date.toISOString();
+        }
+    } catch (e) {}
+
+    // Fallback para o Date nativo
+    const nativeDate = new Date(dateStr);
+    return !isNaN(nativeDate.getTime()) ? nativeDate.toISOString() : new Date().toISOString();
+};
+
 const getSheetsClient = async () => {
     // 1. Tentar ler do arquivo local (Útil para desenvolvimento local)
     if (fs.existsSync(SERVICE_ACCOUNT_FILE)) {
@@ -677,7 +706,7 @@ const fetchInfluencerLeads = async (sheets, spreadsheetId) => {
 
     return rows.map((row, index) => ({
         id: index + 2, // Row index in sheets (starting from 2 as A2 is row 2)
-        created_at: row[0] || new Date().toISOString(),
+        created_at: parseGoogleDate(row[0]),
         nome: row[1] || 'Lead Sem Nome',
         numero: row[2] || '',
         phone: row[2] || '',
