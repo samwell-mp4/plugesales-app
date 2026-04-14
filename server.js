@@ -754,7 +754,7 @@ app.get('/api/live-chat/spreadsheet', async (req, res) => {
         const response = await Promise.race([
             sheets.spreadsheets.values.get({ spreadsheetId, range }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Google Sheets Timeout')), 15000))
-        ]) as any;
+        ]);
 
         const rows = response.data.values;
         if (!rows) return res.json([]);
