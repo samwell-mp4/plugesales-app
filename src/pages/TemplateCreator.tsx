@@ -61,6 +61,17 @@ const TemplateCreator = () => {
             dbService.getClients().then(data => {
                 setClients(data);
             });
+
+            // Carrega configurações globais da Infobip para ADMINs/EMPLOYEEs
+            // que não têm chave própria cadastrada no perfil
+            dbService.getSettings().then(settings => {
+                if (!user?.infobip_key && settings['infobip_key']) {
+                    setApiKey(settings['infobip_key']);
+                }
+                if (!user?.infobip_sender && settings['infobip_sender']) {
+                    setSenderNumbers(settings['infobip_sender']);
+                }
+            });
         }
 
         if (user?.role === 'CLIENT') {
@@ -75,11 +86,23 @@ const TemplateCreator = () => {
         } else if (user?.infobip_key) {
             setApiKey(user.infobip_key);
         }
+        // Fallback to global settings for ADMIN/EMPLOYEE without a personal key
+        else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
+            dbService.getSettings().then(settings => {
+                if (settings['infobip_key']) setApiKey(settings['infobip_key']);
+            });
+        }
 
         if (location.state?.sender) {
             setSenderNumbers(location.state.sender);
         } else if (user?.infobip_sender) {
             setSenderNumbers(user.infobip_sender);
+        }
+        // Fallback to global settings for ADMIN/EMPLOYEE without a personal sender
+        else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
+            dbService.getSettings().then(settings => {
+                if (settings['infobip_sender']) setSenderNumbers(settings['infobip_sender']);
+            });
         }
 
         if (location.state?.preFillData) {

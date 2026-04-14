@@ -56,8 +56,34 @@ const Accounts = () => {
 
     // Load state from User on mount
     useEffect(() => {
-        if (user?.infobip_key) setApiKey(user.infobip_key);
-        if (user?.infobip_sender) setSenderNumber(user.infobip_sender);
+        if (user?.infobip_key) {
+            setApiKey(user.infobip_key);
+            // ADMIN: propaga automaticamente para settings globais (para todos os funcionários herdarem)
+            if (user?.role === 'ADMIN') {
+                dbService.getSettings().then(settings => {
+                    if (!settings['infobip_key'] || settings['infobip_key'] !== user.infobip_key) {
+                        dbService.saveSetting('infobip_key', user.infobip_key!);
+                    }
+                });
+            }
+        } else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
+            // Fallback: carrega as configurações globais
+            dbService.getSettings().then(settings => {
+                if (settings['infobip_key']) setApiKey(settings['infobip_key']);
+                if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
+            });
+        }
+        if (user?.infobip_sender) {
+            setSenderNumber(user.infobip_sender);
+            // ADMIN: propaga o sender para settings globais também
+            if (user?.role === 'ADMIN') {
+                dbService.getSettings().then(settings => {
+                    if (!settings['infobip_sender'] || settings['infobip_sender'] !== user.infobip_sender) {
+                        dbService.saveSetting('infobip_sender', user.infobip_sender!);
+                    }
+                });
+            }
+        }
 
         const savedRecents = localStorage.getItem('recent_senders');
         if (savedRecents) setRecentNumbers(JSON.parse(savedRecents));
@@ -69,6 +95,10 @@ const Accounts = () => {
             dbService.updateProfile({ id: user?.id, infobip_key: apiKey }).then(updated => {
                 if (updated && !updated.error) setUser(updated);
             });
+            // Se for ADMIN, salva também nas settings globais para todos os funcionários
+            if (user?.role === 'ADMIN') {
+                dbService.saveSetting('infobip_key', apiKey);
+            }
             fetchSenders();
         }
     }, [apiKey]);
@@ -80,6 +110,10 @@ const Accounts = () => {
             dbService.updateProfile({ id: user?.id, infobip_sender: senderNumber }).then(updated => {
                 if (updated && !updated.error) setUser(updated);
             });
+            // Se for ADMIN, salva também nas settings globais
+            if (user?.role === 'ADMIN') {
+                dbService.saveSetting('infobip_sender', senderNumber);
+            }
             addToRecents(senderNumber);
         }, 1000); // 1s delay for typing
 
