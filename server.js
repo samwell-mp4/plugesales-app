@@ -71,19 +71,46 @@ const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_KEY, { auth: { pers
 const redisClient = createClient({ url: redisUrl });
 redisClient.on('error', err => console.error('Redis Client Error:', err));
 
+let redisRetryCount = 0;
+const MAX_REDIS_RETRIES = 5;
+
 const connectRedis = async () => {
+    if (!redisUrl || (redisUrl.includes('localhost') && !fs.existsSync('/.dockerenv'))) {
+        // Se estiver local e falhar, não insistir agressivamente após o limite
+        if (redisRetryCount > MAX_REDIS_RETRIES) return;
+    }
+
     try {
         if (!redisClient.isOpen) {
             await redisClient.connect();
             console.log('✅ Redis connected successfully.');
+            redisRetryCount = 0;
         }
     } catch (e) {
-        console.warn(`❌ Redis connection failed: ${e.message}. Retrying in 5s...`);
-        setTimeout(connectRedis, 5000);
+        redisRetryCount++;
+        if (redisRetryCount <= MAX_REDIS_RETRIES) {
+            console.warn(`❌ Redis connection attempt ${redisRetryCount} failed: ${e.message}.`);
+            setTimeout(connectRedis, 10000); // Aumentado para 10s
+        } else {
+            console.error('⚠️ [REDIS] Maximum retries reached. Running without Redis.');
+        }
     }
 };
 
-// Inicia a conexão em segundo plano (não trava o boot do servidor Express)
+// Helper para fetch com timeout
+const fetchWithTimeout = async (url, options = {}, timeout = 10000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
+};
+
 connectRedis();
 
 // Initialize Database Tables
@@ -723,10 +750,11 @@ app.get('/api/live-chat/spreadsheet', async (req, res) => {
         const spreadsheetId = '1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0';
         const range = 'innfobip!A2:E'; 
 
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId,
-            range,
-        });
+        // Timeout wrapper para chamadas de biblioteca
+        const response = await Promise.race([
+            sheets.spreadsheets.values.get({ spreadsheetId, range }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Google Sheets Timeout')), 15000))
+        ]) as any;
 
         const rows = response.data.values;
         if (!rows) return res.json([]);
@@ -3039,14 +3067,14 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
         console.log('[INFOBIP] Checking if sender...');
         let sendersData = { senders: [] };
         try {
-            const sendersResponse = await fetch(`${INFOBIP_BASE_URL}/whatsapp/1/senders`, {
+            const sendersResponse = await fetchWithTimeout(`${INFOBIP_BASE_URL}/whatsapp/1/senders`, {
                 headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
             });
             if (sendersResponse.ok) {
                 sendersData = await sendersResponse.json();
             }
         } catch (e) {
-            console.error('[INFOBIP] Senders fetch failed:', e.message);
+            console.error('[INFOBIP] Senders fetch failed (Timeout or Error):', e.message);
         }
 
         const sender = sendersData.senders?.find((s) => clean(s.address) === targetClean || clean(s.number) === targetClean);
@@ -3054,9 +3082,9 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
         if (sender && sender.channelApplicationId) {
             console.log(`[INFOBIP] Found WABA sender: ${sender.channelApplicationId}`);
             try {
-                const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?channelApplicationId=${sender.channelApplicationId}`, {
-                    headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
-                });
+            const convResponse = await fetchWithTimeout(`${INFOBIP_BASE_URL}/ccaas/1/conversations?channelApplicationId=${sender.channelApplicationId}`, {
+                headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
+            });
 
                 if (convResponse.ok) {
                     const convData = await convResponse.json();
@@ -3072,7 +3100,7 @@ app.get('/api/infobip/resolve-number/:number', async (req, res) => {
         // 2. Fallback: Search as a CUSTOMER (Participant)
         console.log('[INFOBIP] Searching as customer...');
         try {
-            const convResponse = await fetch(`${INFOBIP_BASE_URL}/ccaas/1/conversations?participantIdentity=${number}&participantType=CUSTOMER`, {
+            const convResponse = await fetchWithTimeout(`${INFOBIP_BASE_URL}/ccaas/1/conversations?participantIdentity=${number}&participantType=CUSTOMER`, {
                 headers: { 'Authorization': `App ${apiKey}`, 'Accept': 'application/json' }
             });
 

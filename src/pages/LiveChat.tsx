@@ -74,14 +74,33 @@ const LiveChat = () => {
         setSheetMessages([]);
         setUniqueRecipients([]);
 
+        // Safety timeout to prevent infinite loading
+        const safetyTimeout = setTimeout(() => {
+            if (isLoading) {
+                setIsLoading(false);
+                setError('A requisição demorou muito para responder. Tente novamente.');
+            }
+        }, 20000);
+
         try {
             const cleanNumber = phoneNumber.replace(/\D/g, '');
+            if (!user?.id) {
+                setError('Usuário não autenticado corretamente.');
+                setIsLoading(false);
+                clearTimeout(safetyTimeout);
+                return;
+            }
             
             if (chatSource === 'api') {
-                const result = await dbService.resolveInfobipNumber(cleanNumber, user.id);
+                const result = await Promise.race([
+                    dbService.resolveInfobipNumber(cleanNumber, user.id),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout na API')), 15000))
+                ]) as any;
                 
-                if (result.error) {
-                    setError(result.error);
+                if (!result || result.error) {
+                    setError(result.error || 'Erro ao buscar número. Verifique se o número está correto.');
+                    setIsLoading(false);
+                    clearTimeout(safetyTimeout);
                     return;
                 }
 
@@ -93,7 +112,7 @@ const LiveChat = () => {
                     const active = result.conversations?.find((c: any) => c.status === 'OPEN' || c.status === 'WAITING' || c.status === 'CLOSED');
                     if (active) {
                         setActiveConversation(active);
-                        fetchMessages(active.id);
+                        await fetchMessages(active.id); // Aguarda o fetch secundário
                     } else {
                         setError('Nenhuma conversa encontrada para este número.');
                     }
@@ -125,9 +144,11 @@ const LiveChat = () => {
                 setUniqueRecipients(Array.from(recipientsMap.values()));
             }
         } catch (err: any) {
-            setError('Falha ao conectar com o servidor.');
+            console.error('Search error:', err);
+            setError(err.message === 'Timeout na API' ? 'O servidor demorou a responder. Verifique sua conexão.' : 'Falha ao conectar com o servidor.');
         } finally {
             setIsLoading(false);
+            clearTimeout(safetyTimeout);
         }
     };
 
