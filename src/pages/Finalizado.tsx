@@ -88,6 +88,15 @@ const Finalizado = () => {
                 <p style={{ marginTop: '30px', color: '#475569', fontSize: '0.85rem', fontWeight: 600 }}>
                     (finalizado)
                 </p>
+
+                <div style={{ marginTop: '40px' }}>
+                    <button
+                        className="primary-btn"
+                        onClick={() => window.open('https://wa.me/553193737757?text=Olá Ricardo, acabei de preencher o formulário e gostaria de mais informações!', '_blank')}
+                    >
+                        <ArrowRight size={20} /> FALAR COM O ESPECIALISTA
+                    </button>
+                </div>
             </div>
         </div>
     );

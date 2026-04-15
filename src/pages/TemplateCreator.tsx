@@ -30,8 +30,8 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
-const LEANDRO_BODY_4 = 'Oi {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\nPara {{4}}, clique  no  botão  abaixo 👇';
-const LEANDRO_BODY_5 = 'Oi {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique  no  botão  abaixo 👇';
+const LEANDRO_BODY_4 = 'Oi {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\nPara {{4}}, clique no botão abaixo 👇';
+const LEANDRO_BODY_5 = 'Oi {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇';
 const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\nTo {{4}}, click the button below 👇';
 const LEANDRO_BODY_5_EN = 'Hello {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nTo {{5}}, click the button below 👇';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';

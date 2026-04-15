@@ -707,9 +707,13 @@ export const dbService = {
         } catch (err) { return []; }
     },
     // --- CRM / Google Sheets ---
-    getCRMLeads: async (userId?: number) => {
+    getCRMLeads: async (userId?: number, responsavel?: string) => {
         try {
-            const url = userId ? `${API_BASE}/crm/leads?userId=${userId}` : `${API_BASE}/crm/leads`;
+            const params = new URLSearchParams();
+            if (userId) params.append('userId', userId.toString());
+            if (responsavel) params.append('responsavel', responsavel);
+            
+            const url = `${API_BASE}/crm/leads?${params.toString()}`;
             const res = await fetch(url);
             if (!res.ok) {
                 const errData = await res.json();

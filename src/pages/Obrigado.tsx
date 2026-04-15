@@ -136,30 +136,28 @@ const Obrigado = () => {
 
                 <h1 className="title">Tudo Pronto!</h1>
 
-                {id && !isExcluded ? (
-                    <p className="subtitle">
-                        Suas informações foram recebidas. Um consultor entrará em contato em breve para alinhar os próximos passos da sua operação.
-                    </p>
-                ) : (
-                    <p className="subtitle">
-                        Sua operação foi identificada e agora o próximo passo é escalar com o poder do <br /><strong>Plug & Sales</strong>.
-                    </p>
-                )}
-
-                <p style={{ marginTop: '40px', color: '#1e293b', fontSize: '0.9rem', fontWeight: 800, letterSpacing: 2 }}>
-                    (OBRIGADO{id && !isExcluded ? `-${id}` : ''})
+                <p className="subtitle">
+                    Suas informações foram recebidas. Um consultor entrará em contato em breve para alinhar os próximos passos da sua operação.
                 </p>
 
-                {id && agentPhoneMap[id] && (
-                    <div style={{ marginTop: '48px', padding: '0 40px' }}>
-                        <button
-                            className="cta-btn"
-                            onClick={() => window.open(`https://wa.me/${agentPhoneMap[id]}?text=Olá ${agentMap[id] || ''}, acabei de preencher o formulário e gostaria de mais informações!`, '_blank')}
-                        >
-                            <ArrowRight size={20} /> FALAR COM O ESPECIALISTA
-                        </button>
-                    </div>
-                )}
+                <p style={{ marginTop: '40px', color: '#1e293b', fontSize: '0.9rem', fontWeight: 800, letterSpacing: 2 }}>
+                    (OBRIGADO{id ? `-${id}` : ''})
+                </p>
+
+                {/* CTA BUTTON - ALWAYS VISIBLE */}
+                <div style={{ marginTop: '48px', padding: '0 40px' }}>
+                    <button
+                        className="cta-btn"
+                        onClick={() => {
+                            const contactId = (id && agentPhoneMap[id]) ? id : '1';
+                            const phone = agentPhoneMap[contactId];
+                            const name = agentMap[contactId] || 'Especialista';
+                            window.open(`https://wa.me/${phone}?text=Olá ${name}, acabei de preencher o formulário e gostaria de mais informações!`, '_blank');
+                        }}
+                    >
+                        <ArrowRight size={20} /> FALAR COM O ESPECIALISTA
+                    </button>
+                </div>
             </div>
         </div>
     );

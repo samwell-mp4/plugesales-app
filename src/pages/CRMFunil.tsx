@@ -129,9 +129,11 @@ LeadCard.displayName = 'LeadCard';
 const statusList = [
     'Aguardando Atendimento',
     'Agendamento Realizado',
+    'Agendar Novo Encontro',
     'Venda Realizada',
     'Não Fechou',
-    'Não Respondeu'
+    'Não Respondeu',
+    'Desqualificado'
 ];
 
 const CRMFunil = () => {
@@ -249,14 +251,17 @@ const CRMFunil = () => {
     const fetchLeads = useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getCRMLeads(user?.id);
+            // Se o usuário for EMPLOYEE, passamos o nome dele como responsavel 
+            // para garantir a filtragem no backend (isolamento de leads)
+            const responsavelParam = user?.role === 'EMPLOYEE' ? user.name : undefined;
+            const data = await dbService.getCRMLeads(user?.id, responsavelParam);
             setLeads(data);
         } catch (err: any) {
             console.error("CRM Funil Error:", err);
         } finally {
             setIsLoading(false);
         }
-    }, [user?.id]);
+    }, [user?.id, user?.name, user?.role]);
 
     const handleAddLead = async () => {
         if (!newLead.nome || !newLead.numero) return alert("Nome e Número são obrigatórios.");

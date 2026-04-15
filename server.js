@@ -761,6 +761,17 @@ app.get('/api/crm/leads', async (req, res) => {
         
         if (responsavel) {
             query = query.eq('responsavel', responsavel);
+        } else if (userId) {
+            // Secondary lookup: If no responsavel provided but userId exists, 
+            // check if user is an EMPLOYEE and force filter by their name
+            const userRes = await pool.query('SELECT role, name FROM users WHERE id = $1', [userId]);
+            if (userRes.rows.length > 0) {
+                const user = userRes.rows[0];
+                if (user.role === 'EMPLOYEE') {
+                    query = query.eq('responsavel', user.name);
+                    console.log(`🔒 [CRM_SECURITY] Force filtering leads for employee: ${user.name}`);
+                }
+            }
         }
 
         const { data, error } = await query;
@@ -3496,7 +3507,9 @@ const seedOfficialEmployees = async () => {
         { name: 'Italo Clovis', email: 'italoclovis@plugsales.com.br', phone: '5531995113394' },
         { name: 'Samwell Souza', email: 'samwellsouza@plugsales.com.br', phone: '5531988868362' },
         { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br', phone: '5531992330403' },
-        { name: 'Gisele Vieira', email: 'giselevieira@plugsales.com.br', phone: '5531983804904' }
+        { name: 'Gisele Vieira', email: 'giselevieira@plugsales.com.br', phone: '5531983804904' },
+        { name: 'Joyce Vieira', email: 'joycevieira@plugsales.com.br', phone: '5531984285740' },
+        { name: 'Thiago Rocha', email: 'thiagorocha@plugsales.com.br', phone: '5531994685121' }
     ];
 
     const standardPassword = 'PlugSales#2026';
@@ -3571,7 +3584,7 @@ app.post('/api/step-leads', async (req, res) => {
                     numero: phone,
                     email: email,
                     tag: 'Lead Flow',
-                    status: 'Aguardando Atendimento',
+                    status: (volume === 'Não possuo uma base de contatos') ? 'Desqualificado' : 'Aguardando Atendimento',
                     responsavel: actualAgentName || 'Sem Atribuição',
                     value_client: 0,
                     metodo: method || 'N/A',
