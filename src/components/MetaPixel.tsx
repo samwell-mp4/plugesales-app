@@ -9,7 +9,7 @@ declare global {
 }
 
 /**
- * Componente que gerencia o Meta Pixel condicionalmente para o Ricardo Willer
+ * Componente que gerencia o Meta Pixel condicionalmente para múltiplos agentes (Ricardo, Augusto, Thiago, etc.)
  */
 const MetaPixel = () => {
   const location = useLocation();
@@ -18,17 +18,26 @@ const MetaPixel = () => {
   useEffect(() => {
     // Condições: landing/1 OU lead-flow com agent=Ricardo+Willer
     const agent = searchParams.get('agent');
-    
-    // Normaliza o nome do agente (pode vir com '+' ou espaço dependendo do tratamento da URL)
-    const normalizedAgent = agent?.replace(/\+/g, ' ') || '';
-    const isRicardoLanding = location.pathname === '/landing/1';
-    const isRicardoLeadFlow = location.pathname === '/lead-flow' && normalizedAgent === 'Ricardo Willer';
-    const isRicardoThankYou = location.pathname === '/obrigado/1';
+    const normalizedAgent = agent?.replace(/\+/g, ' ') || agent?.replace(/-/g, ' ') || '';
 
-    const shouldTrack = isRicardoLanding || isRicardoLeadFlow || isRicardoThankYou;
+    // Configuração de Pixels por Agente
+    const pixelConfigs = [
+      { id: '1', name: 'Ricardo Willer', pixelId: '695128547016451' },
+      { id: '3', name: 'Augusto Fagundes', pixelId: '1701137238002049' },
+      { id: '12', name: 'Thiago Rocha', pixelId: '4283807375217824' }
+    ];
 
-    if (shouldTrack) {
-      console.log("Meta Pixel: Condição atendida para Ricardo Willer. Inicializando/Rastreando...");
+    // Encontra se a página atual pertence a algum agente configurado
+    const activeConfig = pixelConfigs.find(config => {
+      const isLanding = location.pathname === `/landing/${config.id}`;
+      const isThankYou = location.pathname === `/obrigado/${config.id}`;
+      const isLeadFlow = location.pathname === '/lead-flow' && normalizedAgent === config.name;
+      return isLanding || isThankYou || isLeadFlow;
+    });
+
+    if (activeConfig) {
+      const isThankYouPage = location.pathname === `/obrigado/${activeConfig.id}`;
+      console.log(`Meta Pixel: Condição atendida para ${activeConfig.name}. Inicializando/Rastreando ID: ${activeConfig.pixelId}`);
       
       // Injeção do Script do Meta Pixel (se já não existir)
       if (!window.fbq) {
@@ -51,18 +60,19 @@ const MetaPixel = () => {
           s.parentNode.insertBefore(t, s);
         })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
         /* eslint-enable */
-
-        window.fbq('init', '695128547016451');
       }
+
+      // Inicializa o Pixel específico (pode ser chamado múltiplas vezes com IDs diferentes com segurança)
+      window.fbq('init', activeConfig.pixelId);
 
       // Dispara o PageView
       if (typeof window.fbq === 'function') {
         window.fbq('track', 'PageView');
         
         // Dispara o evento de Lead apenas na página de obrigado
-        if (isRicardoThankYou) {
+        if (isThankYouPage) {
           window.fbq('track', 'Lead');
-          console.log("Meta Pixel: Tracked Lead event for Ricardo Willer (Obrigado Page Load)");
+          console.log(`Meta Pixel: Tracked Lead event for ${activeConfig.name} (Obrigado Page Load)`);
         }
       }
     }
