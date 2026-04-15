@@ -343,15 +343,17 @@ const TemplateCreator = () => {
             if (response.ok) {
                 return { success: true, data: result };
             } else {
+                console.error("Infobip API Error Response:", result);
                 const apiError = result.requestError?.serviceException?.text ||
                     result.requestError?.serviceException?.message ||
                     result.errorMessage ||
                     (typeof result === 'string' ? result : JSON.stringify(result)) ||
-                    `Erro ${response.status}: ${response.statusText}`;
+                    `Erro HTTP ${response.status}: ${response.statusText}`;
                 return { success: false, error: apiError };
             }
         } catch (err: any) {
-            return { success: false, error: `Falha de rede: ${err.message}` };
+            console.error("Fetch Exception:", err);
+            return { success: false, error: `Falha na requisição: ${err.message || 'Erro desconhecido de rede'}` };
         }
     };
 
