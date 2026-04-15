@@ -211,7 +211,7 @@ const TemplateCreator = () => {
     const [queueSize, setQueueSize] = useState(5);
     const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
     const [selectedCategory, setSelectedCategory] = useState<'UTILITY' | 'MARKETING'>('UTILITY');
-    const [operationErrors, setOperationErrors] = useState<{ name: string, error: string, timestamp: string }[]>([]);
+    const [operationErrors, setOperationErrors] = useState<{ name: string, error: string, payload?: any, timestamp: string }[]>([]);
     const [currentPages, setCurrentPages] = useState<{ [campaignId: string]: number }>({});
     const rowsPerPage = 10;
 
@@ -331,18 +331,25 @@ const TemplateCreator = () => {
                 body: JSON.stringify(payload)
             });
 
-            const result = await response.json();
+            let result;
+            try {
+                result = await response.json();
+            } catch (e) {
+                result = { error: 'Resposta da API não é um JSON válido.' };
+            }
+
             if (response.ok) {
                 return { success: true, data: result };
             } else {
                 const apiError = result.requestError?.serviceException?.text ||
                     result.requestError?.serviceException?.message ||
                     result.errorMessage ||
-                    JSON.stringify(result);
+                    (typeof result === 'string' ? result : JSON.stringify(result)) ||
+                    `Erro ${response.status}: ${response.statusText}`;
                 return { success: false, error: apiError };
             }
         } catch (err: any) {
-            return { success: false, error: err.message };
+            return { success: false, error: `Falha de rede: ${err.message}` };
         }
     };
 
@@ -493,6 +500,7 @@ const TemplateCreator = () => {
                         setOperationErrors(prev => [{
                             name: currentName,
                             error: lastError,
+                            payload: payload,
                             timestamp: new Date().toLocaleTimeString()
                         }, ...prev].slice(0, 50));
                     }
@@ -599,6 +607,7 @@ const TemplateCreator = () => {
                         setOperationErrors(prev => [{
                             name,
                             error: errorMsg,
+                            payload: payload,
                             timestamp: new Date().toLocaleTimeString()
                         }, ...prev].slice(0, 50));
                     }
@@ -1707,6 +1716,23 @@ const TemplateCreator = () => {
                                                         <span className="error-item-time">{err.timestamp}</span>
                                                     </div>
                                                     <div className="error-item-msg">{err.error}</div>
+                                                    {err.payload && (
+                                                        <div className="mt-3">
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    const pre = e.currentTarget.nextElementSibling as HTMLElement;
+                                                                    pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
+                                                                }}
+                                                                className="global-tile-btn global-tile-btn-ghost" 
+                                                                style={{ height: '24px', fontSize: '9px', padding: '0 8px' }}
+                                                            >
+                                                                VER JSON ENVIADO
+                                                            </button>
+                                                            <pre style={{ display: 'none', marginTop: '10px', padding: '10px', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.65rem', color: 'var(--primary-color)', overflowX: 'auto' }}>
+                                                                <code>{JSON.stringify(err.payload, null, 2)}</code>
+                                                            </pre>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
