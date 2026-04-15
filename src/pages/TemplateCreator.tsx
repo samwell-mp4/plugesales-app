@@ -30,8 +30,10 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
-const LEANDRO_BODY_4 = 'Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇';
-const LEANDRO_BODY_5 = 'Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇';
+const LEANDRO_BODY_4 = 'Oi {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\nPara {{4}}, clique  no  botão  abaixo 👇';
+const LEANDRO_BODY_5 = 'Oi {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique  no  botão  abaixo 👇';
+const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\nTo {{4}}, click the button below 👇';
+const LEANDRO_BODY_5_EN = 'Hello {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nTo {{5}}, click the button below 👇';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
@@ -134,15 +136,15 @@ const TemplateCreator = () => {
                 if (initializedCampaigns[0]?.rows?.[0]) {
                     const firstRow = initializedCampaigns[0].rows[0];
                     if (firstRow.mediaUrl) setHeaderMediaUrl(firstRow.mediaUrl);
-                    
+
                     const firstUrls = firstRow.buttonUrls || (firstRow.buttonUrl ? [firstRow.buttonUrl] : []);
                     const firstTexts = firstRow.buttonTexts || (firstRow.buttonUrl ? ['Clique Aqui'] : []);
-                    
+
                     if (firstUrls.length > 0) {
                         setButtons(firstUrls.map((url: string, i: number) => ({
-                            type: 'url', 
-                            text: firstTexts[i] || 'Clique Aqui', 
-                            url: url 
+                            type: 'url',
+                            text: firstTexts[i] || 'Clique Aqui',
+                            url: url
                         })));
                     }
 
@@ -165,15 +167,15 @@ const TemplateCreator = () => {
                 }]);
 
                 if (initializedRows[0]?.mediaUrl) setHeaderMediaUrl(initializedRows[0].mediaUrl);
-                
+
                 const firstUrls = initializedRows[0].buttonUrls || (initializedRows[0].buttonUrl ? [initializedRows[0].buttonUrl] : []);
                 const firstTexts = initializedRows[0].buttonTexts || (initializedRows[0].buttonUrl ? ['Clique Aqui'] : []);
-                
+
                 if (firstUrls.length > 0) {
                     setButtons(firstUrls.map((url: string, i: number) => ({
-                        type: 'url', 
-                        text: firstTexts[i] || 'Clique Aqui', 
-                        url: url 
+                        type: 'url',
+                        text: firstTexts[i] || 'Clique Aqui',
+                        url: url
                     })));
                 }
 
@@ -257,7 +259,7 @@ const TemplateCreator = () => {
 
     const buildInfobipPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
-        
+
         // --- LEANDRO STANDARD ENFORCEMENT ---
         const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
         const varCount = isFiveVars ? 5 : 4;
@@ -275,8 +277,8 @@ const TemplateCreator = () => {
         if (effectiveHeaderType === 'TEXT') {
             structure.header = {
                 format: 'TEXT',
-                text: name, // Automático: Nome da Campanha (prefixo + sufixo)
-                // Se o texto não tem {{1}}, não precisa de examples no header
+                text: name, // Nome da Campanha
+                example: name // Algumas versões da API exigem o campo example mesmo sem variáveis
             };
         } else {
             const format = effectiveHeaderType.toUpperCase();
@@ -456,12 +458,12 @@ const TemplateCreator = () => {
                         totalSuccess++;
                         if (user?.id) await dbService.trackTemplate(currentName, user.id);
                         const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
-                        dbService.addLog({ 
-                            logType: 'TEMPLATE', 
-                            name: currentName, 
-                            author: user?.name, 
-                            mode: 'SINGLE', 
-                            userId: isInternalUser ? undefined : Number(selectedClientId) 
+                        dbService.addLog({
+                            logType: 'TEMPLATE',
+                            name: currentName,
+                            author: user?.name,
+                            mode: 'SINGLE',
+                            userId: isInternalUser ? undefined : Number(selectedClientId)
                         });
                         await sendToWebhook(payload);
 
@@ -580,12 +582,12 @@ const TemplateCreator = () => {
                         successCount++;
                         if (user?.id) await dbService.trackTemplate(name, user.id);
                         const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
-                        dbService.addLog({ 
-                            logType: 'TEMPLATE', 
-                            name, 
-                            author: user?.name, 
-                            mode: 'BULK', 
-                            userId: isInternalUser ? undefined : Number(selectedClientId) 
+                        dbService.addLog({
+                            logType: 'TEMPLATE',
+                            name,
+                            author: user?.name,
+                            mode: 'BULK',
+                            userId: isInternalUser ? undefined : Number(selectedClientId)
                         });
                         await sendToWebhook(extendedPayload);
 
@@ -1272,15 +1274,11 @@ const TemplateCreator = () => {
                                         onChange={(e) => {
                                             const active = e.target.checked;
                                             setIsFiveVars(active);
-                                                const defaultText = active
-                                                    ? (selectedPayloadLanguage === 'en_US' 
-                                                        ? 'Hello {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nTo {{5}}, click the button below 👇'
-                                                        : 'Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇')
-                                                    : (selectedPayloadLanguage === 'en_US'
-                                                        ? 'Hi {{1}}! We inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇'
-                                                        : 'Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
-                                                _setBodyText(defaultText);
-                                                if (active) {
+                                            const defaultText = active
+                                                ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5)
+                                                : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4);
+                                            _setBodyText(defaultText);
+                                            if (active) {
                                                 if (variablesExample.length < 5) {
                                                     _setVariablesExample([...variablesExample, 'check visual proof #76632353']);
                                                 }
@@ -1383,11 +1381,11 @@ const TemplateCreator = () => {
                                     )}
 
                                     {!showIndividualDetails ? (
-                                        <div 
-                                            className="mt-4 p-4 flex items-center justify-between" 
-                                            style={{ 
-                                                background: 'rgba(172, 248, 0, 0.05)', 
-                                                border: '1px solid rgba(172, 248, 0, 0.15)', 
+                                        <div
+                                            className="mt-4 p-4 flex items-center justify-between"
+                                            style={{
+                                                background: 'rgba(172, 248, 0, 0.05)',
+                                                border: '1px solid rgba(172, 248, 0, 0.15)',
                                                 borderRadius: '16px',
                                                 cursor: 'pointer'
                                             }}
@@ -1399,8 +1397,8 @@ const TemplateCreator = () => {
                                                 </div>
                                                 <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'white' }}>Mensagem e Variáveis configuradas ✅</span>
                                             </div>
-                                            <button 
-                                                className="global-tile-btn global-tile-btn-ghost" 
+                                            <button
+                                                className="global-tile-btn global-tile-btn-ghost"
                                                 style={{ height: '32px', fontSize: '10px', padding: '0 12px' }}
                                                 onClick={(e) => { e.stopPropagation(); setShowIndividualDetails(true); }}
                                             >
@@ -1411,7 +1409,7 @@ const TemplateCreator = () => {
                                         <div className="flex flex-col gap-6 animate-fade-in">
                                             <div className="flex items-center justify-between">
                                                 <label>Corpo da Mensagem (Body)</label>
-                                                <button 
+                                                <button
                                                     onClick={() => setShowIndividualDetails(false)}
                                                     style={{ fontSize: '10px', color: 'var(--primary-color)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 900 }}
                                                 >
@@ -1419,7 +1417,7 @@ const TemplateCreator = () => {
                                                 </button>
                                             </div>
                                             <textarea className="input-field" style={{ minHeight: '120px' }} value={bodyText} onChange={e => _setBodyText(e.target.value)} />
-                                            
+
                                             <div className="mt-2 flex flex-col gap-4">
                                                 <div className="flex items-center justify-between">
                                                     <label>Configuração de Variáveis (Visualização no Card)</label>
@@ -1611,24 +1609,24 @@ const TemplateCreator = () => {
                                                                                     <tr>
                                                                                         <td colSpan={100}>
                                                                                             <div className="pagination-container">
-                                                                                                <button 
-                                                                                                    className="pagination-btn" 
+                                                                                                <button
+                                                                                                    className="pagination-btn"
                                                                                                     disabled={currentPage === 1}
                                                                                                     onClick={() => setCurrentPages(prev => ({ ...prev, [camp.id]: currentPage - 1 }))}
                                                                                                 >
                                                                                                     Anterior
                                                                                                 </button>
                                                                                                 {Array.from({ length: totalPages }).map((_, i) => (
-                                                                                                    <button 
-                                                                                                        key={i} 
+                                                                                                    <button
+                                                                                                        key={i}
                                                                                                         className={`pagination-btn ${currentPage === i + 1 ? 'active' : ''}`}
                                                                                                         onClick={() => setCurrentPages(prev => ({ ...prev, [camp.id]: i + 1 }))}
                                                                                                     >
                                                                                                         {i + 1}
                                                                                                     </button>
                                                                                                 ))}
-                                                                                                <button 
-                                                                                                    className="pagination-btn" 
+                                                                                                <button
+                                                                                                    className="pagination-btn"
                                                                                                     disabled={currentPage === totalPages}
                                                                                                     onClick={() => setCurrentPages(prev => ({ ...prev, [camp.id]: currentPage + 1 }))}
                                                                                                 >
@@ -1701,7 +1699,7 @@ const TemplateCreator = () => {
                                     <div className="mt-8 animate-fade-in">
                                         <div className="flex items-center justify-between mb-2">
                                             <h4 style={{ color: '#ef4444', margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Motivo dos Erros Recentes</h4>
-                                            <button 
+                                            <button
                                                 onClick={() => setOperationErrors([])}
                                                 style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 800 }}
                                             >
@@ -1718,12 +1716,12 @@ const TemplateCreator = () => {
                                                     <div className="error-item-msg">{err.error}</div>
                                                     {err.payload && (
                                                         <div className="mt-3">
-                                                            <button 
+                                                            <button
                                                                 onClick={(e) => {
                                                                     const pre = e.currentTarget.nextElementSibling as HTMLElement;
                                                                     pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
                                                                 }}
-                                                                className="global-tile-btn global-tile-btn-ghost" 
+                                                                className="global-tile-btn global-tile-btn-ghost"
                                                                 style={{ height: '24px', fontSize: '9px', padding: '0 8px' }}
                                                             >
                                                                 VER JSON ENVIADO
