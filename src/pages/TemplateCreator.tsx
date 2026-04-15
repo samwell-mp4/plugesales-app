@@ -255,12 +255,11 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload = (name: string, _overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
+    const buildInfobipPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
+        const lang = overrideLanguage || selectedPayloadLanguage;
+        
         // --- LEANDRO STANDARD ENFORCEMENT ---
-        // We ALWAYS use the hardcoded Leandro strings for the API payload to ensure Meta approval.
-        // Lead-specific data from cards is only for display/logging, NOT for the template structure.
         const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
-        const footerValue = LEANDRO_FOOTER;
         const varCount = isFiveVars ? 5 : 4;
         const examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
@@ -273,16 +272,21 @@ const TemplateCreator = () => {
 
         const effectiveHeaderType = overrideHeaderType || headerType;
 
-        if (effectiveHeaderType !== 'TEXT') {
+        if (effectiveHeaderType === 'TEXT') {
+            structure.header = {
+                format: 'TEXT',
+                text: name, // Automático: Nome da Campanha (prefixo + sufixo)
+                // Se o texto não tem {{1}}, não precisa de examples no header
+            };
+        } else {
             const format = effectiveHeaderType.toUpperCase();
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/B7sl2Kg.jpg";
             structure.header = {
                 format: format,
-                example: mediaUrlValue // Singular 'example' as string (matches user's base structure)
+                example: mediaUrlValue
             };
         }
 
-        // Footer is always hardcoded per Leandro Standard
         structure.footer = { text: LEANDRO_FOOTER };
 
         const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
@@ -296,8 +300,10 @@ const TemplateCreator = () => {
                 };
                 if (btn.type === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
-                    bPayload.url = finalUrl || '';
+                    bPayload.url = finalUrl || 'https://site.com';
                     urlIdxCount++;
+                } else if (btn.type === 'reply') {
+                    bPayload.payload = btn.text || 'REPLY_PAYLOAD';
                 }
                 return bPayload;
             });
@@ -305,8 +311,8 @@ const TemplateCreator = () => {
 
         return {
             name: name,
-            language: 'en_US', // HARD FORCED PER USER REQUEST (Leandro Standard)
-            category: 'UTILITY', // HARD FORCED PER USER REQUEST (Leandro Standard)
+            language: lang,
+            category: 'UTILITY',
             structure: structure
         };
     };
@@ -689,7 +695,7 @@ const TemplateCreator = () => {
                 newRows.push({
                     suffix: String(currentNum).padStart(3, '0'),
                     sender: firstSender,
-                    headerType: headerType,
+                    headerType: 'TEXT',
                     mediaUrl: headerType !== 'TEXT' ? headerMediaUrl : '',
                     hasButtons: buttons.length > 0,
                     buttonUrls: urlButtons.map(b => b.url || ''),
@@ -1257,11 +1263,15 @@ const TemplateCreator = () => {
                                         onChange={(e) => {
                                             const active = e.target.checked;
                                             setIsFiveVars(active);
-                                            if (active) {
-                                                const defaultText = selectedPayloadLanguage === 'en_US' 
-                                                    ? 'Hello {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nTo {{5}}, click the button below 👇'
-                                                    : 'Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇';
+                                                const defaultText = active
+                                                    ? (selectedPayloadLanguage === 'en_US' 
+                                                        ? 'Hello {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nTo {{5}}, click the button below 👇'
+                                                        : 'Olá {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇')
+                                                    : (selectedPayloadLanguage === 'en_US'
+                                                        ? 'Hi {{1}}! We inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇'
+                                                        : 'Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
                                                 _setBodyText(defaultText);
+                                                if (active) {
                                                 if (variablesExample.length < 5) {
                                                     _setVariablesExample([...variablesExample, 'check visual proof #76632353']);
                                                 }
@@ -1347,7 +1357,7 @@ const TemplateCreator = () => {
                                     <label>Tipo de Cabeçalho</label>
                                     <div className="flex gap-2 responsive-stack-mobile">
                                         {(['TEXT', 'IMAGE', 'VIDEO'] as const).map(type => (
-                                            <button key={type} onClick={() => setHeaderType(type)} className={`global-tile-btn ${headerType === type ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} style={{ flex: 1 }}>{type === 'TEXT' ? 'SEM' : type}</button>
+                                            <button key={type} onClick={() => setHeaderType(type)} className={`global-tile-btn ${headerType === type ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`} style={{ flex: 1 }}>{type === 'TEXT' ? 'TEXTO' : type}</button>
                                         ))}
                                     </div>
                                     {headerType !== 'TEXT' && (
@@ -1571,7 +1581,7 @@ const TemplateCreator = () => {
                                                                                         <tr key={rIdx} style={{ opacity: row.hasButtons === false ? 0.7 : 1 }}>
                                                                                             <td><input className={`bulk-row-input ${isError ? 'error-border' : ''}`} value={row.suffix} title={isError ? "Este nome completo ou sufixo já existe!" : ""} onChange={e => { const n = [...camp.rows]; n[rIdx].suffix = e.target.value.toLowerCase().replace(/[\s-@.]/g, '_'); setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
                                                                                             <td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
-                                                                                            <td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">SEM</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>
+                                                                                            <td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">TEXTO</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>
                                                                                             <td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
                                                                                             {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
                                                                                                 <Fragment key={urlIdx}>
