@@ -321,7 +321,10 @@ const TemplateCreator = () => {
 
     const callInfobipAPI = async (payload: any, overrideSender?: string) => {
         try {
-            const effectiveSender = (overrideSender && overrideSender.trim()) || senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID';
+            const effectiveSender = (overrideSender && overrideSender.trim()) || senderNumbers.split(/[\n,]/)[0]?.trim();
+            if (!effectiveSender) {
+                return { success: false, error: 'Remetente oficial (WABA) não informado. Por favor, preencha o campo de remetente.' };
+            }
             const encodedSender = encodeURIComponent(effectiveSender);
             const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${encodedSender}/templates`, {
                 method: 'POST',
@@ -573,7 +576,19 @@ const TemplateCreator = () => {
 
                     const payload = buildInfobipPayload(name, selectedPayloadLanguage, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
 
-                    const rowSender = row.sender && row.sender.trim() ? row.sender : (senderNumbers.split(/[\n,]/)[0]?.trim() || 'SENDER_ID');
+                    const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumbers.split(/[\n,]/)[0]?.trim();
+                    if (!rowSender) {
+                        const errorMsg = `Remetente não encontrado para a linha ${i + 1}`;
+                        errors.push({ name, error: errorMsg });
+                        setOperationErrors(prev => [{
+                            name,
+                            error: errorMsg,
+                            payload,
+                            timestamp: new Date().toLocaleTimeString()
+                        }, ...prev].slice(0, 50));
+                        continue;
+                    }
+
                     const extendedPayload = {
                         ...payload,
                         sender: rowSender,

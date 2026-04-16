@@ -190,13 +190,19 @@ export const dbService = {
     },
     saveContacts: async (tag: string, data: any[], count: number, validator?: string, creator?: string) => {
         try {
-            await fetch(`${API_BASE}/contacts`, {
+            const res = await fetch(`${API_BASE}/contacts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tag, data, count, validator, creator })
             });
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                return { error: errorData.message || `Erro HTTP ${res.status}` };
+            }
+            return await res.json();
         } catch (err: any) {
             console.error("Error saving contacts:", err);
+            return { error: err.message || "Erro de conexão ao salvar contatos" };
         }
     },
     deleteContacts: async (tag: string) => {
@@ -377,7 +383,7 @@ export const dbService = {
     getClientSubmissionById: async (id: number) => {
         try {
             const res = await fetch(`${API_BASE}/client-submissions/${id}`);
-            if (!res.ok) return null;
+            if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching client submission:", err);

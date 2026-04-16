@@ -77,6 +77,7 @@ interface Submission {
     timestamp: string;
     notes?: string;
     logs?: any[];
+    error?: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {

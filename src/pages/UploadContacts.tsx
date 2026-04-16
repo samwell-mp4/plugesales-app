@@ -353,9 +353,9 @@ const UploadContacts = () => {
 
                 // 1. Save contacts data to DB
                 console.log('Saving contacts to DB...');
-                const saveRes = await dbService.saveContacts(baseTag, filtered, total, 'N/A', 'Admin');
-                if (!saveRes || (saveRes.error)) {
-                    throw new Error(saveRes.error || 'Erro desconhecido ao salvar contatos.');
+                const saveRes: any = await dbService.saveContacts(baseTag, filtered, total, 'N/A', 'Admin');
+                if (!saveRes || saveRes.error) {
+                    throw new Error(saveRes?.error || 'Erro desconhecido ao salvar contatos.');
                 }
 
                 // 2. Save upload history entry to DB
