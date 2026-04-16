@@ -212,7 +212,7 @@ const TemplateCreator = () => {
     const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, msg: '' });
     const [queueSize, setQueueSize] = useState(5);
     const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
-    const [selectedCategory, setSelectedCategory] = useState<'UTILITY' | 'MARKETING'>('UTILITY');
+    const [selectedCategory, setSelectedCategory] = useState<'UTILITY'>('UTILITY');
     const [operationErrors, setOperationErrors] = useState<{ name: string, error: string, payload?: any, timestamp: string }[]>([]);
     const [currentPages, setCurrentPages] = useState<{ [campaignId: string]: number }>({});
     const rowsPerPage = 10;
@@ -315,7 +315,7 @@ const TemplateCreator = () => {
         return {
             name: name,
             language: lang,
-            category: 'UTILITY',
+            category: 'UTILITY', // SEMPRE UTILITY conforme solicitado (Nunca Marketing)
             structure: structure
         };
     };
