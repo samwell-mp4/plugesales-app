@@ -277,15 +277,14 @@ const TemplateCreator = () => {
         if (effectiveHeaderType === 'TEXT') {
             structure.header = {
                 format: 'TEXT',
-                text: name, // Nome da Campanha
-                example: name // Algumas versões da API exigem o campo example mesmo sem variáveis
+                text: name // Omitindo examples em texto sem variáveis conforme documentação estrita
             };
         } else {
             const format = effectiveHeaderType.toUpperCase();
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/B7sl2Kg.jpg";
             structure.header = {
                 format: format,
-                example: mediaUrlValue
+                examples: [mediaUrlValue] // Obrigatoriamente um array no plural
             };
         }
 
@@ -326,13 +325,23 @@ const TemplateCreator = () => {
                 return { success: false, error: 'Remetente oficial (WABA) não informado. Por favor, preencha o campo de remetente.' };
             }
             const encodedSender = encodeURIComponent(effectiveSender);
-            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${encodedSender}/templates`, {
+            
+            const url = `https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${encodedSender}/templates`;
+            const headers = {
+                'Authorization': `App ${apiKey}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            };
+
+            console.group('🚀 Infobip API Request');
+            console.log('URL:', url);
+            console.log('Headers:', { ...headers, Authorization: 'App ***' });
+            console.log('Payload:', payload);
+            console.groupEnd();
+
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `App ${apiKey}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify(payload)
             });
 
