@@ -105,7 +105,7 @@ const UploadContacts = () => {
 
             // 3. Check for Phone
             const normalized = normalizePhone(cleanPart);
-            if (normalized.length === 13 && !phone) {
+            if (normalized.length >= 10 && normalized.length <= 15 && !phone) {
                 phone = normalized;
                 return;
             }
@@ -234,7 +234,7 @@ const UploadContacts = () => {
                                 nome: (parts[phoneColIndex === 0 ? 1 : 0] || '').trim()
                             };
                         }
-                    }).filter(c => c && c.telefone && c.telefone.length === 13);
+                    }).filter(c => c && c.telefone && c.telefone.length >= 10 && c.telefone.length <= 15);
 
                     setInvalidCount(lines.length - extractedContacts.length);
                 }
@@ -260,7 +260,7 @@ const UploadContacts = () => {
                             }
                             if (smartSplit) {
                                 const parsed = smartParseRow(raw);
-                                if (parsed && parsed.telefone?.length === 13) {
+                                if (parsed && parsed.telefone?.length >= 10 && parsed.telefone?.length <= 15) {
                                     phoneColIndex = col;
                                     break;
                                 }
@@ -276,14 +276,14 @@ const UploadContacts = () => {
 
                             if (smartSplit) {
                                 const parsed = smartParseRow(rawCell);
-                                if (parsed && parsed.telefone?.length === 13) {
+                                if (parsed && parsed.telefone?.length >= 10 && parsed.telefone?.length <= 15) {
                                     contact = parsed;
                                 }
                             }
 
                             if (!contact) {
                                 const phone = normalizePhone(rawCell);
-                                if (phone.length === 13) {
+                                if (phone.length >= 10 && phone.length <= 15) {
                                     contact = {
                                         telefone: phone,
                                         nome: String(row[phoneColIndex === 0 ? 1 : 0] || '').trim()
@@ -341,10 +341,24 @@ const UploadContacts = () => {
 
                 setProcessedData(formattedList);
 
-                // Save contacts data to DB
-                await dbService.saveContacts(baseTag, filtered, total, 'N/A', 'Admin');
+                const batchCount = Math.ceil(total / batchSize);
+                const resultsList: { tag: string, count: number }[] = [];
+                for (let i = 0; i < batchCount; i++) {
+                    const count = (i === batchCount - 1) ? total % batchSize || batchSize : batchSize;
+                    resultsList.push({ tag: `${baseTag}_${i + 1}`, count });
+                }
 
-                // Save upload history entry to DB
+                setResults(resultsList);
+                setCurrentResultsPage(1); // Reset to first page
+
+                // 1. Save contacts data to DB
+                console.log('Saving contacts to DB...');
+                const saveRes = await dbService.saveContacts(baseTag, filtered, total, 'N/A', 'Admin');
+                if (!saveRes || (saveRes.error)) {
+                    throw new Error(saveRes.error || 'Erro desconhecido ao salvar contatos.');
+                }
+
+                // 2. Save upload history entry to DB
                 const newHistoryItem = await dbService.addUploadHistory({
                     tag: baseTag,
                     count: total,
@@ -356,22 +370,10 @@ const UploadContacts = () => {
                     setUploadHistory(prev => [newHistoryItem, ...prev]);
                 }
 
-                const batchCount = Math.ceil(total / batchSize);
-                const resultsList: { tag: string, count: number }[] = [];
-                for (let i = 0; i < batchCount; i++) {
-                    const count = (i === batchCount - 1) ? total % batchSize || batchSize : batchSize;
-                    resultsList.push({ tag: `${baseTag}_${i + 1}`, count });
-                }
-
-                setTimeout(() => {
-                    setResults(resultsList);
-                    setCurrentResultsPage(1); // Reset to first page
-                    setIsProcessing(false);
-                }, 400);
-
-            } catch (error) {
+            } catch (error: any) {
                 console.error(error);
-                alert("Erro ao processar o arquivo.");
+                alert("Erro ao processar o arquivo: " + error.message);
+            } finally {
                 setIsProcessing(false);
             }
         };

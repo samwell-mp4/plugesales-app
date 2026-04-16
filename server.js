@@ -32,8 +32,8 @@ const port = process.env.PORT || 3000;
 
 // Configuração Global de Middlewares (IMPORTANTE: Antes das rotas)
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // --- REDIS CONFIG ---
 const DEFAULT_REDIS = "redis://default:Marketing@plugsales2026!@plug_sales_dispatch_app_plug_sales_redis:6379";
@@ -90,7 +90,8 @@ const connectRedis = async () => {
         redisRetryCount++;
         if (redisRetryCount <= MAX_REDIS_RETRIES) {
             console.warn(`❌ Redis connection attempt ${redisRetryCount} failed: ${e.message}.`);
-            setTimeout(connectRedis, 10000); // Aumentado para 10s
+            const backoff = Math.min(10000 * Math.pow(2, redisRetryCount - 1), 60000); // Exponential backoff up to 60s
+            setTimeout(connectRedis, backoff);
         } else {
             console.error('⚠️ [REDIS] Maximum retries reached. Running without Redis.');
         }
@@ -110,6 +111,25 @@ const fetchWithTimeout = async (url, options = {}, timeout = 10000) => {
         throw error;
     }
 };
+
+// --- UPLOADS DIRECTORY PERSISTENCE CHECK ---
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+    console.log('📁 [SYSTEM] Creating uploads directory...');
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+} else {
+    console.log('📁 [SYSTEM] Uploads directory already exists.');
+}
+
+// Test write permissions
+try {
+    const testFile = path.join(UPLOADS_DIR, '.write_test');
+    fs.writeFileSync(testFile, 'test');
+    fs.unlinkSync(testFile);
+    console.log('✅ [SYSTEM] Uploads directory is writable.');
+} catch (err) {
+    console.error('❌ [SYSTEM] FATAL: Uploads directory is NOT writable:', err.message);
+}
 
 connectRedis();
 
@@ -1402,15 +1422,30 @@ app.get('/api/contacts/:tag', async (req, res) => {
 
 app.post('/api/contacts', async (req, res) => {
     const { tag, data, count, validator, creator } = req.body;
+    console.log(`[CONTACTS] Receiving upload: tag=${tag}, count=${count}, data_size=${JSON.stringify(data).length} bytes`);
+    
     try {
-        await pool.query(
-            `INSERT INTO contacts_list (tag, data, count, validator, creator)
-             VALUES ($1,$2,$3,$4,$5)
-             ON CONFLICT (tag) DO UPDATE SET data=$2, count=$3, validator=$4, creator=$5, updated_at=NOW()`,
-            [tag, JSON.stringify(data), count, validator || 'N/A', creator || 'Admin']
-        );
+        if (!tag || !data) {
+            return res.status(400).json({ error: 'Tag e dados são obrigatórios.' });
+        }
+
+        const query = `
+            INSERT INTO contacts_list (tag, data, count, validator, creator)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (tag) DO UPDATE SET 
+                data = EXCLUDED.data, 
+                count = EXCLUDED.count, 
+                validator = EXCLUDED.validator, 
+                creator = EXCLUDED.creator, 
+                updated_at = NOW()
+        `;
+
+        await pool.query(query, [tag, JSON.stringify(data), count, validator || 'N/A', creator || 'Admin']);
+        
+        console.log(`[CONTACTS] Successfully saved tag=${tag}`);
         res.json({ success: true });
     } catch (err) {
+        console.error(`[CONTACTS] Error saving tag=${tag}:`, err);
         res.status(500).json({ error: err.message });
     }
 });

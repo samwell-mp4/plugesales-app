@@ -19,8 +19,9 @@ COPY --from=build /app/dist ./dist
 COPY server.js ./
 COPY backend ./backend/
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads directory and define as volume
+RUN mkdir -p uploads && chmod 777 uploads
+VOLUME ["/app/uploads"]
 
 # Expose port 3000
 EXPOSE 3000

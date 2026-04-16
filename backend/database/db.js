@@ -21,5 +21,10 @@ if (fs.existsSync('/.dockerenv')) {
 }
 
 const { Pool } = pg;
-export const pool = new Pool({ connectionString: pgUrl, connectionTimeoutMillis: 5000 });
+export const pool = new Pool({ 
+    connectionString: pgUrl, 
+    connectionTimeoutMillis: 10000,
+    max: 20,
+    idleTimeoutMillis: 30000
+});
 export default pool;

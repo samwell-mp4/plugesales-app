@@ -338,7 +338,7 @@ const ClientSubmissionDetail = () => {
         reader.onload = async (evt) => {
             try {
                 const bstr = evt.target?.result;
-                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wb = XLSX.read(bstr, { type: 'array' });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const rawData = XLSX.utils.sheet_to_json(ws);
                 const summary = {
@@ -359,10 +359,17 @@ const ClientSubmissionDetail = () => {
                 if (res.id) {
                     await load();
                     await addLog(`Relatório anexado: ${file.name}`, 'success');
+                } else if (res.error) {
+                    throw new Error(res.error);
                 }
-            } catch (err) { console.error(err); } finally { setIsUploadingReport(false); }
+            } catch (err: any) { 
+                console.error(err); 
+                alert("Erro ao enviar o relatório: " + (err.message || 'Erro no servidor'));
+            } finally { 
+                setIsUploadingReport(false); 
+            }
         };
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
     };
 
     const handleDeleteReport = async (reportId: number) => {

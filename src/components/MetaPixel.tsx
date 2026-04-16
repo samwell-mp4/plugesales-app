@@ -24,7 +24,8 @@ const MetaPixel = () => {
     const pixelConfigs = [
       { id: '1', name: 'Ricardo Willer', pixelId: '695128547016451' },
       { id: '3', name: 'Augusto Fagundes', pixelId: '1701137238002049' },
-      { id: '12', name: 'Thiago Rocha', pixelId: '4283807375217824' }
+      { id: '12', name: 'Thiago Rocha', pixelId: '4283807375217824' },
+      { id: '7', name: 'Samwell Souza', pixelId: '2397997580627148' }
     ];
 
     // Encontra se a página atual pertence a algum agente configurado
