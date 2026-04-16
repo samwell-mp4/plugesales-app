@@ -257,7 +257,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', mediaUrl?: string, buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
+    const buildInfobipPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
 
         // --- LEANDRO STANDARD ENFORCEMENT ---
@@ -588,7 +588,7 @@ const TemplateCreator = () => {
                         row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
                     }
 
-                    const payload = buildInfobipPayload(name, selectedPayloadLanguage, row.headerType, row.mediaUrl, finalButtonUrls, row.hasButtons, finalButtonTexts);
+                    const payload = buildInfobipPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumbers.split(/[\n,]/)[0]?.trim();
                     if (!rowSender) {
