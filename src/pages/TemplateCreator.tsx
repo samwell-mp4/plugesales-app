@@ -284,7 +284,7 @@ const TemplateCreator = () => {
             const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/B7sl2Kg.jpg";
             structure.header = {
                 format: format,
-                examples: [mediaUrlValue] // Obrigatoriamente um array no plural
+                example: mediaUrlValue // Singular e string para Header conforme Doc
             };
         }
 
@@ -302,6 +302,8 @@ const TemplateCreator = () => {
                 if (btn.type === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
                     bPayload.url = finalUrl || 'https://site.com';
+                    // Campo 'example' obrigatório/recomendado para botões de URL na Infobip
+                    bPayload.example = finalUrl || 'https://site.com';
                     urlIdxCount++;
                 } else if (btn.type === 'reply') {
                     bPayload.payload = btn.text || 'REPLY_PAYLOAD';
