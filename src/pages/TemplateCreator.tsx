@@ -273,18 +273,19 @@ const TemplateCreator = () => {
         };
 
         const effectiveHeaderType = overrideHeaderType || headerType;
+        let hasMedia = false;
 
         if (effectiveHeaderType === 'TEXT') {
             structure.header = {
                 format: 'TEXT',
-                text: name // Omitindo examples em texto sem variáveis conforme documentação estrita
+                text: name 
             };
         } else {
+            hasMedia = true;
             const format = effectiveHeaderType.toUpperCase();
-            const mediaUrlValue = (mediaUrl || headerMediaUrl)?.trim() || "https://iili.io/B7sl2Kg.jpg";
             structure.header = {
                 format: format,
-                example: mediaUrlValue // Singular e string para Header conforme Doc
+                // Removido 'example' do cabeçalho conforme exemplo de sucesso
             };
         }
 
@@ -302,8 +303,7 @@ const TemplateCreator = () => {
                 if (btn.type === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
                     bPayload.url = finalUrl || 'https://site.com';
-                    // Campo 'example' obrigatório/recomendado para botões de URL na Infobip
-                    bPayload.example = finalUrl || 'https://site.com';
+                    // Removido 'example' do botão conforme exemplo de sucesso
                     urlIdxCount++;
                 } else if (btn.type === 'reply') {
                     bPayload.payload = btn.text || 'REPLY_PAYLOAD';
@@ -315,8 +315,11 @@ const TemplateCreator = () => {
         return {
             name: name,
             language: lang,
-            category: 'UTILITY', // SEMPRE UTILITY conforme solicitado (Nunca Marketing)
-            structure: structure
+            category: 'UTILITY', // SEMPRE UTILITY (Nunca Marketing)
+            structure: {
+                ...structure,
+                type: hasMedia ? 'MEDIA' : 'TEXT' // Adicionado 'type' conforme exemplo de sucesso
+            }
         };
     };
 
