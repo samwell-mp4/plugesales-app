@@ -2604,8 +2604,21 @@ if (!fs.existsSync(uploadDir)) {
 const storage = multer.diskStorage({
     destination: (req, file, cb) => { cb(null, uploadDir); },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        const originalName = file.originalname;
+        const ext = path.extname(originalName);
+        // Sanitizar o nome base para evitar problemas em URLs, mantendo o máximo do original
+        const baseName = path.basename(originalName, ext).replace(/[\s]/g, '_');
+        let finalName = `${baseName}${ext}`;
+        let counter = 1;
+
+        // Loop para encontrar um nome que não exista no disco
+        while (fs.existsSync(path.join(uploadDir, finalName))) {
+            finalName = `${baseName}(${counter})${ext}`;
+            counter++;
+        }
+        
+        console.log(`[UPLOAD] Saving file as: ${finalName}`);
+        cb(null, finalName);
     }
 });
 
