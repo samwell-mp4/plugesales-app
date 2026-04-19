@@ -1724,7 +1724,7 @@ const TemplateCreator = () => {
                                 <h4 style={{ color: 'var(--text-secondary)', marginBottom: '10px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
                                 <div style={{ background: 'var(--code-bg)', padding: '12px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
                                     <pre style={{ margin: 0, fontSize: '0.65rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
-                                        <code>{JSON.stringify(buildInfobipPayload(modelName, selectedPayloadLanguage), null, 2)}</code>
+                                        <code>{JSON.stringify(buildInfobipPayload_STRICT(modelName, selectedPayloadLanguage), null, 2)}</code>
                                     </pre>
                                 </div>
 
