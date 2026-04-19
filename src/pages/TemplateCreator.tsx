@@ -265,9 +265,8 @@ const TemplateCreator = () => {
         const varCount = isFiveVars ? 5 : 4;
         const examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
+        console.log('--- Debug buildInfobipPayload V2 (With Fix) ---');
         const effectiveHeaderType = overrideHeaderType || headerType;
-
-        console.log('--- Debug buildInfobipPayload ---');
         console.log('Name:', name);
         console.log('HeaderType:', effectiveHeaderType);
         console.log('MediaUrlOverride:', mediaUrlOverride);
@@ -319,8 +318,9 @@ const TemplateCreator = () => {
         return {
             name: name,
             language: lang,
-            category: 'UTILITY', // SEMPRE UTILITY (Nunca Marketing)
-            structure: structure // Removido 'type' interno conforme exemplo válido do usuário
+            category: 'UTILITY',
+            _v: '1.0.4-fixed', // Debug version tag
+            structure: structure
         };
     };
 
