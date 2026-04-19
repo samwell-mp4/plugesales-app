@@ -257,7 +257,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[]) => {
+    const buildInfobipPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
 
         // --- LEANDRO STANDARD ENFORCEMENT ---
@@ -285,7 +285,7 @@ const TemplateCreator = () => {
             const format = effectiveHeaderType.toUpperCase();
             structure.header = {
                 format: format,
-                // Removido 'example' do cabeçalho conforme exemplo de sucesso
+                example: mediaUrlOverride || headerMediaUrl || 'https://iili.io/B7sl2Kg.jpg' // Adicionado 'example' conforme documentação Infobip
             };
         }
 
@@ -303,10 +303,7 @@ const TemplateCreator = () => {
                 if (btn.type === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
                     bPayload.url = finalUrl || 'https://site.com';
-                    // Removido 'example' do botão conforme exemplo de sucesso
                     urlIdxCount++;
-                } else if (btn.type === 'reply') {
-                    bPayload.payload = btn.text || 'REPLY_PAYLOAD';
                 }
                 return bPayload;
             });
@@ -588,7 +585,7 @@ const TemplateCreator = () => {
                         row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
                     }
 
-                    const payload = buildInfobipPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts);
+                    const payload = buildInfobipPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumbers.split(/[\n,]/)[0]?.trim();
                     if (!rowSender) {
