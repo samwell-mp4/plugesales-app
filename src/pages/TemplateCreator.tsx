@@ -265,6 +265,12 @@ const TemplateCreator = () => {
         const varCount = isFiveVars ? 5 : 4;
         const examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
+        console.log('--- Debug buildInfobipPayload ---');
+        console.log('Name:', name);
+        console.log('HeaderType:', effectiveHeaderType);
+        console.log('MediaUrlOverride:', mediaUrlOverride);
+        console.log('headerMediaUrl state:', headerMediaUrl);
+
         const structure: any = {
             body: {
                 text: bodyValue,
@@ -313,10 +319,7 @@ const TemplateCreator = () => {
             name: name,
             language: lang,
             category: 'UTILITY', // SEMPRE UTILITY (Nunca Marketing)
-            structure: {
-                ...structure,
-                type: hasMedia ? 'MEDIA' : 'TEXT' // Adicionado 'type' conforme exemplo de sucesso
-            }
+            structure: structure // Removido 'type' interno conforme exemplo válido do usuário
         };
     };
 
