@@ -265,6 +265,8 @@ const TemplateCreator = () => {
         const varCount = isFiveVars ? 5 : 4;
         const examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
+        const effectiveHeaderType = overrideHeaderType || headerType;
+
         console.log('--- Debug buildInfobipPayload ---');
         console.log('Name:', name);
         console.log('HeaderType:', effectiveHeaderType);
@@ -278,7 +280,6 @@ const TemplateCreator = () => {
             }
         };
 
-        const effectiveHeaderType = overrideHeaderType || headerType;
         let hasMedia = false;
 
         if (effectiveHeaderType === 'TEXT') {
