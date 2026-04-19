@@ -257,7 +257,8 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string) => {
+    const buildInfobipPayload_STRICT = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string) => {
+        console.warn('🔥🔥 buildInfobipPayload_STRICT LOADED 🔥🔥');
         const lang = overrideLanguage || selectedPayloadLanguage;
 
         // --- LEANDRO STANDARD ENFORCEMENT ---
@@ -291,7 +292,7 @@ const TemplateCreator = () => {
             const format = effectiveHeaderType.toUpperCase();
             structure.header = {
                 format: format,
-                example: mediaUrlOverride || headerMediaUrl || 'https://iili.io/B7sl2Kg.jpg' // Adicionado 'example' conforme documentação Infobip
+                example: (mediaUrlOverride && mediaUrlOverride.length > 5) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 5 ? headerMediaUrl : 'https://iili.io/B7sl2Kg.jpg')
             };
         }
 
@@ -319,7 +320,7 @@ const TemplateCreator = () => {
             name: name,
             language: lang,
             category: 'UTILITY',
-            _v: '1.0.4-fixed', // Debug version tag
+            _v: 'STRICT_V5_STABLE', // Super obvious version tag
             structure: structure
         };
     };
@@ -472,7 +473,7 @@ const TemplateCreator = () => {
                     const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
                     setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
 
-                    const payload = buildInfobipPayload(currentName, selectedPayloadLanguage);
+                    const payload = buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage);
                     const res = await callInfobipAPI(payload, sender);
                     if (res.success) {
                         totalSuccess++;
@@ -589,7 +590,7 @@ const TemplateCreator = () => {
                         row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
                     }
 
-                    const payload = buildInfobipPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl);
+                    const payload = buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumbers.split(/[\n,]/)[0]?.trim();
                     if (!rowSender) {
