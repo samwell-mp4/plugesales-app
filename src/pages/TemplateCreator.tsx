@@ -258,7 +258,6 @@ const TemplateCreator = () => {
     };
 
     const buildInfobipPayload_STRICT = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string) => {
-        console.warn('🔥🔥 buildInfobipPayload_STRICT LOADED 🔥🔥');
         const lang = overrideLanguage || selectedPayloadLanguage;
 
         // --- LEANDRO STANDARD ENFORCEMENT ---
@@ -266,12 +265,7 @@ const TemplateCreator = () => {
         const varCount = isFiveVars ? 5 : 4;
         const examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
-        console.log('--- Debug buildInfobipPayload V2 (With Fix) ---');
         const effectiveHeaderType = overrideHeaderType || headerType;
-        console.log('Name:', name);
-        console.log('HeaderType:', effectiveHeaderType);
-        console.log('MediaUrlOverride:', mediaUrlOverride);
-        console.log('headerMediaUrl state:', headerMediaUrl);
 
         const structure: any = {
             body: {
@@ -292,7 +286,7 @@ const TemplateCreator = () => {
             const format = effectiveHeaderType.toUpperCase();
             structure.header = {
                 format: format,
-                example: (mediaUrlOverride && mediaUrlOverride.length > 5) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 5 ? headerMediaUrl : 'https://iili.io/B7sl2Kg.jpg')
+                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.postimg.cc/xC34d8pf/efdb084f-a76e-45e8-8849-92c7d8c5c2c9.jpg')
             };
         }
 
@@ -320,7 +314,6 @@ const TemplateCreator = () => {
             name: name,
             language: lang,
             category: 'UTILITY',
-            _v: 'STRICT_V5_STABLE', // Super obvious version tag
             structure: structure
         };
     };
