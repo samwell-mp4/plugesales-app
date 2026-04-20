@@ -48,6 +48,7 @@ export const pushNotificationService = {
     subscribeUser: async (userId: number) => {
         if (!pushNotificationService.checkSupport()) return { error: 'Push não suportado' };
 
+        try {
             // Check permission first
             if (Notification.permission === 'denied') {
                 return { error: 'Permission already denied by user.' };
