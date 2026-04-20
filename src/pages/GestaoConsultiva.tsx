@@ -209,7 +209,7 @@ const GestaoConsultiva = () => {
         try {
             const actionToDelete = actions.find(a => a.id === id);
             if (actionToDelete?.google_event_id && user?.id && googleConnected && selectedCalendarId) {
-                const token = await googleCalendarService.getValidToken(user.id);
+                const token = await googleCalendarService.getValidToken(user!.id);
                 await googleCalendarService.deleteEvent(token, selectedCalendarId, actionToDelete.google_event_id);
             }
             await dbService.deleteConsultativeAction(id);
@@ -227,7 +227,7 @@ const GestaoConsultiva = () => {
             
             // Sync status to Google if linked
             if (action?.google_event_id && user?.id && googleConnected && selectedCalendarId) {
-                const token = await googleCalendarService.getValidToken(user.id);
+                const token = await googleCalendarService.getValidToken(user!.id);
                 const description = `Status: ${status}\nPrioridade: ${action.priority}\nNotas: ${action.notes || ''}`;
                 await googleCalendarService.updateEvent(token, selectedCalendarId, action.google_event_id, { description });
             }
@@ -351,7 +351,7 @@ const GestaoConsultiva = () => {
                             </div>
                             <button className="text-gray-500 hover:text-white transition-colors" onClick={() => { 
                                 if(window.confirm('Desconectar agenda do Google?') && user?.id) {
-                                    googleCalendarService.disconnect(user.id).then(() => {
+                                    googleCalendarService.disconnect(user!.id).then(() => {
                                         setGoogleConnected(false);
                                         setGoogleEmail(null);
                                     });

@@ -302,7 +302,7 @@ const CRMFunil = () => {
     };
 
     const handleScheduleMeeting = async () => {
-        if (!googleToken || !selectedCalendarId || !isScheduling) return;
+        if (!googleConnected || !selectedCalendarId || !isScheduling || !user?.id) return;
         setIsUpdating(true);
         try {
             const startDateTime = `${scheduleForm.date}T${scheduleForm.time}:00`;
@@ -316,7 +316,7 @@ const CRMFunil = () => {
                 end: { dateTime: endDateTime }
             };
 
-            const token = await googleCalendarService.getValidToken(user.id);
+            const token = await googleCalendarService.getValidToken(user!.id);
             const created = await googleCalendarService.createEvent(
                 token, 
                 selectedCalendarId, 
