@@ -628,8 +628,9 @@ const initDB = async () => {
     }
 };
 // --- GOOGLE SHEETS CONFIG ---
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "PASTE_YOUR_ID_HERE";
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "PASTE_YOUR_SECRET_HERE";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = "https://plugesales.com/api/google/callback";
 // --- GOOGLE SHEETS CONFIG ---
 const CRM_SPREADSHEET_ID = "1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0";
 const SERVICE_ACCOUNT_FILE = path.join(__dirname, 'service-account.json');
@@ -4561,9 +4562,6 @@ app.post('/api/v2/refund/request', async (req, res) => {
 // ============================================================
 // GOOGLE OAUTH PERSISTENCE - 2026-04-20
 // ============================================================
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = "https://plugesales.com/api/google/callback";
 
 const getOAuth2Client = () => {
     return new google.auth.OAuth2(
