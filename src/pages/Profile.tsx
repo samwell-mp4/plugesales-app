@@ -264,6 +264,13 @@ const Profile = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            <div style={{ height: '1px', background: 'var(--surface-border-subtle)' }} />
+
+                            <div>
+                                <h3 style={{ margin: '0 0 32px 0', fontSize: '1.5rem', fontWeight: 950, display: 'flex', alignItems: 'center', gap: '16px', letterSpacing: '-0.5px' }}>
+                                    <Lock size={24} color="var(--primary-color)" /> Segurança da Conta
+                                </h3>
                                 <div className="card-grid-responsive">
                                     <div>
                                         <label className="field-label">Nova Senha</label>
