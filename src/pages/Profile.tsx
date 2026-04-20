@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
+import { pushNotificationService } from '../services/pushNotificationService';
 
 const Profile = () => {
     const { user, setUser } = useAuth();
@@ -26,6 +27,8 @@ const Profile = () => {
     });
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [pushSubscribed, setPushSubscribed] = useState(false);
+    const [pushChecking, setPushChecking] = useState(true);
 
     useEffect(() => {
         if (user) {
@@ -37,8 +40,28 @@ const Profile = () => {
                 password: '',
                 confirmPassword: ''
             });
+
+            // Check current push status
+            pushNotificationService.getStatus(user.id as number).then(status => {
+                setPushSubscribed(status);
+                setPushChecking(false);
+            });
         }
     }, [user]);
+
+    const handleTogglePush = async () => {
+        if (!user || pushChecking) return;
+        setPushChecking(true);
+        
+        if (pushSubscribed) {
+            const res = await pushNotificationService.unsubscribeUser(user.id as number);
+            if (!res?.error) setPushSubscribed(false);
+        } else {
+            const res = await pushNotificationService.subscribeUser(user.id as number);
+            if (!res?.error) setPushSubscribed(true);
+        }
+        setPushChecking(false);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -202,10 +225,45 @@ const Profile = () => {
 
                             <div style={{ height: '1px', background: 'var(--surface-border-subtle)' }} />
 
+                            {/* PWA PUSH NOTIFICATIONS SECTION */}
                             <div>
                                 <h3 style={{ margin: '0 0 32px 0', fontSize: '1.5rem', fontWeight: 950, display: 'flex', alignItems: 'center', gap: '16px', letterSpacing: '-0.5px' }}>
-                                    <Lock size={24} color="var(--primary-color)" /> Segurança da Conta
+                                    <Bell size={24} color="var(--primary-color)" /> Notificações PWA
                                 </h3>
+                                <div style={{ 
+                                    background: 'rgba(255,255,255,0.02)', 
+                                    border: '1px solid var(--surface-border-subtle)', 
+                                    padding: '32px', 
+                                    borderRadius: '24px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    gap: '24px'
+                                }}>
+                                    <div style={{ flex: 1 }}>
+                                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 800 }}>Push no Celular</h4>
+                                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
+                                            Receba avisos nativos em tempo real quando novos leads forem capturados, mesmo com o app fechado.
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        {pushChecking ? (
+                                            <div className="status-badge-premium" style={{ '--bg': 'rgba(255,255,255,0.05)', '--color': '#888', '--border': 'rgba(255,255,255,0.1)' } as any}>
+                                                VERIFICANDO...
+                                            </div>
+                                        ) : (
+                                            <button 
+                                                onClick={handleTogglePush}
+                                                type="button"
+                                                className={`action-btn ${pushSubscribed ? 'danger-btn' : 'primary-btn'}`}
+                                                style={{ height: '40px', padding: '0 24px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                                            >
+                                                {pushSubscribed ? 'DESATIVAR NOTIFICAÇÕES' : 'ATIVAR NESTE DISPOSITIVO'}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                                 <div className="card-grid-responsive">
                                     <div>
                                         <label className="field-label">Nova Senha</label>

@@ -1,6 +1,8 @@
 import { useLocation, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import NotificationCenter from './components/NotificationCenter';
+import { useEffect } from 'react';
+import { pushNotificationService } from './services/pushNotificationService';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
 import LiveChat from './pages/LiveChat';
@@ -56,6 +58,17 @@ function AppContent() {
   if (isLoading) {
     return <SupremeLoading />;
   }
+
+  // Automatic Push Notification Subscription for Agents/Admins
+  useEffect(() => {
+    if (user && (user.role === 'ADMIN' || user.role === 'EMPLOYEE')) {
+      // Small timeout to ensure SW is ready and not blocking initial load
+      const timer = setTimeout(() => {
+        pushNotificationService.subscribeUser(user.id as number);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
 
   const isPublicRoute = 
     location.pathname.startsWith('/landing') || 

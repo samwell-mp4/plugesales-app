@@ -13,6 +13,7 @@ import cron from 'node-cron';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { pool } from './backend/database/db.js';
 import chatRoutes from './backend/routes/chatRoutes.js';
+import webpush from 'web-push';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -450,7 +451,7 @@ const initDB = async () => {
             try { await client.query(query); } catch (e) { /* ignore */ }
         };
 
-        // --- AFFILIATE LEADS ROBUST MIGRATIONS ---
+        // --- GOOGLE OAUTH COLUMN MIGRATIONS ---
         await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS affiliate_id INTEGER REFERENCES users(id)`);
         await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS company_name TEXT`);
         await safeAlter(`ALTER TABLE affiliate_leads ADD COLUMN IF NOT EXISTS offer_text TEXT`);
@@ -631,6 +632,94 @@ const initDB = async () => {
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = "https://plugesales.com/api/google/callback";
+
+// --- PWA PUSH NOTIFICATIONS CONFIG ---
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BPfadbKE6jI9EkHUWlQFonMhOeWvyoh4wrjgjHdScAizHv9yFOVD3bhtuMfr12-TmK2L-MTzFfl1KT0aKrtzfvQ";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "B1pdH0IyW8YACye5m4PL7_vmgKAESp7lxcYCCfkIFQ4";
+
+webpush.setVapidDetails(
+    'mailto:contato@plugsales.com.br',
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+);
+
+// --- PWA PUSH NOTIFICATIONS ROUTES ---
+app.post('/api/push/subscribe', async (req, res) => {
+    const { userId, subscription } = req.body;
+    if (!userId || !subscription) return res.status(400).json({ error: 'Faltam dados.' });
+
+    try {
+        // Remove subscrições antigas para este usuário se o endpoint for igual ou para cleanup
+        // (Simplificado: uma subscrição por dispositivo será gerida pelo endpoint único no JSONB)
+        const endpoint = subscription.endpoint;
+        await pool.query('DELETE FROM push_subscriptions WHERE user_id = $1 AND subscription->>\'endpoint\' = $2', [userId, endpoint]);
+        
+        await pool.query(
+            'INSERT INTO push_subscriptions (user_id, subscription) VALUES ($1, $2)',
+            [userId, JSON.stringify(subscription)]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error saving subscription:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/push/unsubscribe', async (req, res) => {
+    const { userId, endpoint } = req.body;
+    try {
+        await pool.query('DELETE FROM push_subscriptions WHERE user_id = $1 AND subscription->>\'endpoint\' = $2', [userId, endpoint]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/push/status/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const result = await pool.query('SELECT count(*) FROM push_subscriptions WHERE user_id = $1', [userId]);
+        res.json({ subscribed: parseInt(result.rows[0].count) > 0 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+const sendPushToAgents = async (title, body, url) => {
+    try {
+        // Enviar para todos os Admins e Employees que possuem subscrição ativa
+        const result = await pool.query(`
+            SELECT s.subscription 
+            FROM push_subscriptions s
+            JOIN users u ON s.user_id = u.id
+            WHERE u.role IN ('ADMIN', 'EMPLOYEE')
+        `);
+
+        console.log(`[PUSH] Sending to ${result.rows.length} subscriptions...`);
+
+        const payload = JSON.stringify({
+            title,
+            body,
+            icon: '/logo-supreme.png',
+            data: { url: url || '/crm-funil' }
+        });
+
+        const promises = result.rows.map(row => 
+            webpush.sendNotification(row.subscription, payload)
+                .catch(err => {
+                    if (err.statusCode === 404 || err.statusCode === 410) {
+                        console.log(`[PUSH] Removing expired subscription for endpoint: ${row.subscription.endpoint}`);
+                        return pool.query('DELETE FROM push_subscriptions WHERE subscription->>\'endpoint\' = $1', [row.subscription.endpoint]);
+                    }
+                    console.error('Push error:', err);
+                })
+        );
+
+        await Promise.all(promises);
+    } catch (err) {
+        console.error('Error in sendPushToAgents:', err);
+    }
+};
 // --- GOOGLE SHEETS CONFIG ---
 const CRM_SPREADSHEET_ID = "1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0";
 const SERVICE_ACCOUNT_FILE = path.join(__dirname, 'service-account.json');
@@ -3677,6 +3766,13 @@ app.post('/api/step-leads', async (req, res) => {
         } catch (webhookErr) {
             console.error('❌ [WEBHOOK] Sync error:', webhookErr.message);
         }
+
+        // --- PUSH NOTIFICATION ---
+        sendPushToAgents(
+            'Novo Lead Capturado! 🚀',
+            `Lead: ${name} (Agente: ${actualAgentName || 'N/A'})`,
+            '/crm/funil'
+        );
 
         res.status(201).json(newLead);
     } catch (err) {
