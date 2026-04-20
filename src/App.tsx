@@ -64,7 +64,9 @@ function AppContent() {
     if (user && (user.role === 'ADMIN' || user.role === 'EMPLOYEE')) {
       // Small timeout to ensure SW is ready and not blocking initial load
       const timer = setTimeout(() => {
-        pushNotificationService.subscribeUser(user.id as number);
+        if (Notification.permission !== 'denied') {
+          pushNotificationService.subscribeUser(user.id as number);
+        }
       }, 3000);
       return () => clearTimeout(timer);
     }

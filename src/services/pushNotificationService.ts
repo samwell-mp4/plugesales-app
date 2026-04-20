@@ -48,7 +48,11 @@ export const pushNotificationService = {
     subscribeUser: async (userId: number) => {
         if (!pushNotificationService.checkSupport()) return { error: 'Push não suportado' };
 
-        try {
+            // Check permission first
+            if (Notification.permission === 'denied') {
+                return { error: 'Permission already denied by user.' };
+            }
+
             const registration = await navigator.serviceWorker.ready;
             
             // Check for existing subscription
@@ -56,10 +60,17 @@ export const pushNotificationService = {
             
             if (!subscription) {
                 // Request permission and create new subscription
-                subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-                });
+                try {
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                    });
+                } catch (subErr: any) {
+                    if (subErr.name === 'NotAllowedError') {
+                        return { error: 'Permission denied by user during prompt.' };
+                    }
+                    throw subErr;
+                }
             }
 
             // Save to backend

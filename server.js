@@ -612,7 +612,22 @@ const initDB = async () => {
             )
         `);
         console.log('✅ Tables submission_change_requests and notifications verified/created.');
+
         // ============================================================
+        // PWA PUSH SUBSCRIPTIONS
+        // ============================================================
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                subscription JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, subscription)
+            )
+        `);
+        console.log('✅ Table push_subscriptions verified/created.');
+        // ============================================================
+
         console.log('✅ Database initialized and verified.');
 
     } catch (err) {
@@ -628,10 +643,12 @@ const initDB = async () => {
         if (client) client.release();
     }
 };
+
 // --- GOOGLE SHEETS CONFIG ---
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = "https://plugesales.com/api/google/callback";
+
 
 // --- PWA PUSH NOTIFICATIONS CONFIG ---
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BPfadbKE6jI9EkHUWlQFonMhOeWvyoh4wrjgjHdScAizHv9yFOVD3bhtuMfr12-TmK2L-MTzFfl1KT0aKrtzfvQ";
@@ -646,21 +663,26 @@ webpush.setVapidDetails(
 // --- PWA PUSH NOTIFICATIONS ROUTES ---
 app.post('/api/push/subscribe', async (req, res) => {
     const { userId, subscription } = req.body;
-    if (!userId || !subscription) return res.status(400).json({ error: 'Faltam dados.' });
+    console.log(`[PUSH] Subscribing user ${userId}...`);
+    
+    if (!userId || !subscription) {
+        console.warn('[PUSH] Missing userId or subscription data');
+        return res.status(400).json({ error: 'Faltam dados.' });
+    }
 
     try {
-        // Remove subscrições antigas para este usuário se o endpoint for igual ou para cleanup
-        // (Simplificado: uma subscrição por dispositivo será gerida pelo endpoint único no JSONB)
         const endpoint = subscription.endpoint;
+        // Limpar subscrições duplicadas para o mesmo endpoint
         await pool.query('DELETE FROM push_subscriptions WHERE user_id = $1 AND subscription->>\'endpoint\' = $2', [userId, endpoint]);
         
         await pool.query(
             'INSERT INTO push_subscriptions (user_id, subscription) VALUES ($1, $2)',
             [userId, JSON.stringify(subscription)]
         );
+        console.log(`[PUSH] User ${userId} subscribed successfully.`);
         res.json({ success: true });
     } catch (err) {
-        console.error('Error saving subscription:', err);
+        console.error('[PUSH] Error saving subscription:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -668,9 +690,11 @@ app.post('/api/push/subscribe', async (req, res) => {
 app.post('/api/push/unsubscribe', async (req, res) => {
     const { userId, endpoint } = req.body;
     try {
+        console.log(`[PUSH] Unsubscribing user ${userId} for endpoint ${endpoint}`);
         await pool.query('DELETE FROM push_subscriptions WHERE user_id = $1 AND subscription->>\'endpoint\' = $2', [userId, endpoint]);
         res.json({ success: true });
     } catch (err) {
+        console.error('[PUSH] Error unsubscribing:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -686,38 +710,47 @@ app.get('/api/push/status/:userId', async (req, res) => {
 });
 
 const sendPushToAgents = async (title, body, url) => {
+    console.log(`[PUSH] Starting sendPushToAgents: ${title}`);
     try {
         // Enviar para todos os Admins e Employees que possuem subscrição ativa
         const result = await pool.query(`
-            SELECT s.subscription 
+            SELECT s.subscription, u.name 
             FROM push_subscriptions s
             JOIN users u ON s.user_id = u.id
             WHERE u.role IN ('ADMIN', 'EMPLOYEE')
         `);
 
-        console.log(`[PUSH] Sending to ${result.rows.length} subscriptions...`);
+        if (result.rows.length === 0) {
+            console.log('[PUSH] No active subscriptions found for agents.');
+            return;
+        }
+
+        console.log(`[PUSH] Found ${result.rows.length} subscriptions. Sending payload...`);
 
         const payload = JSON.stringify({
             title,
             body,
             icon: '/logo-supreme.png',
-            data: { url: url || '/crm-funil' }
+            data: { url: url || '/crm/funil' }
         });
 
-        const promises = result.rows.map(row => 
-            webpush.sendNotification(row.subscription, payload)
+        const promises = result.rows.map(row => {
+            console.log(`[PUSH] Dispatching to agent: ${row.name}`);
+            return webpush.sendNotification(row.subscription, payload)
+                .then(() => console.log(`[PUSH] Successfully sent to ${row.name}`))
                 .catch(err => {
                     if (err.statusCode === 404 || err.statusCode === 410) {
-                        console.log(`[PUSH] Removing expired subscription for endpoint: ${row.subscription.endpoint}`);
+                        console.log(`[PUSH] Removing expired subscription for agent ${row.name}`);
                         return pool.query('DELETE FROM push_subscriptions WHERE subscription->>\'endpoint\' = $1', [row.subscription.endpoint]);
                     }
-                    console.error('Push error:', err);
-                })
-        );
+                    console.error(`[PUSH] Failed to send to ${row.name}:`, err.message);
+                });
+        });
 
         await Promise.all(promises);
+        console.log('[PUSH] All notifications processed.');
     } catch (err) {
-        console.error('Error in sendPushToAgents:', err);
+        console.error('[PUSH] Critical error in sendPushToAgents:', err);
     }
 };
 // --- GOOGLE SHEETS CONFIG ---

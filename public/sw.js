@@ -7,10 +7,6 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
 });
 
-self.addEventListener('fetch', () => {
-    return;
-});
-
 // PWA Push Notification Support
 self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : { title: 'Nova Notificação', body: 'Você tem uma nova atualização.' };
