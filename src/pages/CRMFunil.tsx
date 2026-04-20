@@ -152,7 +152,8 @@ const CRMFunil = () => {
     const [leadToMove, setLeadToMove] = useState<any | null>(null);
 
     // --- Google Calendar State ---
-    const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('gcal_token'));
+    const [googleConnected, setGoogleConnected] = useState(false);
+    const [googleEmail, setGoogleEmail] = useState<string | null>(null);
     const [isScheduling, setIsScheduling] = useState<any | null>(null);
     const [calendars, setCalendars] = useState<any[]>([]);
     const [selectedCalendarId, setSelectedCalendarId] = useState<string>(localStorage.getItem('gcal_selected_id') || '');
@@ -189,23 +190,36 @@ const CRMFunil = () => {
 
     useEffect(() => {
         fetchLeads();
+        checkGoogleStatus();
 
-        googleCalendarService.initClient((token) => {
-            setGoogleToken(token);
-            localStorage.setItem('gcal_token', token);
-            loadCalendars(token);
-        });
-
-        if (googleToken) {
-            const checkAndLoad = setInterval(() => {
-                if ((window as any).google?.accounts?.oauth2) {
-                    loadCalendars(googleToken);
-                    clearInterval(checkAndLoad);
+        googleCalendarService.initClient(async (code) => {
+            if (user?.id) {
+                setIsUpdating(true);
+                try {
+                    await googleCalendarService.exchangeCode(code, user.id);
+                    await checkGoogleStatus();
+                } catch (err) {
+                    console.error("Error exchanging code:", err);
+                } finally {
+                    setIsUpdating(false);
                 }
-            }, 500);
-            return () => clearInterval(checkAndLoad);
+            }
+        });
+    }, [user?.id]);
+
+    const checkGoogleStatus = async () => {
+        if (!user?.id) return;
+        try {
+            const status = await googleCalendarService.checkStatus(user.id);
+            setGoogleConnected(status.connected);
+            setGoogleEmail(status.email);
+            if (status.connected) {
+                loadCalendars();
+            }
+        } catch (err) {
+            console.error("Error checking Google status:", err);
         }
-    }, []);
+    };
 
     // Desktop/Laptop default expanded
     useEffect(() => {
@@ -221,13 +235,13 @@ const CRMFunil = () => {
         setExpandedCards(next);
     };
 
-    const loadCalendars = async (token: string) => {
-        if (!token) return;
+    const loadCalendars = async () => {
+        if (!user?.id || !googleConnected) return;
         try {
+            const token = await googleCalendarService.getValidToken(user.id);
             const list = await googleCalendarService.listCalendars(token);
             if (list && list.length > 0) {
                 setCalendars(list);
-                // Sincroniza com o ID salvo globalmente
                 const savedId = localStorage.getItem('gcal_selected_id');
                 const exists = list.some((c: any) => c.id === savedId);
                 
@@ -242,8 +256,7 @@ const CRMFunil = () => {
         } catch (err) {
             console.error("Error loading calendars:", err);
             if ((err as any).status === 401) {
-                setGoogleToken(null);
-                localStorage.removeItem('gcal_token');
+                setGoogleConnected(false);
             }
         }
     };
@@ -303,8 +316,9 @@ const CRMFunil = () => {
                 end: { dateTime: endDateTime }
             };
 
+            const token = await googleCalendarService.getValidToken(user.id);
             const created = await googleCalendarService.createEvent(
-                googleToken, 
+                token, 
                 selectedCalendarId, 
                 event, 
                 scheduleForm.createMeet
@@ -988,11 +1002,11 @@ const CRMFunil = () => {
                                         FINALIZAR E SAIR
                                     </button>
                                 </div>
-                            ) : !googleToken ? (
+                            ) : !googleConnected ? (
                                 <div className="text-center py-10">
                                     <AlertTriangle size={48} className="text-amber-500 mx-auto mb-4" />
                                     <p className="text-sm font-bold text-white mb-6">Você precisa conectar sua conta Google primeiro.</p>
-                                    <button className="btn-supreme w-full py-4" onClick={() => googleCalendarService.requestToken()}>
+                                    <button className="btn-supreme w-full py-4" onClick={() => googleCalendarService.requestAuth()}>
                                         <Globe size={18} /> CONECTAR GOOGLE CALENDAR
                                     </button>
                                 </div>

@@ -20,7 +20,8 @@ const GestaoConsultiva = () => {
     const [isUpdating, setIsUpdating] = useState(false);
     
     // --- Google Calendar State ---
-    const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('gcal_token'));
+    const [googleConnected, setGoogleConnected] = useState(false);
+    const [googleEmail, setGoogleEmail] = useState<string | null>(null);
     const [calendars, setCalendars] = useState<any[]>([]);
     const [selectedCalendarId, setSelectedCalendarId] = useState<string>(localStorage.getItem('gcal_selected_id') || '');
     const [googleEvents, setGoogleEvents] = useState<any[]>([]);
@@ -40,41 +41,50 @@ const GestaoConsultiva = () => {
     // Initialize GIS and load events
     useEffect(() => {
         fetchActions();
+        checkGoogleStatus();
         
-        googleCalendarService.initClient((token) => {
-            setGoogleToken(token);
-            localStorage.setItem('gcal_token', token);
-            loadCalendars(token);
-        });
-
-        // Se já temos um token, mas o script ainda não carregou as agendas (ex: F5)
-        // O initClient acima cuidará do carregamento assim que o script estiver pronto.
-        // Adicionamos uma pequena verificação de segurança
-        if (googleToken) {
-            // Aguardamos um pouco para garantir que o script carregou (caso não seja a primeira vez)
-            const checkAndLoad = setInterval(() => {
-                if ((window as any).google?.accounts?.oauth2) {
-                    loadCalendars(googleToken);
-                    clearInterval(checkAndLoad);
+        googleCalendarService.initClient(async (code) => {
+            if (user?.id) {
+                setIsGoogleLoading(true);
+                try {
+                    await googleCalendarService.exchangeCode(code, user.id);
+                    await checkGoogleStatus();
+                } catch (err) {
+                    console.error("Error exchanging code:", err);
+                } finally {
+                    setIsGoogleLoading(false);
                 }
-            }, 500);
-            return () => clearInterval(checkAndLoad);
+            }
+        });
+    }, [user?.id]);
+
+    const checkGoogleStatus = async () => {
+        if (!user?.id) return;
+        try {
+            const status = await googleCalendarService.checkStatus(user.id);
+            setGoogleConnected(status.connected);
+            setGoogleEmail(status.email);
+            if (status.connected) {
+                loadCalendars();
+            }
+        } catch (err) {
+            console.error("Error checking Google status:", err);
         }
-    }, []);
+    };
 
     useEffect(() => {
-        if (googleToken && selectedCalendarId && calendars.length > 0) {
+        if (googleConnected && selectedCalendarId && calendars.length > 0) {
             fetchGoogleEvents();
         }
-    }, [googleToken, selectedCalendarId, currentDate, calendars.length]);
+    }, [googleConnected, selectedCalendarId, currentDate, calendars.length]);
 
-    const loadCalendars = async (token: string) => {
-        if (!token) return;
+    const loadCalendars = async () => {
+        if (!user?.id || !googleConnected) return;
         try {
+            const token = await googleCalendarService.getValidToken(user.id);
             const list = await googleCalendarService.listCalendars(token);
             if (list && list.length > 0) {
                 setCalendars(list);
-                // Se não temos um selecionado, ou o atual não está na lista, selecionamos o primário
                 const currentExists = list.some((c: any) => c.id === selectedCalendarId);
                 if (!selectedCalendarId || !currentExists) {
                     const primary = list.find((c: any) => c.primary) || list[0];
@@ -84,10 +94,8 @@ const GestaoConsultiva = () => {
             }
         } catch (err) {
             console.error("Error loading calendars:", err);
-            // Se o token expirou (401), deslogamos
             if ((err as any).status === 401) {
-                setGoogleToken(null);
-                localStorage.removeItem('gcal_token');
+                setGoogleConnected(false);
             }
         }
     };
@@ -101,13 +109,14 @@ const GestaoConsultiva = () => {
     };
 
     const fetchGoogleEvents = async () => {
-        if (!googleToken || !selectedCalendarId) return;
+        if (!user?.id || !googleConnected || !selectedCalendarId) return;
         setIsGoogleLoading(true);
         try {
+            const token = await googleCalendarService.getValidToken(user.id);
             const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
             const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
             
-            const events = await googleCalendarService.listEvents(googleToken, selectedCalendarId, startOfMonth, endOfMonth);
+            const events = await googleCalendarService.listEvents(token, selectedCalendarId, startOfMonth, endOfMonth);
             setGoogleEvents(events);
         } catch (err) {
             console.error("Error fetching Google events:", err);
@@ -117,7 +126,7 @@ const GestaoConsultiva = () => {
     };
 
     const handleGoogleConnect = () => {
-        googleCalendarService.requestToken();
+        googleCalendarService.requestAuth();
     };
 
     const fetchActions = async () => {
@@ -139,7 +148,8 @@ const GestaoConsultiva = () => {
             let googleId = actionForm.google_event_id;
 
             // Sincronização com Google Calendar
-            if (googleToken && selectedCalendarId) {
+            if (user?.id && googleConnected && selectedCalendarId) {
+                const token = await googleCalendarService.getValidToken(user.id);
                 const gEvent = {
                     summary: `[Plug] ${actionForm.client_name}`,
                     description: `Status: ${actionForm.status}\nPrioridade: ${actionForm.priority}\nNotas: ${actionForm.notes}`,
@@ -148,9 +158,9 @@ const GestaoConsultiva = () => {
                 };
 
                 if (activeModal === 'edit' && googleId) {
-                    await googleCalendarService.updateEvent(googleToken, selectedCalendarId, googleId, gEvent);
+                    await googleCalendarService.updateEvent(token, selectedCalendarId, googleId, gEvent);
                 } else {
-                    const created = await googleCalendarService.createEvent(googleToken, selectedCalendarId, gEvent, true);
+                    const created = await googleCalendarService.createEvent(token, selectedCalendarId, gEvent, true);
                     googleId = created.id;
 
                     // Envia Webhook se for uma nova criação com Google Meet
@@ -180,7 +190,7 @@ const GestaoConsultiva = () => {
             
             setActiveModal(null);
             fetchActions();
-            if (googleToken) fetchGoogleEvents();
+            if (googleConnected) fetchGoogleEvents();
         } catch (err) {
             console.error(err);
             alert("Erro na sincronização. Verifique sua conexão com o Google.");
@@ -198,12 +208,13 @@ const GestaoConsultiva = () => {
         if (!window.confirm("Deseja excluir esta ação permanentemente?")) return;
         try {
             const actionToDelete = actions.find(a => a.id === id);
-            if (actionToDelete?.google_event_id && googleToken && selectedCalendarId) {
-                await googleCalendarService.deleteEvent(googleToken, selectedCalendarId, actionToDelete.google_event_id);
+            if (actionToDelete?.google_event_id && user?.id && googleConnected && selectedCalendarId) {
+                const token = await googleCalendarService.getValidToken(user.id);
+                await googleCalendarService.deleteEvent(token, selectedCalendarId, actionToDelete.google_event_id);
             }
             await dbService.deleteConsultativeAction(id);
             fetchActions();
-            if (googleToken) fetchGoogleEvents();
+            if (googleConnected) fetchGoogleEvents();
         } catch (err) {
             console.error(err);
         }
@@ -215,13 +226,14 @@ const GestaoConsultiva = () => {
             await dbService.updateConsultativeAction(id, { status });
             
             // Sync status to Google if linked
-            if (action?.google_event_id && googleToken && selectedCalendarId) {
+            if (action?.google_event_id && user?.id && googleConnected && selectedCalendarId) {
+                const token = await googleCalendarService.getValidToken(user.id);
                 const description = `Status: ${status}\nPrioridade: ${action.priority}\nNotas: ${action.notes || ''}`;
-                await googleCalendarService.updateEvent(googleToken, selectedCalendarId, action.google_event_id, { description });
+                await googleCalendarService.updateEvent(token, selectedCalendarId, action.google_event_id, { description });
             }
             
             fetchActions();
-            if (googleToken) fetchGoogleEvents();
+            if (googleConnected) fetchGoogleEvents();
         } catch (err) {
             console.error(err);
         }
@@ -314,14 +326,14 @@ const GestaoConsultiva = () => {
                 
                 {/* GOOGLE CALENDAR CONTROLS */}
                 <div className="flex items-center gap-3 bg-white/5 p-2 px-4 rounded-2xl border border-white/10 ml-auto">
-                    {!googleToken ? (
+                    {!googleConnected ? (
                         <button className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest hover:text-primary-color transition-colors" onClick={handleGoogleConnect}>
                             <Globe size={14} /> Conectar Google
                         </button>
                     ) : (
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2 text-[10px] font-black text-primary-color uppercase tracking-widest">
-                                <Check size={14} /> Conectado
+                                <Check size={14} /> {googleEmail || 'Conectado'}
                             </div>
                             <div className="flex items-center gap-2 group relative">
                                 <span className="text-[10px] font-bold text-gray-500 uppercase">Agenda:</span>
@@ -338,9 +350,11 @@ const GestaoConsultiva = () => {
                                 <ChevronDown size={10} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                             </div>
                             <button className="text-gray-500 hover:text-white transition-colors" onClick={() => { 
-                                if(window.confirm('Desconectar agenda do Google?')) {
-                                    localStorage.removeItem('gcal_token'); 
-                                    setGoogleToken(null); 
+                                if(window.confirm('Desconectar agenda do Google?') && user?.id) {
+                                    googleCalendarService.disconnect(user.id).then(() => {
+                                        setGoogleConnected(false);
+                                        setGoogleEmail(null);
+                                    });
                                 }
                             }} title="Sair do Google">
                                 <X size={14} />
@@ -573,7 +587,7 @@ const GestaoConsultiva = () => {
                                 ></textarea>
                             </div>
 
-                            {googleToken && (
+                            {googleConnected && (
                                 <div className="space-y-4 mb-4">
                                     <div className="flex items-center gap-3 p-3 bg-primary-color/5 rounded-xl border border-primary-color/20">
                                         <div className={`w-2 h-2 rounded-full ${actionForm.google_event_id ? 'bg-primary-color animate-pulse' : 'bg-white/10'}`}></div>

@@ -43,7 +43,8 @@ const LandingPage = () => {
         '9': 'Ramon Gomes',
         '10': 'Gisele Vieira',
         '11': 'Joyce Vieira',
-        '12': 'Thiago Rocha'
+        '12': 'Thiago Rocha',
+        '13': 'Gelton Carlos'
     };
 
     // Mapeamento para os PARÂMETROS de URL específicos solicitados
@@ -59,7 +60,8 @@ const LandingPage = () => {
         '9': 'Ramon+Gomes',
         '10': 'Gisele+Vieira',
         '11': 'Joyce+Vieira',
-        '12': 'Thiago+Rocha'
+        '12': 'Thiago+Rocha',
+        '13': 'Gelton-Carlos'
     };
 
     const currentAgentParam = id ? (agentParamMap[id.replace('landing', '')] || '') : '';

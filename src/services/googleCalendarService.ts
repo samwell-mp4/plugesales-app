@@ -2,45 +2,99 @@
  * Google Calendar Integration Service for Plug & Sales
  */
 
-const CLIENT_ID = '267271471002-ea6kemv9rc4761a71d2f9c7udu48famv.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+const CLIENT_ID = '267271471002-us9821m8c0efqi09i86mpal1u2vchopd.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email';
 
-let tokenClient: any = null;
+let codeClient: any = null;
+const API_BASE = window.location.origin === 'http://localhost:5173' ? 'http://localhost:3000/api' : '/api';
 
 export const googleCalendarService = {
     /**
-     * Initializes the Google Identity Services client
+     * Initializes the Google Identity Services client using the Authorization Code flow
      */
-    initClient: (callback: (token: string) => void) => {
+    initClient: (onCodeReceived: (code: string) => void) => {
         if (typeof window === 'undefined') return;
 
-        const script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-            tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+        if (!(window as any).google) {
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client';
+            script.async = true;
+            script.defer = true;
+            script.onload = () => {
+                codeClient = (window as any).google.accounts.oauth2.initCodeClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    ux_mode: 'popup',
+                    callback: (response: any) => {
+                        if (response.code) {
+                            onCodeReceived(response.code);
+                        }
+                    },
+                });
+            };
+            document.body.appendChild(script);
+        } else {
+            codeClient = (window as any).google.accounts.oauth2.initCodeClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
+                ux_mode: 'popup',
                 callback: (response: any) => {
-                    if (response.error) {
-                        console.error('GIS Error:', response.error);
-                        return;
+                    if (response.code) {
+                        onCodeReceived(response.code);
                     }
-                    callback(response.access_token);
                 },
             });
-        };
-        document.body.appendChild(script);
+        }
     },
 
     /**
-     * Requests an access token via popup
+     * Requests an authorization code via popup
      */
-    requestToken: () => {
-        if (tokenClient) {
-            tokenClient.requestAccessToken({ prompt: 'consent' });
+    requestAuth: () => {
+        if (codeClient) {
+            codeClient.requestCode();
         }
+    },
+
+    /**
+     * Exchanges code for tokens in the backend
+     */
+    exchangeCode: async (code: string, userId: number) => {
+        const res = await fetch(`${API_BASE}/google/callback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, userId })
+        });
+        return await res.json();
+    },
+
+    /**
+     * Checks connection status for a user
+     */
+    checkStatus: async (userId: number) => {
+        const res = await fetch(`${API_BASE}/google/status/${userId}`);
+        return await res.json();
+    },
+
+    /**
+     * Disconnects Google account
+     */
+    disconnect: async (userId: number) => {
+        const res = await fetch(`${API_BASE}/google/disconnect`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+        });
+        return await res.json();
+    },
+
+    /**
+     * Gets a fresh access token from the backend
+     */
+    getValidToken: async (userId: number) => {
+        const res = await fetch(`${API_BASE}/google/token/${userId}`);
+        const data = await res.json();
+        return data.token;
     },
 
     /**

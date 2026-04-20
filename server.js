@@ -184,6 +184,11 @@ const initDB = async () => {
                 notification_number TEXT,
                 infobip_key TEXT,
                 infobip_sender TEXT,
+                google_access_token TEXT,
+                google_refresh_token TEXT,
+                google_token_expiry BIGINT,
+                google_calendar_id TEXT,
+                google_email TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `CREATE TABLE IF NOT EXISTS shortened_links (
@@ -429,6 +434,11 @@ const initDB = async () => {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_key TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_sender TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES users(id)`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_access_token TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_token_expiry BIGINT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_id TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_email TEXT`);
 
         // Backward-compat for infobip_templates
         await client.query(`ALTER TABLE infobip_templates ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
@@ -3557,7 +3567,8 @@ const seedOfficialEmployees = async () => {
         { name: 'Thales Henrique', email: 'thaleshenrique@plugsales.com.br', phone: '5531992330403' },
         { name: 'Gisele Vieira', email: 'giselevieira@plugsales.com.br', phone: '5531983804904' },
         { name: 'Joyce Vieira', email: 'joycevieira@plugsales.com.br', phone: '5531984285740' },
-        { name: 'Thiago Rocha', email: 'thiagorocha@plugsales.com.br', phone: '5531994685121' }
+        { name: 'Thiago Rocha', email: 'thiagorocha@plugsales.com.br', phone: '5531994685121' },
+        { name: 'Gelton Carlos', email: 'geltoncarlos@plugsales.com.br', phone: '553189085728' }
     ];
 
     const standardPassword = 'PlugSales#2026';
@@ -4547,8 +4558,159 @@ app.post('/api/v2/refund/request', async (req, res) => {
 });
 
 
+// ============================================================
+// GOOGLE OAUTH PERSISTENCE - 2026-04-20
+// ============================================================
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = "https://plugesales.com/api/google/callback";
+
+const getOAuth2Client = () => {
+    return new google.auth.OAuth2(
+        GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET,
+        GOOGLE_REDIRECT_URI
+    );
+};
+
+// --- Helper to get valid token ---
+async function getValidGoogleToken(userId) {
+    try {
+        const res = await pool.query(
+            'SELECT google_access_token, google_refresh_token, google_token_expiry FROM users WHERE id = $1',
+            [userId]
+        );
+        const user = res.rows[0];
+        if (!user || !user.google_refresh_token) return null;
+
+        const oauth2Client = getOAuth2Client();
+        oauth2Client.setCredentials({
+            access_token: user.google_access_token,
+            refresh_token: user.google_refresh_token,
+            expiry_date: Number(user.google_token_expiry)
+        });
+
+        // Verificamos se expirou (margem de 5 minutos)
+        if (Date.now() >= Number(user.google_token_expiry) - 300000) {
+            console.log(`[GOOGLE] Refreshing token for user ${userId}...`);
+            const { credentials } = await oauth2Client.refreshAccessToken();
+            
+            await pool.query(
+                `UPDATE users SET 
+                    google_access_token = $1, 
+                    google_token_expiry = $2 
+                 WHERE id = $3`,
+                [credentials.access_token, credentials.expiry_date, userId]
+            );
+            return credentials.access_token;
+        }
+
+        return user.google_access_token;
+    } catch (err) {
+        console.error('[GOOGLE] Error getting valid token:', err);
+        return null;
+    }
+}
+
+// --- OAuth Routes ---
+app.get('/api/google/auth-url', (req, res) => {
+    try {
+        const oauth2Client = getOAuth2Client();
+        const url = oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: [
+                'https://www.googleapis.com/auth/calendar.events',
+                'https://www.googleapis.com/auth/calendar.readonly',
+                'https://www.googleapis.com/auth/userinfo.email'
+            ]
+        });
+        res.json({ url });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/google/callback', async (req, res) => {
+    const { code, userId } = req.body;
+    if (!code || !userId) return res.status(400).json({ error: 'Falta codigo ou userId' });
+
+    try {
+        const oauth2Client = getOAuth2Client();
+        const { tokens } = await oauth2Client.getToken(code);
+        
+        oauth2Client.setCredentials(tokens);
+        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+        const userInfo = await oauth2.userinfo.get();
+
+        await pool.query(
+            `UPDATE users SET 
+                google_access_token = $1, 
+                google_refresh_token = $2, 
+                google_token_expiry = $3,
+                google_email = $4
+             WHERE id = $5`,
+            [
+                tokens.access_token, 
+                tokens.refresh_token || null, 
+                tokens.expiry_date,
+                userInfo.data.email,
+                userId
+            ]
+        );
+
+        res.json({ success: true, email: userInfo.data.email });
+    } catch (err) {
+        console.error('[GOOGLE] Callback Error:', err);
+        res.status(500).json({ error: 'Erro ao processar tokens do Google' });
+    }
+});
+
+app.get('/api/google/status/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const result = await pool.query('SELECT google_email, google_refresh_token FROM users WHERE id = $1', [userId]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Usuario nao encontrado' });
+        
+        const user = result.rows[0];
+        res.json({
+            connected: !!user.google_refresh_token,
+            email: user.google_email
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/google/disconnect', async (req, res) => {
+    const { userId } = req.body;
+    try {
+        await pool.query(
+            `UPDATE users SET 
+                google_access_token = NULL, 
+                google_refresh_token = NULL, 
+                google_token_expiry = NULL,
+                google_email = NULL,
+                google_calendar_id = NULL
+             WHERE id = $1`,
+            [userId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/google/token/:userId', async (req, res) => {
+    const token = await getValidGoogleToken(req.params.userId);
+    if (!token) return res.status(401).json({ error: 'Google disconnected' });
+    res.json({ token });
+});
+
+
 initDB();
 
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${port}`);
 });
+
