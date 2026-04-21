@@ -192,7 +192,7 @@ const TemplateCreator = () => {
     const [selectedPayloadLanguage, setSelectedPayloadLanguage] = useState('en_US');
 
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
-    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://iili.io/B7sl2Kg.jpg');
+    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/rgrg1fD.jpg');
 
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
@@ -268,6 +268,7 @@ const TemplateCreator = () => {
         const effectiveHeaderType = overrideHeaderType || headerType;
 
         const structure: any = {
+            type: 'BODY',
             body: {
                 text: bodyValue,
                 examples: examples
@@ -286,7 +287,7 @@ const TemplateCreator = () => {
             const format = effectiveHeaderType.toUpperCase();
             structure.header = {
                 format: format,
-                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://iili.io/B7sl2Kg.jpg')
+                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.imgur.com/rgrg1fD.jpg')
             };
         }
 
@@ -621,7 +622,7 @@ const TemplateCreator = () => {
                             ad_name: name,
                             template_type: row.headerType,
                             message_mode: 'manual',
-                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://iili.io/B7sl2Kg.jpg") : '',
+                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://i.imgur.com/rgrg1fD.jpg") : '',
                             ad_copy: bodyText,
                             button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                             original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
