@@ -268,7 +268,6 @@ const TemplateCreator = () => {
         const effectiveHeaderType = overrideHeaderType || headerType;
 
         const structure: any = {
-            type: 'BODY',
             body: {
                 text: bodyValue,
                 examples: examples
