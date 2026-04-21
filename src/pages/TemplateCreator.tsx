@@ -270,7 +270,9 @@ const TemplateCreator = () => {
         const structure: any = {
             body: {
                 text: bodyValue,
-                examples: examples
+                example: {
+                    text: examples
+                }
             }
         };
 
@@ -286,7 +288,9 @@ const TemplateCreator = () => {
             const format = effectiveHeaderType.toUpperCase();
             structure.header = {
                 format: format,
-                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.postimg.cc/xC34d8pf/efdb084f-a76e-45e8-8849-92c7d8c5c2c9.jpg')
+                example: {
+                    url: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.postimg.cc/xC34d8pf/efdb084f-a76e-45e8-8849-92c7d8c5c2c9.jpg')
+                }
             };
         }
 
