@@ -192,7 +192,7 @@ const TemplateCreator = () => {
     const [selectedPayloadLanguage, setSelectedPayloadLanguage] = useState('en_US');
 
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
-    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/rgrg1fD.jpg');
+    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/gZLbY6p.jpeg');
 
     const [bodyText, _setBodyText] = useState('Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
@@ -280,14 +280,14 @@ const TemplateCreator = () => {
         if (effectiveHeaderType === 'TEXT') {
             structure.header = {
                 format: 'TEXT',
-                text: name 
+                text: name
             };
         } else {
             hasMedia = true;
             const format = effectiveHeaderType.toUpperCase();
             structure.header = {
                 format: format,
-                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.imgur.com/rgrg1fD.jpg')
+                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.imgur.com/gZLbY6p.jpeg')
             };
         }
 
@@ -326,7 +326,7 @@ const TemplateCreator = () => {
                 return { success: false, error: 'Remetente oficial (WABA) não informado. Por favor, preencha o campo de remetente.' };
             }
             const encodedSender = encodeURIComponent(effectiveSender);
-            
+
             const url = `https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${encodedSender}/templates`;
             const headers = {
                 'Authorization': `App ${apiKey}`,
@@ -622,7 +622,7 @@ const TemplateCreator = () => {
                             ad_name: name,
                             template_type: row.headerType,
                             message_mode: 'manual',
-                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://i.imgur.com/rgrg1fD.jpg") : '',
+                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://i.imgur.com/gZLbY6p.jpeg") : '',
                             ad_copy: bodyText,
                             button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                             original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
