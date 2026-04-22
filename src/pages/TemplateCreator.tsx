@@ -276,11 +276,7 @@ const TemplateCreator = () => {
 
         let hasMedia = false;
 
-        if (effectiveHeaderType === 'TEXT') {
-            structure.header = {
-                format: 'TEXT'
-            };
-        } else {
+        if (effectiveHeaderType !== 'TEXT') {
             hasMedia = true;
             const format = effectiveHeaderType.toUpperCase();
             structure.header = {
