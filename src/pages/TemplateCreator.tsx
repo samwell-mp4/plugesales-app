@@ -278,8 +278,7 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType === 'TEXT') {
             structure.header = {
-                format: 'TEXT',
-                text: name
+                format: 'TEXT'
             };
         } else {
             hasMedia = true;
