@@ -2960,6 +2960,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     let protocol = 'http';
     const forwardedProto = req.headers['x-forwarded-proto'];
+    const forwardedHost = req.headers['x-forwarded-host'];
 
     if (forwardedProto) {
         protocol = forwardedProto.split(',')[0].trim();
@@ -2967,7 +2968,12 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         protocol = req.protocol;
     }
 
-    const host = req.get('host');
+    const host = forwardedHost || req.get('host');
+    
+    // Safety fallback: if we're not on localhost and the protocol is http, 
+    // it's likely we're behind a proxy that didn't set the header.
+    // However, we'll trust the headers for now.
+    
     const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
 
     let fileType = 'document';

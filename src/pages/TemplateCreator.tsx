@@ -270,7 +270,9 @@ const TemplateCreator = () => {
         const structure: any = {
             body: {
                 text: bodyValue,
-                examples: examples
+                example: {
+                    text: examples
+                }
             }
         };
 
@@ -279,9 +281,15 @@ const TemplateCreator = () => {
         if (effectiveHeaderType !== 'TEXT') {
             hasMedia = true;
             const format = effectiveHeaderType.toUpperCase();
+            
+            // For VIDEO, we MUST provide a video example, not an image.
+            const defaultVideo = 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4';
+            const defaultImage = 'https://i.imgur.com/gZLbY6p.jpeg';
+            const fallback = format === 'VIDEO' ? defaultVideo : defaultImage;
+
             structure.header = {
                 format: format,
-                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.imgur.com/gZLbY6p.jpeg')
+                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : fallback)
             };
         }
 
@@ -334,10 +342,16 @@ const TemplateCreator = () => {
             console.log('Payload:', payload);
             console.groupEnd();
 
+            // Validation: Check if media URL is accessible (not localhost)
+            const payloadStr = JSON.stringify(payload);
+            if (payloadStr.includes('localhost') || payloadStr.includes('127.0.0.1')) {
+                console.warn("⚠️ Warning: Payload contains 'localhost' or '127.0.0.1'. Infobip will not be able to fetch media from this URL.");
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: headers,
-                body: JSON.stringify(payload)
+                body: payloadStr
             });
 
             let result;
@@ -616,7 +630,7 @@ const TemplateCreator = () => {
                             ad_name: name,
                             template_type: row.headerType,
                             message_mode: 'manual',
-                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://i.imgur.com/gZLbY6p.jpeg") : '',
+                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || (row.headerType === 'VIDEO' ? "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4" : "https://i.imgur.com/gZLbY6p.jpeg")) : '',
                             ad_copy: bodyText,
                             button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                             original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
