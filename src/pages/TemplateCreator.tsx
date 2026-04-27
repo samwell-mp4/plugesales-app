@@ -30,10 +30,10 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
-const LEANDRO_BODY_4 = 'Oi {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\nPara {{4}}, clique no botão abaixo 👇';
-const LEANDRO_BODY_5 = 'Oi {{1}}!\n\nInformamos que {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, clique no botão abaixo 👇';
-const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\nTo {{4}}, click the button below 👇';
-const LEANDRO_BODY_5_EN = 'Hello {{1}}!\n\nWe inform you that {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nTo {{5}}, click the button below 👇';
+const LEANDRO_BODY_4 = 'Oi {{1}}!\n\nInformamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇';
+const LEANDRO_BODY_5 = 'Oi {{1}}!\n\nInformamos que {{2}}\n\n{{3}}\n\n{{4}}\n\nPara {{5}}, clique no botão abaixo 👇';
+const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇';
+const LEANDRO_BODY_5_EN = 'Hello {{1}}!\n\nWe inform you that {{2}}\n\n{{3}}\n\n{{4}}\n\nTo {{5}}, click the button below 👇';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
@@ -270,9 +270,7 @@ const TemplateCreator = () => {
         const structure: any = {
             body: {
                 text: bodyValue,
-                example: {
-                    text: examples
-                }
+                examples: examples
             }
         };
 
@@ -281,15 +279,9 @@ const TemplateCreator = () => {
         if (effectiveHeaderType !== 'TEXT') {
             hasMedia = true;
             const format = effectiveHeaderType.toUpperCase();
-            
-            // For VIDEO, we MUST provide a video example, not an image.
-            const defaultVideo = 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4';
-            const defaultImage = 'https://i.imgur.com/gZLbY6p.jpeg';
-            const fallback = format === 'VIDEO' ? defaultVideo : defaultImage;
-
             structure.header = {
                 format: format,
-                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : fallback)
+                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.imgur.com/gZLbY6p.jpeg')
             };
         }
 
@@ -630,7 +622,7 @@ const TemplateCreator = () => {
                             ad_name: name,
                             template_type: row.headerType,
                             message_mode: 'manual',
-                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || (row.headerType === 'VIDEO' ? "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4" : "https://i.imgur.com/gZLbY6p.jpeg")) : '',
+                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://i.imgur.com/gZLbY6p.jpeg") : '',
                             ad_copy: bodyText,
                             button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                             original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
