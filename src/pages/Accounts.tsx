@@ -53,6 +53,14 @@ const Accounts = () => {
     const [senders, setSenders] = useState<any[]>([]);
     const [recentNumbers, setRecentNumbers] = useState<string[]>([]);
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
+    const [useLuisHenrique, setUseLuisHenrique] = useState(false);
+
+    const LUIS_HENRIQUE_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
+    const LUIS_HENRIQUE_BASE = '9kn66r.api-us.infobip.com';
+    const DEFAULT_BASE = '8k6xv1.api-us.infobip.com';
+
+    const effectiveApiKey = useLuisHenrique ? LUIS_HENRIQUE_KEY : apiKey;
+    const effectiveBaseUrl = useLuisHenrique ? LUIS_HENRIQUE_BASE : DEFAULT_BASE;
 
     // Load state from User on mount
     useEffect(() => {
@@ -99,9 +107,10 @@ const Accounts = () => {
             if (user?.role === 'ADMIN') {
                 dbService.saveSetting('infobip_key', apiKey);
             }
-            fetchSenders();
         }
-    }, [apiKey]);
+        // Quando muda a chave (ou o switch do Luis), recarrega remetentes
+        fetchSenders();
+    }, [effectiveApiKey]);
 
     useEffect(() => {
         if (!senderNumber || senderNumber === user?.infobip_sender) return;
@@ -131,12 +140,12 @@ const Accounts = () => {
     };
 
     const fetchSenders = async () => {
-        if (!apiKey) return;
+        if (!effectiveApiKey) return;
         setIsLoadingSenders(true);
         try {
-            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/1/senders`, {
+            const response = await fetch(`https://${effectiveBaseUrl}/whatsapp/1/senders`, {
                 headers: {
-                    'Authorization': `App ${apiKey}`,
+                    'Authorization': `App ${effectiveApiKey}`,
                     'Accept': 'application/json'
                 }
             });
@@ -161,12 +170,12 @@ const Accounts = () => {
     const itemsPerPage = 8;
 
     const fetchTemplates = async () => {
-        if (!apiKey || !senderNumber) return;
+        if (!effectiveApiKey || !senderNumber) return;
         setIsLoading(true);
         try {
-            const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${senderNumber}/templates?_t=${Date.now()}`, {
+            const response = await fetch(`https://${effectiveBaseUrl}/whatsapp/2/senders/${senderNumber}/templates?_t=${Date.now()}`, {
                 headers: {
-                    'Authorization': `App ${apiKey}`,
+                    'Authorization': `App ${effectiveApiKey}`,
                     'Accept': 'application/json'
                 }
             });
@@ -195,7 +204,7 @@ const Accounts = () => {
     };
 
     useEffect(() => {
-        if (apiKey && senderNumber && senderNumber.length >= 8) {
+        if (effectiveApiKey && senderNumber && senderNumber.length >= 8) {
             const handler = setTimeout(() => {
                 fetchTemplates();
             }, 800); // 800ms debounce to wait for user to finish typing
@@ -207,7 +216,7 @@ const Accounts = () => {
                 clearInterval(interval);
             };
         }
-    }, [senderNumber, apiKey]);
+    }, [senderNumber, effectiveApiKey, effectiveBaseUrl]);
 
     const approvedCount = templates.filter(t => t.status === 'APPROVED').length;
     const pendingCount = templates.filter(t => t.status !== 'APPROVED' && t.status !== 'REJECTED').length;
@@ -422,6 +431,31 @@ const Accounts = () => {
                     </div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Atualizado: {lastUpdated?.toLocaleTimeString()}</span>
                 </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 mb-6 glass-card" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
+                <div className="flex flex-col">
+                    <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Luis Henrique?</span>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Alternar para credenciais de monitoramento específicas</span>
+                </div>
+                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '52px', height: '26px', margin: 0 }}>
+                    <input
+                        type="checkbox"
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                        checked={useLuisHenrique}
+                        onChange={(e) => setUseLuisHenrique(e.target.checked)}
+                    />
+                    <span style={{
+                        position: 'absolute', cursor: 'pointer', inset: 0,
+                        backgroundColor: useLuisHenrique ? 'var(--primary-color)' : '#333',
+                        transition: '.4s', borderRadius: '34px'
+                    }}>
+                        <span style={{
+                            position: 'absolute', height: '20px', width: '20px', left: useLuisHenrique ? '28px' : '4px', bottom: '3px',
+                            backgroundColor: useLuisHenrique ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                        }}></span>
+                    </span>
+                </label>
             </div>
 
             <section className="config-command-center mt-8">

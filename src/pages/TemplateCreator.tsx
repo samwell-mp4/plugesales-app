@@ -53,6 +53,14 @@ const TemplateCreator = () => {
     const [apiKey, setApiKey] = useState(user?.infobip_key || '');
     const [senderNumbers, setSenderNumbers] = useState(user?.infobip_sender || '');
     const [isUploading, setIsUploading] = useState(false);
+    const [useLuisHenrique, setUseLuisHenrique] = useState(false);
+
+    const LUIS_HENRIQUE_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
+    const LUIS_HENRIQUE_BASE = '9kn66r.api-us.infobip.com';
+    const DEFAULT_BASE = '8k6xv1.api-us.infobip.com';
+
+    const effectiveApiKey = useLuisHenrique ? LUIS_HENRIQUE_KEY : apiKey;
+    const effectiveBaseUrl = useLuisHenrique ? LUIS_HENRIQUE_BASE : DEFAULT_BASE;
 
     // --- CLIENT SELECTION STATE ---
     const [clients, setClients] = useState<any[]>([]);
@@ -321,9 +329,9 @@ const TemplateCreator = () => {
             }
             const encodedSender = encodeURIComponent(effectiveSender);
 
-            const url = `https://8k6xv1.api-us.infobip.com/whatsapp/2/senders/${encodedSender}/templates`;
+            const url = `https://${effectiveBaseUrl}/whatsapp/2/senders/${encodedSender}/templates`;
             const headers = {
-                'Authorization': `App ${apiKey}`,
+                'Authorization': `App ${effectiveApiKey}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             };
@@ -1339,6 +1347,31 @@ const TemplateCreator = () => {
                                     <option value="">Selecione um cliente...</option>
                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <div className="flex flex-col">
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Infobip do Luis Henrique?</span>
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Ativar credenciais alternativas de disparo</span>
+                                </div>
+                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
+                                    <input
+                                        type="checkbox"
+                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                        checked={useLuisHenrique}
+                                        onChange={(e) => setUseLuisHenrique(e.target.checked)}
+                                    />
+                                    <span style={{
+                                        position: 'absolute', cursor: 'pointer', inset: 0,
+                                        backgroundColor: useLuisHenrique ? 'var(--primary-color)' : '#333',
+                                        transition: '.4s', borderRadius: '34px'
+                                    }}>
+                                        <span style={{
+                                            position: 'absolute', height: '16px', width: '16px', left: useLuisHenrique ? '24px' : '4px', bottom: '3px',
+                                            backgroundColor: useLuisHenrique ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                                        }}></span>
+                                    </span>
+                                </label>
                             </div>
 
                             <div className="flex flex-col gap-3">

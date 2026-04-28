@@ -2665,22 +2665,6 @@ app.post('/api/shortener/bulk-associate', async (req, res) => {
 });
 
 // --- Link Shortener Routes (MOVED UP FOR PRECEDENCE) ---
-// --- REDIS: Dispatch Queue Control ---
-app.post('/api/dispatch/queue', async (req, res) => {
-    const { messages } = req.body;
-    try {
-        if (!redisClient.isOpen) {
-            return res.status(503).json({ error: 'Redis is not connected' });
-        }
-        for (const msg of messages) {
-            await redisClient.lPush('dispatch_queue', JSON.stringify(msg));
-        }
-        const queueLen = await redisClient.lLen('dispatch_queue');
-        res.json({ success: true, count: messages.length, queueLength: queueLen });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 app.get('/api/dispatch/queue/status', async (req, res) => {
     try {
@@ -3006,7 +2990,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
 // API: Queue Dispatch (Pushes to Redis)
 app.post('/api/dispatch/queue', async (req, res) => {
-    const { messages, apiKey } = req.body;
+    const { messages, apiKey, baseUrl } = req.body;
     if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: 'Payload de mensagens inválido.' });
     }
@@ -3016,8 +3000,8 @@ app.post('/api/dispatch/queue', async (req, res) => {
 
         // Store messages in Redis
         for (const msg of messages) {
-            // Attach apiKey to each job so the worker can use it
-            const job = { ...msg, _apiKey: apiKey };
+            // Attach apiKey and baseUrl to each job so the worker can use it
+            const job = { ...msg, _apiKey: apiKey, _baseUrl: baseUrl };
             await redisClient.lPush('dispatch_queue', JSON.stringify(job));
         }
 
@@ -3087,7 +3071,10 @@ const dispatchWorker = async () => {
 
             // EXECUTE REAL INFOBIP CALL
             try {
-                const response = await fetch('https://8k6xv1.api-us.infobip.com/whatsapp/1/message/template', {
+                const infobipBase = _baseUrl || '8k6xv1.api-us.infobip.com';
+                const apiUrl = `https://${infobipBase}/whatsapp/1/message/template`;
+                
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Authorization': `App ${_apiKey}`,
