@@ -150,7 +150,13 @@ const ClientSubmissions = () => {
     const loadSubmissions = async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getClientSubmissions();
+            let data;
+            if (user?.role === 'ASSINATURA_BASICA') {
+                data = await dbService.getClientSubmissionsByUserId(user.id as number);
+            } else {
+                data = await dbService.getClientSubmissions();
+            }
+            
             const filtered = Array.isArray(data) ? data.filter((s: any) => s.status !== 'AGUARDANDO_APROVACAO_PAI') : [];
             setSubmissions(filtered);
             
@@ -1041,70 +1047,70 @@ const ClientSubmissions = () => {
 
                     <div className="flex items-center justify-between mb-6 gap-4 flex-wrap responsive-stack-mobile">
                         <div className="flex gap-1 background-subtle border-subtle rounded-xl p-1 responsive-stack-mobile">
-                        {tabs.map(tab => (
-                            <button key={tab.id} className={`tab-pill ${activeTab === tab.id ? 'active' : 'inactive'}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}>
-                                {tab.icon} {tab.label} <span className={`count-badge ${activeTab === tab.id ? 'active' : 'inactive'}`}>{tab.count}</span>
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="flex items-center gap-3 flex-1 flex-wrap responsive-stack-mobile">
-                        {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
-                            <>
-                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                    <select value={selectedClientFilter} onChange={e => { setSelectedClientFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
-                                        <option value="" style={{ background: '#0f172a' }}>CLIENTES</option>
-                                        {Array.isArray(clients) && clients.map(c => <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{(c.name || '').toUpperCase()}</option>)}
-                                    </select>
-                                </div>
-
-                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)' }}>DE:</span>
-                                    <input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({ ...p, start: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, outline: 'none' }} />
-                                </div>
-                                <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ:</span>
-                                    <input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({ ...p, end: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, outline: 'none' }} />
-                                </div>
-
-                                <button 
-                                    onClick={() => setShowExtraFilters(!showExtraFilters)}
-                                    className="mobile-filter-toggle"
-                                    style={{ background: showExtraFilters ? 'rgba(172,248,0,0.1)' : 'var(--card-bg-subtle)', border: `1px solid ${showExtraFilters ? 'var(--primary-color)' : 'var(--surface-border-subtle)'}`, color: showExtraFilters ? 'var(--primary-color)' : 'var(--text-muted)', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '11px', alignItems: 'center', gap: '8px', height: '38px', transition: 'all 0.2s' }}
-                                >
-                                    <SlidersHorizontal size={14} /> FILTRAR {showExtraFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            {tabs.map(tab => (
+                                <button key={tab.id} className={`tab-pill ${activeTab === tab.id ? 'active' : 'inactive'}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}>
+                                    {tab.icon} {tab.label} <span className={`count-badge ${activeTab === tab.id ? 'active' : 'inactive'}`}>{tab.count}</span>
                                 </button>
+                            ))}
+                        </div>
 
-                                <div className={`secondary-filters-container ${showExtraFilters ? 'is-open' : ''}`}>
+                        <div className="flex items-center gap-3 flex-1 flex-wrap responsive-stack-mobile">
+                            {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
+                                <>
                                     <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                        <select value={selectedStatusFilter} onChange={e => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedStatusFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
-                                            <option value="" style={{ background: '#0f172a' }}>STATUS</option>
-                                            <option value="PENDENTE" style={{ background: '#0f172a' }}>PENDENTE</option>
-                                            <option value="GERADO" style={{ background: '#0f172a' }}>GERADO</option>
-                                            <option value="CONCLUIDO" style={{ background: '#0f172a' }}>CONCLUÍDO</option>
-                                            <option value="CANCELADO" style={{ background: '#0f172a' }}>CANCELADO</option>
+                                        <select value={selectedClientFilter} onChange={e => { setSelectedClientFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedClientFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                            <option value="" style={{ background: '#0f172a' }}>CLIENTES</option>
+                                            {Array.isArray(clients) && clients.map(c => <option key={c.id} value={c.id} style={{ background: '#0f172a' }}>{(c.name || '').toUpperCase()}</option>)}
                                         </select>
                                     </div>
-                                    <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                        <select value={selectedEmployeeFilter} onChange={e => { setSelectedEmployeeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedEmployeeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
-                                            <option value="" style={{ background: '#0f172a' }}>FUNCIONÁRIOS</option>
-                                            {Array.isArray(employees) && employees.map(emp => <option key={emp} value={emp} style={{ background: '#0f172a' }}>{(emp || '').toUpperCase()}</option>)}
-                                        </select>
+
+                                    <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)' }}>DE:</span>
+                                        <input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({ ...p, start: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, outline: 'none' }} />
                                     </div>
-                                    <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                        <select value={selectedTypeFilter} onChange={e => { setSelectedTypeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedTypeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
-                                            <option value="" style={{ background: '#0f172a' }}>TIPO</option>
-                                            <option value="image" style={{ background: '#0f172a' }}>IMAGEM</option>
-                                            <option value="video" style={{ background: '#0f172a' }}>VÍDEO</option>
-                                            <option value="none" style={{ background: '#0f172a' }}>TEXTO / OUTRO</option>
-                                        </select>
+                                    <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ:</span>
+                                        <input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({ ...p, end: e.target.value })); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 700, outline: 'none' }} />
                                     </div>
-                                    <button onClick={() => { setShowUpcoming(!showUpcoming); setCurrentPage(1); }} style={{ background: showUpcoming ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${showUpcoming ? '#3b82f6' : 'var(--surface-border-subtle)'}`, color: showUpcoming ? '#3b82f6' : 'var(--text-muted)', padding: '0 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', height: '38px', width: isMobile ? '100%' : 'auto' }}>
-                                        <Clock size={14} /> PRÓXIMOS
+
+                                    <button 
+                                        onClick={() => setShowExtraFilters(!showExtraFilters)}
+                                        className="mobile-filter-toggle"
+                                        style={{ background: showExtraFilters ? 'rgba(172,248,0,0.1)' : 'var(--card-bg-subtle)', border: `1px solid ${showExtraFilters ? 'var(--primary-color)' : 'var(--surface-border-subtle)'}`, color: showExtraFilters ? 'var(--primary-color)' : 'var(--text-muted)', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '11px', alignItems: 'center', gap: '8px', height: '38px', transition: 'all 0.2s' }}
+                                    >
+                                        <SlidersHorizontal size={14} /> FILTRAR {showExtraFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                     </button>
-                                </div>
-                            </>
-                        )}
+
+                                    <div className={`secondary-filters-container ${showExtraFilters ? 'is-open' : ''}`}>
+                                        <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                            <select value={selectedStatusFilter} onChange={e => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedStatusFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                                <option value="" style={{ background: '#0f172a' }}>STATUS</option>
+                                                <option value="PENDENTE" style={{ background: '#0f172a' }}>PENDENTE</option>
+                                                <option value="GERADO" style={{ background: '#0f172a' }}>GERADO</option>
+                                                <option value="CONCLUIDO" style={{ background: '#0f172a' }}>CONCLUÍDO</option>
+                                                <option value="CANCELADO" style={{ background: '#0f172a' }}>CANCELADO</option>
+                                            </select>
+                                        </div>
+                                        <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                            <select value={selectedEmployeeFilter} onChange={e => { setSelectedEmployeeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedEmployeeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                                <option value="" style={{ background: '#0f172a' }}>FUNCIONÁRIOS</option>
+                                                {Array.isArray(employees) && employees.map(emp => <option key={emp} value={emp} style={{ background: '#0f172a' }}>{(emp || '').toUpperCase()}</option>)}
+                                            </select>
+                                        </div>
+                                        <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                            <select value={selectedTypeFilter} onChange={e => { setSelectedTypeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedTypeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                                <option value="" style={{ background: '#0f172a' }}>TIPO</option>
+                                                <option value="image" style={{ background: '#0f172a' }}>IMAGEM</option>
+                                                <option value="video" style={{ background: '#0f172a' }}>VÍDEO</option>
+                                                <option value="none" style={{ background: '#0f172a' }}>TEXTO / OUTRO</option>
+                                            </select>
+                                        </div>
+                                        <button onClick={() => { setShowUpcoming(!showUpcoming); setCurrentPage(1); }} style={{ background: showUpcoming ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${showUpcoming ? '#3b82f6' : 'var(--surface-border-subtle)'}`, color: showUpcoming ? '#3b82f6' : 'var(--text-muted)', padding: '0 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 900, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', height: '38px', width: isMobile ? '100%' : 'auto' }}>
+                                            <Clock size={14} /> PRÓXIMOS
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
                             <Search size={15} style={{ color: 'var(--text-muted)' }} />
                             <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} placeholder="Buscar..." style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: '13px', padding: '10px 0', width: '100%' }} />

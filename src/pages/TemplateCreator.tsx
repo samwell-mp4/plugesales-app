@@ -85,7 +85,7 @@ const TemplateCreator = () => {
             });
         }
 
-        if (user?.role === 'CLIENT') {
+        if (user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA') {
             setSelectedClientId(user?.id || '');
         }
     }, [user]);
@@ -459,7 +459,7 @@ const TemplateCreator = () => {
 
     const handleCreateModel = async () => {
         if (!modelName) return alert("Defina um nome para o template.");
-        if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
+        if (!selectedClientId && user?.role !== 'ASSINATURA_BASICA') return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
 
         const sanitizedBaseName = modelName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
         const targetNumbers = senderNumbers.split(/[\n,]/).map(n => n.trim()).filter(n => n.length > 5);
@@ -494,11 +494,14 @@ const TemplateCreator = () => {
                         await sendToWebhook(payload);
 
                         const client = clients.find(c => String(c.id) === String(selectedClientId));
+                        const clientName = client?.name || (user?.role === 'ASSINATURA_BASICA' ? user?.name : '');
+                        const clientDDD = client?.phone?.substring(0, 2) || (user?.role === 'ASSINATURA_BASICA' ? user?.notification_number?.substring(2, 4) : '11');
+
                         await dbService.addClientSubmission({
                             user_id: isInternalUser ? undefined : selectedClientId,
-                            client_name: client?.name || '',
+                            client_name: clientName,
                             profile_name: currentName,
-                            ddd: client?.phone?.substring(0, 2) || '11',
+                            ddd: clientDDD,
                             template_type: headerType,
                             media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
                             ad_copy: bodyText,
@@ -552,7 +555,7 @@ const TemplateCreator = () => {
 
     const handleGenerateBulk = async () => {
         if (campaigns.every(c => c.rows.length === 0)) return alert("Adicione pelo menos uma linha em alguma campanha.");
-        if (!selectedClientId) return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
+        if (!selectedClientId && user?.role !== 'ASSINATURA_BASICA') return alert("Selecione ou cadastre um cliente primeiro na Estrutura Básica.");
 
         // Check for duplicate suffixes in each campaign
         for (const camp of campaigns) {
@@ -690,12 +693,16 @@ const TemplateCreator = () => {
                     }
                 } else {
                     // Creating a NEW submission Card
+                    const client = clients.find(c => String(c.id) === String(selectedClientId));
+                    const clientName = client?.name || (user?.role === 'ASSINATURA_BASICA' ? user?.name : '');
+                    const clientDDD = client?.phone?.substring(0, 2) || (user?.role === 'ASSINATURA_BASICA' ? user?.notification_number?.substring(2, 4) : '11');
                     const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
+
                     await dbService.addClientSubmission({
                         user_id: (isInternalUser || !selectedClientId) ? undefined : String(selectedClientId),
-                        client_name: client?.name || '',
+                        client_name: clientName,
                         profile_name: campaign.prefix.endsWith('_') ? campaign.prefix.slice(0, -1) : campaign.prefix,
-                        ddd: client?.phone?.substring(0, 2) || '11',
+                        ddd: clientDDD,
                         template_type: 'TEXT',
                         media_url: '',
                         ad_copy: bodyText,
@@ -819,7 +826,7 @@ const TemplateCreator = () => {
 
     const handleUtilityShorten = async () => {
         if (!utilityLinkOriginal || (!utilityLinkOriginal.startsWith('http') && !utilityLinkOriginal.includes('.'))) return alert("Insira um link válido.");
-        if (!selectedClientId) return alert("Selecione um cliente.");
+        if (!selectedClientId && user?.role !== 'ASSINATURA_BASICA') return alert("Selecione um cliente.");
         setIsShorteningUtility(true);
         try {
             const res = await dbService.createShortLink({
@@ -1344,38 +1351,42 @@ const TemplateCreator = () => {
                                 </label>
                             </div>
 
-                            <div className="flex flex-col gap-2">
-                                <label>Selecionar Cliente</label>
-                                <select className="input-field" value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)}>
-                                    <option value="">Selecione um cliente...</option>
-                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                            </div>
-
-                            <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                                <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Infobip do Luis Henrique?</span>
-                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Ativar credenciais alternativas de disparo</span>
+                            {user?.role !== 'ASSINATURA_BASICA' && (
+                                <div className="flex flex-col gap-2">
+                                    <label>Selecionar Cliente</label>
+                                    <select className="input-field" value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)}>
+                                        <option value="">Selecione um cliente...</option>
+                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
                                 </div>
-                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
-                                    <input
-                                        type="checkbox"
-                                        style={{ opacity: 0, width: 0, height: 0 }}
-                                        checked={useLuisHenrique}
-                                        onChange={(e) => setUseLuisHenrique(e.target.checked)}
-                                    />
-                                    <span style={{
-                                        position: 'absolute', cursor: 'pointer', inset: 0,
-                                        backgroundColor: useLuisHenrique ? 'var(--primary-color)' : '#333',
-                                        transition: '.4s', borderRadius: '34px'
-                                    }}>
+                            )}
+
+                            {user?.role !== 'ASSINATURA_BASICA' && (
+                                <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                    <div className="flex flex-col">
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Infobip do Luis Henrique?</span>
+                                        <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Ativar credenciais alternativas de disparo</span>
+                                    </div>
+                                    <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
+                                        <input
+                                            type="checkbox"
+                                            style={{ opacity: 0, width: 0, height: 0 }}
+                                            checked={useLuisHenrique}
+                                            onChange={(e) => setUseLuisHenrique(e.target.checked)}
+                                        />
                                         <span style={{
-                                            position: 'absolute', height: '16px', width: '16px', left: useLuisHenrique ? '24px' : '4px', bottom: '3px',
-                                            backgroundColor: useLuisHenrique ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
-                                        }}></span>
-                                    </span>
-                                </label>
-                            </div>
+                                            position: 'absolute', cursor: 'pointer', inset: 0,
+                                            backgroundColor: useLuisHenrique ? 'var(--primary-color)' : '#333',
+                                            transition: '.4s', borderRadius: '34px'
+                                        }}>
+                                            <span style={{
+                                                position: 'absolute', height: '16px', width: '16px', left: useLuisHenrique ? '24px' : '4px', bottom: '3px',
+                                                backgroundColor: useLuisHenrique ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                                            }}></span>
+                                        </span>
+                                    </label>
+                                </div>
+                            )}
 
                             <div className="flex flex-col gap-3">
                                 <label>Idioma do Template</label>

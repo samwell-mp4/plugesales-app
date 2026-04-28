@@ -63,8 +63,8 @@ const LinkShortener = () => {
     }, [user, filterClientId, startDate, endDate]);
 
     const fetchStats = async () => {
-        // Para CLIENte, usa o ID dele. Para ADMIN/EMPLOYEE, usa o filtro ou 0 (Global)
-        const targetUserId = user?.role === 'CLIENT' ? user.id : (filterClientId ? parseInt(filterClientId) : 0);
+        // Para CLIENTE e ASSINATURA_BASICA, usa o ID dele. Para ADMIN/EMPLOYEE, usa o filtro ou 0 (Global)
+        const targetUserId = (user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA') ? user.id : (filterClientId ? parseInt(filterClientId) : 0);
         
         setIsStatsLoading(true);
         try {
@@ -384,25 +384,26 @@ const LinkShortener = () => {
                             </div>
  
                             <form onSubmit={handleCreateLink} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                {/* --- CLIENT SELECTOR --- */}
-                                <div>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                                        <Users size={12} /> Vincular a Cliente (Opcional)
-                                    </label>
-                                    <select 
-                                        className="input-field"
-                                        style={{ appearance: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
-                                        value={selectedClientId}
-                                        onChange={e => setSelectedClientId(e.target.value)}
-                                    >
-                                        <option value="">Nenhum cliente selecionado</option>
-                                        {Array.isArray(clients) && clients.map(u => (
-                                            <option key={u.id} value={u.id.toString()} style={{ color: 'var(--text-primary)', background: 'var(--card-bg-subtle)' }}>
-                                                {u.name} ({u.email})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
+                                    <div>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                            <Users size={12} /> Vincular a Cliente (Opcional)
+                                        </label>
+                                        <select 
+                                            className="input-field"
+                                            style={{ appearance: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
+                                            value={selectedClientId}
+                                            onChange={e => setSelectedClientId(e.target.value)}
+                                        >
+                                            <option value="">Nenhum cliente selecionado</option>
+                                            {Array.isArray(clients) && clients.map(u => (
+                                                <option key={u.id} value={u.id.toString()} style={{ color: 'var(--text-primary)', background: 'var(--card-bg-subtle)' }}>
+                                                    {u.name} ({u.email})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
  
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--card-bg-subtle)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
                                     <span style={{ fontSize: '12px', fontWeight: 900 }}>Gerar em massa?</span>
@@ -663,7 +664,7 @@ const LinkShortener = () => {
                                 </div>
 
                                 {/* Client Filter for Admin/Employee */}
-                                {user?.role !== 'CLIENT' && (
+                                {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
                                     <div style={{ position: 'relative' }}>
                                         <Users size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
                                         <select 

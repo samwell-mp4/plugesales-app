@@ -139,6 +139,7 @@ const Sidebar = () => {
         {
             id: 'CARDS',
             label: 'PLUG CARDS',
+            roles: ['ADMIN', 'EMPLOYEE'],
             items: [
                 {
                     name: 'Gestão de Cards',
@@ -183,7 +184,10 @@ const Sidebar = () => {
             ];
         }
 
-        return menuData.map(cat => ({
+        return menuData.filter(cat => {
+            if (cat.roles && !cat.roles.includes(user?.role || '')) return false;
+            return true;
+        }).map(cat => ({
             ...cat,
             items: cat.items.filter((item: any) => {
                 const userRole = user?.role || '';
