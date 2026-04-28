@@ -1229,7 +1229,7 @@ app.post('/api/auth/register', async (req, res) => {
 app.get('/api/auth/me/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query('SELECT id, name, email, phone, role, notification_number, infobip_key, infobip_sender, parent_id FROM users WHERE id = $1', [id]);
+        const result = await pool.query('SELECT id, name, email, phone, role, notification_number, infobip_key, infobip_sender, infobip_url, parent_id FROM users WHERE id = $1', [id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         res.json(result.rows[0]);
     } catch (err) {
@@ -1250,8 +1250,9 @@ app.put('/api/auth/profile', async (req, res) => {
                  password = COALESCE($4, password),
                  notification_number = COALESCE($5, notification_number),
                  infobip_key = COALESCE($6, infobip_key),
-                 infobip_sender = COALESCE($7, infobip_sender)
-             WHERE id = $8 RETURNING id, name, email, phone, role, notification_number, infobip_key, infobip_sender`,
+                 infobip_sender = COALESCE($7, infobip_sender),
+                 infobip_url = COALESCE($8, infobip_url)
+             WHERE id = $9 RETURNING id, name, email, phone, role, notification_number, infobip_key, infobip_sender, infobip_url`,
             [
                 name || null,
                 email || null,
@@ -1260,6 +1261,7 @@ app.put('/api/auth/profile', async (req, res) => {
                 req.body.notification_number || null,
                 req.body.infobip_key || null,
                 req.body.infobip_sender || null,
+                req.body.infobip_url || null,
                 id
             ]
         );
@@ -1275,7 +1277,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const result = await pool.query(
-            'SELECT id, name, email, role, notification_number, infobip_key, infobip_sender FROM users WHERE email = $1 AND password = $2',
+            'SELECT id, name, email, role, notification_number, infobip_key, infobip_sender, infobip_url FROM users WHERE email = $1 AND password = $2',
             [email, password]
         );
         if (result.rows.length === 0) return res.status(401).json({ error: 'Email ou senha inválidos.' });

@@ -22,6 +22,9 @@ const Profile = () => {
         email: user?.email || '',
         phone: user?.phone || '',
         notification_number: user?.notification_number || '',
+        infobip_key: user?.infobip_key || '',
+        infobip_sender: user?.infobip_sender || '',
+        infobip_url: user?.infobip_url || '',
         password: '',
         confirmPassword: ''
     });
@@ -37,6 +40,9 @@ const Profile = () => {
                 email: user.email || '',
                 phone: user.phone || '',
                 notification_number: user.notification_number || '',
+                infobip_key: user.infobip_key || '',
+                infobip_sender: user.infobip_sender || '',
+                infobip_url: user.infobip_url || '',
                 password: '',
                 confirmPassword: ''
             });
@@ -94,6 +100,9 @@ const Profile = () => {
                 email: profileData.email,
                 phone: profileData.phone,
                 notification_number: cleanedNotify,
+                infobip_key: profileData.infobip_key,
+                infobip_sender: profileData.infobip_sender,
+                infobip_url: profileData.infobip_url,
                 password: profileData.password || undefined
             });
 
@@ -217,6 +226,44 @@ const Profile = () => {
                                             className="field-input" 
                                             value={profileData.notification_number} 
                                             onChange={e => setProfileData({ ...profileData, notification_number: e.target.value })} 
+                                            placeholder="5511999998888"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ height: '1px', background: 'var(--surface-border-subtle)' }} />
+
+                            <div>
+                                <h3 style={{ margin: '0 0 32px 0', fontSize: '1.5rem', fontWeight: 950, display: 'flex', alignItems: 'center', gap: '16px', letterSpacing: '-0.5px' }}>
+                                    <Smartphone size={24} color="var(--primary-color)" /> Gateway Infobip
+                                </h3>
+                                <div className="card-grid-responsive">
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label className="field-label">Infobip API Key</label>
+                                        <input 
+                                            className="field-input" 
+                                            value={profileData.infobip_key} 
+                                            onChange={e => setProfileData({ ...profileData, infobip_key: e.target.value })} 
+                                            placeholder="App 35a1621fff9a9..."
+                                            style={{ fontFamily: 'monospace' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">Infobip Base URL</label>
+                                        <input 
+                                            className="field-input" 
+                                            value={profileData.infobip_url} 
+                                            onChange={e => setProfileData({ ...profileData, infobip_url: e.target.value })} 
+                                            placeholder="8k6xv1.api-us.infobip.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">Remetente (WABA)</label>
+                                        <input 
+                                            className="field-input" 
+                                            value={profileData.infobip_sender} 
+                                            onChange={e => setProfileData({ ...profileData, infobip_sender: e.target.value })} 
                                             placeholder="5511999998888"
                                         />
                                     </div>

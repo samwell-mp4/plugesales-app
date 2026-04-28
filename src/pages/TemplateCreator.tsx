@@ -52,6 +52,7 @@ const TemplateCreator = () => {
     // --- API / CONFIG STATE ---
     const [apiKey, setApiKey] = useState(user?.infobip_key || '');
     const [senderNumbers, setSenderNumbers] = useState(user?.infobip_sender || '');
+    const [infobipUrl, setInfobipUrl] = useState(user?.infobip_url || '');
     const [isUploading, setIsUploading] = useState(false);
     const [useLuisHenrique, setUseLuisHenrique] = useState(false);
 
@@ -60,7 +61,7 @@ const TemplateCreator = () => {
     const DEFAULT_BASE = '8k6xv1.api-us.infobip.com';
 
     const effectiveApiKey = useLuisHenrique ? LUIS_HENRIQUE_KEY : apiKey;
-    const effectiveBaseUrl = useLuisHenrique ? LUIS_HENRIQUE_BASE : DEFAULT_BASE;
+    const effectiveBaseUrl = useLuisHenrique ? LUIS_HENRIQUE_BASE : (infobipUrl || DEFAULT_BASE);
 
     // --- CLIENT SELECTION STATE ---
     const [clients, setClients] = useState<any[]>([]);
@@ -95,9 +96,7 @@ const TemplateCreator = () => {
             setApiKey(location.state.key);
         } else if (user?.infobip_key) {
             setApiKey(user.infobip_key);
-        }
-        // Fallback to global settings for ADMIN/EMPLOYEE without a personal key
-        else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
+        } else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
             dbService.getSettings().then(settings => {
                 if (settings['infobip_key']) setApiKey(settings['infobip_key']);
             });
@@ -107,15 +106,18 @@ const TemplateCreator = () => {
             setSenderNumbers(location.state.sender);
         } else if (user?.infobip_sender) {
             setSenderNumbers(user.infobip_sender);
-        }
-        // Fallback to global settings for ADMIN/EMPLOYEE without a personal sender
-        else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
+        } else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
             dbService.getSettings().then(settings => {
                 if (settings['infobip_sender']) setSenderNumbers(settings['infobip_sender']);
             });
         }
 
-        if (location.state?.preFillData) {
+        if (user?.infobip_url) {
+            setInfobipUrl(user.infobip_url);
+        }
+    }, [user, location.state]);
+
+    useEffect(() => {
             const data = location.state.preFillData;
             if (data.templateName) setModelName(data.templateName);
             if (data.senderNumber) setSenderNumbers(data.senderNumber);

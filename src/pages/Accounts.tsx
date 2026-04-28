@@ -50,6 +50,7 @@ const Accounts = () => {
     // --- API / CONFIG STATE ---
     const [apiKey, setApiKey] = useState(user?.infobip_key || '');
     const [senderNumber, setSenderNumber] = useState(user?.infobip_sender || '');
+    const [infobipUrl, setInfobipUrl] = useState(user?.infobip_url || '');
     const [senders, setSenders] = useState<any[]>([]);
     const [recentNumbers, setRecentNumbers] = useState<string[]>([]);
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
@@ -60,7 +61,7 @@ const Accounts = () => {
     const DEFAULT_BASE = '8k6xv1.api-us.infobip.com';
 
     const effectiveApiKey = useLuisHenrique ? LUIS_HENRIQUE_KEY : apiKey;
-    const effectiveBaseUrl = useLuisHenrique ? LUIS_HENRIQUE_BASE : DEFAULT_BASE;
+    const effectiveBaseUrl = useLuisHenrique ? LUIS_HENRIQUE_BASE : (infobipUrl || DEFAULT_BASE);
 
     // Load state from User on mount
     useEffect(() => {
@@ -80,6 +81,10 @@ const Accounts = () => {
                 if (settings['infobip_key']) setApiKey(settings['infobip_key']);
                 if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
             });
+        }
+
+        if (user?.infobip_url) {
+            setInfobipUrl(user.infobip_url);
         }
         if (user?.infobip_sender) {
             setSenderNumber(user.infobip_sender);
@@ -108,9 +113,14 @@ const Accounts = () => {
                 dbService.saveSetting('infobip_key', apiKey);
             }
         }
+        if (infobipUrl && infobipUrl !== user?.infobip_url) {
+            dbService.updateProfile({ id: user?.id, infobip_url: infobipUrl }).then(updated => {
+                if (updated && !updated.error) setUser(updated);
+            });
+        }
         // Quando muda a chave (ou o switch do Luis), recarrega remetentes
         fetchSenders();
-    }, [effectiveApiKey]);
+    }, [effectiveApiKey, infobipUrl]);
 
     useEffect(() => {
         if (!senderNumber || senderNumber === user?.infobip_sender) return;
@@ -461,45 +471,59 @@ const Accounts = () => {
             <section className="config-command-center mt-8">
                 <div className="flex flex-col gap-6">
                     <div className="flex items-center gap-8 config-row">
-                        <div className="flex items-center gap-4 flex-1">
-                            <div style={{ background: 'rgba(172, 248, 0, 0.1)', padding: '16px', borderRadius: '18px', border: '1px solid rgba(172, 248, 0, 0.2)' }}>
-                                <Smartphone size={32} color="var(--primary-color)" />
-                            </div>
-                            <div className="flex flex-col flex-1">
-                                <span className="premium-label">Remetente Selecionado (WABA)</span>
+                        <div className="flex-1 flex flex-col gap-2">
+                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                <ShieldCheck size={14} /> INFOBIP API KEY
+                            </label>
+                            <input
+                                className="input-field"
+                                value={apiKey}
+                                onChange={e => setApiKey(e.target.value)}
+                                placeholder="App 35a1621fff9a9..."
+                                style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                            />
+                        </div>
+
+                        <div className="flex-1 flex flex-col gap-2">
+                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                <ExternalLink size={14} /> INFOBIP BASE URL
+                            </label>
+                            <input
+                                className="input-field"
+                                value={infobipUrl}
+                                onChange={e => setInfobipUrl(e.target.value)}
+                                placeholder="8k6xv1.api-us.infobip.com"
+                                style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                            />
+                        </div>
+
+                        <div className="flex-1 flex flex-col gap-2">
+                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                <Smartphone size={14} /> REMETENTE PADRÃO (WABA)
+                            </label>
+                            <div className="flex gap-2">
                                 <input
                                     list="monitor-senders"
                                     className="input-field"
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        borderBottom: '2px solid var(--primary-color)',
-                                        color: 'var(--text-primary)',
-                                        fontSize: '1.5rem',
-                                        fontWeight: 900,
-                                        outline: 'none',
-                                        padding: '12px 0',
-                                        width: '100%',
-                                        letterSpacing: '-1px'
-                                    }}
                                     value={senderNumber}
                                     onChange={e => setSenderNumber(e.target.value)}
-                                    placeholder="Escolha ou digite o número..."
+                                    placeholder="55119..."
+                                    style={{ flex: 1 }}
                                 />
                                 <datalist id="monitor-senders">
                                     {senders.map((s: any) => (
                                         <option key={s.sender} value={s.sender}>{s.senderName || s.sender}</option>
                                     ))}
                                 </datalist>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={fetchTemplates}
+                                    disabled={isLoading}
+                                    style={{ whiteSpace: 'nowrap', borderRadius: '12px' }}
+                                >
+                                    {isLoading ? '...' : <RefreshCcw size={16} />}
+                                </button>
                             </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 opacity-50">
-                            <div className="flex flex-col text-right">
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>API Status</span>
-                                <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 700 }}>Conexão Segura</span>
-                            </div>
-                            <ShieldCheck size={24} color="var(--primary-color)" />
                         </div>
                     </div>
 

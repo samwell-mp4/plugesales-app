@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
-type Role = 'ADMIN' | 'EMPLOYEE' | 'CLIENT' | 'PENDING_CLIENT' | 'INFLUENCER';
+type Role = 'ADMIN' | 'EMPLOYEE' | 'CLIENT' | 'PENDING_CLIENT' | 'INFLUENCER' | 'ASSINATURA_BASICA';
 
 interface User {
     id?: number;
@@ -11,6 +11,7 @@ interface User {
     notification_number?: string;
     infobip_key?: string;
     infobip_sender?: string;
+    infobip_url?: string;
     parent_id?: number;
     crm_spreadsheet_id?: string;
 }
@@ -43,6 +44,7 @@ const VALID_USERS = [
     { name: 'Gisele Vieira', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'Joyce Vieira', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'Thiago Rocha', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'manoelflow', role: 'ASSINATURA_BASICA' as Role, password: 'flow2026manoel!br' },
 ];
 
 import { dbService } from '../services/dbService';
