@@ -118,6 +118,7 @@ const TemplateCreator = () => {
     }, [user, location.state]);
 
     useEffect(() => {
+        if (location.state?.preFillData) {
             const data = location.state.preFillData;
             if (data.templateName) setModelName(data.templateName);
             if (data.senderNumber) setSenderNumbers(data.senderNumber);
