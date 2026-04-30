@@ -13,7 +13,11 @@ import {
     Smartphone,
     Loader2,
     List,
-    MessageCircle
+    MessageCircle,
+    Trash2,
+    CheckSquare,
+    Square,
+    ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -28,6 +32,7 @@ const N8NWorkflow = () => {
     const [error, setError] = useState<string | null>(null);
     const [allData, setAllData] = useState<any[]>([]);
     const [viewMode, setViewMode] = useState<'chat' | 'list'>('chat');
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -140,6 +145,62 @@ const N8NWorkflow = () => {
         } catch (err) {
             console.error("Status Update Error:", err);
         }
+    };
+
+    const handleBulkAction = async (action: string) => {
+        if (selectedIds.length === 0) return;
+
+        if (action === 'delete') {
+            if (!window.confirm(`Deseja realmente excluir todos os registros de ${selectedIds.length} contatos?`)) return;
+            
+            setIsLoading(true);
+            try {
+                const res = await fetch('/api/monitor/bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recipientIds: selectedIds })
+                });
+                if (res.ok) {
+                    setUniqueRecipients(prev => prev.filter(r => !selectedIds.includes(r.id)));
+                    setSelectedIds([]);
+                }
+            } catch (err) { console.error(err); }
+            finally { setIsLoading(false); }
+            return;
+        }
+
+        // Status actions
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/monitor/bulk-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recipientIds: selectedIds, status: action })
+            });
+            if (res.ok) {
+                setUniqueRecipients(prev => prev.map(r => 
+                    selectedIds.includes(r.id) ? { ...r, status: action } : r
+                ));
+                setSelectedIds([]);
+            }
+        } catch (err) { console.error(err); }
+        finally { setIsLoading(false); }
+    };
+
+    const toggleSelectAll = () => {
+        const filteredIds = uniqueRecipients
+            .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
+            .map(r => r.id);
+        
+        if (selectedIds.length === filteredIds.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredIds);
+        }
+    };
+
+    const toggleSelectOne = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
     const downloadCSV = () => {
@@ -329,6 +390,48 @@ const N8NWorkflow = () => {
                 </div>
             </div>
 
+            {selectedIds.length > 0 && (
+                <div style={{ position: 'fixed', bottom: '40px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(15px)', padding: '15px 30px', borderRadius: '25px', border: '1px solid var(--primary-color)', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '25px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '14px' }}>
+                            {selectedIds.length}
+                        </div>
+                        <span style={{ fontWeight: 800, fontSize: '14px', color: 'white' }}>Selecionados</span>
+                    </div>
+
+                    <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)' }} />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ position: 'relative' }}>
+                            <select 
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        handleBulkAction(e.target.value);
+                                        e.target.value = "";
+                                    }
+                                }}
+                                defaultValue=""
+                                style={{ padding: '10px 40px 10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'white', fontWeight: 800, fontSize: '13px', cursor: 'pointer', appearance: 'none', outline: 'none' }}
+                            >
+                                <option value="" disabled>Ações em Massa...</option>
+                                <option value="Green List">Marcar como GREEN</option>
+                                <option value="Cold List">Marcar como COLD</option>
+                                <option value="Black List">Marcar como BLACK</option>
+                                <option value="delete">Excluir Registros</option>
+                            </select>
+                            <ChevronDown size={16} style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.5 }} />
+                        </div>
+
+                        <button 
+                            onClick={() => setSelectedIds([])}
+                            style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}
+                        >
+                            CANCELAR
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {isLoading ? (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
                     <div className="animate-spin" style={{ width: '50px', height: '50px', border: '4px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%' }}></div>
@@ -413,6 +516,11 @@ const N8NWorkflow = () => {
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 12px' }}>
                             <thead>
                                 <tr style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px' }}>
+                                    <th style={{ textAlign: 'left', padding: '0 20px', width: '50px' }}>
+                                        <button onClick={toggleSelectAll} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer' }}>
+                                            {selectedIds.length > 0 ? <CheckSquare size={20} /> : <Square size={20} />}
+                                        </button>
+                                    </th>
                                     <th style={{ textAlign: 'left', padding: '0 20px' }}>Contato</th>
                                     <th style={{ textAlign: 'left', padding: '0 20px' }}>Última Mensagem</th>
                                     <th style={{ textAlign: 'center', padding: '0 20px' }}>Status</th>
@@ -424,8 +532,13 @@ const N8NWorkflow = () => {
                                 {uniqueRecipients
                                     .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
                                     .map((conv: any) => (
-                                    <tr key={conv.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '18px' }} className="hover-lift">
+                                    <tr key={conv.id} style={{ background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', borderRadius: '18px' }} className="hover-lift">
                                         <td style={{ padding: '20px', borderRadius: '18px 0 0 18px' }}>
+                                            <button onClick={() => toggleSelectOne(conv.id)} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
+                                                {selectedIds.includes(conv.id) ? <CheckSquare size={20} /> : <Square size={20} />}
+                                            </button>
+                                        </td>
+                                        <td style={{ padding: '20px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                                 <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     <User size={20} color="var(--primary-color)" />

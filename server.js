@@ -923,6 +923,52 @@ app.post('/api/monitor/status', async (req, res) => {
     }
 });
 
+app.post('/api/monitor/bulk-status', async (req, res) => {
+    try {
+        const { recipientIds, status } = req.body;
+        if (!recipientIds || !Array.isArray(recipientIds) || !status) {
+            return res.status(400).json({ error: 'Faltam dados ou formato inválido.' });
+        }
+
+        const promises = recipientIds.map(id => {
+            const cleanId = id.replace(/\D/g, '');
+            return pool.query(
+                "UPDATE public.data_log SET status = $1 WHERE (remetente ILIKE $2 OR destinatario ILIKE $2)",
+                [status, `%${cleanId}%`]
+            );
+        });
+
+        await Promise.all(promises);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Bulk Status Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/monitor/bulk-delete', async (req, res) => {
+    try {
+        const { recipientIds } = req.body;
+        if (!recipientIds || !Array.isArray(recipientIds)) {
+            return res.status(400).json({ error: 'Lista de IDs inválida.' });
+        }
+
+        const promises = recipientIds.map(id => {
+            const cleanId = id.replace(/\D/g, '');
+            return pool.query(
+                "DELETE FROM public.data_log WHERE (remetente ILIKE $1 OR destinatario ILIKE $1)",
+                [`%${cleanId}%`]
+            );
+        });
+
+        await Promise.all(promises);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Bulk Delete Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/crm/leads', async (req, res) => {
     try {
         const { responsavel, userId } = req.query;
