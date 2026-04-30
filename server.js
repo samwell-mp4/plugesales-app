@@ -1031,7 +1031,7 @@ app.get('/api/monitor/campaign-leads', async (req, res) => {
                 SELECT destinatario as identifier, nome, mensagem, data_final, status, campanha FROM public.data_log
              ) as subquery
              WHERE campanha = $1
-             ORDER BY identifier, last_date DESC`,
+             ORDER BY identifier, data_final DESC`,
             [campanha]
         );
 

@@ -67,6 +67,12 @@ const N8NWorkflow = () => {
         fetchCampaigns();
     }, [filterStatus]);
 
+    useEffect(() => {
+        if (activeTab === 'campaign' && selectedCampaign) {
+            fetchCampaignLeads();
+        }
+    }, [selectedCampaign, activeTab]);
+
     const fetchCampaigns = async () => {
         try {
             const res = await fetch('/api/campaigns');
