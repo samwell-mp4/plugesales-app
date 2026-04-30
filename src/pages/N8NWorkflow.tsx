@@ -136,7 +136,7 @@ const N8NWorkflow = () => {
             if (!response.ok) throw new Error(`Erro: ${response.status}`);
             const data = await response.json();
             setUniqueRecipients(data);
-            setViewMode('list'); // Campaign view is always list initially
+            setViewMode('list'); 
         } catch (err: any) {
             console.error("Campaign Fetch Error:", err);
             setError("Falha ao buscar leads da campanha.");
@@ -157,7 +157,6 @@ const N8NWorkflow = () => {
                 const otherParty = r === cleanSearch ? d : r;
                 if (!otherParty) return;
 
-                // Campaign Filter Logic
                 if (isCampaignFilterActive && selectedCampaign && msg.campanha !== selectedCampaign) {
                     return;
                 }
@@ -183,7 +182,6 @@ const N8NWorkflow = () => {
             }
         });
 
-        // Sort contacts by latest message
         const sorted = Array.from(recipientsMap.values()).sort((a: any, b: any) => 
             new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
         );
@@ -195,8 +193,7 @@ const N8NWorkflow = () => {
         const recipient = uniqueRecipients.find(r => r.id === recipientId);
         if (recipient) {
             setSelectedRecipient(recipientId);
-            // Sort messages by date
-            const sortedMsgs = [...recipient.allMsgs].sort((a: any, b: any) => 
+            const sortedMsgs = [...(recipient.allMsgs || [])].sort((a: any, b: any) => 
                 new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             );
             setMessages(sortedMsgs);
@@ -216,7 +213,6 @@ const N8NWorkflow = () => {
             });
 
             if (response.ok) {
-                // Update local state
                 setUniqueRecipients(prev => prev.map(r => 
                     r.id === recipientId ? { ...r, status: newStatus } : r
                 ));
@@ -231,7 +227,6 @@ const N8NWorkflow = () => {
 
         if (action === 'delete') {
             if (!window.confirm(`Deseja realmente excluir todos os registros de ${selectedIds.length} contatos?`)) return;
-            
             setIsLoading(true);
             try {
                 const res = await fetch('/api/monitor/bulk-delete', {
@@ -248,7 +243,6 @@ const N8NWorkflow = () => {
             return;
         }
 
-        // Status actions
         setIsLoading(true);
         try {
             const res = await fetch('/api/monitor/bulk-status', {
@@ -319,10 +313,7 @@ const N8NWorkflow = () => {
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
         link.setAttribute("download", `monitor_n8n_${targetStatus.toLowerCase().replace(/ /g, '_')}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
     };
 
     const downloadIndividualLists = () => {
@@ -335,7 +326,7 @@ const N8NWorkflow = () => {
                 hasData = true;
             }
         });
-        if (!hasData) alert("Nenhuma lista (Green, Cold, Black) possui contatos para baixar.");
+        if (!hasData) alert("Nenhuma lista possui contatos para baixar.");
     };
 
     const handleFilterPro = async (file: File) => {
@@ -390,8 +381,8 @@ const N8NWorkflow = () => {
         return (
             <div className="crm-container" style={{ padding: '80px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
                 <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '20px', width: 'fit-content', margin: '0 auto 40px auto', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <button onClick={() => setActiveTab('monitor')} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'monitor' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'monitor' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>MONITOR DE NÚMERO</button>
-                    <button onClick={() => setActiveTab('campaign')} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'campaign' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'campaign' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>GESTÃO DE CAMPANHA</button>
+                    <button onClick={() => setActiveTab('monitor')} style={{ padding: '12px 30px', borderRadius: '16px', background: (activeTab as string) === 'monitor' ? 'var(--primary-color)' : 'transparent', color: (activeTab as string) === 'monitor' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>MONITOR DE NÚMERO</button>
+                    <button onClick={() => setActiveTab('campaign')} style={{ padding: '12px 30px', borderRadius: '16px', background: (activeTab as string) === 'campaign' ? 'var(--primary-color)' : 'transparent', color: (activeTab as string) === 'campaign' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>GESTÃO DE CAMPANHA</button>
                 </div>
 
                 <div className="supreme-card hover-lift" style={{ width: '100%', maxWidth: '600px', padding: '60px', textAlign: 'center' }}>
@@ -423,6 +414,10 @@ const N8NWorkflow = () => {
                 .supreme-card { background: var(--card-bg-subtle); backdrop-filter: blur(25px); border: 1px solid rgba(172, 248, 0, 0.08); border-radius: 28px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
                 .supreme-view-btn { padding: 10px 20px; border-radius: 12px; background: transparent; border: none; color: rgba(255,255,255,0.3); cursor: pointer; display: flex; alignItems: center; gap: 8px; font-weight: 800; font-size: 11px; transition: all 0.2s; }
                 .supreme-view-btn.active { background: rgba(172, 248, 0, 0.1); color: var(--primary-color); }
+                .message-bubble { max-width: 80%; padding: 18px 24px; border-radius: 22px; font-size: 1rem; line-height: 1.6; position: relative; margin-bottom: 8px; }
+                .message-outbound { align-self: flex-end; background: var(--primary-color); color: black; border-bottom-right-radius: 4px; font-weight: 600; }
+                .message-inbound { align-self: flex-start; background: rgba(255, 255, 255, 0.05); color: white; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.08); }
+                .message-time { display: block; font-size: 10px; margin-top: 8px; opacity: 0.5; }
             `}</style>
 
             <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '20px', width: 'fit-content', margin: '0 auto 40px auto', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -466,128 +461,29 @@ const N8NWorkflow = () => {
                     <button onClick={activeTab === 'monitor' ? handleSearch : fetchCampaignLeads} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, cursor: 'pointer' }} className="hover-lift">
                         <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
-                </div>
-            </div>
-
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <button 
-                            onClick={() => setViewMode('chat')} 
-                            style={{ padding: '8px 16px', background: viewMode === 'chat' ? 'var(--primary-color)' : 'transparent', border: 'none', borderRadius: '10px', color: viewMode === 'chat' ? 'black' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '12px' }}
-                        >
-                            <MessageCircle size={16} /> CHAT
-                        </button>
-                        <button 
-                            onClick={() => setViewMode('list')} 
-                            style={{ padding: '8px 16px', background: viewMode === 'list' ? 'var(--primary-color)' : 'transparent', border: 'none', borderRadius: '10px', color: viewMode === 'list' ? 'black' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '12px' }}
-                        >
-                            <List size={16} /> LISTA
-                        </button>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {activeTab === 'monitor' && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '0 15px' }}>
-                                <span style={{ fontSize: '10px', fontWeight: 900, opacity: 0.4 }}>CAMPANHA</span>
-                                <select 
-                                    value={selectedCampaign}
-                                    onChange={(e) => setSelectedCampaign(e.target.value)}
-                                    style={{ background: 'none', border: 'none', color: 'white', padding: '12px 5px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
-                                >
-                                    <option value="">Nenhuma</option>
-                                    {campaigns.map(c => (
-                                        <option key={c.id} value={c.name} style={{ background: '#1a1a1a' }}>{c.name}</option>
-                                    ))}
-                                </select>
-                                <button onClick={handleCreateCampaign} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', padding: '0 5px' }}>
-                                    <Plus size={18} />
-                                </button>
-                            </div>
-                        )}
-
-                        <button 
-                            onClick={() => setIsCampaignFilterActive(!isCampaignFilterActive)}
-                            style={{ 
-                                display: activeTab === 'monitor' ? 'flex' : 'none', 
-                                alignItems: 'center', 
-                                gap: '8px', 
-                                padding: '12px 16px', 
-                                background: isCampaignFilterActive ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255,255,255,0.05)', 
-                                border: '1px solid', 
-                                borderColor: isCampaignFilterActive ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
-                                borderRadius: '16px',
-                                color: isCampaignFilterActive ? 'var(--primary-color)' : 'white',
-                                fontSize: '11px',
-                                fontWeight: 800,
-                                cursor: 'pointer'
-                            }}
-                        >
-                            <Filter size={14} /> {isCampaignFilterActive ? "FILTRANDO" : "FILTRAR"}
-                        </button>
-                    </div>
-                    <button onClick={handleSearch} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, cursor: 'pointer' }} className="hover-lift">
-                        <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+                    
+                    <button onClick={() => setShowFilterModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                        <Zap size={18} fill="var(--primary-color)" /> FILTRO PRO
                     </button>
-                    <button 
-                        onClick={() => setShowFilterModal(true)} 
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} 
-                        className="hover-lift"
-                    >
-                        <Zap size={18} fill="var(--primary-color)" />
-                        FILTRO PRO
-                    </button>
-                    {uniqueRecipients.length > 0 && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => downloadCSV()} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <FileSpreadsheet size={18} color="var(--primary-color)" />
-                                BAIXAR ATUAL (CSV)
-                            </button>
-                            <button onClick={downloadIndividualLists} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <FileSpreadsheet size={18} />
-                                BAIXAR LISTAS (INDIVIDUAIS)
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
 
             {selectedIds.length > 0 && (
                 <div style={{ position: 'fixed', bottom: '40px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(15px)', padding: '15px 30px', borderRadius: '25px', border: '1px solid var(--primary-color)', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '25px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '14px' }}>
-                            {selectedIds.length}
-                        </div>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '14px' }}>{selectedIds.length}</div>
                         <span style={{ fontWeight: 800, fontSize: '14px', color: 'white' }}>Selecionados</span>
                     </div>
-
                     <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)' }} />
-
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ position: 'relative' }}>
-                            <select 
-                                onChange={(e) => {
-                                    if (e.target.value) {
-                                        handleBulkAction(e.target.value);
-                                        e.target.value = "";
-                                    }
-                                }}
-                                defaultValue=""
-                                style={{ padding: '10px 40px 10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'white', fontWeight: 800, fontSize: '13px', cursor: 'pointer', appearance: 'none', outline: 'none' }}
-                            >
-                                <option value="" disabled>Ações em Massa...</option>
-                                <option value="Green List">Marcar como GREEN</option>
-                                <option value="Cold List">Marcar como COLD</option>
-                                <option value="Black List">Marcar como BLACK</option>
-                                <option value="delete">Excluir Registros</option>
-                            </select>
-                            <ChevronDown size={16} style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.5 }} />
-                        </div>
-
-                        <button 
-                            onClick={() => setSelectedIds([])}
-                            style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}
-                        >
-                            CANCELAR
-                        </button>
+                        <select onChange={(e) => { if (e.target.value) { handleBulkAction(e.target.value); e.target.value = ""; } }} defaultValue="" style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'white', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+                            <option value="" disabled>Ações em Massa...</option>
+                            <option value="Green List">Marcar como GREEN</option>
+                            <option value="Cold List">Marcar como COLD</option>
+                            <option value="Black List">Marcar como BLACK</option>
+                            <option value="delete">Excluir Registros</option>
+                        </select>
+                        <button onClick={() => setSelectedIds([])} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>CANCELAR</button>
                     </div>
                 </div>
             )}
@@ -602,66 +498,40 @@ const N8NWorkflow = () => {
                         <div className="supreme-card chat-sidebar-section" style={{ display: 'flex', flexDirection: 'column', padding: '24px', overflow: 'hidden' }}>
                             <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '8px' }}>
                                 {['Tudo', 'Green List', 'Cold List', 'Black List'].map(status => (
-                                    <button
-                                        key={status}
-                                        onClick={() => setFilterStatus(status)}
-                                        style={{
-                                            padding: '12px 18px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)',
-                                            background: filterStatus === status ? 'var(--primary-color)' : 'rgba(255,255,255,0.03)',
-                                            color: filterStatus === status ? 'black' : 'white',
-                                            fontSize: '11px', fontWeight: 950, cursor: 'pointer', letterSpacing: '1px', textTransform: 'uppercase'
-                                        }}
-                                    >
-                                        {status}
-                                    </button>
+                                    <button key={status} onClick={() => setFilterStatus(status)} style={{ padding: '12px 18px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)', background: filterStatus === status ? 'var(--primary-color)' : 'rgba(255,255,255,0.03)', color: filterStatus === status ? 'black' : 'white', fontSize: '11px', fontWeight: 950, cursor: 'pointer' }}>{status}</button>
                                 ))}
                             </div>
-
                             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {filteredRecipients.map((conv: any) => (
-                                    <div key={conv.id} className="hover-lift" style={{ padding: '20px', borderRadius: '22px', background: selectedRecipient === conv.id ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', border: '1px solid', borderColor: selectedRecipient === conv.id ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', cursor: 'pointer' }} onClick={() => selectRecipient(conv.id)}>
+                                    <div key={conv.id} style={{ padding: '20px', borderRadius: '22px', background: selectedRecipient === conv.id ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', border: '1px solid', borderColor: selectedRecipient === conv.id ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', cursor: 'pointer' }} onClick={() => selectRecipient(conv.id)}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
-                                            <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <User size={22} color="var(--primary-color)" />
-                                            </div>
+                                            <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={22} color="var(--primary-color)" /></div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'white' }}>{conv.name}</div>
                                                 <div style={{ fontSize: '10px', color: getStatusColor(conv.status), fontWeight: 900 }}>{conv.status.toUpperCase()}</div>
                                             </div>
                                             <div style={{ fontSize: '10px', opacity: 0.3 }}>{formatTime(conv.lastDate)}</div>
                                         </div>
-                                        <div style={{ padding: '10px', background: 'rgba(0,0,0,0.15)', borderRadius: '12px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                            {conv.lastMessage?.slice(0, 45)}...
-                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-
                         <div className="supreme-card messages-area" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                             {!selectedRecipient ? (
-                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>
-                                    <div>
-                                        <MessageSquare size={64} style={{ margin: '0 auto 20px' }} />
-                                        <h3 style={{ fontWeight: 900 }}>Selecione um contato</h3>
-                                    </div>
-                                </div>
+                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}><MessageSquare size={64} /></div>
                             ) : (
                                 <>
-                                    <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>{selectedRecipient}</h3>
                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button onClick={() => updateStatus(selectedRecipient, 'Green List')} style={{ padding: '8px 16px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', color: '#22c55e', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>GREEN</button>
-                                            <button onClick={() => updateStatus(selectedRecipient, 'Cold List')} style={{ padding: '8px 16px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>COLD</button>
-                                            <button onClick={() => updateStatus(selectedRecipient, 'Black List')} style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>BLACK</button>
+                                            <button onClick={() => updateStatus(selectedRecipient, 'Green List')} style={{ padding: '8px 16px', background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: 'none', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>GREEN</button>
+                                            <button onClick={() => updateStatus(selectedRecipient, 'Cold List')} style={{ padding: '8px 16px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: 'none', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>COLD</button>
+                                            <button onClick={() => updateStatus(selectedRecipient, 'Black List')} style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>BLACK</button>
                                         </div>
                                     </div>
                                     <div style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        {messages.map((msg: any) => (
-                                            <div key={msg.id} className={`message-bubble message-${msg.direction.toLowerCase()}`}>
-                                                {msg.content?.text}
-                                                <span className="message-time">{formatTime(msg.createdAt)}</span>
-                                            </div>
+                                        {(messages || []).map((m: any) => (
+                                            <div key={m.id} className={`message-bubble message-${m.direction.toLowerCase()}`}>{m.content?.text}<span className="message-time">{formatTime(m.createdAt)}</span></div>
                                         ))}
                                         <div ref={messagesEndRef} />
                                     </div>
@@ -673,73 +543,22 @@ const N8NWorkflow = () => {
                     <div className="supreme-card" style={{ padding: '32px', overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 12px' }}>
                             <thead>
-                                <tr style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px' }}>
-                                    <th style={{ textAlign: 'left', padding: '0 20px', width: '50px' }}>
-                                        <button onClick={toggleSelectAll} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer' }}>
-                                            {selectedIds.length > 0 ? <CheckSquare size={20} /> : <Square size={20} />}
-                                        </button>
-                                    </th>
+                                <tr style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' }}>
+                                    <th style={{ textAlign: 'left', padding: '0 20px' }}><button onClick={toggleSelectAll} style={{ background: 'none', border: 'none', color: 'var(--primary-color)' }}>{selectedIds.length > 0 ? <CheckSquare size={20} /> : <Square size={20} />}</button></th>
                                     <th style={{ textAlign: 'left', padding: '0 20px' }}>Contato</th>
                                     <th style={{ textAlign: 'left', padding: '0 20px' }}>Última Mensagem</th>
                                     <th style={{ textAlign: 'center', padding: '0 20px' }}>Status</th>
-                                    <th style={{ textAlign: 'center', padding: '0 20px' }}>Ações Rápidas</th>
                                     <th style={{ textAlign: 'right', padding: '0 20px' }}>Ver</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredRecipients.map((conv: any) => (
-                                    <tr 
-                                        key={conv.id} 
-                                        onClick={() => toggleSelectOne(conv.id)}
-                                        style={{ 
-                                            background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', 
-                                            borderRadius: '18px',
-                                            cursor: 'pointer'
-                                        }} 
-                                        className="hover-lift"
-                                    >
-                                        <td style={{ padding: '20px', borderRadius: '18px 0 0 18px' }}>
-                                            <button onClick={(e) => { e.stopPropagation(); toggleSelectOne(conv.id); }} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
-                                                {selectedIds.includes(conv.id) ? <CheckSquare size={20} /> : <Square size={20} />}
-                                            </button>
-                                        </td>
-                                        <td style={{ padding: '20px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <User size={20} color="var(--primary-color)" />
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontWeight: 800, fontSize: '1rem' }}>{conv.name}</div>
-                                                    <div style={{ fontSize: '11px', opacity: 0.4 }}>{conv.id}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '20px' }}>
-                                            <div style={{ fontSize: '0.9rem', opacity: 0.7, maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {conv.lastMessage}
-                                            </div>
-                                            <div style={{ fontSize: '10px', opacity: 0.3, marginTop: '4px' }}>{formatTime(conv.lastDate)}</div>
-                                        </td>
-                                        <td style={{ padding: '20px', textAlign: 'center' }}>
-                                            <span style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, background: 'rgba(0,0,0,0.2)', color: getStatusColor(conv.status), border: `1px solid ${getStatusColor(conv.status)}22` }}>
-                                                {conv.status.toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '20px', textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Green List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Green List' ? '#22c55e' : 'rgba(34, 197, 94, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Green List' ? 'black' : '#22c55e', cursor: 'pointer', fontWeight: 900 }}>G</button>
-                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Cold List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Cold List' ? '#3b82f6' : 'rgba(59, 130, 246, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Cold List' ? 'black' : '#3b82f6', cursor: 'pointer', fontWeight: 900 }}>C</button>
-                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Black List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Black List' ? '#ef4444' : 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Black List' ? 'black' : '#ef4444', cursor: 'pointer', fontWeight: 900 }}>B</button>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '20px', textAlign: 'right', borderRadius: '0 18px 18px 0' }}>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); selectRecipient(conv.id); setViewMode('chat'); }}
-                                                style={{ padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '11px', cursor: 'pointer' }}
-                                            >
-                                                ABRIR CHAT
-                                            </button>
-                                        </td>
+                                    <tr key={conv.id} style={{ background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', borderRadius: '18px' }}>
+                                        <td style={{ padding: '20px' }}><button onClick={() => toggleSelectOne(conv.id)} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)' }}>{selectedIds.includes(conv.id) ? <CheckSquare size={20} /> : <Square size={20} />}</button></td>
+                                        <td style={{ padding: '20px' }}>{conv.name}<br/><span style={{ fontSize: '10px', opacity: 0.4 }}>{conv.id}</span></td>
+                                        <td style={{ padding: '20px' }}>{conv.lastMessage}</td>
+                                        <td style={{ padding: '20px', textAlign: 'center' }}><span style={{ color: getStatusColor(conv.status) }}>{conv.status.toUpperCase()}</span></td>
+                                        <td style={{ padding: '20px', textAlign: 'right' }}><button onClick={() => { selectRecipient(conv.id); setViewMode('chat'); }} style={{ padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 800 }}>ABRIR CHAT</button></td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -751,72 +570,27 @@ const N8NWorkflow = () => {
             {showFilterModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                     <div style={{ width: '100%', maxWidth: '800px', background: 'var(--card-bg-subtle)', borderRadius: '32px', border: '1px solid rgba(172, 248, 0, 0.2)', padding: '40px', position: 'relative' }}>
-                        <button onClick={() => { setShowFilterModal(false); setFilterResult(null); }} style={{ position: 'absolute', right: '30px', top: '30px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <X size={20} />
-                        </button>
-
-                        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                            <div style={{ display: 'inline-flex', padding: '8px 20px', background: 'rgba(172, 248, 0, 0.1)', borderRadius: '100px', marginBottom: '16px', alignItems: 'center', gap: '8px' }}>
-                                <Zap size={16} color="var(--primary-color)" fill="var(--primary-color)" />
-                                <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px', textTransform: 'uppercase' }}>Ferramenta de Limpeza</span>
-                            </div>
-                            <h2 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 950, letterSpacing: '-2px', textTransform: 'uppercase' }}>Filtro PRO</h2>
+                        <button onClick={() => { setShowFilterModal(false); setFilterResult(null); }} style={{ position: 'absolute', right: '30px', top: '30px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
+                        <h2 style={{ textAlign: 'center', fontSize: '2.5rem', fontWeight: 950 }}>Filtro PRO</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeGreen: !o.removeGreen }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeGreen ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer' }}>Remover Green</div>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeCold: !o.removeCold }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeCold ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer' }}>Remover Cold</div>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeBlack: !o.removeBlack }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeBlack ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer' }}>Remover Black</div>
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '30px' }}>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeGreen: !o.removeGreen, removeAny: false }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeGreen ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', background: filterOptions.removeGreen ? 'rgba(172, 248, 0, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
-                                <span style={{ fontSize: '12px', fontWeight: 800 }}>Remover Green</span>
-                            </div>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeCold: !o.removeCold, removeAny: false }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeCold ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', background: filterOptions.removeCold ? 'rgba(172, 248, 0, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }} />
-                                <span style={{ fontSize: '12px', fontWeight: 800 }}>Remover Cold</span>
-                            </div>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeBlack: !o.removeBlack, removeAny: false }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeBlack ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', background: filterOptions.removeBlack ? 'rgba(172, 248, 0, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
-                                <span style={{ fontSize: '12px', fontWeight: 800 }}>Remover Black</span>
-                            </div>
-                        </div>
-
                         {!filterResult ? (
-                            <div 
-                                onClick={() => document.getElementById('modal-file-input')?.click()}
-                                style={{ border: '2px dashed rgba(172, 248, 0, 0.2)', borderRadius: '24px', padding: '60px', textAlign: 'center', background: 'rgba(0,0,0,0.2)', cursor: 'pointer' }}
-                            >
+                            <div onClick={() => document.getElementById('modal-file-input')?.click()} style={{ border: '2px dashed rgba(172, 248, 0, 0.2)', borderRadius: '24px', padding: '60px', textAlign: 'center', cursor: 'pointer' }}>
                                 <input type="file" id="modal-file-input" hidden accept=".csv,.txt" onChange={(e) => e.target.files?.[0] && handleFilterPro(e.target.files[0])} />
                                 <FileUp size={40} style={{ marginBottom: '20px', opacity: 0.3 }} />
-                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{isFiltering ? "Processando..." : "Enviar lista para limpar"}</h3>
-                                <p style={{ margin: '8px 0 0 0', fontSize: '12px', opacity: 0.4 }}>Clique aqui para selecionar seu arquivo CSV ou TXT</p>
+                                <h3>{isFiltering ? "Processando..." : "Enviar lista para limpar"}</h3>
                             </div>
                         ) : (
-                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                            <div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
-                                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', textAlign: 'center' }}>
-                                        <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: 900 }}>Original</div>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{filterResult.stats.original}</div>
-                                    </div>
-                                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '20px', borderRadius: '20px', textAlign: 'center', color: '#ef4444' }}>
-                                        <div style={{ fontSize: '10px', opacity: 0.6, fontWeight: 900 }}>Removidos</div>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>-{filterResult.stats.removed}</div>
-                                    </div>
-                                    <div style={{ background: 'rgba(172, 248, 0, 0.05)', padding: '20px', borderRadius: '20px', textAlign: 'center', color: 'var(--primary-color)' }}>
-                                        <div style={{ fontSize: '10px', opacity: 0.6, fontWeight: 900 }}>Limpos</div>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{filterResult.filteredNumbers.length}</div>
-                                    </div>
+                                    <div style={{ textAlign: 'center' }}>Original: {filterResult.stats.original}</div>
+                                    <div style={{ textAlign: 'center', color: '#ef4444' }}>Removidos: -{filterResult.stats.removed}</div>
+                                    <div style={{ textAlign: 'center', color: 'var(--primary-color)' }}>Limpos: {filterResult.filteredNumbers.length}</div>
                                 </div>
-                                <button 
-                                    onClick={() => {
-                                        const blob = new Blob([filterResult.filteredNumbers.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                                        const url = URL.createObjectURL(blob);
-                                        const link = document.createElement("a");
-                                        link.setAttribute("href", url);
-                                        link.setAttribute("download", `lista_limpa_pro_${Date.now()}.csv`);
-                                        link.click();
-                                    }}
-                                    style={{ width: '100%', padding: '20px', background: 'var(--primary-color)', border: 'none', borderRadius: '20px', color: 'black', fontWeight: 900, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
-                                >
-                                    <Download size={20} /> BAIXAR LISTA LIMPA
-                                </button>
+                                <button onClick={() => { const b = new Blob([filterResult.filteredNumbers.join('\n')], { type: 'text/csv' }); const u = URL.createObjectURL(b); const l = document.createElement("a"); l.href = u; l.download = "lista_limpa.csv"; l.click(); }} style={{ width: '100%', padding: '20px', background: 'var(--primary-color)', borderRadius: '20px', color: 'black', fontWeight: 900, cursor: 'pointer' }}><Download size={20} /> BAIXAR LISTA LIMPA</button>
                             </div>
                         )}
                     </div>
