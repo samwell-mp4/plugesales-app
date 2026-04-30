@@ -11,7 +11,6 @@ import {
     Database,
     Phone,
     Smartphone,
-    Smartphone,
     Loader2,
     List,
     MessageCircle
