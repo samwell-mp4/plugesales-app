@@ -628,6 +628,7 @@ const initDB = async () => {
         console.log('✅ Table push_subscriptions verified/created.');
         // ============================================================
 
+        await client.query(`ALTER TABLE public.data_log ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
         console.log('✅ Database initialized and verified.');
 
     } catch (err) {
@@ -900,6 +901,24 @@ app.get('/api/monitor/logs', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         console.error("Monitor Logs Error:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/monitor/status', async (req, res) => {
+    try {
+        const { recipientId, status } = req.body;
+        if (!recipientId || !status) return res.status(400).json({ error: 'Missing data' });
+
+        const cleanId = recipientId.replace(/\D/g, '');
+        // Update status for all messages involving this contact
+        await pool.query(
+            "UPDATE public.data_log SET status = $1 WHERE (remetente ILIKE $2 OR destinatario ILIKE $2)",
+            [status, `%${cleanId}%`]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Update Monitor Status Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

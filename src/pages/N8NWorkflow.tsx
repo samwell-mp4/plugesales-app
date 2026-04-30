@@ -11,7 +11,10 @@ import {
     Database,
     Phone,
     Smartphone,
-    Loader2
+    Smartphone,
+    Loader2,
+    List,
+    MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -25,6 +28,7 @@ const N8NWorkflow = () => {
     const [filterStatus, setFilterStatus] = useState<string>('Tudo');
     const [error, setError] = useState<string | null>(null);
     const [allData, setAllData] = useState<any[]>([]);
+    const [viewMode, setViewMode] = useState<'chat' | 'list'>('chat');
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -119,13 +123,11 @@ const N8NWorkflow = () => {
 
     const updateStatus = async (recipientId: string, newStatus: string) => {
         try {
-            // Reutilizando o endpoint de status da planilha já que os dados vêm de lá indiretamente
-            const response = await fetch('/api/live-chat/spreadsheet/status', {
+            const response = await fetch('/api/monitor/status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    senderId: searchNumber.replace(/\D/g, ''),
-                    recipientId: recipientId.replace(/\D/g, ''),
+                    recipientId: recipientId,
                     status: newStatus
                 })
             });
@@ -302,6 +304,20 @@ const N8NWorkflow = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <button 
+                            onClick={() => setViewMode('chat')} 
+                            style={{ padding: '8px 16px', background: viewMode === 'chat' ? 'var(--primary-color)' : 'transparent', border: 'none', borderRadius: '10px', color: viewMode === 'chat' ? 'black' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '12px' }}
+                        >
+                            <MessageCircle size={16} /> CHAT
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('list')} 
+                            style={{ padding: '8px 16px', background: viewMode === 'list' ? 'var(--primary-color)' : 'transparent', border: 'none', borderRadius: '10px', color: viewMode === 'list' ? 'black' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '12px' }}
+                        >
+                            <List size={16} /> LISTA
+                        </button>
+                    </div>
                     <button onClick={handleSearch} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, cursor: 'pointer' }} className="hover-lift">
                         <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
@@ -319,79 +335,140 @@ const N8NWorkflow = () => {
                     <div className="animate-spin" style={{ width: '50px', height: '50px', border: '4px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%' }}></div>
                 </div>
             ) : (
-                <div className="chat-responsive-container">
-                    <div className="supreme-card chat-sidebar-section" style={{ display: 'flex', flexDirection: 'column', padding: '24px', overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '8px' }}>
-                            {['Tudo', 'Green List', 'Cold List', 'Black List'].map(status => (
-                                <button
-                                    key={status}
-                                    onClick={() => setFilterStatus(status)}
-                                    style={{
-                                        padding: '12px 18px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)',
-                                        background: filterStatus === status ? 'var(--primary-color)' : 'rgba(255,255,255,0.03)',
-                                        color: filterStatus === status ? 'black' : 'white',
-                                        fontSize: '11px', fontWeight: 950, cursor: 'pointer', letterSpacing: '1px', textTransform: 'uppercase'
-                                    }}
-                                >
-                                    {status}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {uniqueRecipients
-                                .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
-                                .map((conv: any) => (
-                                <div key={conv.id} className="hover-lift" style={{ padding: '20px', borderRadius: '22px', background: selectedRecipient === conv.id ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', border: '1px solid', borderColor: selectedRecipient === conv.id ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', cursor: 'pointer' }} onClick={() => selectRecipient(conv.id)}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
-                                        <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <User size={22} color="var(--primary-color)" />
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'white' }}>{conv.name}</div>
-                                            <div style={{ fontSize: '10px', color: getStatusColor(conv.status), fontWeight: 900 }}>{conv.status.toUpperCase()}</div>
-                                        </div>
-                                        <div style={{ fontSize: '10px', opacity: 0.3 }}>{formatTime(conv.lastDate)}</div>
-                                    </div>
-                                    <div style={{ padding: '10px', background: 'rgba(0,0,0,0.15)', borderRadius: '12px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                        {conv.lastMessage?.slice(0, 45)}...
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="supreme-card messages-area" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                        {!selectedRecipient ? (
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>
-                                <div>
-                                    <MessageSquare size={64} style={{ margin: '0 auto 20px' }} />
-                                    <h3 style={{ fontWeight: 900 }}>Selecione um contato</h3>
-                                </div>
+                viewMode === 'chat' ? (
+                    <div className="chat-responsive-container">
+                        <div className="supreme-card chat-sidebar-section" style={{ display: 'flex', flexDirection: 'column', padding: '24px', overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '8px' }}>
+                                {['Tudo', 'Green List', 'Cold List', 'Black List'].map(status => (
+                                    <button
+                                        key={status}
+                                        onClick={() => setFilterStatus(status)}
+                                        style={{
+                                            padding: '12px 18px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)',
+                                            background: filterStatus === status ? 'var(--primary-color)' : 'rgba(255,255,255,0.03)',
+                                            color: filterStatus === status ? 'black' : 'white',
+                                            fontSize: '11px', fontWeight: 950, cursor: 'pointer', letterSpacing: '1px', textTransform: 'uppercase'
+                                        }}
+                                    >
+                                        {status}
+                                    </button>
+                                ))}
                             </div>
-                        ) : (
-                            <>
-                                <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>{selectedRecipient}</h3>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button onClick={() => updateStatus(selectedRecipient, 'Green List')} style={{ padding: '8px 16px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', color: '#22c55e', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>GREEN</button>
-                                        <button onClick={() => updateStatus(selectedRecipient, 'Cold List')} style={{ padding: '8px 16px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>COLD</button>
-                                        <button onClick={() => updateStatus(selectedRecipient, 'Black List')} style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>BLACK</button>
+
+                            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {uniqueRecipients
+                                    .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
+                                    .map((conv: any) => (
+                                    <div key={conv.id} className="hover-lift" style={{ padding: '20px', borderRadius: '22px', background: selectedRecipient === conv.id ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', border: '1px solid', borderColor: selectedRecipient === conv.id ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', cursor: 'pointer' }} onClick={() => selectRecipient(conv.id)}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
+                                            <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <User size={22} color="var(--primary-color)" />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'white' }}>{conv.name}</div>
+                                                <div style={{ fontSize: '10px', color: getStatusColor(conv.status), fontWeight: 900 }}>{conv.status.toUpperCase()}</div>
+                                            </div>
+                                            <div style={{ fontSize: '10px', opacity: 0.3 }}>{formatTime(conv.lastDate)}</div>
+                                        </div>
+                                        <div style={{ padding: '10px', background: 'rgba(0,0,0,0.15)', borderRadius: '12px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            {conv.lastMessage?.slice(0, 45)}...
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="supreme-card messages-area" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            {!selectedRecipient ? (
+                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>
+                                    <div>
+                                        <MessageSquare size={64} style={{ margin: '0 auto 20px' }} />
+                                        <h3 style={{ fontWeight: 900 }}>Selecione um contato</h3>
                                     </div>
                                 </div>
-                                <div style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    {messages.map((msg: any) => (
-                                        <div key={msg.id} className={`message-bubble message-${msg.direction.toLowerCase()}`}>
-                                            {msg.content?.text}
-                                            <span className="message-time">{formatTime(msg.createdAt)}</span>
+                            ) : (
+                                <>
+                                    <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>{selectedRecipient}</h3>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button onClick={() => updateStatus(selectedRecipient, 'Green List')} style={{ padding: '8px 16px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', color: '#22c55e', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>GREEN</button>
+                                            <button onClick={() => updateStatus(selectedRecipient, 'Cold List')} style={{ padding: '8px 16px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>COLD</button>
+                                            <button onClick={() => updateStatus(selectedRecipient, 'Black List')} style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: '10px', fontSize: '10px', fontWeight: 950, cursor: 'pointer' }}>BLACK</button>
                                         </div>
-                                    ))}
-                                    <div ref={messagesEndRef} />
-                                </div>
-                            </>
-                        )}
+                                    </div>
+                                    <div style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        {messages.map((msg: any) => (
+                                            <div key={msg.id} className={`message-bubble message-${msg.direction.toLowerCase()}`}>
+                                                {msg.content?.text}
+                                                <span className="message-time">{formatTime(msg.createdAt)}</span>
+                                            </div>
+                                        ))}
+                                        <div ref={messagesEndRef} />
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="supreme-card" style={{ padding: '32px', overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 12px' }}>
+                            <thead>
+                                <tr style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px' }}>
+                                    <th style={{ textAlign: 'left', padding: '0 20px' }}>Contato</th>
+                                    <th style={{ textAlign: 'left', padding: '0 20px' }}>Última Mensagem</th>
+                                    <th style={{ textAlign: 'center', padding: '0 20px' }}>Status</th>
+                                    <th style={{ textAlign: 'center', padding: '0 20px' }}>Ações Rápidas</th>
+                                    <th style={{ textAlign: 'right', padding: '0 20px' }}>Ver</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {uniqueRecipients
+                                    .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
+                                    .map((conv: any) => (
+                                    <tr key={conv.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '18px' }} className="hover-lift">
+                                        <td style={{ padding: '20px', borderRadius: '18px 0 0 18px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <User size={20} color="var(--primary-color)" />
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: 800, fontSize: '1rem' }}>{conv.name}</div>
+                                                    <div style={{ fontSize: '11px', opacity: 0.4 }}>{conv.id}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '20px' }}>
+                                            <div style={{ fontSize: '0.9rem', opacity: 0.7, maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {conv.lastMessage}
+                                            </div>
+                                            <div style={{ fontSize: '10px', opacity: 0.3, marginTop: '4px' }}>{formatTime(conv.lastDate)}</div>
+                                        </td>
+                                        <td style={{ padding: '20px', textAlign: 'center' }}>
+                                            <span style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, background: 'rgba(0,0,0,0.2)', color: getStatusColor(conv.status), border: `1px solid ${getStatusColor(conv.status)}22` }}>
+                                                {conv.status.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '20px', textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                                <button onClick={() => updateStatus(conv.id, 'Green List')} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Green List' ? '#22c55e' : 'rgba(34, 197, 94, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Green List' ? 'black' : '#22c55e', cursor: 'pointer', fontWeight: 900 }}>G</button>
+                                                <button onClick={() => updateStatus(conv.id, 'Cold List')} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Cold List' ? '#3b82f6' : 'rgba(59, 130, 246, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Cold List' ? 'black' : '#3b82f6', cursor: 'pointer', fontWeight: 900 }}>C</button>
+                                                <button onClick={() => updateStatus(conv.id, 'Black List')} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Black List' ? '#ef4444' : 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Black List' ? 'black' : '#ef4444', cursor: 'pointer', fontWeight: 900 }}>B</button>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '20px', textAlign: 'right', borderRadius: '0 18px 18px 0' }}>
+                                            <button 
+                                                onClick={() => { selectRecipient(conv.id); setViewMode('chat'); }}
+                                                style={{ padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '11px', cursor: 'pointer' }}
+                                            >
+                                                ABRIR CHAT
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )
             )}
         </div>
     );
