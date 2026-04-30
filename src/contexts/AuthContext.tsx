@@ -31,7 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Lista de usuários pré-definida conforme solicitado
 const VALID_USERS = [
-    { name: 'Admin', role: 'ADMIN' as Role, password: 'admin123' },
+    { name: 'Admin', role: 'ADMIN' as Role, password: 'Plug26sales!guarapari' },
     { name: 'geraldo', role: 'ADMIN' as Role, password: 'geraldo876' },
     { name: 'Italo Clovis', role: 'EMPLOYEE' as Role, password: 'italo982' },
     { name: 'Augusto Fagundes', role: 'EMPLOYEE' as Role, password: 'augusto451' },
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("Auto-repair error:", err);
         }
     };
-    
+
     // Initial loading effect
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -145,8 +145,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Absolute Fallback: This might lack an ID, causing profile update issues
-            const userData: User = { 
-                name: foundStatic.name, 
+            const userData: User = {
+                name: foundStatic.name,
                 role: foundStatic.role as Role,
                 email: `${foundStatic.name.toLowerCase()}@internal.system`
             };

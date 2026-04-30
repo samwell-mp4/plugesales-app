@@ -2453,7 +2453,7 @@ app.get('/api/shortener/links', async (req, res) => {
             // For now, let's simplify and use the same filter context
         }
 
-        if (role === 'CLIENT' && user_id) {
+        if ((role === 'CLIENT' || role === 'ASSINATURA_BASICA') && user_id) {
             whereClauses.push(`(l.target_user_id = $${params.length + 1} OR l.target_user_id IN (SELECT id FROM users WHERE parent_id = $${params.length + 1}))`);
             params.push(user_id);
         } else if (client_id) {

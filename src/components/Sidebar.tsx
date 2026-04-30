@@ -105,6 +105,7 @@ const Sidebar = () => {
             items: [
                 { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
                 { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
+                { name: 'Live Chat', path: '/live-chat', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
                 { name: 'Pendências Alteração', path: '/admin/changes', icon: <Bell />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
@@ -231,12 +232,19 @@ const Sidebar = () => {
                 { icon: <FileSpreadsheet />, path: '/client-reports' },
                 { icon: <User />, path: '/profile' }
             ]
-            : [
-                { icon: <LayoutDashboard />, path: '/upload' },
-                { icon: <Users />, path: '/crm/funil' },
-                { icon: <Activity />, path: '/accounts' },
-                { icon: <MessageSquare />, path: '/templates' }
-            ];
+            : user?.role === 'ASSINATURA_BASICA'
+                ? [
+                    { icon: <Activity />, path: '/accounts' },
+                    { icon: <MessageSquare />, path: '/templates' },
+                    { icon: <FileUp />, path: '/client-submissions' },
+                    { icon: <User />, path: '/profile' }
+                ]
+                : [
+                    { icon: <LayoutDashboard />, path: '/upload' },
+                    { icon: <Users />, path: '/crm/funil' },
+                    { icon: <Activity />, path: '/accounts' },
+                    { icon: <MessageSquare />, path: '/templates' }
+                ];
 
         return (
             <>

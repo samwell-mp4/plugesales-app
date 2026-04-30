@@ -443,30 +443,32 @@ const Accounts = () => {
                 </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 mb-6 glass-card" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
-                <div className="flex flex-col">
-                    <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Luis Henrique?</span>
-                    <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Alternar para credenciais de monitoramento específicas</span>
-                </div>
-                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '52px', height: '26px', margin: 0 }}>
-                    <input
-                        type="checkbox"
-                        style={{ opacity: 0, width: 0, height: 0 }}
-                        checked={useLuisHenrique}
-                        onChange={(e) => setUseLuisHenrique(e.target.checked)}
-                    />
-                    <span style={{
-                        position: 'absolute', cursor: 'pointer', inset: 0,
-                        backgroundColor: useLuisHenrique ? 'var(--primary-color)' : '#333',
-                        transition: '.4s', borderRadius: '34px'
-                    }}>
+            {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
+                <div className="flex items-center justify-between p-4 mb-6 glass-card" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
+                    <div className="flex flex-col">
+                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Luis Henrique?</span>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Alternar para credenciais de monitoramento específicas</span>
+                    </div>
+                    <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '52px', height: '26px', margin: 0 }}>
+                        <input
+                            type="checkbox"
+                            style={{ opacity: 0, width: 0, height: 0 }}
+                            checked={useLuisHenrique}
+                            onChange={(e) => setUseLuisHenrique(e.target.checked)}
+                        />
                         <span style={{
-                            position: 'absolute', height: '20px', width: '20px', left: useLuisHenrique ? '28px' : '4px', bottom: '3px',
-                            backgroundColor: useLuisHenrique ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
-                        }}></span>
-                    </span>
-                </label>
-            </div>
+                            position: 'absolute', cursor: 'pointer', inset: 0,
+                            backgroundColor: useLuisHenrique ? 'var(--primary-color)' : '#333',
+                            transition: '.4s', borderRadius: '34px'
+                        }}>
+                            <span style={{
+                                position: 'absolute', height: '20px', width: '20px', left: useLuisHenrique ? '28px' : '4px', bottom: '3px',
+                                backgroundColor: useLuisHenrique ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                            }}></span>
+                        </span>
+                    </label>
+                </div>
+            )}
 
             <section className="config-command-center mt-8">
                 <div className="flex flex-col gap-6">

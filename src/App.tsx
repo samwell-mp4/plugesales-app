@@ -110,11 +110,29 @@ function AppContent() {
     '/client-submissions/add',
     '/media',
     '/dashboard',
-    '/admin/changes'
+    '/admin/changes',
+    '/live-chat',
+    '/campaigns',
+    '/engine',
+    '/dispatch',
+    '/crm/consultiva',
+    '/crm/n8n-monitor',
+    '/admin/step-leads',
+    '/admin/plug-cards'
   ];
 
-  if (isClient && adminOnlyRoutes.some(route => {
+  const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA';
+  
+  if (isRestrictedRole && adminOnlyRoutes.some(route => {
     // Special case: Clients CAN access /client-submissions/:id but NOT /client-submissions (list) or /client-submissions/add
+    // ASSINATURA_BASICA CAN access /client-submissions (list) and /accounts and /templates
+    if (user?.role === 'ASSINATURA_BASICA') {
+        const allowedForBasica = ['/accounts', '/templates', '/client-submissions'];
+        if (allowedForBasica.some(allowed => location.pathname === allowed || (location.pathname.startsWith(allowed) && !location.pathname.startsWith('/client-submissions/add')))) {
+            return false;
+        }
+    }
+
     if (route === '/client-submissions') {
       const isList = location.pathname === '/client-submissions' || location.pathname === '/client-submissions/';
       const isAdd = location.pathname.startsWith('/client-submissions/add');
@@ -122,7 +140,7 @@ function AppContent() {
     }
     return location.pathname.startsWith(route);
   })) {
-    return <Navigate to="/client-dashboard" replace />;
+    return <Navigate to={isClient ? "/client-dashboard" : "/profile"} replace />;
   }
 
   // Admin exclusive
