@@ -32,7 +32,8 @@ const N8NWorkflow = () => {
     const [searchNumber, setSearchNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [messages, setMessages] = useState<any[]>([]);
-    const [uniqueRecipients, setUniqueRecipients] = useState<any[]>([]); 
+    const [monitorLeads, setMonitorLeads] = useState<any[]>([]);
+    const [campaignLeads, setCampaignLeads] = useState<any[]>([]);
     const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>('Tudo');
     const [error, setError] = useState<string | null>(null);
@@ -53,6 +54,7 @@ const N8NWorkflow = () => {
         removeAny: false
     });
     const [activeTab, setActiveTab] = useState<'monitor' | 'campaign'>('monitor');
+    const uniqueRecipients = activeTab === 'monitor' ? monitorLeads : campaignLeads;
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -111,7 +113,7 @@ const N8NWorkflow = () => {
             
             const text = await response.text();
             if (!text || text.trim() === '') {
-                setUniqueRecipients([]);
+                setMonitorLeads([]);
                 return;
             }
 
@@ -135,7 +137,7 @@ const N8NWorkflow = () => {
             const response = await fetch(`/api/monitor/campaign-leads?campanha=${encodeURIComponent(selectedCampaign)}`);
             if (!response.ok) throw new Error(`Erro: ${response.status}`);
             const data = await response.json();
-            setUniqueRecipients(data);
+            setCampaignLeads(data);
             setViewMode('list'); 
         } catch (err: any) {
             console.error("Campaign Fetch Error:", err);
@@ -186,7 +188,7 @@ const N8NWorkflow = () => {
             new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
         );
 
-        setUniqueRecipients(sorted);
+        setMonitorLeads(sorted);
     };
 
     const selectRecipient = (recipientId: string) => {
@@ -213,9 +215,9 @@ const N8NWorkflow = () => {
             });
 
             if (response.ok) {
-                setUniqueRecipients(prev => prev.map(r => 
-                    r.id === recipientId ? { ...r, status: newStatus } : r
-                ));
+                const updater = (prev: any[]) => prev.map(r => r.id === recipientId ? { ...r, status: newStatus } : r);
+                setMonitorLeads(updater);
+                setCampaignLeads(updater);
             }
         } catch (err) {
             console.error("Status Update Error:", err);
@@ -235,7 +237,9 @@ const N8NWorkflow = () => {
                     body: JSON.stringify({ recipientIds: selectedIds })
                 });
                 if (res.ok) {
-                    setUniqueRecipients(prev => prev.filter(r => !selectedIds.includes(r.id)));
+                    const filterer = (prev: any[]) => prev.filter(r => !selectedIds.includes(r.id));
+                    setMonitorLeads(filterer);
+                    setCampaignLeads(filterer);
                     setSelectedIds([]);
                 }
             } catch (err) { console.error(err); }
@@ -259,13 +263,15 @@ const N8NWorkflow = () => {
                 })
             });
             if (res.ok) {
-                setUniqueRecipients(prev => prev.map(r => 
+                const mapper = (prev: any[]) => prev.map(r => 
                     selectedIds.includes(r.id) ? { 
                         ...r, 
                         status: targetStatus || r.status,
                         campanha: targetCampaign || r.campanha 
                     } : r
-                ));
+                );
+                setMonitorLeads(mapper);
+                setCampaignLeads(mapper);
                 setSelectedIds([]);
             }
         } catch (err) { console.error(err); }
@@ -385,7 +391,7 @@ const N8NWorkflow = () => {
         } catch (e) { return ''; }
     };
 
-    if (uniqueRecipients.length === 0 && !isLoading && activeTab === 'monitor') {
+    if (monitorLeads.length === 0 && !isLoading && activeTab === 'monitor') {
         return (
             <div className="crm-container" style={{ padding: '80px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
                 <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '20px', width: 'fit-content', margin: '0 auto 40px auto', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -429,7 +435,7 @@ const N8NWorkflow = () => {
             `}</style>
 
             <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '20px', width: 'fit-content', margin: '0 auto 40px auto', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <button onClick={() => { setActiveTab('monitor'); setUniqueRecipients([]); }} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'monitor' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'monitor' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>MONITOR DE NÚMERO</button>
+                <button onClick={() => { setActiveTab('monitor'); }} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'monitor' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'monitor' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>MONITOR DE NÚMERO</button>
                 <button onClick={() => setActiveTab('campaign')} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'campaign' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'campaign' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>GESTÃO DE CAMPANHA</button>
             </div>
 
@@ -437,7 +443,7 @@ const N8NWorkflow = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, minWidth: '300px' }}>
                     {activeTab === 'monitor' ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <button onClick={() => setUniqueRecipients([])} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'white', cursor: 'pointer' }}><ArrowLeft size={20} /></button>
+                            <button onClick={() => setMonitorLeads([])} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'white', cursor: 'pointer' }}><ArrowLeft size={20} /></button>
                             <div>
                                 <h1 style={{ margin: 0, fontWeight: 950, fontSize: '2rem', letterSpacing: '-1px', textTransform: 'uppercase', color: 'white' }}>{searchNumber}</h1>
                                 <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '10px', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase' }}>Monitor de Histórico</p>
@@ -469,10 +475,21 @@ const N8NWorkflow = () => {
                     <button onClick={activeTab === 'monitor' ? handleSearch : fetchCampaignLeads} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, cursor: 'pointer' }} className="hover-lift">
                         <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
-                    
+
                     <button onClick={() => setShowFilterModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
                         <Zap size={18} fill="var(--primary-color)" /> FILTRO PRO
                     </button>
+
+                    {uniqueRecipients.length > 0 && activeTab === 'campaign' && (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => downloadCSV('Black List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', color: '#ef4444', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <Trash2 size={18} /> BAIXAR BLACK
+                            </button>
+                            <button onClick={downloadIndividualLists} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <FileSpreadsheet size={18} /> BAIXAR LISTAS
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
