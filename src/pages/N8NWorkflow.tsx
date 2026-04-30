@@ -33,6 +33,7 @@ const N8NWorkflow = () => {
     const [allData, setAllData] = useState<any[]>([]);
     const [viewMode, setViewMode] = useState<'chat' | 'list'>('chat');
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [localSearchQuery, setLocalSearchQuery] = useState('');
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -203,6 +204,13 @@ const N8NWorkflow = () => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
+    const filteredRecipients = uniqueRecipients.filter(r => {
+        const matchesStatus = filterStatus === 'Tudo' || r.status === filterStatus;
+        const matchesSearch = (r.name || '').toLowerCase().includes(localSearchQuery.toLowerCase()) || 
+                              (r.id || '').includes(localSearchQuery);
+        return matchesStatus && matchesSearch;
+    });
+
     const downloadCSV = () => {
         const filteredData = uniqueRecipients.filter(r => filterStatus === 'Tudo' || r.status === filterStatus);
         if (filteredData.length === 0) return alert("Nenhum dado para baixar.");
@@ -363,6 +371,19 @@ const N8NWorkflow = () => {
                     </div>
                 </div>
 
+                <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '300px' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                        <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                        <input 
+                            type="text" 
+                            placeholder="Filtrar por nome ou número..." 
+                            value={localSearchQuery}
+                            onChange={(e) => setLocalSearchQuery(e.target.value)}
+                            style={{ width: '100%', padding: '12px 12px 12px 45px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontSize: '13px', outline: 'none' }}
+                        />
+                    </div>
+                </div>
+
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <button 
@@ -458,9 +479,7 @@ const N8NWorkflow = () => {
                             </div>
 
                             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {uniqueRecipients
-                                    .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
-                                    .map((conv: any) => (
+                                {filteredRecipients.map((conv: any) => (
                                     <div key={conv.id} className="hover-lift" style={{ padding: '20px', borderRadius: '22px', background: selectedRecipient === conv.id ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', border: '1px solid', borderColor: selectedRecipient === conv.id ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', cursor: 'pointer' }} onClick={() => selectRecipient(conv.id)}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
                                             <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -529,9 +548,7 @@ const N8NWorkflow = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {uniqueRecipients
-                                    .filter(r => filterStatus === 'Tudo' || r.status === filterStatus)
-                                    .map((conv: any) => (
+                                {filteredRecipients.map((conv: any) => (
                                     <tr key={conv.id} style={{ background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', borderRadius: '18px' }} className="hover-lift">
                                         <td style={{ padding: '20px', borderRadius: '18px 0 0 18px' }}>
                                             <button onClick={() => toggleSelectOne(conv.id)} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
