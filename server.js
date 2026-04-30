@@ -11,7 +11,7 @@ import { google } from 'googleapis';
 import cron from 'node-cron';
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { pool } from './backend/database/db.js';
+import { pool, pgUrl } from './backend/database/db.js';
 import chatRoutes from './backend/routes/chatRoutes.js';
 import webpush from 'web-push';
 
@@ -634,7 +634,7 @@ const initDB = async () => {
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
         console.error('--- DB CONNECTION DIAGNOSTIC ---');
-        console.error('Target URL:', pgUrl.replace(/:[^:@]+@/, ':****@'));
+        console.error('Target URL:', (pgUrl || 'unknown').replace(/:[^:@]+@/, ':****@'));
         if (err.message.includes('ECONNREFUSED')) {
             console.error('HINT: The database server is unreachable. If you are running locally, ensure Postgres is installed and running.');
         } else if (err.message.includes('authentication failed')) {
