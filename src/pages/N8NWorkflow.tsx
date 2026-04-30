@@ -488,6 +488,12 @@ const N8NWorkflow = () => {
 
                     {uniqueRecipients.length > 0 && activeTab === 'campaign' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => downloadCSV('Green List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '16px', color: '#22c55e', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <ShieldCheck size={18} /> BAIXAR GREEN
+                            </button>
+                            <button onClick={() => downloadCSV('Cold List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '16px', color: '#3b82f6', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <Activity size={18} /> BAIXAR COLD
+                            </button>
                             <button onClick={() => downloadCSV('Black List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', color: '#ef4444', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
                                 <Trash2 size={18} /> BAIXAR BLACK
                             </button>
@@ -603,8 +609,18 @@ const N8NWorkflow = () => {
                             </thead>
                             <tbody>
                                 {filteredRecipients.map((conv: any) => (
-                                    <tr key={conv.id} style={{ background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', borderRadius: '18px' }}>
-                                        <td style={{ padding: '20px' }}><button onClick={() => toggleSelectOne(conv.id)} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)' }}>{selectedIds.includes(conv.id) ? <CheckSquare size={20} /> : <Square size={20} />}</button></td>
+                                    <tr 
+                                        key={conv.id} 
+                                        onClick={() => toggleSelectOne(conv.id)}
+                                        style={{ 
+                                            background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', 
+                                            borderRadius: '18px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        className="hover-lift"
+                                    >
+                                        <td style={{ padding: '20px' }} onClick={(e) => e.stopPropagation()}><button onClick={() => toggleSelectOne(conv.id)} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>{selectedIds.includes(conv.id) ? <CheckSquare size={20} /> : <Square size={20} />}</button></td>
                                         <td style={{ padding: '20px' }}>{conv.name}<br/><span style={{ fontSize: '10px', opacity: 0.4 }}>{conv.id}</span></td>
                                         <td style={{ padding: '20px' }}>
                                             <div style={{ fontSize: '0.9rem', opacity: 0.7, maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
