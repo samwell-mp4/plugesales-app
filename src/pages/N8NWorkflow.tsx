@@ -19,7 +19,9 @@ import {
     ChevronDown,
     X,
     FileUp,
-    Download
+    Download,
+    List,
+    Zap
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -55,7 +57,7 @@ const N8NWorkflow = () => {
     };
 
     useEffect(() => {
-        fetchData();
+        if (searchNumber) handleSearch();
         fetchCampaigns();
     }, [filterStatus]);
 
