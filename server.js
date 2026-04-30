@@ -915,9 +915,10 @@ app.post('/api/monitor/status', async (req, res) => {
         await pool.query(
             `UPDATE public.data_log 
              SET status = COALESCE($1, status), 
-                 campanha = COALESCE($2, campanha) 
+                 campanha = COALESCE($2, campanha),
+                 campanha_target = $4
              WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)`,
-            [status || null, campanha || null, `%${cleanId}%`]
+            [status || null, campanha || null, `%${cleanId}%`, cleanId]
         );
         res.json({ success: true });
     } catch (err) {
@@ -938,9 +939,10 @@ app.post('/api/monitor/bulk-status', async (req, res) => {
             return pool.query(
                 `UPDATE public.data_log 
                  SET status = COALESCE($1, status), 
-                     campanha = COALESCE($2, campanha) 
+                     campanha = COALESCE($2, campanha),
+                     campanha_target = $4
                  WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)`,
-                [status || null, campanha || null, `%${cleanId}%`]
+                [status || null, campanha || null, `%${cleanId}%`, cleanId]
             );
         });
 
@@ -1018,6 +1020,7 @@ app.get('/api/monitor/campaign-leads', async (req, res) => {
         const { campanha } = req.query;
         if (!campanha) return res.status(400).json({ error: 'Campanha não especificada.' });
 
+        // Accurate Filtering: Only show the party that was explicitly tagged as the "lead" for this campaign
         const result = await pool.query(
             `SELECT DISTINCT ON (identifier) 
                 identifier as id, 
@@ -1026,11 +1029,11 @@ app.get('/api/monitor/campaign-leads', async (req, res) => {
                 data_final as "lastDate", 
                 status 
              FROM (
-                SELECT remetente as identifier, nome, mensagem, data_final, status, campanha FROM public.data_log
+                SELECT remetente as identifier, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log
                 UNION
-                SELECT destinatario as identifier, nome, mensagem, data_final, status, campanha FROM public.data_log
+                SELECT destinatario as identifier, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log
              ) as subquery
-             WHERE campanha = $1
+             WHERE campanha = $1 AND identifier = campanha_target
              ORDER BY identifier, data_final DESC`,
             [campanha]
         );
