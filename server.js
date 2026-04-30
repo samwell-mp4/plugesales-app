@@ -969,6 +969,64 @@ app.post('/api/monitor/bulk-delete', async (req, res) => {
     }
 });
 
+app.post('/api/monitor/filter-pro', async (req, res) => {
+    try {
+        const { phoneNumbers, options } = req.body; // options: { removeGreen: bool, removeCold: bool, removeBlack: bool, removeAny: bool }
+        if (!phoneNumbers || !Array.isArray(phoneNumbers)) {
+            return res.status(400).json({ error: 'Lista de números inválida.' });
+        }
+
+        const cleanNumbers = phoneNumbers.map(n => n.toString().replace(/\D/g, '')).filter(n => n.length > 5);
+        if (cleanNumbers.length === 0) return res.json({ filteredNumbers: [], stats: { original: 0, removed: 0 } });
+
+        // Build a query to find all these numbers that have a status in the DB
+        // Using a temporary table or a large IN clause is risky for huge lists, 
+        // but for a few thousands, IN is fine. For now, let's use a smart lookup.
+        
+        const result = await pool.query(
+            `SELECT DISTINCT identifier, status FROM (
+                SELECT remetente as identifier, status FROM public.data_log WHERE remetente = ANY($1)
+                UNION
+                SELECT destinatario as identifier, status FROM public.data_log WHERE destinatario = ANY($1)
+            ) as subquery`,
+            [cleanNumbers]
+        );
+
+        const statusMap = new Map();
+        result.rows.forEach(row => {
+            // Store the status for each found number
+            statusMap.set(row.identifier, row.status);
+        });
+
+        const filteredList = phoneNumbers.filter(original => {
+            const clean = original.toString().replace(/\D/g, '');
+            const status = statusMap.get(clean);
+
+            if (!status) return true; // Keep if not in DB
+
+            if (options.removeAny) return false;
+            if (options.removeGreen && status === 'Green List') return false;
+            if (options.removeCold && status === 'Cold List') return false;
+            if (options.removeBlack && status === 'Black List') return false;
+
+            return true;
+        });
+
+        res.json({
+            filteredNumbers: filteredList,
+            stats: {
+                original: phoneNumbers.length,
+                removed: phoneNumbers.length - filteredList.length,
+                foundInDb: statusMap.size
+            }
+        });
+
+    } catch (err) {
+        console.error("Filter PRO Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/crm/leads', async (req, res) => {
     try {
         const { responsavel, userId } = req.query;
