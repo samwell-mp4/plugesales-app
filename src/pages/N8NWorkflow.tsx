@@ -23,7 +23,8 @@ import {
     List,
     Zap,
     Plus,
-    Filter
+    Filter,
+    Send
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -54,6 +55,8 @@ const N8NWorkflow = () => {
         removeAny: false
     });
     const [activeTab, setActiveTab] = useState<'monitor' | 'campaign'>('monitor');
+    const [newMessage, setNewMessage] = useState('');
+    const [isSending, setIsSending] = useState(false);
     const uniqueRecipients = activeTab === 'monitor' ? monitorLeads : campaignLeads;
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -227,6 +230,43 @@ const N8NWorkflow = () => {
             }
         } catch (err) {
             console.error("Status Update Error:", err);
+        }
+    };
+    
+    const handleSendMessage = async () => {
+        if (!newMessage.trim() || !selectedRecipient || isSending) return;
+        setIsSending(true);
+        try {
+            // Here we would ideally call an API to send the message via n8n or Infobip
+            // For now, we simulate success and add to local log if needed
+            // But let's assume there's an endpoint /api/monitor/send
+            const res = await fetch('/api/monitor/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipientId: selectedRecipient,
+                    message: newMessage,
+                    source: searchNumber
+                })
+            });
+
+            if (res.ok) {
+                const msgObj = {
+                    id: Math.random(),
+                    direction: 'OUTBOUND',
+                    content: { text: newMessage },
+                    createdAt: new Date().toISOString()
+                };
+                setMessages(prev => [...prev, msgObj]);
+                setNewMessage('');
+                setTimeout(scrollToBottom, 100);
+            } else {
+                alert("Erro ao enviar mensagem.");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -590,6 +630,23 @@ const N8NWorkflow = () => {
                                             <div key={m.id} className={`message-bubble message-${m.direction.toLowerCase()}`}>{m.content?.text}<span className="message-time">{formatTime(m.createdAt)}</span></div>
                                         ))}
                                         <div ref={messagesEndRef} />
+                                    </div>
+                                    <div style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '15px' }}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Digite sua mensagem..." 
+                                            value={newMessage} 
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                            style={{ flex: 1, padding: '16px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', color: 'white', outline: 'none', fontWeight: 600 }}
+                                        />
+                                        <button 
+                                            onClick={handleSendMessage}
+                                            disabled={isSending || !newMessage.trim()}
+                                            style={{ width: '56px', height: '56px', background: 'var(--primary-color)', border: 'none', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black', cursor: 'pointer', transition: 'all 0.2s', opacity: (isSending || !newMessage.trim()) ? 0.5 : 1 }}
+                                        >
+                                            {isSending ? <Loader2 size={24} className="animate-spin" /> : <Send size={24} />}
+                                        </button>
                                     </div>
                                 </>
                             )}

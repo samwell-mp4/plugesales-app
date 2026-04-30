@@ -1015,6 +1015,28 @@ app.post('/api/monitor/filter-pro', async (req, res) => {
     }
 });
 
+app.post('/api/monitor/send', async (req, res) => {
+    try {
+        const { recipientId, message, source } = req.body;
+        if (!recipientId || !message) return res.status(400).json({ error: 'Missing data' });
+
+        const cleanRecipient = recipientId.replace(/\D/g, '');
+        const cleanSource = (source || 'System').replace(/\D/g, '');
+
+        // Insert into data_log as an outbound message
+        await pool.query(
+            `INSERT INTO public.data_log (remetente, destinatario, mensagem, data_final, status)
+             VALUES ($1, $2, $3, NOW(), 'OUTBOUND')`,
+            [cleanSource, cleanRecipient, message]
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Send Message Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/monitor/campaign-leads', async (req, res) => {
     try {
         const { campanha } = req.query;
