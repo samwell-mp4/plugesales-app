@@ -105,7 +105,6 @@ const Sidebar = () => {
             items: [
                 { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
                 { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
-                { name: 'Live Chat', path: '/live-chat', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
                 { name: 'Pendências Alteração', path: '/admin/changes', icon: <Bell />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
