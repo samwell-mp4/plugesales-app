@@ -245,18 +245,26 @@ const N8NWorkflow = () => {
 
         setIsLoading(true);
         try {
+            const isCampaignAction = action.startsWith('assign_campaign_');
+            const targetStatus = isCampaignAction ? null : action;
+            const targetCampaign = isCampaignAction ? action.replace('assign_campaign_', '') : selectedCampaign;
+
             const res = await fetch('/api/monitor/bulk-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     recipientIds: selectedIds, 
-                    status: action,
-                    campanha: selectedCampaign 
+                    status: targetStatus,
+                    campanha: targetCampaign 
                 })
             });
             if (res.ok) {
                 setUniqueRecipients(prev => prev.map(r => 
-                    selectedIds.includes(r.id) ? { ...r, status: action } : r
+                    selectedIds.includes(r.id) ? { 
+                        ...r, 
+                        status: targetStatus || r.status,
+                        campanha: targetCampaign || r.campanha 
+                    } : r
                 ));
                 setSelectedIds([]);
             }
@@ -453,7 +461,7 @@ const N8NWorkflow = () => {
                         <input type="text" placeholder="Pesquisar leads..." value={localSearchQuery} onChange={(e) => setLocalSearchQuery(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 45px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontSize: '13px', outline: 'none' }} />
                     </div>
 
-                    <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '14px' }}>
+                    <div style={{ gap: '4px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '14px', display: activeTab === 'monitor' ? 'flex' : 'none' }}>
                         <button onClick={() => setViewMode('chat')} className={`supreme-view-btn ${viewMode === 'chat' ? 'active' : ''}`}><MessageCircle size={16} /> CHAT</button>
                         <button onClick={() => setViewMode('list')} className={`supreme-view-btn ${viewMode === 'list' ? 'active' : ''}`}><List size={16} /> LISTA</button>
                     </div>
@@ -476,13 +484,32 @@ const N8NWorkflow = () => {
                     </div>
                     <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)' }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <select onChange={(e) => { if (e.target.value) { handleBulkAction(e.target.value); e.target.value = ""; } }} defaultValue="" style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'white', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
-                            <option value="" disabled>Ações em Massa...</option>
+                        <select 
+                            onChange={(e) => { if (e.target.value) { handleBulkAction(e.target.value); e.target.value = ""; } }} 
+                            defaultValue="" 
+                            style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'white', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}
+                        >
+                            <option value="" disabled>Alterar Status...</option>
                             <option value="Green List">Marcar como GREEN</option>
                             <option value="Cold List">Marcar como COLD</option>
                             <option value="Black List">Marcar como BLACK</option>
                             <option value="delete">Excluir Registros</option>
                         </select>
+
+                        <select 
+                            onChange={(e) => { 
+                                if (e.target.value) {
+                                    handleBulkAction('assign_campaign_' + e.target.value);
+                                    e.target.value = "";
+                                }
+                            }} 
+                            defaultValue="" 
+                            style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}
+                        >
+                            <option value="" disabled>Mover para Campanha...</option>
+                            {campaigns.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                        </select>
+
                         <button onClick={() => setSelectedIds([])} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>CANCELAR</button>
                     </div>
                 </div>
@@ -493,7 +520,7 @@ const N8NWorkflow = () => {
                     <div className="animate-spin" style={{ width: '50px', height: '50px', border: '4px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%' }}></div>
                 </div>
             ) : (
-                viewMode === 'chat' ? (
+                (viewMode === 'chat' && activeTab === 'monitor') ? (
                     <div className="chat-responsive-container">
                         <div className="supreme-card chat-sidebar-section" style={{ display: 'flex', flexDirection: 'column', padding: '24px', overflow: 'hidden' }}>
                             <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '8px' }}>
@@ -556,9 +583,26 @@ const N8NWorkflow = () => {
                                     <tr key={conv.id} style={{ background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', borderRadius: '18px' }}>
                                         <td style={{ padding: '20px' }}><button onClick={() => toggleSelectOne(conv.id)} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)' }}>{selectedIds.includes(conv.id) ? <CheckSquare size={20} /> : <Square size={20} />}</button></td>
                                         <td style={{ padding: '20px' }}>{conv.name}<br/><span style={{ fontSize: '10px', opacity: 0.4 }}>{conv.id}</span></td>
-                                        <td style={{ padding: '20px' }}>{conv.lastMessage}</td>
-                                        <td style={{ padding: '20px', textAlign: 'center' }}><span style={{ color: getStatusColor(conv.status) }}>{conv.status.toUpperCase()}</span></td>
-                                        <td style={{ padding: '20px', textAlign: 'right' }}><button onClick={() => { selectRecipient(conv.id); setViewMode('chat'); }} style={{ padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 800 }}>ABRIR CHAT</button></td>
+                                        <td style={{ padding: '20px' }}>
+                                            <div style={{ fontSize: '0.9rem', opacity: 0.7, maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {conv.lastMessage}
+                                            </div>
+                                            <div style={{ fontSize: '10px', opacity: 0.3, marginTop: '4px' }}>{formatTime(conv.lastDate)}</div>
+                                        </td>
+                                        <td style={{ padding: '20px', textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Green List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Green List' ? '#22c55e' : 'rgba(34, 197, 94, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Green List' ? 'black' : '#22c55e', cursor: 'pointer', fontWeight: 900 }}>G</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Cold List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Cold List' ? '#3b82f6' : 'rgba(59, 130, 246, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Cold List' ? 'black' : '#3b82f6', cursor: 'pointer', fontWeight: 900 }}>C</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Black List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Black List' ? '#ef4444' : 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Black List' ? 'black' : '#ef4444', cursor: 'pointer', fontWeight: 900 }}>B</button>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '20px', textAlign: 'right' }}>
+                                            {activeTab === 'monitor' ? (
+                                                <button onClick={() => { selectRecipient(conv.id); setViewMode('chat'); }} style={{ padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 800 }}>ABRIR CHAT</button>
+                                            ) : (
+                                                <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: 800 }}>{selectedCampaign}</div>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

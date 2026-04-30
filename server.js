@@ -908,13 +908,16 @@ app.get('/api/monitor/logs', async (req, res) => {
 app.post('/api/monitor/status', async (req, res) => {
     try {
         const { recipientId, status, campanha } = req.body;
-        if (!recipientId || !status) return res.status(400).json({ error: 'Missing data' });
+        if (!recipientId || (!status && !campanha)) return res.status(400).json({ error: 'Missing data' });
 
         const cleanId = recipientId.replace(/\D/g, '');
         // Update status and campaign for all messages involving this contact
         await pool.query(
-            "UPDATE public.data_log SET status = $1, campanha = COALESCE($2, campanha) WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)",
-            [status, campanha || null, `%${cleanId}%`]
+            `UPDATE public.data_log 
+             SET status = COALESCE($1, status), 
+                 campanha = COALESCE($2, campanha) 
+             WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)`,
+            [status || null, campanha || null, `%${cleanId}%`]
         );
         res.json({ success: true });
     } catch (err) {
@@ -926,15 +929,18 @@ app.post('/api/monitor/status', async (req, res) => {
 app.post('/api/monitor/bulk-status', async (req, res) => {
     try {
         const { recipientIds, status, campanha } = req.body;
-        if (!recipientIds || !Array.isArray(recipientIds) || !status) {
+        if (!recipientIds || !Array.isArray(recipientIds) || (!status && !campanha)) {
             return res.status(400).json({ error: 'Faltam dados ou formato inválido.' });
         }
 
         const promises = recipientIds.map(id => {
             const cleanId = id.replace(/\D/g, '');
             return pool.query(
-                "UPDATE public.data_log SET status = $1, campanha = COALESCE($2, campanha) WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)",
-                [status, campanha || null, `%${cleanId}%`]
+                `UPDATE public.data_log 
+                 SET status = COALESCE($1, status), 
+                     campanha = COALESCE($2, campanha) 
+                 WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)`,
+                [status || null, campanha || null, `%${cleanId}%`]
             );
         });
 
