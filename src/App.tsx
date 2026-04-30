@@ -127,7 +127,7 @@ function AppContent() {
     // Special case: Clients CAN access /client-submissions/:id but NOT /client-submissions (list) or /client-submissions/add
     // ASSINATURA_BASICA CAN access /client-submissions (list) and /accounts and /templates
     if (user?.role === 'ASSINATURA_BASICA') {
-        const allowedForBasica = ['/accounts', '/templates', '/client-submissions'];
+        const allowedForBasica = ['/accounts', '/templates', '/client-submissions', '/upload'];
         if (allowedForBasica.some(allowed => location.pathname === allowed || (location.pathname.startsWith(allowed) && !location.pathname.startsWith('/client-submissions/add')))) {
             return false;
         }
