@@ -211,9 +211,14 @@ const N8NWorkflow = () => {
         return matchesStatus && matchesSearch;
     });
 
-    const downloadCSV = () => {
-        const filteredData = uniqueRecipients.filter(r => filterStatus === 'Tudo' || r.status === filterStatus);
-        if (filteredData.length === 0) return alert("Nenhum dado para baixar.");
+    const downloadCSV = (statusOverride?: string) => {
+        const targetStatus = statusOverride || filterStatus;
+        const filteredData = uniqueRecipients.filter(r => targetStatus === 'Tudo' || r.status === targetStatus);
+        
+        if (filteredData.length === 0) {
+            if (!statusOverride) alert("Nenhum dado para baixar.");
+            return;
+        }
 
         const headers = ['ID', 'Nome', 'Status', 'Ultima Mensagem', 'Data'];
         const csvRows = [
@@ -231,11 +236,24 @@ const N8NWorkflow = () => {
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `monitor_n8n_${filterStatus.toLowerCase().replace(' ', '_')}.csv`);
+        link.setAttribute("download", `monitor_n8n_${targetStatus.toLowerCase().replace(/ /g, '_')}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const downloadIndividualLists = () => {
+        const lists = ['Green List', 'Cold List', 'Black List'];
+        let hasData = false;
+        lists.forEach(l => {
+            const data = uniqueRecipients.filter(r => r.status === l);
+            if (data.length > 0) {
+                downloadCSV(l);
+                hasData = true;
+            }
+        });
+        if (!hasData) alert("Nenhuma lista (Green, Cold, Black) possui contatos para baixar.");
     };
 
     const getStatusColor = (status: string) => {
@@ -403,10 +421,16 @@ const N8NWorkflow = () => {
                         <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
                     {uniqueRecipients.length > 0 && (
-                        <button onClick={downloadCSV} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                            <FileSpreadsheet size={18} color="var(--primary-color)" />
-                            BAIXAR (CSV)
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => downloadCSV()} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <FileSpreadsheet size={18} color="var(--primary-color)" />
+                                BAIXAR ATUAL (CSV)
+                            </button>
+                            <button onClick={downloadIndividualLists} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <FileSpreadsheet size={18} />
+                                BAIXAR LISTAS (INDIVIDUAIS)
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -549,9 +573,18 @@ const N8NWorkflow = () => {
                             </thead>
                             <tbody>
                                 {filteredRecipients.map((conv: any) => (
-                                    <tr key={conv.id} style={{ background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', borderRadius: '18px' }} className="hover-lift">
+                                    <tr 
+                                        key={conv.id} 
+                                        onClick={() => toggleSelectOne(conv.id)}
+                                        style={{ 
+                                            background: selectedIds.includes(conv.id) ? 'rgba(172, 248, 0, 0.05)' : 'rgba(255,255,255,0.02)', 
+                                            borderRadius: '18px',
+                                            cursor: 'pointer'
+                                        }} 
+                                        className="hover-lift"
+                                    >
                                         <td style={{ padding: '20px', borderRadius: '18px 0 0 18px' }}>
-                                            <button onClick={() => toggleSelectOne(conv.id)} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
+                                            <button onClick={(e) => { e.stopPropagation(); toggleSelectOne(conv.id); }} style={{ background: 'none', border: 'none', color: selectedIds.includes(conv.id) ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)', cursor: 'pointer' }}>
                                                 {selectedIds.includes(conv.id) ? <CheckSquare size={20} /> : <Square size={20} />}
                                             </button>
                                         </td>
@@ -579,14 +612,14 @@ const N8NWorkflow = () => {
                                         </td>
                                         <td style={{ padding: '20px', textAlign: 'center' }}>
                                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                                                <button onClick={() => updateStatus(conv.id, 'Green List')} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Green List' ? '#22c55e' : 'rgba(34, 197, 94, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Green List' ? 'black' : '#22c55e', cursor: 'pointer', fontWeight: 900 }}>G</button>
-                                                <button onClick={() => updateStatus(conv.id, 'Cold List')} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Cold List' ? '#3b82f6' : 'rgba(59, 130, 246, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Cold List' ? 'black' : '#3b82f6', cursor: 'pointer', fontWeight: 900 }}>C</button>
-                                                <button onClick={() => updateStatus(conv.id, 'Black List')} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Black List' ? '#ef4444' : 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Black List' ? 'black' : '#ef4444', cursor: 'pointer', fontWeight: 900 }}>B</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Green List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Green List' ? '#22c55e' : 'rgba(34, 197, 94, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Green List' ? 'black' : '#22c55e', cursor: 'pointer', fontWeight: 900 }}>G</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Cold List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Cold List' ? '#3b82f6' : 'rgba(59, 130, 246, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Cold List' ? 'black' : '#3b82f6', cursor: 'pointer', fontWeight: 900 }}>C</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateStatus(conv.id, 'Black List'); }} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: conv.status === 'Black List' ? '#ef4444' : 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '8px', color: conv.status === 'Black List' ? 'black' : '#ef4444', cursor: 'pointer', fontWeight: 900 }}>B</button>
                                             </div>
                                         </td>
                                         <td style={{ padding: '20px', textAlign: 'right', borderRadius: '0 18px 18px 0' }}>
                                             <button 
-                                                onClick={() => { selectRecipient(conv.id); setViewMode('chat'); }}
+                                                onClick={(e) => { e.stopPropagation(); selectRecipient(conv.id); setViewMode('chat'); }}
                                                 style={{ padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '11px', cursor: 'pointer' }}
                                             >
                                                 ABRIR CHAT
