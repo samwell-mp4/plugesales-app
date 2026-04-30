@@ -43,7 +43,7 @@ const N8NWorkflow = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/check-database');
+            const response = await fetch('/api/monitor/logs');
             if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
             
             const text = await response.text();
@@ -81,17 +81,18 @@ const N8NWorkflow = () => {
                         id: otherParty,
                         name: msg.nome && msg.nome !== 'Lead Planilha' ? msg.nome : `Contato ${otherParty}`,
                         lastMessage: msg.mensagem,
-                        lastDate: msg.data,
+                        lastDate: msg.data_final,
                         status: msg.status || 'Default',
                         allMsgs: []
                     });
                 }
                 
                 recipientsMap.get(otherParty).allMsgs.push({
-                    id: Math.random(),
+                    id: msg.id_final || Math.random(),
+                    id_final: msg.id_final,
                     direction: r === cleanSearch ? 'OUTBOUND' : 'INBOUND',
                     content: { text: msg.mensagem },
-                    createdAt: msg.data
+                    createdAt: msg.data_final || new Date().toISOString()
                 });
             }
         });
