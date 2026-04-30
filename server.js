@@ -1007,6 +1007,35 @@ app.post('/api/monitor/filter-pro', async (req, res) => {
     }
 });
 
+app.get('/api/monitor/campaign-leads', async (req, res) => {
+    try {
+        const { campanha } = req.query;
+        if (!campanha) return res.status(400).json({ error: 'Campanha não especificada.' });
+
+        const result = await pool.query(
+            `SELECT DISTINCT ON (identifier) 
+                identifier as id, 
+                nome as name, 
+                mensagem as "lastMessage", 
+                data_final as "lastDate", 
+                status 
+             FROM (
+                SELECT remetente as identifier, nome, mensagem, data_final, status, campanha FROM public.data_log
+                UNION
+                SELECT destinatario as identifier, nome, mensagem, data_final, status, campanha FROM public.data_log
+             ) as subquery
+             WHERE campanha = $1
+             ORDER BY identifier, last_date DESC`,
+            [campanha]
+        );
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Campaign Leads Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/crm/leads', async (req, res) => {
     try {
         const { responsavel, userId } = req.query;

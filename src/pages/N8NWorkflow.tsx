@@ -21,7 +21,9 @@ import {
     FileUp,
     Download,
     List,
-    Zap
+    Zap,
+    Plus,
+    Filter
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -43,12 +45,14 @@ const N8NWorkflow = () => {
     const [isFiltering, setIsFiltering] = useState(false);
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [selectedCampaign, setSelectedCampaign] = useState('');
+    const [isCampaignFilterActive, setIsCampaignFilterActive] = useState(false);
     const [filterOptions, setFilterOptions] = useState({
         removeGreen: true,
         removeCold: true,
         removeBlack: true,
         removeAny: false
     });
+    const [activeTab, setActiveTab] = useState<'monitor' | 'campaign'>('monitor');
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +72,26 @@ const N8NWorkflow = () => {
             if (Array.isArray(data)) setCampaigns(data);
         } catch (err) {
             console.error("Error fetching campaigns:", err);
+        }
+    };
+
+    const handleCreateCampaign = async () => {
+        const name = prompt("Nome da nova campanha:");
+        if (!name) return;
+
+        try {
+            const res = await fetch('/api/campaigns', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description: 'Criada via Monitor' })
+            });
+            if (res.ok) {
+                alert("Campanha criada com sucesso!");
+                fetchCampaigns();
+                setSelectedCampaign(name);
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -103,6 +127,24 @@ const N8NWorkflow = () => {
         }
     };
 
+    const fetchCampaignLeads = async () => {
+        if (!selectedCampaign) return;
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/monitor/campaign-leads?campanha=${encodeURIComponent(selectedCampaign)}`);
+            if (!response.ok) throw new Error(`Erro: ${response.status}`);
+            const data = await response.json();
+            setUniqueRecipients(data);
+            setViewMode('list'); // Campaign view is always list initially
+        } catch (err: any) {
+            console.error("Campaign Fetch Error:", err);
+            setError("Falha ao buscar leads da campanha.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const processMessages = (rawMsgs: any[], searchSource: string) => {
         const cleanSearch = searchSource.replace(/\D/g, '');
         const recipientsMap = new Map();
@@ -114,6 +156,11 @@ const N8NWorkflow = () => {
             if (r === cleanSearch || d === cleanSearch) {
                 const otherParty = r === cleanSearch ? d : r;
                 if (!otherParty) return;
+
+                // Campaign Filter Logic
+                if (isCampaignFilterActive && selectedCampaign && msg.campanha !== selectedCampaign) {
+                    return;
+                }
 
                 if (!recipientsMap.has(otherParty)) {
                     recipientsMap.set(otherParty, {
@@ -339,40 +386,28 @@ const N8NWorkflow = () => {
         } catch (e) { return ''; }
     };
 
-    if (uniqueRecipients.length === 0 && !isLoading) {
+    if (uniqueRecipients.length === 0 && !isLoading && activeTab === 'monitor') {
         return (
             <div className="crm-container" style={{ padding: '80px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+                <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '20px', width: 'fit-content', margin: '0 auto 40px auto', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <button onClick={() => setActiveTab('monitor')} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'monitor' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'monitor' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>MONITOR DE NÚMERO</button>
+                    <button onClick={() => setActiveTab('campaign')} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'campaign' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'campaign' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>GESTÃO DE CAMPANHA</button>
+                </div>
+
                 <div className="supreme-card hover-lift" style={{ width: '100%', maxWidth: '600px', padding: '60px', textAlign: 'center' }}>
                     <div style={{ padding: '24px', background: 'var(--primary-gradient)', borderRadius: '25px', color: 'black', display: 'inline-flex', marginBottom: '32px', boxShadow: '0 15px 45px rgba(172, 248, 0, 0.3)' }}>
                         <Database size={48} />
                     </div>
-                    <h1 style={{ fontSize: '3rem', fontWeight: 950, letterSpacing: '-2px', marginBottom: '12px', background: 'linear-gradient(to right, #fff, var(--primary-color))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase' }}>
-                        MONITOR n8n
-                    </h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '48px' }}>
-                        CONSULTA DE HISTÓRICO POR NÚMERO
-                    </p>
+                    <h1 style={{ fontSize: '3rem', fontWeight: 950, letterSpacing: '-2px', marginBottom: '12px', background: 'linear-gradient(to right, #fff, var(--primary-color))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase' }}>MONITOR n8n</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '48px' }}>CONSULTA DE HISTÓRICO POR NÚMERO</p>
                     
                     <div style={{ position: 'relative', marginBottom: '24px' }}>
                         <Phone size={24} style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.6 }} />
-                        <input 
-                            type="text" 
-                            className="premium-input"
-                            placeholder="Digite o número (ex: 55119...)"
-                            value={searchNumber}
-                            onChange={(e) => setSearchNumber(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                            style={{ paddingLeft: '64px', height: '75px', borderRadius: '24px' }}
-                        />
+                        <input type="text" className="premium-input" placeholder="Digite o número (ex: 55119...)" value={searchNumber} onChange={(e) => setSearchNumber(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSearch()} style={{ paddingLeft: '64px', height: '75px', borderRadius: '24px', width: '100%' }} />
                     </div>
                     
-                    <button 
-                        onClick={handleSearch}
-                        className="premium-button"
-                        style={{ width: '100%', height: '70px', borderRadius: '22px', fontSize: '1.2rem', fontWeight: 950, letterSpacing: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' }}
-                    >
-                        <Search size={24} />
-                        BUSCAR REGISTROS
+                    <button onClick={handleSearch} className="premium-button" style={{ width: '100%', height: '70px', borderRadius: '22px', fontSize: '1.2rem', fontWeight: 950, letterSpacing: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
+                        <Search size={24} /> BUSCAR REGISTROS
                     </button>
                     {error && <p style={{ color: '#ef4444', marginTop: '20px', fontWeight: 700 }}>{error}</p>}
                 </div>
@@ -383,90 +418,56 @@ const N8NWorkflow = () => {
     return (
         <div className="crm-container" style={{ padding: '40px' }}>
             <style>{`
-                .chat-responsive-container {
-                    display: grid;
-                    grid-template-columns: 400px 1fr;
-                    gap: 32px;
-                    height: calc(100vh - 180px);
-                    min-height: 600px;
-                }
-                @media (max-width: 968px) {
-                    .chat-responsive-container {
-                        display: flex;
-                        flex-direction: column;
-                        height: auto;
-                    }
-                    .chat-sidebar-section { width: 100% !important; max-height: 500px; }
-                    .messages-area { height: 500px !important; }
-                }
-                .supreme-card {
-                    background: var(--card-bg-subtle);
-                    backdrop-filter: blur(25px);
-                    border: 1px solid rgba(172, 248, 0, 0.08);
-                    border-radius: 28px;
-                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-                }
-                .message-bubble {
-                    max-width: 80%;
-                    padding: 18px 24px;
-                    border-radius: 22px;
-                    font-size: 1rem;
-                    line-height: 1.6;
-                    position: relative;
-                    margin-bottom: 8px;
-                }
-                .message-outbound {
-                    align-self: flex-end;
-                    background: var(--primary-color);
-                    color: black;
-                    border-bottom-right-radius: 4px;
-                    font-weight: 600;
-                }
-                .message-inbound {
-                    align-self: flex-start;
-                    background: rgba(255, 255, 255, 0.05);
-                    color: white;
-                    border-bottom-left-radius: 4px;
-                    border: 1px solid rgba(255,255,255,0.08);
-                }
-                .message-time {
-                    display: block;
-                    font-size: 10px;
-                    margin-top: 8px;
-                    opacity: 0.5;
-                }
+                .chat-responsive-container { display: grid; grid-template-columns: 400px 1fr; gap: 32px; height: calc(100vh - 180px); min-height: 600px; }
+                @media (max-width: 968px) { .chat-responsive-container { display: flex; flex-direction: column; height: auto; } .chat-sidebar-section { width: 100% !important; max-height: 500px; } .messages-area { height: 500px !important; } }
+                .supreme-card { background: var(--card-bg-subtle); backdrop-filter: blur(25px); border: 1px solid rgba(172, 248, 0, 0.08); border-radius: 28px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+                .supreme-view-btn { padding: 10px 20px; border-radius: 12px; background: transparent; border: none; color: rgba(255,255,255,0.3); cursor: pointer; display: flex; alignItems: center; gap: 8px; font-weight: 800; font-size: 11px; transition: all 0.2s; }
+                .supreme-view-btn.active { background: rgba(172, 248, 0, 0.1); color: var(--primary-color); }
             `}</style>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <button 
-                        onClick={() => setUniqueRecipients([])}
-                        style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'white', cursor: 'pointer' }}
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-                    <div>
-                        <h1 style={{ margin: 0, fontWeight: 950, fontSize: '2.5rem', letterSpacing: '-2px', textTransform: 'uppercase', background: 'linear-gradient(to right, #fff, var(--primary-color))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                            {searchNumber}
-                        </h1>
-                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '11px', fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase' }}>
-                            Monitor de Histórico n8n
-                        </p>
-                    </div>
+            <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '20px', width: 'fit-content', margin: '0 auto 40px auto', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <button onClick={() => { setActiveTab('monitor'); setUniqueRecipients([]); }} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'monitor' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'monitor' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>MONITOR DE NÚMERO</button>
+                <button onClick={() => setActiveTab('campaign')} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'campaign' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'campaign' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: 'pointer' }}>GESTÃO DE CAMPANHA</button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, minWidth: '300px' }}>
+                    {activeTab === 'monitor' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <button onClick={() => setUniqueRecipients([])} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'white', cursor: 'pointer' }}><ArrowLeft size={20} /></button>
+                            <div>
+                                <h1 style={{ margin: 0, fontWeight: 950, fontSize: '2rem', letterSpacing: '-1px', textTransform: 'uppercase', color: 'white' }}>{searchNumber}</h1>
+                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '10px', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase' }}>Monitor de Histórico</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '0 15px', flex: 1, maxWidth: '400px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 900, opacity: 0.4 }}>CAMPANHA</span>
+                            <select value={selectedCampaign} onChange={(e) => setSelectedCampaign(e.target.value)} style={{ background: 'none', border: 'none', color: 'white', padding: '12px 5px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', outline: 'none', flex: 1 }}>
+                                <option value="">Escolha...</option>
+                                {campaigns.map(c => <option key={c.id} value={c.name} style={{ background: '#1a1a1a' }}>{c.name}</option>)}
+                            </select>
+                            <button onClick={handleCreateCampaign} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer' }}><Plus size={18} /></button>
+                        </div>
+                    )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '300px' }}>
-                    <div style={{ position: 'relative', flex: 1 }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', width: '250px' }}>
                         <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
-                        <input 
-                            type="text" 
-                            placeholder="Filtrar por nome ou número..." 
-                            value={localSearchQuery}
-                            onChange={(e) => setLocalSearchQuery(e.target.value)}
-                            style={{ width: '100%', padding: '12px 12px 12px 45px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontSize: '13px', outline: 'none' }}
-                        />
+                        <input type="text" placeholder="Pesquisar leads..." value={localSearchQuery} onChange={(e) => setLocalSearchQuery(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 45px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontSize: '13px', outline: 'none' }} />
                     </div>
+
+                    <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '14px' }}>
+                        <button onClick={() => setViewMode('chat')} className={`supreme-view-btn ${viewMode === 'chat' ? 'active' : ''}`}><MessageCircle size={16} /> CHAT</button>
+                        <button onClick={() => setViewMode('list')} className={`supreme-view-btn ${viewMode === 'list' ? 'active' : ''}`}><List size={16} /> LISTA</button>
+                    </div>
+
+                    <button onClick={activeTab === 'monitor' ? handleSearch : fetchCampaignLeads} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, cursor: 'pointer' }} className="hover-lift">
+                        <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
                 </div>
+            </div>
 
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -483,18 +484,45 @@ const N8NWorkflow = () => {
                             <List size={16} /> LISTA
                         </button>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '0 15px' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 900, opacity: 0.4 }}>CAMPANHA</span>
-                        <select 
-                            value={selectedCampaign}
-                            onChange={(e) => setSelectedCampaign(e.target.value)}
-                            style={{ background: 'none', border: 'none', color: 'white', padding: '12px 5px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {activeTab === 'monitor' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '0 15px' }}>
+                                <span style={{ fontSize: '10px', fontWeight: 900, opacity: 0.4 }}>CAMPANHA</span>
+                                <select 
+                                    value={selectedCampaign}
+                                    onChange={(e) => setSelectedCampaign(e.target.value)}
+                                    style={{ background: 'none', border: 'none', color: 'white', padding: '12px 5px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+                                >
+                                    <option value="">Nenhuma</option>
+                                    {campaigns.map(c => (
+                                        <option key={c.id} value={c.name} style={{ background: '#1a1a1a' }}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <button onClick={handleCreateCampaign} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', padding: '0 5px' }}>
+                                    <Plus size={18} />
+                                </button>
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={() => setIsCampaignFilterActive(!isCampaignFilterActive)}
+                            style={{ 
+                                display: activeTab === 'monitor' ? 'flex' : 'none', 
+                                alignItems: 'center', 
+                                gap: '8px', 
+                                padding: '12px 16px', 
+                                background: isCampaignFilterActive ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255,255,255,0.05)', 
+                                border: '1px solid', 
+                                borderColor: isCampaignFilterActive ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
+                                borderRadius: '16px',
+                                color: isCampaignFilterActive ? 'var(--primary-color)' : 'white',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                            }}
                         >
-                            <option value="">Nenhuma</option>
-                            {campaigns.map(c => (
-                                <option key={c.id} value={c.name} style={{ background: '#1a1a1a' }}>{c.name}</option>
-                            ))}
-                        </select>
+                            <Filter size={14} /> {isCampaignFilterActive ? "FILTRANDO" : "FILTRAR"}
+                        </button>
                     </div>
                     <button onClick={handleSearch} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, cursor: 'pointer' }} className="hover-lift">
                         <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
