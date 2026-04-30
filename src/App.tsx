@@ -42,7 +42,6 @@ import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
 import Download from './pages/Download';
 import AdminChanges from './pages/AdminChanges';
-import FiltroPro from './pages/FiltroPro';
 import MetaPixel from './components/MetaPixel';
 import SupremeLoading from './components/SupremeLoading';
 import './index.css';
@@ -118,7 +117,6 @@ function AppContent() {
     '/dispatch',
     '/crm/consultiva',
     '/crm/n8n-monitor',
-    '/crm/filtro-pro',
     '/admin/step-leads',
     '/admin/plug-cards'
   ];
@@ -198,7 +196,6 @@ function AppContent() {
           <Route path="/crm/analise" element={<CRMAnalise />} />
           <Route path="/crm/funil" element={<CRMFunil />} />
           <Route path="/crm/consultiva" element={<GestaoConsultiva />} />
-          <Route path="/crm/filtro-pro" element={<FiltroPro />} />
           <Route path="/cron-report" element={<CronReport />} />
           {/* PLUG CARDS MODULE — isolated, no impact on existing routes */}
           <Route path="/plug-cards" element={<PlugCardsExchange />} />

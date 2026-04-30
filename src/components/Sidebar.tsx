@@ -120,7 +120,6 @@ const Sidebar = () => {
                 { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'INFLUENCER'] },
                 { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE'] },
-                { name: 'Filtro PRO', path: '/crm/filtro-pro', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE'] },
             ]
         },
         {

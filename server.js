@@ -907,14 +907,14 @@ app.get('/api/monitor/logs', async (req, res) => {
 
 app.post('/api/monitor/status', async (req, res) => {
     try {
-        const { recipientId, status } = req.body;
+        const { recipientId, status, campanha } = req.body;
         if (!recipientId || !status) return res.status(400).json({ error: 'Missing data' });
 
         const cleanId = recipientId.replace(/\D/g, '');
-        // Update status for all messages involving this contact
+        // Update status and campaign for all messages involving this contact
         await pool.query(
-            "UPDATE public.data_log SET status = $1 WHERE (remetente ILIKE $2 OR destinatario ILIKE $2)",
-            [status, `%${cleanId}%`]
+            "UPDATE public.data_log SET status = $1, campanha = COALESCE($2, campanha) WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)",
+            [status, campanha || null, `%${cleanId}%`]
         );
         res.json({ success: true });
     } catch (err) {
@@ -925,7 +925,7 @@ app.post('/api/monitor/status', async (req, res) => {
 
 app.post('/api/monitor/bulk-status', async (req, res) => {
     try {
-        const { recipientIds, status } = req.body;
+        const { recipientIds, status, campanha } = req.body;
         if (!recipientIds || !Array.isArray(recipientIds) || !status) {
             return res.status(400).json({ error: 'Faltam dados ou formato inválido.' });
         }
@@ -933,8 +933,8 @@ app.post('/api/monitor/bulk-status', async (req, res) => {
         const promises = recipientIds.map(id => {
             const cleanId = id.replace(/\D/g, '');
             return pool.query(
-                "UPDATE public.data_log SET status = $1 WHERE (remetente ILIKE $2 OR destinatario ILIKE $2)",
-                [status, `%${cleanId}%`]
+                "UPDATE public.data_log SET status = $1, campanha = COALESCE($2, campanha) WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)",
+                [status, campanha || null, `%${cleanId}%`]
             );
         });
 
@@ -946,32 +946,10 @@ app.post('/api/monitor/bulk-status', async (req, res) => {
     }
 });
 
-app.post('/api/monitor/bulk-delete', async (req, res) => {
-    try {
-        const { recipientIds } = req.body;
-        if (!recipientIds || !Array.isArray(recipientIds)) {
-            return res.status(400).json({ error: 'Lista de IDs inválida.' });
-        }
-
-        const promises = recipientIds.map(id => {
-            const cleanId = id.replace(/\D/g, '');
-            return pool.query(
-                "DELETE FROM public.data_log WHERE (remetente ILIKE $1 OR destinatario ILIKE $1)",
-                [`%${cleanId}%`]
-            );
-        });
-
-        await Promise.all(promises);
-        res.json({ success: true });
-    } catch (err) {
-        console.error("Bulk Delete Error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 app.post('/api/monitor/filter-pro', async (req, res) => {
     try {
-        const { phoneNumbers, options } = req.body; // options: { removeGreen: bool, removeCold: bool, removeBlack: bool, removeAny: bool }
+        const { phoneNumbers, options, campanha } = req.body; 
+        // options: { removeGreen: bool, removeCold: bool, removeBlack: bool, removeAny: bool }
         if (!phoneNumbers || !Array.isArray(phoneNumbers)) {
             return res.status(400).json({ error: 'Lista de números inválida.' });
         }
@@ -979,22 +957,24 @@ app.post('/api/monitor/filter-pro', async (req, res) => {
         const cleanNumbers = phoneNumbers.map(n => n.toString().replace(/\D/g, '')).filter(n => n.length > 5);
         if (cleanNumbers.length === 0) return res.json({ filteredNumbers: [], stats: { original: 0, removed: 0 } });
 
-        // Build a query to find all these numbers that have a status in the DB
-        // Using a temporary table or a large IN clause is risky for huge lists, 
-        // but for a few thousands, IN is fine. For now, let's use a smart lookup.
-        
-        const result = await pool.query(
-            `SELECT DISTINCT identifier, status FROM (
-                SELECT remetente as identifier, status FROM public.data_log WHERE remetente = ANY($1)
+        let query = `
+            SELECT DISTINCT identifier, status FROM (
+                SELECT remetente as identifier, status, campanha FROM public.data_log WHERE remetente = ANY($1)
                 UNION
-                SELECT destinatario as identifier, status FROM public.data_log WHERE destinatario = ANY($1)
-            ) as subquery`,
-            [cleanNumbers]
-        );
+                SELECT destinatario as identifier, status, campanha FROM public.data_log WHERE destinatario = ANY($1)
+            ) as subquery
+        `;
+
+        const queryParams = [cleanNumbers];
+        if (campanha) {
+            query += ` WHERE campanha = $2`;
+            queryParams.push(campanha);
+        }
+
+        const result = await pool.query(query, queryParams);
 
         const statusMap = new Map();
         result.rows.forEach(row => {
-            // Store the status for each found number
             statusMap.set(row.identifier, row.status);
         });
 
@@ -1002,7 +982,7 @@ app.post('/api/monitor/filter-pro', async (req, res) => {
             const clean = original.toString().replace(/\D/g, '');
             const status = statusMap.get(clean);
 
-            if (!status) return true; // Keep if not in DB
+            if (!status) return true; 
 
             if (options.removeAny) return false;
             if (options.removeGreen && status === 'Green List') return false;

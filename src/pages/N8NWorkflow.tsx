@@ -12,12 +12,14 @@ import {
     Phone,
     Smartphone,
     Loader2,
-    List,
     MessageCircle,
     Trash2,
     CheckSquare,
     Square,
-    ChevronDown
+    ChevronDown,
+    X,
+    FileUp,
+    Download
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -34,11 +36,37 @@ const N8NWorkflow = () => {
     const [viewMode, setViewMode] = useState<'chat' | 'list'>('chat');
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [localSearchQuery, setLocalSearchQuery] = useState('');
+    const [showFilterModal, setShowFilterModal] = useState(false);
+    const [filterResult, setFilterResult] = useState<any>(null);
+    const [isFiltering, setIsFiltering] = useState(false);
+    const [campaigns, setCampaigns] = useState<any[]>([]);
+    const [selectedCampaign, setSelectedCampaign] = useState('');
+    const [filterOptions, setFilterOptions] = useState({
+        removeGreen: true,
+        removeCold: true,
+        removeBlack: true,
+        removeAny: false
+    });
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        fetchData();
+        fetchCampaigns();
+    }, [filterStatus]);
+
+    const fetchCampaigns = async () => {
+        try {
+            const res = await fetch('/api/campaigns');
+            const data = await res.json();
+            if (Array.isArray(data)) setCampaigns(data);
+        } catch (err) {
+            console.error("Error fetching campaigns:", err);
+        }
     };
 
     useEffect(() => {
@@ -133,7 +161,8 @@ const N8NWorkflow = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     recipientId: recipientId,
-                    status: newStatus
+                    status: newStatus,
+                    campanha: selectedCampaign
                 })
             });
 
@@ -176,7 +205,11 @@ const N8NWorkflow = () => {
             const res = await fetch('/api/monitor/bulk-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ recipientIds: selectedIds, status: action })
+                body: JSON.stringify({ 
+                    recipientIds: selectedIds, 
+                    status: action,
+                    campanha: selectedCampaign 
+                })
             });
             if (res.ok) {
                 setUniqueRecipients(prev => prev.map(r => 
@@ -254,6 +287,37 @@ const N8NWorkflow = () => {
             }
         });
         if (!hasData) alert("Nenhuma lista (Green, Cold, Black) possui contatos para baixar.");
+    };
+
+    const handleFilterPro = async (file: File) => {
+        setIsFiltering(true);
+        try {
+            const text = await file.text();
+            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+            const numbers = lines.map(line => line.split(',')[0].replace(/\D/g, '')).filter(n => n.length > 5);
+
+            const res = await fetch('/api/monitor/filter-pro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    phoneNumbers: numbers, 
+                    options: filterOptions,
+                    campanha: selectedCampaign 
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                setFilterResult(data);
+            } else {
+                alert(data.error || "Erro ao processar.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao ler arquivo.");
+        } finally {
+            setIsFiltering(false);
+        }
     };
 
     const getStatusColor = (status: string) => {
@@ -417,8 +481,29 @@ const N8NWorkflow = () => {
                             <List size={16} /> LISTA
                         </button>
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '0 15px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 900, opacity: 0.4 }}>CAMPANHA</span>
+                        <select 
+                            value={selectedCampaign}
+                            onChange={(e) => setSelectedCampaign(e.target.value)}
+                            style={{ background: 'none', border: 'none', color: 'white', padding: '12px 5px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+                        >
+                            <option value="">Nenhuma</option>
+                            {campaigns.map(c => (
+                                <option key={c.id} value={c.name} style={{ background: '#1a1a1a' }}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
                     <button onClick={handleSearch} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, cursor: 'pointer' }} className="hover-lift">
                         <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
+                    <button 
+                        onClick={() => setShowFilterModal(true)} 
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} 
+                        className="hover-lift"
+                    >
+                        <Zap size={18} fill="var(--primary-color)" />
+                        FILTRO PRO
                     </button>
                     {uniqueRecipients.length > 0 && (
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -631,6 +716,81 @@ const N8NWorkflow = () => {
                         </table>
                     </div>
                 )
+            )}
+
+            {showFilterModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div style={{ width: '100%', maxWidth: '800px', background: 'var(--card-bg-subtle)', borderRadius: '32px', border: '1px solid rgba(172, 248, 0, 0.2)', padding: '40px', position: 'relative' }}>
+                        <button onClick={() => { setShowFilterModal(false); setFilterResult(null); }} style={{ position: 'absolute', right: '30px', top: '30px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <X size={20} />
+                        </button>
+
+                        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                            <div style={{ display: 'inline-flex', padding: '8px 20px', background: 'rgba(172, 248, 0, 0.1)', borderRadius: '100px', marginBottom: '16px', alignItems: 'center', gap: '8px' }}>
+                                <Zap size={16} color="var(--primary-color)" fill="var(--primary-color)" />
+                                <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px', textTransform: 'uppercase' }}>Ferramenta de Limpeza</span>
+                            </div>
+                            <h2 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 950, letterSpacing: '-2px', textTransform: 'uppercase' }}>Filtro PRO</h2>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '30px' }}>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeGreen: !o.removeGreen, removeAny: false }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeGreen ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', background: filterOptions.removeGreen ? 'rgba(172, 248, 0, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
+                                <span style={{ fontSize: '12px', fontWeight: 800 }}>Remover Green</span>
+                            </div>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeCold: !o.removeCold, removeAny: false }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeCold ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', background: filterOptions.removeCold ? 'rgba(172, 248, 0, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }} />
+                                <span style={{ fontSize: '12px', fontWeight: 800 }}>Remover Cold</span>
+                            </div>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeBlack: !o.removeBlack, removeAny: false }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeBlack ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', background: filterOptions.removeBlack ? 'rgba(172, 248, 0, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
+                                <span style={{ fontSize: '12px', fontWeight: 800 }}>Remover Black</span>
+                            </div>
+                        </div>
+
+                        {!filterResult ? (
+                            <div 
+                                onClick={() => document.getElementById('modal-file-input')?.click()}
+                                style={{ border: '2px dashed rgba(172, 248, 0, 0.2)', borderRadius: '24px', padding: '60px', textAlign: 'center', background: 'rgba(0,0,0,0.2)', cursor: 'pointer' }}
+                            >
+                                <input type="file" id="modal-file-input" hidden accept=".csv,.txt" onChange={(e) => e.target.files?.[0] && handleFilterPro(e.target.files[0])} />
+                                <FileUp size={40} style={{ marginBottom: '20px', opacity: 0.3 }} />
+                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{isFiltering ? "Processando..." : "Enviar lista para limpar"}</h3>
+                                <p style={{ margin: '8px 0 0 0', fontSize: '12px', opacity: 0.4 }}>Clique aqui para selecionar seu arquivo CSV ou TXT</p>
+                            </div>
+                        ) : (
+                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
+                                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: 900 }}>Original</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{filterResult.stats.original}</div>
+                                    </div>
+                                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '20px', borderRadius: '20px', textAlign: 'center', color: '#ef4444' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.6, fontWeight: 900 }}>Removidos</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>-{filterResult.stats.removed}</div>
+                                    </div>
+                                    <div style={{ background: 'rgba(172, 248, 0, 0.05)', padding: '20px', borderRadius: '20px', textAlign: 'center', color: 'var(--primary-color)' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.6, fontWeight: 900 }}>Limpos</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{filterResult.filteredNumbers.length}</div>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        const blob = new Blob([filterResult.filteredNumbers.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                                        const url = URL.createObjectURL(blob);
+                                        const link = document.createElement("a");
+                                        link.setAttribute("href", url);
+                                        link.setAttribute("download", `lista_limpa_pro_${Date.now()}.csv`);
+                                        link.click();
+                                    }}
+                                    style={{ width: '100%', padding: '20px', background: 'var(--primary-color)', border: 'none', borderRadius: '20px', color: 'black', fontWeight: 900, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
+                                >
+                                    <Download size={20} /> BAIXAR LISTA LIMPA
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
     );
