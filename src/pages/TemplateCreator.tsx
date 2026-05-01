@@ -55,6 +55,7 @@ const TemplateCreator = () => {
     const [infobipUrl, setInfobipUrl] = useState(user?.infobip_url || '');
     const [isUploading, setIsUploading] = useState(false);
     const [useLuisHenrique, setUseLuisHenrique] = useState(false);
+    const [trackingUrl, setTrackingUrl] = useState(false);
 
     const LUIS_HENRIQUE_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
     const LUIS_HENRIQUE_BASE = '9kn66r.api-us.infobip.com';
@@ -315,13 +316,20 @@ const TemplateCreator = () => {
                 return bPayload;
             });
         }
-
-        return {
+        const finalPayload: any = {
             name: name,
             language: lang,
             category: 'UTILITY',
             structure: structure
         };
+
+        if (trackingUrl) {
+            finalPayload.tracking = {
+                trackClicks: true
+            };
+        }
+
+        return finalPayload;
     };
 
     const callInfobipAPI = async (payload: any, overrideSender?: string) => {
@@ -1387,6 +1395,30 @@ const TemplateCreator = () => {
                                     </label>
                                 </div>
                             )}
+                            <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <div className="flex flex-col">
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Tracking URL?</span>
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Ativar rastreamento de cliques na Infobip</span>
+                                </div>
+                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
+                                    <input
+                                        type="checkbox"
+                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                        checked={trackingUrl}
+                                        onChange={(e) => setTrackingUrl(e.target.checked)}
+                                    />
+                                    <span style={{
+                                        position: 'absolute', cursor: 'pointer', inset: 0,
+                                        backgroundColor: trackingUrl ? 'var(--primary-color)' : '#333',
+                                        transition: '.4s', borderRadius: '34px'
+                                    }}>
+                                        <span style={{
+                                            position: 'absolute', height: '16px', width: '16px', left: trackingUrl ? '24px' : '4px', bottom: '3px',
+                                            backgroundColor: trackingUrl ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                                        }}></span>
+                                    </span>
+                                </label>
+                            </div>
 
                             <div className="flex flex-col gap-3">
                                 <label>Idioma do Template</label>
