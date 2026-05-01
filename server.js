@@ -897,8 +897,7 @@ const updateInfluencerLead = async (sheets, spreadsheetId, rowIndex, data) => {
 
 app.get('/api/monitor/logs', async (req, res) => {
     try {
-        // Query the data_log table created by the user
-        const result = await pool.query('SELECT * FROM public.data_log_old ORDER BY data_final DESC, id_final DESC LIMIT 2000');
+        const result = await pool.query('SELECT * FROM public.data_log_old ORDER BY data_final DESC LIMIT 2000');
         res.json(result.rows);
     } catch (err) {
         console.error("Monitor Logs Error:", err.message);
