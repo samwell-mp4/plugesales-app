@@ -628,8 +628,9 @@ const initDB = async () => {
         console.log('✅ Table push_subscriptions verified/created.');
         // ============================================================
 
-        await client.query(`ALTER TABLE public.data_log ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
-        console.log('✅ Database initialized and verified.');
+        await client.query(`ALTER TABLE public.data_log_old ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
+        await client.query(`ALTER TABLE public.data_log_old ADD COLUMN IF NOT EXISTS campanha_target TEXT`);
+        console.log('✅ Database initialized and verified (data_log_old).');
 
     } catch (err) {
         console.error('❌ FATAL DB ERROR during initDB:', err.message);
