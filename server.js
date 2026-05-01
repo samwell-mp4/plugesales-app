@@ -897,7 +897,7 @@ const updateInfluencerLead = async (sheets, spreadsheetId, rowIndex, data) => {
 app.get('/api/monitor/logs', async (req, res) => {
     try {
         // Query the data_log table created by the user
-        const result = await pool.query('SELECT * FROM public.data_log ORDER BY data_final DESC, id_final DESC LIMIT 2000');
+        const result = await pool.query('SELECT * FROM public.data_log_old ORDER BY data_final DESC, id_final DESC LIMIT 2000');
         res.json(result.rows);
     } catch (err) {
         console.error("Monitor Logs Error:", err.message);
@@ -913,7 +913,7 @@ app.post('/api/monitor/status', async (req, res) => {
         const cleanId = recipientId.replace(/\D/g, '');
         // Update status and campaign for all messages involving this contact
         await pool.query(
-            `UPDATE public.data_log 
+            `UPDATE public.data_log_old 
              SET status = COALESCE($1, status), 
                  campanha = COALESCE($2, campanha),
                  campanha_target = $4
@@ -937,7 +937,7 @@ app.post('/api/monitor/bulk-status', async (req, res) => {
         const promises = recipientIds.map(id => {
             const cleanId = id.replace(/\D/g, '');
             return pool.query(
-                `UPDATE public.data_log 
+                `UPDATE public.data_log_old 
                  SET status = COALESCE($1, status), 
                      campanha = COALESCE($2, campanha),
                      campanha_target = $4
@@ -967,9 +967,9 @@ app.post('/api/monitor/filter-pro', async (req, res) => {
 
         let query = `
             SELECT DISTINCT identifier, status FROM (
-                SELECT remetente as identifier, status, campanha FROM public.data_log WHERE remetente = ANY($1)
+                SELECT remetente as identifier, status, campanha FROM public.data_log_old WHERE remetente = ANY($1)
                 UNION
-                SELECT destinatario as identifier, status, campanha FROM public.data_log WHERE destinatario = ANY($1)
+                SELECT destinatario as identifier, status, campanha FROM public.data_log_old WHERE destinatario = ANY($1)
             ) as subquery
         `;
 
@@ -1025,7 +1025,7 @@ app.post('/api/monitor/send', async (req, res) => {
 
         // Insert into data_log as an outbound message
         await pool.query(
-            `INSERT INTO public.data_log (remetente, destinatario, mensagem, data_final, status)
+            `INSERT INTO public.data_log_old (remetente, destinatario, mensagem, data_final, status)
              VALUES ($1, $2, $3, NOW(), 'OUTBOUND')`,
             [cleanSource, cleanRecipient, message]
         );
@@ -1051,9 +1051,9 @@ app.get('/api/monitor/campaign-leads', async (req, res) => {
                 data_final as "lastDate", 
                 status 
              FROM (
-                SELECT remetente as identifier, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log
+                SELECT remetente as identifier, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log_old
                 UNION
-                SELECT destinatario as identifier, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log
+                SELECT destinatario as identifier, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log_old
              ) as subquery
              WHERE campanha = $1 AND identifier = campanha_target
              ORDER BY identifier, data_final DESC`,
