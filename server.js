@@ -473,8 +473,21 @@ const initDB = async () => {
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION`);
         
-        await safeAlter(`ALTER TABLE smart_bios ADD CONSTRAINT unique_user_id UNIQUE (user_id)`);
-
+        // Robust migration for smart_bios: Deduplicate then add constraint
+        try {
+            await client.query(`
+                DELETE FROM smart_bios a USING smart_bios b 
+                WHERE a.created_at < b.created_at AND a.user_id = b.user_id
+            `);
+            await client.query(`ALTER TABLE smart_bios ADD CONSTRAINT unique_user_id UNIQUE (user_id)`);
+            console.log('✅ Unique constraint added to smart_bios.');
+        } catch (e) {
+            // Already exists or other error, safe to ignore if already unique
+            if (!e.message.includes('already exists')) {
+                console.warn('⚠️ Migration warning (smart_bios):', e.message);
+            }
+        }
+        
         await client.query(`
             CREATE TABLE IF NOT EXISTS infobip_templates (
                 id TEXT PRIMARY KEY,
