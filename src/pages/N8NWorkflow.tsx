@@ -58,6 +58,8 @@ const N8NWorkflow = () => {
     const [activeTab, setActiveTab] = useState<'monitor' | 'campaign'>('monitor');
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [filterStep, setFilterStep] = useState<'upload' | 'options' | 'result'>('upload');
+    const [uploadedNumbers, setUploadedNumbers] = useState<string[]>([]);
     const uniqueRecipients = activeTab === 'monitor' ? monitorLeads : campaignLeads;
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -390,18 +392,15 @@ const N8NWorkflow = () => {
         if (!hasData) alert("Nenhuma lista possui contatos para baixar.");
     };
 
-    const handleFilterPro = async (file: File) => {
+    const handleFilterPro = async () => {
+        if (uploadedNumbers.length === 0) return;
         setIsFiltering(true);
         try {
-            const text = await file.text();
-            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-            const numbers = lines.map(line => line.split(',')[0].replace(/\D/g, '')).filter(n => n.length > 5);
-
             const res = await fetch('/api/monitor/filter-pro', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    phoneNumbers: numbers, 
+                    phoneNumbers: uploadedNumbers, 
                     options: filterOptions,
                     campanha: selectedCampaign 
                 })
@@ -409,18 +408,18 @@ const N8NWorkflow = () => {
 
             const data = await res.json();
             if (res.ok) {
-                // Calculate removed numbers by comparing original set with filtered list
-                const originalSet = new Set(numbers);
+                const originalSet = new Set(uploadedNumbers);
                 const filteredSet = new Set(data.filteredNumbers.map((n:any) => n.toString().replace(/\D/g, '')));
                 const removedNumbers = Array.from(originalSet).filter(n => !filteredSet.has(n));
                 
                 setFilterResult({ ...data, removedNumbers });
+                setFilterStep('result');
             } else {
                 alert(data.error || "Erro ao processar.");
             }
         } catch (err) {
             console.error(err);
-            alert("Erro ao ler arquivo.");
+            alert("Erro na requisição.");
         } finally {
             setIsFiltering(false);
         }
@@ -621,10 +620,17 @@ const N8NWorkflow = () => {
                 (viewMode === 'chat' && activeTab === 'monitor') ? (
                     <div className="chat-responsive-container">
                         <div className="supreme-card chat-sidebar-section" style={{ display: 'flex', flexDirection: 'column', padding: '24px', overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '8px' }}>
-                                {['Tudo', 'Green List', 'Cold List', 'Black List'].map(status => (
-                                    <button key={status} onClick={() => setFilterStatus(status)} style={{ padding: '12px 18px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)', background: filterStatus === status ? 'var(--primary-color)' : 'rgba(255,255,255,0.03)', color: filterStatus === status ? 'black' : 'white', fontSize: '11px', fontWeight: 950, cursor: 'pointer' }}>{status}</button>
-                                ))}
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '8px' }}>
+                                <select 
+                                    value={filterStatus} 
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    style={{ width: '100%', padding: '14px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', fontWeight: 900, fontSize: '12px', cursor: 'pointer', outline: 'none' }}
+                                >
+                                    <option value="Tudo">📂 EXIBIR TUDO (GERAL)</option>
+                                    <option value="Green List">🟢 GREEN LIST</option>
+                                    <option value="Cold List">🔵 COLD LIST</option>
+                                    <option value="Black List">🔴 BLACK LIST</option>
+                                </select>
                             </div>
                             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {filteredRecipients.map((conv: any) => (
@@ -744,50 +750,105 @@ const N8NWorkflow = () => {
             {showFilterModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                     <div style={{ width: '100%', maxWidth: '800px', background: 'var(--card-bg-subtle)', borderRadius: '32px', border: '1px solid rgba(172, 248, 0, 0.2)', padding: '40px', position: 'relative' }}>
-                        <button onClick={() => { setShowFilterModal(false); setFilterResult(null); }} style={{ position: 'absolute', right: '30px', top: '30px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
-                        <h2 style={{ textAlign: 'center', fontSize: '2.5rem', fontWeight: 950 }}>Filtro PRO</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '30px' }}>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeGreen: !o.removeGreen }))} style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeGreen ? '#22c55e' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e', opacity: filterOptions.removeGreen ? 1 : 0.2 }}></div>
-                                <span style={{ fontWeight: 800, fontSize: '13px' }}>Remover GREEN</span>
-                            </div>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeCold: !o.removeCold }))} style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeCold ? '#3b82f6' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#3b82f6', opacity: filterOptions.removeCold ? 1 : 0.2 }}></div>
-                                <span style={{ fontWeight: 800, fontSize: '13px' }}>Remover COLD</span>
-                            </div>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeBlack: !o.removeBlack }))} style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeBlack ? '#ef4444' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444', opacity: filterOptions.removeBlack ? 1 : 0.2 }}></div>
-                                <span style={{ fontWeight: 800, fontSize: '13px' }}>Remover BLACK</span>
-                            </div>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeBots: !o.removeBots }))} style={{ padding: '18px', borderRadius: '18px', background: 'rgba(172, 248, 0, 0.03)', border: '1px solid', borderColor: filterOptions.removeBots ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <Zap size={18} color={filterOptions.removeBots ? 'var(--primary-color)' : 'white'} style={{ opacity: filterOptions.removeBots ? 1 : 0.2 }} />
-                                <span style={{ fontWeight: 800, fontSize: '13px', color: filterOptions.removeBots ? 'var(--primary-color)' : 'white' }}>REMOVER BOTS 🤖</span>
+                        <button onClick={() => { setShowFilterModal(false); setFilterResult(null); setFilterStep('upload'); setUploadedNumbers([]); }} style={{ position: 'absolute', right: '30px', top: '30px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', cursor: 'pointer', zIndex: 10 }}><X size={20} /></button>
+                        
+                        <div style={{ marginBottom: '40px', textAlign: 'center' }}>
+                            <h2 style={{ fontSize: '2.5rem', fontWeight: 950, marginBottom: '10px' }}>Filtro PRO</h2>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: filterStep === 'upload' ? 1 : 0.3 }}>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: filterStep === 'upload' ? 'var(--primary-color)' : 'white', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900 }}>1</div>
+                                    <span style={{ fontSize: '12px', fontWeight: 900 }}>UPLOAD</span>
+                                </div>
+                                <div style={{ width: '40px', height: '1px', background: 'rgba(255,255,255,0.1)', alignSelf: 'center' }}></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: filterStep === 'options' ? 1 : 0.3 }}>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: filterStep === 'options' ? 'var(--primary-color)' : 'white', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900 }}>2</div>
+                                    <span style={{ fontSize: '12px', fontWeight: 900 }}>OPÇÕES</span>
+                                </div>
+                                <div style={{ width: '40px', height: '1px', background: 'rgba(255,255,255,0.1)', alignSelf: 'center' }}></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: filterStep === 'result' ? 1 : 0.3 }}>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: filterStep === 'result' ? 'var(--primary-color)' : 'white', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900 }}>3</div>
+                                    <span style={{ fontSize: '12px', fontWeight: 900 }}>RESULTADO</span>
+                                </div>
                             </div>
                         </div>
-                        {!filterResult ? (
-                            <div onClick={() => document.getElementById('modal-file-input')?.click()} style={{ border: '2px dashed rgba(172, 248, 0, 0.2)', borderRadius: '24px', padding: '60px', textAlign: 'center', cursor: 'pointer' }}>
-                                <input type="file" id="modal-file-input" hidden accept=".csv,.txt" onChange={(e) => e.target.files?.[0] && handleFilterPro(e.target.files[0])} />
-                                <FileUp size={40} style={{ marginBottom: '20px', opacity: 0.3 }} />
-                                <h3>{isFiltering ? "Processando..." : "Enviar lista para limpar"}</h3>
+
+                        {filterStep === 'upload' && (
+                            <div onClick={() => document.getElementById('modal-file-input')?.click()} style={{ border: '2px dashed rgba(172, 248, 0, 0.2)', borderRadius: '24px', padding: '80px 40px', textAlign: 'center', cursor: 'pointer', background: 'rgba(172, 248, 0, 0.02)' }} className="hover-lift">
+                                <input type="file" id="modal-file-input" hidden accept=".csv,.txt" onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    const text = await file.text();
+                                    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                                    const numbers = lines.map(line => line.split(',')[0].replace(/\D/g, '')).filter(n => n.length > 5);
+                                    setUploadedNumbers(numbers);
+                                    setFilterStep('options');
+                                }} />
+                                <div style={{ width: '80px', height: '80px', background: 'rgba(172, 248, 0, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
+                                    <FileUp size={40} color="var(--primary-color)" />
+                                </div>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '10px' }}>Carregar Planilha</h3>
+                                <p style={{ opacity: 0.5, fontSize: '14px' }}>Arraste ou clique para selecionar o arquivo CSV/TXT</p>
                             </div>
-                        ) : (
+                        )}
+
+                        {filterStep === 'options' && (
+                            <div>
+                                <p style={{ textAlign: 'center', marginBottom: '32px', opacity: 0.6, fontSize: '14px', fontWeight: 700 }}>{uploadedNumbers.length} números carregados. O que você deseja retirar da lista?</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '40px' }}>
+                                    <div onClick={() => setFilterOptions(o => ({ ...o, removeGreen: !o.removeGreen }))} style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeGreen ? '#22c55e' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: '2px solid #22c55e', background: filterOptions.removeGreen ? '#22c55e' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {filterOptions.removeGreen && <CheckSquare size={12} color="black" />}
+                                        </div>
+                                        <span style={{ fontWeight: 900, fontSize: '14px' }}>REMOVER GREEN</span>
+                                    </div>
+                                    <div onClick={() => setFilterOptions(o => ({ ...o, removeCold: !o.removeCold }))} style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeCold ? '#3b82f6' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: '2px solid #3b82f6', background: filterOptions.removeCold ? '#3b82f6' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {filterOptions.removeCold && <CheckSquare size={12} color="black" />}
+                                        </div>
+                                        <span style={{ fontWeight: 900, fontSize: '14px' }}>REMOVER COLD</span>
+                                    </div>
+                                    <div onClick={() => setFilterOptions(o => ({ ...o, removeBlack: !o.removeBlack }))} style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeBlack ? '#ef4444' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: '2px solid #ef4444', background: filterOptions.removeBlack ? '#ef4444' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {filterOptions.removeBlack && <CheckSquare size={12} color="black" />}
+                                        </div>
+                                        <span style={{ fontWeight: 900, fontSize: '14px' }}>REMOVER BLACK</span>
+                                    </div>
+                                    <div onClick={() => setFilterOptions(o => ({ ...o, removeBots: !o.removeBots }))} style={{ padding: '24px', borderRadius: '24px', background: 'rgba(172, 248, 0, 0.03)', border: '1px solid', borderColor: filterOptions.removeBots ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: '2px solid var(--primary-color)', background: filterOptions.removeBots ? 'var(--primary-color)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {filterOptions.removeBots && <CheckSquare size={12} color="black" />}
+                                        </div>
+                                        <span style={{ fontWeight: 900, fontSize: '14px', color: filterOptions.removeBots ? 'var(--primary-color)' : 'white' }}>REMOVER BOTS 🤖</span>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={handleFilterPro} 
+                                    disabled={isFiltering}
+                                    style={{ width: '100%', padding: '24px', background: 'var(--primary-color)', borderRadius: '24px', color: 'black', fontWeight: 950, fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', border: 'none' }}
+                                >
+                                    {isFiltering ? <Loader2 size={24} className="animate-spin" /> : <Zap size={24} />}
+                                    COMPARAR E FILTRAR AGORA
+                                </button>
+                            </div>
+                        )}
+
+                        {filterStep === 'result' && filterResult && (
                             <div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
-                                    <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '18px' }}>
-                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '5px' }}>ORIGINAL</div>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: 950 }}>{filterResult.stats.original}</div>
+                                    <div style={{ textAlign: 'center', padding: '24px', background: 'rgba(255,255,255,0.03)', borderRadius: '24px' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '8px', letterSpacing: '1px' }}>PLANILHA ORIGINAL</div>
+                                        <div style={{ fontSize: '2rem', fontWeight: 950 }}>{filterResult.stats.original}</div>
                                     </div>
-                                    <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '18px', color: '#ef4444' }}>
-                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '5px' }}>REMOVIDOS</div>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: 950 }}>-{filterResult.stats.removed}</div>
+                                    <div style={{ textAlign: 'center', padding: '24px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '24px', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '8px', letterSpacing: '1px' }}>REMOVIDOS</div>
+                                        <div style={{ fontSize: '2rem', fontWeight: 950 }}>-{filterResult.stats.removed}</div>
                                     </div>
-                                    <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '18px', color: '#22c55e' }}>
-                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '5px' }}>LIMPOS</div>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: 950 }}>{filterResult.filteredNumbers.length}</div>
+                                    <div style={{ textAlign: 'center', padding: '24px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '24px', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.1)' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '8px', letterSpacing: '1px' }}>LISTA LIMPA</div>
+                                        <div style={{ fontSize: '2rem', fontWeight: 950 }}>{filterResult.filteredNumbers.length}</div>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '15px' }}>
-                                    <button onClick={() => { const b = new Blob([filterResult.filteredNumbers.join('\n')], { type: 'text/csv' }); const u = URL.createObjectURL(b); const l = document.createElement("a"); l.href = u; l.download = "lista_limpa.csv"; l.click(); }} style={{ flex: 1, padding: '20px', background: 'var(--primary-color)', borderRadius: '20px', color: 'black', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }} className="hover-lift"><Download size={20} /> BAIXAR CSV</button>
+                                    <button onClick={() => { const b = new Blob([filterResult.filteredNumbers.join('\n')], { type: 'text/csv' }); const u = URL.createObjectURL(b); const l = document.createElement("a"); l.href = u; l.download = "lista_limpa.csv"; l.click(); }} style={{ flex: 1, padding: '24px', background: 'var(--primary-color)', borderRadius: '24px', color: 'black', fontWeight: 950, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }} className="hover-lift"><Download size={24} /> BAIXAR CSV LIMPO</button>
                                     <button 
                                         onClick={async () => {
                                             if (!filterResult.removedNumbers?.length) {
@@ -811,6 +872,7 @@ const N8NWorkflow = () => {
                                                     alert("Números marcados como BLACK LIST com sucesso!");
                                                     setShowFilterModal(false);
                                                     setFilterResult(null);
+                                                    setFilterStep('upload');
                                                     if (activeTab === 'monitor') handleSearch(); else fetchCampaignLeads();
                                                 } else {
                                                     alert("Erro ao atualizar status.");
@@ -822,7 +884,7 @@ const N8NWorkflow = () => {
                                                 setIsLoading(false);
                                             }
                                         }}
-                                        style={{ padding: '20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', color: 'white', fontWeight: 900, cursor: 'pointer' }}
+                                        style={{ padding: '24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', color: 'white', fontWeight: 950, cursor: 'pointer' }}
                                     >TAG BLACK LIST</button>
                                 </div>
                             </div>

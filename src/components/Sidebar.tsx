@@ -27,7 +27,8 @@ import {
     Menu,
     X,
     Bell,
-    Database
+    Database,
+    Smartphone
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -134,6 +135,15 @@ const Sidebar = () => {
                         { name: 'Rotacionador PRO', path: '/link-rotator', icon: <Zap /> },
                     ]
                 }
+            ]
+        },
+        {
+            id: 'PRODUTIVIDADE',
+            label: 'PRODUTIVIDADE VENDAS',
+            items: [
+                { name: 'Central Materiais', path: '/productivity/materials', icon: <Layers />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
+                { name: 'Smart Bio', path: '/productivity/smart-bio', icon: <Smartphone />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
+                { name: 'Cartão Digital', path: '/productivity/digital-card', icon: <CreditCard />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
             ]
         },
         {

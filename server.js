@@ -21,6 +21,131 @@ const __dirname = path.dirname(__filename);
 
 const N8N_WEBHOOK_URL = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/proximo-disparo';
 
+// ============================================================
+// SALES PRODUCTIVITY MODULES
+// ============================================================
+
+// --- MATERIALS CENTER ---
+app.get('/api/materials', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM materials ORDER BY is_favorite DESC, created_at DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/materials/index', async (req, res) => {
+    try {
+        const indexFiles = async (folderId, parentFolder = 'Raiz') => {
+            const response = await drive.files.list({
+                q: `'${folderId}' in parents and trashed = false`,
+                fields: 'files(id, name, mimeType, thumbnailLink)',
+            });
+            const files = response.data.files;
+            
+            for (const file of files) {
+                if (file.mimeType === 'application/vnd.google-apps.folder') {
+                    await indexFiles(file.id, file.name);
+                } else {
+                    let type = 'outro';
+                    if (file.mimeType.includes('pdf')) type = 'pdf';
+                    else if (file.mimeType.includes('image')) type = 'image';
+                    else if (file.mimeType.includes('video')) type = 'video';
+
+                    await pool.query(
+                        `INSERT INTO materials (name, type, drive_id, folder, thumbnail_link) 
+                         VALUES ($1, $2, $3, $4, $5) 
+                         ON CONFLICT (drive_id) DO UPDATE SET 
+                         name = EXCLUDED.name, type = EXCLUDED.type, folder = EXCLUDED.folder, thumbnail_link = EXCLUDED.thumbnail_link`,
+                        [file.name, type, file.id, parentFolder, file.thumbnailLink]
+                    );
+                }
+            }
+        };
+
+        await indexFiles(DRIVE_ROOT_FOLDER_ID);
+        res.json({ message: 'Indexação concluída com sucesso' });
+    } catch (err) {
+        console.error('Drive Index Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/materials/favorite', async (req, res) => {
+    const { id, is_favorite } = req.body;
+    try {
+        await pool.query('UPDATE materials SET is_favorite = $1 WHERE id = $2', [is_favorite, id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- SMART BIO ---
+app.post('/api/smart-bio', async (req, res) => {
+    const { title, description, avatar_url, video_url, buttons, images, slug, user_id } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO smart_bios (title, description, avatar_url, video_url, buttons, images, slug, user_id) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+             ON CONFLICT (slug) DO UPDATE SET 
+             title = EXCLUDED.title, description = EXCLUDED.description, avatar_url = EXCLUDED.avatar_url, 
+             video_url = EXCLUDED.video_url, buttons = EXCLUDED.buttons, images = EXCLUDED.images 
+             RETURNING *`,
+            [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, user_id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/smart-bio/:slug', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM smart_bios WHERE slug = $1', [req.params.slug]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Bio não encontrada' });
+        
+        // Log view event
+        await pool.query('UPDATE smart_bios SET clicks = clicks + 1 WHERE slug = $1', [req.params.slug]);
+        await pool.query('INSERT INTO tracking_events (target_id, event_type, metadata) VALUES ($1, $2, $3)', 
+            [result.rows[0].id, 'view', JSON.stringify({ origin: req.query.origin || 'direct' })]);
+        
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- DIGITAL CARDS ---
+app.post('/api/digital-card', async (req, res) => {
+    const { name, photo_url, company, whatsapp, social_links, user_id } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO digital_cards (name, photo_url, company, whatsapp, social_links, user_id) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [name, photo_url, company, whatsapp, JSON.stringify(social_links), user_id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/digital-card/:id', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM digital_cards WHERE id = $1', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Cartão não encontrado' });
+        
+        await pool.query('UPDATE digital_cards SET opens = opens + 1 WHERE id = $1', [req.params.id]);
+        await pool.query('INSERT INTO tracking_events (target_id, event_type) VALUES ($1, $2)', [req.params.id, 'view']);
+        
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- CRON MONITORING ---
 const cronHistory = [];
 const addCronLog = (log) => {
@@ -134,6 +259,14 @@ try {
 
 connectRedis();
 
+// --- GOOGLE DRIVE SETUP ---
+const driveAuth = new google.auth.GoogleAuth({
+    keyFile: path.join(__dirname, 'service-account.json'),
+    scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+});
+const drive = google.drive({ version: 'v3', auth: driveAuth });
+const DRIVE_ROOT_FOLDER_ID = '184by-DuM_vdaCy1CroqW4m4MS-W5nCIe';
+
 // Initialize Database Tables
 const initDB = async () => {
     let client;
@@ -199,6 +332,48 @@ const initDB = async () => {
                 original_url TEXT NOT NULL,
                 short_code TEXT UNIQUE NOT NULL,
                 clicks INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS materials (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                type TEXT,
+                drive_id TEXT UNIQUE,
+                folder TEXT,
+                context TEXT,
+                thumbnail_link TEXT,
+                is_favorite BOOLEAN DEFAULT false,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS smart_bios (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id INTEGER,
+                title TEXT,
+                description TEXT,
+                avatar_url TEXT,
+                video_url TEXT,
+                buttons JSONB DEFAULT '[]',
+                images JSONB DEFAULT '[]',
+                slug TEXT UNIQUE,
+                clicks INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS digital_cards (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id INTEGER,
+                name TEXT,
+                photo_url TEXT,
+                company TEXT,
+                whatsapp TEXT,
+                social_links JSONB DEFAULT '{}',
+                opens INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS tracking_events (
+                id SERIAL PRIMARY KEY,
+                target_id UUID,
+                event_type TEXT,
+                metadata JSONB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `CREATE TABLE IF NOT EXISTS link_clicks (

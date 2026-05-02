@@ -42,6 +42,11 @@ import Finalizado from './pages/Finalizado';
 import Obrigado from './pages/Obrigado';
 import Download from './pages/Download';
 import AdminChanges from './pages/AdminChanges';
+import MaterialsCenter from './pages/MaterialsCenter';
+import SmartBioCreator from './pages/SmartBioCreator';
+import SmartBioView from './pages/SmartBioView';
+import DigitalCardCreator from './pages/DigitalCardCreator';
+import DigitalCardView from './pages/DigitalCardView';
 import MetaPixel from './components/MetaPixel';
 import SupremeLoading from './components/SupremeLoading';
 import './index.css';
@@ -81,6 +86,8 @@ function AppContent() {
     location.pathname.startsWith('/l/') || 
     location.pathname.startsWith('/r/') || 
     location.pathname.startsWith('/client-add/') ||
+    location.pathname.startsWith('/bio/') ||
+    location.pathname.startsWith('/card/') ||
     location.pathname === '/test-cards';
 
   if (!user && !isPublicRoute) {
@@ -182,6 +189,11 @@ function AppContent() {
           <Route path="/rotator-stats/:id" element={<RotatorDetails />} />
           <Route path="/client-reports" element={<ClientReports />} />
           <Route path="/link-stats/:id" element={<LinkStats />} />
+          <Route path="/productivity/materials" element={<MaterialsCenter />} />
+          <Route path="/productivity/smart-bio" element={<SmartBioCreator />} />
+          <Route path="/productivity/digital-card" element={<DigitalCardCreator />} />
+          <Route path="/bio/:slug" element={<SmartBioView />} />
+          <Route path="/card/:id" element={<DigitalCardView />} />
           <Route path="/download" element={<Download />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/landing/:id" element={<LandingPage />} />
