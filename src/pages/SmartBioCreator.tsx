@@ -17,61 +17,93 @@ import {
     Check,
     MessageSquare,
     Send,
-    ExternalLink
+    ExternalLink,
+    Eye,
+    Copy,
+    Share2,
+    Search,
+    BarChart3,
+    ArrowUpRight
 } from 'lucide-react';
 
 const SmartBioCreator = () => {
-    const [bio, setBio] = useState({
+    const { user } = useAuth();
+    const [view, setView] = useState<'dashboard' | 'editor'>('dashboard');
+    const [bios, setBios] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [wizardStep, setWizardStep] = useState(1);
+    const [showPDFs, setShowPDFs] = useState(true);
+
+    const [bio, setBio] = useState<any>({
         title: 'Seu Nome ou Empresa',
         description: 'Breve descrição sobre o que você faz ou oferece.',
         avatar_url: '',
         video_url: '',
         buttons: [
-            { label: 'Fale Conosco', url: '', type: 'whatsapp' },
-            { label: 'Visualizar Prévia', url: '', type: 'preview' }
+            { label: 'Falar no WhatsApp', url: 'https://wa.me/55...', type: 'whatsapp' },
+            { label: 'Visualizar Prévia', url: '#', type: 'preview' }
         ],
         images: [],
-        slug: 'seu-link'
+        slug: ''
     });
-    const { user } = useAuth();
 
-    useEffect(() => {
-        if (user?.id) {
-            const loadBio = async () => {
-                const existing = await dbService.getSmartBio(user.id!);
-                if (existing) setBio(existing);
-            };
-            loadBio();
-        }
-    }, [user?.id]);
-    const [showPDFs, setShowPDFs] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isWizardOpen, setIsWizardOpen] = useState(false);
-    const [wizardStep, setWizardStep] = useState(1);
     const [employeeData, setEmployeeData] = useState({
         name: '',
         photo: '',
-        phone: '',
-        tracking: ''
+        whatsapp: '',
+        tracking: 'origem=bio'
     });
 
-    const addButton = () => {
-        setBio(prev => ({ ...prev, buttons: [...prev.buttons, { label: 'Novo Link', url: '', type: 'link' }] }));
+    useEffect(() => {
+        if (user?.id) {
+            loadBios();
+        }
+    }, [user?.id]);
+
+    const loadBios = async () => {
+        setIsLoading(true);
+        try {
+            const data = await dbService.getSmartBio(user!.id!);
+            setBios(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const removeButton = (index: number) => {
-        setBio(prev => ({ ...prev, buttons: prev.buttons.filter((_, i) => i !== index) }));
+    const handleEdit = (item: any) => {
+        setBio(item);
+        setView('editor');
     };
 
-    const updateButton = (index: number, field: string, value: string) => {
-        const newButtons = [...bio.buttons];
-        (newButtons[index] as any)[field] = value;
-        setBio(prev => ({ ...prev, buttons: newButtons }));
+    const handleCreateNew = () => {
+        setBio({
+            title: 'Nova Smart Bio',
+            description: 'Breve descrição...',
+            avatar_url: '',
+            video_url: '',
+            buttons: [
+                { label: 'Falar no WhatsApp', url: 'https://wa.me/55...', type: 'whatsapp' },
+                { label: 'Visualizar Prévia', url: '#', type: 'preview' }
+            ],
+            images: [],
+            slug: 'bio-' + Math.random().toString(36).substring(7)
+        });
+        setView('editor');
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir esta Bio?')) return;
+        await dbService.deleteSmartBio(id);
+        loadBios();
     };
 
     const handleSave = async () => {
         if (!bio.slug) return alert('Defina um link personalizado (slug)');
-        if (!user?.id) return alert('Usuário não identificado. Faça login novamente.');
+        if (!user?.id) return alert('Usuário não identificado.');
         
         setIsSaving(true);
         try {
@@ -79,36 +111,193 @@ const SmartBioCreator = () => {
             const res = await dbService.saveSmartBio(payload);
             if (res && !res.error) {
                 alert('Smart Bio salva com sucesso!');
+                setView('dashboard');
+                loadBios();
             } else {
-                alert('Erro ao salvar: ' + (res?.error || 'Erro desconhecido'));
+                alert('Erro ao salvar: ' + (res?.error || 'Slug já existe ou erro interno'));
             }
         } catch (err) {
             console.error(err);
-            alert('Erro de conexão ao salvar');
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleFinalizeDispatch = async () => {
-        setIsSaving(true);
-        try {
-            // Simulated webhook call
-            const payload = {
-                bio,
-                employee: employeeData,
-                timestamp: new Date().toISOString()
-            };
-            console.log('Dispatching to webhook:', payload);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            setWizardStep(3);
-        } catch (err) {
-            console.error(err);
-            alert('Erro ao enviar disparo');
-        } finally {
-            setIsSaving(false);
-        }
+    const copyToClipboard = (slug: string) => {
+        const url = `${window.location.origin}/bio/${slug}`;
+        navigator.clipboard.writeText(url);
+        alert('Link copiado!');
     };
+
+    const addButton = () => {
+        setBio({
+            ...bio,
+            buttons: [...bio.buttons, { label: 'Novo Link', url: '', type: 'link' }]
+        });
+    };
+
+    const updateButton = (index: number, field: string, value: string) => {
+        const newButtons = [...bio.buttons];
+        newButtons[index][field] = value;
+        setBio({ ...bio, buttons: newButtons });
+    };
+
+    const removeButton = (index: number) => {
+        const newButtons = bio.buttons.filter((_: any, i: number) => i !== index);
+        setBio({ ...bio, buttons: newButtons });
+    };
+
+    if (view === 'dashboard') {
+        return (
+            <div className="crm-container" style={{ padding: '40px' }}>
+                <style>{`
+                    .dash-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 40px;
+                    }
+                    .bio-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                        gap: 25px;
+                    }
+                    .bio-card {
+                        background: rgba(255, 255, 255, 0.03);
+                        border: 1px solid rgba(255, 255, 255, 0.05);
+                        border-radius: 24px;
+                        padding: 25px;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .bio-card:hover {
+                        background: rgba(255, 255, 255, 0.06);
+                        border-color: var(--primary-color);
+                        transform: translateY(-5px);
+                    }
+                    .bio-card-stats {
+                        display: flex;
+                        gap: 20px;
+                        margin-top: 20px;
+                        padding-top: 20px;
+                        border-top: 1px solid rgba(255, 255, 255, 0.05);
+                    }
+                    .stat-item {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+                    .stat-value {
+                        font-size: 18px;
+                        font-weight: 900;
+                        color: #fff;
+                    }
+                    .stat-label {
+                        font-size: 9px;
+                        font-weight: 900;
+                        color: rgba(255, 255, 255, 0.3);
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                    }
+                    .btn-action-circle {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 12px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(255, 255, 255, 0.05);
+                        color: #fff;
+                        transition: all 0.2s;
+                        cursor: pointer;
+                    }
+                    .btn-action-circle:hover {
+                        background: var(--primary-color);
+                        color: #000;
+                    }
+                    .bio-card-avatar {
+                        width: 50px;
+                        height: 50px;
+                        border-radius: 15px;
+                        object-fit: cover;
+                        background: rgba(255, 255, 255, 0.1);
+                    }
+                    .empty-state {
+                        text-align: center;
+                        padding: 100px 0;
+                        background: rgba(255, 255, 255, 0.02);
+                        border-radius: 30px;
+                        border: 2px dashed rgba(255, 255, 255, 0.05);
+                    }
+                `}</style>
+
+                <header className="dash-header">
+                    <div>
+                        <span className="crm-badge-small">
+                            <Smartphone size={12} fill="currentColor" /> MEUS LINKS PRO
+                        </span>
+                        <h1 className="crm-main-title">Smart Bio Dashboard</h1>
+                    </div>
+                    <button onClick={handleCreateNew} className="btn-supreme" style={{ padding: '15px 30px', background: '#acf800', color: '#000' }}>
+                        <Plus size={20} /> CRIAR NOVO LINK
+                    </button>
+                </header>
+
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <Zap size={40} className="animate-pulse text-primary-color" />
+                    </div>
+                ) : bios.length === 0 ? (
+                    <div className="empty-state">
+                        <Smartphone size={60} className="mx-auto mb-6 text-white/10" />
+                        <h3 className="text-xl font-black mb-2">Nenhuma Bio Criada</h3>
+                        <p className="text-white/40 mb-8 max-w-xs mx-auto">Comece agora a criar suas páginas de conversão de alta performance.</p>
+                        <button onClick={handleCreateNew} className="btn-supreme mx-auto">
+                            CRIAR MINHA PRIMEIRA BIO
+                        </button>
+                    </div>
+                ) : (
+                    <div className="bio-grid">
+                        {bios.map((item) => (
+                            <div key={item.id} className="bio-card">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex gap-4">
+                                        <img src={item.avatar_url || 'https://via.placeholder.com/150'} className="bio-card-avatar" alt="" />
+                                        <div>
+                                            <h3 className="font-black text-lg leading-tight mb-1">{item.title}</h3>
+                                            <p className="text-white/30 text-[10px] font-bold tracking-widest uppercase">/{item.slug}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div onClick={() => handleEdit(item)} className="btn-action-circle" title="Editar"><Layout size={16} /></div>
+                                        <div onClick={() => copyToClipboard(item.slug)} className="btn-action-circle" title="Copiar Link"><Copy size={16} /></div>
+                                        <div onClick={() => window.open(`${window.location.origin}/bio/${item.slug}`, '_blank')} className="btn-action-circle" title="Ver"><Eye size={16} /></div>
+                                        <div onClick={() => handleDelete(item.id)} className="btn-action-circle text-red-500 hover:bg-red-500 hover:text-white" title="Excluir"><Trash2 size={16} /></div>
+                                    </div>
+                                </div>
+
+                                <div className="bio-card-stats">
+                                    <div className="stat-item">
+                                        <span className="stat-value">{item.clicks || 0}</span>
+                                        <span className="stat-label">Acessos</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-value">{item.buttons?.length || 0}</span>
+                                        <span className="stat-label">Botões</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-value">PRO</span>
+                                        <span className="stat-label">Status</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="crm-container" style={{ padding: '20px 40px' }}>
@@ -116,325 +305,188 @@ const SmartBioCreator = () => {
                 .creator-main-wrapper {
                     display: grid;
                     grid-template-columns: 1fr 400px;
-                    gap: 40px;
-                    margin-top: 20px;
+                    gap: 30px;
+                    margin-top: 30px;
                 }
-                @media (max-width: 1200px) {
-                    .creator-main-wrapper {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                .crm-section-card {
-                    background: rgba(15, 23, 42, 0.4);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 24px;
-                    padding: 32px;
-                    margin-bottom: 32px;
-                }
-
-                .section-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    color: var(--primary-color);
-                    font-size: 11px;
-                    font-weight: 900;
-                    text-transform: uppercase;
-                    letter-spacing: 2px;
-                    margin-bottom: 24px;
-                }
-
-                .input-grid-2 {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 20px;
-                }
-
-                .supreme-field-box {
-                    background: rgba(0, 0, 0, 0.2);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 20px;
-                    padding: 20px;
-                    transition: all 0.3s;
-                }
-
-                .field-label {
-                    color: var(--primary-color);
-                    font-size: 9px;
-                    font-weight: 900;
-                    text-transform: uppercase;
-                    letter-spacing: 1.5px;
-                    margin-bottom: 8px;
-                    display: block;
-                }
-
-                .field-input {
-                    background: transparent;
-                    border: none;
-                    color: white;
-                    width: 100%;
-                    font-weight: 700;
-                    font-size: 15px;
-                    outline: none;
-                }
-
-                .preview-unique .phone-mockup-side {
-                    position: sticky !important;
-                    top: 20px !important;
-                    background: linear-gradient(315deg, #0f172a, #1e293b, #0f172a) !important;
-                    background-size: 400% 400% !important;
-                    animation: gradientMove 12s ease infinite !important;
-                    overflow: hidden !important;
-                    z-index: 1;
-                    border-radius: 40px;
-                }
-                
-                @keyframes gradientMove {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-
-                .preview-unique .phone-mockup-side::before {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    background: radial-gradient(circle at 30% 30%, rgba(172, 248, 0, 0.15), transparent 70%);
-                    animation: gradientShift 12s infinite alternate;
-                    z-index: -1;
-                }
-
-                @keyframes gradientShift {
-                    0% { background-position: 0% 0%; }
-                    100% { background-position: 100% 100%; }
-                }
-
-                .phone-preview-v2 {
-                    background: transparent;
-                    border: 1px solid rgba(172, 248, 0, 0.1);
-                    border-radius: 40px;
-                    padding: 50px 30px;
-                    text-align: center;
-                    box-shadow: 0 40px 100px rgba(0,0,0,0.5);
-                    height: 700px;
-                    overflow-y: auto;
-                }
-
-                .preview-unique .preview-title {
-                    background: linear-gradient(135deg, #fff, var(--primary-color));
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    font-size: 1.8rem !important;
-                    font-weight: 900 !important;
-                    margin-bottom: 8px !important;
-                    text-transform: uppercase !important;
-                    letter-spacing: 1px !important;
-                }
-
-                .preview-unique .phone-preview-v2 p {
-                    color: rgba(255,255,255,0.8) !important;
-                    font-size: 1rem !important;
-                    margin-bottom: 12px !important;
-                }
-
-                .preview-unique .pdf-carousel {
-                    display: flex;
-                    overflow-x: auto;
-                    gap: 12px;
-                    padding: 8px 0;
-                    scroll-snap-type: x mandatory;
-                    margin-top: 12px;
-                }
-
-                .preview-unique .pdf-item {
-                    flex: 0 0 auto;
-                    min-width: 120px;
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    border-radius: 12px;
-                    padding: 12px;
-                    text-align: center;
-                    scroll-snap-align: start;
-                    color: #acf800;
-                    text-decoration: none;
+                .editor-column {
                     display: flex;
                     flex-direction: column;
-                    align-items: center;
-                    gap: 6px;
-                    transition: background 0.2s ease, border-color 0.2s ease;
+                    gap: 20px;
                 }
-
-                .preview-unique .pdf-item:hover {
-                    background: rgba(255,255,255,0.08);
-                    border-color: var(--primary-color);
+                .preview-unique {
+                    position: sticky;
+                    top: 20px;
+                    height: fit-content;
                 }
-
-                .preview-unique .pdf-icon {
-                    color: var(--primary-color);
+                .phone-mockup-side {
+                    width: 340px;
+                    height: 680px;
+                    background: #000;
+                    border-radius: 45px;
+                    border: 8px solid #1a1a1a;
+                    position: relative;
+                    margin: 0 auto;
+                    overflow: hidden;
+                    box-shadow: 0 40px 80px rgba(0,0,0,0.8);
                 }
-
-                .preview-unique .phone-preview-v2 span {
-                    color: var(--primary-color) !important;
-                    font-weight: 900 !important;
+                .phone-preview-v2 {
+                    width: 100%;
+                    height: 100%;
+                    background: #0d0d0d;
+                    overflow-y: auto;
+                    padding: 40px 20px;
+                    text-align: center;
                 }
-
                 .bio-avatar-ring {
                     width: 100px;
                     height: 100px;
-                    border-radius: 50%;
-                    border: 4px solid var(--primary-color);
+                    border-radius: 35px;
+                    padding: 4px;
+                    background: linear-gradient(45deg, #acf800, #00f2fe);
                     margin: 0 auto 20px;
-                    overflow: hidden;
-                    background: #1f2937;
                 }
-
-                .bio-avatar-img { width: 100%; height: 100%; object-fit: cover; }
-                
-                .bio-btn-preview {
+                .bio-avatar-img {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 32px;
+                    object-fit: cover;
+                    background: #222;
+                }
+                .preview-title {
+                    font-size: 24px;
+                    font-weight: 900;
+                    margin-bottom: 8px;
+                    color: #fff;
+                }
+                .preview-btn-v2 {
+                    width: 100%;
                     background: rgba(255,255,255,0.05);
-                    border: 1px solid rgba(255,255,255,0.08);
-                    border-radius: 12px;
-                    padding: 14px;
-                    color: white;
-                    font-weight: 700;
-                    font-size: 13px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    padding: 16px;
+                    border-radius: 18px;
                     margin-bottom: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    color: #fff;
+                    font-weight: 800;
+                    font-size: 14px;
+                    transition: all 0.2s;
                 }
-
-                .bio-btn-preview:first-child {
-                    background: var(--primary-color);
-                    color: black;
+                .preview-btn-v2.primary {
+                    background: #acf800;
+                    color: #000;
                     border: none;
+                    box-shadow: 0 10px 20px rgba(172, 248, 0, 0.2);
                 }
-
-                .switch-container {
+                .section-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 25px;
+                    font-weight: 900;
+                    font-size: 10px;
+                    letter-spacing: 2px;
+                    color: rgba(255,255,255,0.3);
+                    text-transform: uppercase;
+                }
+                .btn-supreme {
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 15px;
+                    font-weight: 900;
+                    font-size: 12px;
                     display: flex;
                     align-items: center;
                     gap: 10px;
-                    margin-top: 10px;
-                    padding: 10px;
-                    background: rgba(255,255,255,0.03);
-                    border-radius: 12px;
-                    border: 1px solid rgba(255,255,255,0.05);
+                    cursor: pointer;
+                    transition: all 0.3s;
                 }
+                .btn-supreme:hover:not(:disabled) {
+                    background: var(--primary-color);
+                    color: black;
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 20px rgba(172, 248, 0, 0.2);
+                }
+                .btn-supreme:disabled { opacity: 0.5; cursor: not-allowed; }
 
-                .switch-label {
-                    font-size: 11px;
-                    font-weight: 900;
-                    color: var(--primary-color);
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                }
+                /* Wizard Styles */
                 .wizard-overlay {
                     position: fixed;
                     inset: 0;
-                    background: #020617ee;
-                    backdrop-filter: blur(40px) saturate(180%);
-                    z-index: 1000;
+                    background: rgba(0,0,0,0.9);
+                    backdrop-filter: blur(20px);
+                    z-index: 9999;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     padding: 20px;
                 }
                 .wizard-card {
-                    background: #0f172a;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 48px;
                     width: 100%;
-                    max-width: 1100px;
-                    height: 800px;
+                    max-width: 1000px;
+                    background: #0d0d0d;
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 40px;
                     display: grid;
-                    grid-template-columns: 1fr 450px;
+                    grid-template-columns: 1fr 400px;
                     overflow: hidden;
-                    box-shadow: 0 100px 150px -50px rgba(0,0,0,0.9);
+                    box-shadow: 0 50px 100px rgba(0,0,0,0.5);
                 }
                 .wizard-content {
-                    padding: 80px;
-                    display: flex;
-                    flex-direction: column;
-                    background: radial-gradient(circle at 0% 0%, rgba(172, 248, 0, 0.08), transparent 60%);
+                    padding: 60px;
+                    border-right: 1px solid rgba(255,255,255,0.05);
                 }
-                .wizard-preview-side {
+                .wizard-preview-pane {
+                    background: #121212;
+                    padding: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .wa-mockup {
+                    width: 320px;
                     background: #0b141a;
-                    border-left: 1px solid rgba(255, 255, 255, 0.05);
-                    display: flex;
-                    flex-direction: column;
-                    position: relative;
-                }
-                .wa-header-mock {
-                    background: #202c33;
-                    padding: 45px 25px 20px;
-                    display: flex;
-                    align-items: center;
-                    gap: 15px;
-                    border-bottom: 1px solid rgba(0,0,0,0.2);
-                }
-                .wa-avatar-mock {
-                    width: 42px;
-                    height: 42px;
-                    background: #6a7175;
-                    border-radius: 50%;
-                    position: relative;
-                    flex-shrink: 0;
-                }
-                .wa-status-dot {
-                    width: 12px;
-                    height: 12px;
-                    background: #00a884;
-                    border: 2px solid #202c33;
-                    border-radius: 50%;
-                    position: absolute;
-                    bottom: 0;
-                    right: 0;
-                }
-                .wa-body-mock {
-                    flex: 1;
-                    padding: 25px;
-                    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-                    background-size: 400px;
-                    background-repeat: repeat;
-                    background-blend-mode: overlay;
-                    background-color: #0b141a;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 15px;
-                    overflow-y: auto;
-                }
-                .wa-bubble-official {
-                    background: #202c33;
-                    border-radius: 0 16px 16px 16px;
-                    max-width: 95%;
-                    padding: 10px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    position: relative;
-                }
-                .wa-sender-name {
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: #53bdeb;
-                    margin-bottom: 6px;
-                    padding: 0 6px;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-                .wa-verified-badge {
-                    color: #00a884;
-                    fill: #00a884;
-                }
-                .wa-message-text {
-                    color: #e9edef;
-                    font-size: 14.5px;
-                    line-height: 1.6;
-                    padding: 0 6px 8px;
-                }
-                .wa-link-preview-card {
-                    background: rgba(0,0,0,0.25);
-                    border-radius: 12px;
-                    margin: 4px;
+                    border-radius: 20px;
                     overflow: hidden;
-                    border: 1px solid rgba(255,255,255,0.05);
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+                    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                }
+                .wa-header {
+                    background: #202c33;
+                    padding: 12px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+                .wa-avatar {
+                    width: 35px;
+                    height: 35px;
+                    border-radius: 50%;
+                    background: #6a7175;
+                }
+                .wa-name { color: #e9edef; font-weight: 500; font-size: 14px; }
+                .wa-status { color: #8696a0; font-size: 11px; }
+                .wa-chat-area {
+                    padding: 20px;
+                    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+                    background-size: contain;
+                    min-height: 300px;
+                }
+                .wa-bubble {
+                    background: #005c4b;
+                    color: #e9edef;
+                    padding: 0;
+                    border-radius: 0 10px 10px 10px;
+                    max-width: 90%;
+                    font-size: 13.5px;
+                    line-height: 1.4;
+                    position: relative;
+                    box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+                    overflow: hidden;
                 }
                 .wa-preview-hero {
                     width: 100%;
@@ -496,19 +548,21 @@ const SmartBioCreator = () => {
             `}</style>
 
             <header className="crm-header-premium">
-                <div className="crm-title-group">
-                    <span className="crm-badge-small">
-                        <Smartphone size={12} fill="currentColor" /> SMART BIO CREATOR
-                    </span>
-                    <h1 className="crm-main-title">Páginas de Link</h1>
-                    <p className="text-white/40 text-[11px] font-bold tracking-widest mt-1">
-                        Sua central de conversão otimizada
-                    </p>
+                <div className="flex items-center gap-4">
+                    <button onClick={() => setView('dashboard')} className="btn-action-circle">
+                        <ArrowLeft size={18} />
+                    </button>
+                    <div>
+                        <span className="crm-badge-small">
+                            <Smartphone size={12} fill="currentColor" /> SMART BIO CREATOR
+                        </span>
+                        <h1 className="crm-main-title">{bio.id ? 'Editar Smart Bio' : 'Criar Nova Bio'}</h1>
+                    </div>
                 </div>
 
                 <div className="flex gap-4">
-                    <button onClick={handleSave} disabled={isSaving} className="btn-supreme">
-                        <Save size={18} /> {isSaving ? 'Salvando...' : 'SALVAR SMART BIO'}
+                    <button onClick={handleSave} disabled={isSaving} className="btn-supreme" style={{ background: '#acf800', color: '#000' }}>
+                        <Save size={18} /> {isSaving ? 'Salvando...' : 'SALVAR E PUBLICAR'}
                     </button>
                 </div>
             </header>
@@ -520,7 +574,7 @@ const SmartBioCreator = () => {
                         <div className="supreme-field-box">
                             <label className="field-label">LINK PERSONALIZADO (SLUG)</label>
                             <div className="flex items-center gap-2">
-                                <span className="text-white/20 font-bold">plugsales.com/bio/</span>
+                                <span className="text-white/20 font-bold">{window.location.host}/bio/</span>
                                 <input className="field-input" type="text" value={bio.slug} onChange={(e) => setBio({ ...bio, slug: e.target.value })} />
                             </div>
                         </div>
@@ -552,7 +606,7 @@ const SmartBioCreator = () => {
                             </button>
                         </div>
                         
-                        {bio.buttons.map((btn, index) => (
+                        {bio.buttons.map((btn: any, index: number) => (
                             <div key={index} className="bg-black/20 p-6 rounded-2xl border border-white/5 mb-4">
                                 <div className="input-grid-2 mb-4">
                                     <div className="supreme-field-box">
@@ -566,22 +620,22 @@ const SmartBioCreator = () => {
                                         <input className="field-input" type="text" value={btn.url} onChange={(e) => updateButton(index, 'url', e.target.value)} />
                                     </div>
                                 </div>
-                                <button onClick={() => removeButton(index)} className="text-red-500 font-bold text-[9px] uppercase flex items-center gap-2">
-                                    <Trash2 size={14} /> REMOVER
-                                </button>
+                                <div className="flex justify-between items-center">
+                                    <select 
+                                        className="bg-transparent text-[10px] font-black text-white/40 outline-none uppercase tracking-widest cursor-pointer"
+                                        value={btn.type}
+                                        onChange={(e) => updateButton(index, 'type', e.target.value)}
+                                    >
+                                        <option value="link" className="bg-[#0d0d0d]">Link Padrão</option>
+                                        <option value="whatsapp" className="bg-[#0d0d0d]">WhatsApp</option>
+                                        <option value="preview" className="bg-[#0d0d0d]">Preview Wizard</option>
+                                    </select>
+                                    <button onClick={() => removeButton(index)} className="text-red-500 font-bold text-[9px] uppercase flex items-center gap-2">
+                                        <Trash2 size={14} /> REMOVER
+                                    </button>
+                                </div>
                             </div>
                         ))}
-
-                        <div className="switch-container">
-                            <input 
-                                type="checkbox" 
-                                id="pdf-toggle"
-                                checked={showPDFs} 
-                                onChange={(e) => setShowPDFs(e.target.checked)}
-                                style={{ accentColor: 'var(--primary-color)', cursor: 'pointer' }}
-                            />
-                            <label htmlFor="pdf-toggle" className="switch-label">Mostrar Carrossel de PDFs</label>
-                        </div>
                     </div>
                 </div>
 
@@ -598,185 +652,23 @@ const SmartBioCreator = () => {
                             <h2 className="preview-title">{bio.title}</h2>
                             <p className="text-white/40 text-[10px] mb-8 px-4">{bio.description}</p>
                             
-                            <div className="space-y-3">
-                                {bio.buttons.map((btn, i) => (
-                                    <div 
-                                        key={i} 
-                                        className="bio-btn-preview" 
-                                        onClick={() => btn.type === 'preview' && setIsWizardOpen(true)}
-                                        style={{ cursor: btn.type === 'preview' ? 'pointer' : 'default' }}
-                                    >
-                                        {btn.label}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {showPDFs && (
-                                <div className="pdf-carousel">
-                                    <a className="pdf-item" href="/pdfs/guia-vendas.pdf" target="_blank" rel="noopener noreferrer">
-                                        <div className="pdf-icon"><FileText size={24} /></div>
-                                        <span>Guia de Vendas.pdf</span>
-                                    </a>
-                                    <a className="pdf-item" href="/pdfs/manual-produto.pdf" target="_blank" rel="noopener noreferrer">
-                                        <div className="pdf-icon"><FileText size={24} /></div>
-                                        <span>Manual de Produto.pdf</span>
-                                    </a>
+                            {bio.buttons.map((btn: any, i: number) => (
+                                <div key={i} className={`preview-btn-v2 ${i === 0 ? 'primary' : ''}`}>
+                                    {btn.type === 'whatsapp' ? <MessageSquare size={16} /> : <ExternalLink size={16} />}
+                                    {btn.label}
                                 </div>
-                            )}
+                            ))}
 
-                            <div className="mt-12 pt-10 border-t border-white/5 opacity-20">
-                                <div className="footer-text" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem', textAlign: 'center', color: 'var(--primary-color)', marginTop: '12px' }}>
-                                    Plug & Sales
+                            <div className="mt-12 flex flex-col items-center gap-4 opacity-20">
+                                <div className="flex items-center gap-2">
+                                    <Zap size={14} fill="currentColor" className="text-primary-color" />
+                                    <span className="text-[10px] font-black tracking-widest uppercase">Powered by Plug & Sales</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            {isWizardOpen && (
-                <div className="wizard-overlay">
-                    <div className="wizard-card animate-fade-in">
-                        <div className="wizard-content">
-                            <div className="step-indicator">
-                                <div className={`step-dot ${wizardStep >= 1 ? 'active' : ''}`} />
-                                <div className={`step-dot ${wizardStep >= 2 ? 'active' : ''}`} />
-                                <div className={`step-dot ${wizardStep >= 3 ? 'active' : ''}`} />
-                            </div>
-
-                            {wizardStep === 1 && (
-                                <div className="space-y-8 animate-fade-in">
-                                    <div>
-                                        <h2 className="wizard-title">Identidade do <span className="text-primary-color">Funcionário</span></h2>
-                                        <p className="text-white/40 text-sm">Personalize quem está enviando esta Smart Bio.</p>
-                                    </div>
-                                    <div className="space-y-6">
-                                        <div className="supreme-field-box">
-                                            <label className="field-label">NOME DO FUNCIONÁRIO</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Ex: Ana Souza" 
-                                                value={employeeData.name}
-                                                onChange={e => setEmployeeData({...employeeData, name: e.target.value})}
-                                            />
-                                        </div>
-                                        <div className="supreme-field-box">
-                                            <label className="field-label">URL DA FOTO DE PERFIL</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="https://..." 
-                                                value={employeeData.photo}
-                                                onChange={e => setEmployeeData({...employeeData, photo: e.target.value})}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="pt-8 flex gap-4">
-                                        <button onClick={() => setIsWizardOpen(false)} className="nav-btn nav-btn-secondary">CANCELAR</button>
-                                        <button onClick={() => setWizardStep(2)} className="nav-btn nav-btn-primary flex-1">PRÓXIMO PASSO <ChevronRight size={18}/></button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {wizardStep === 2 && (
-                                <div className="space-y-8 animate-fade-in">
-                                    <div>
-                                        <h2 className="wizard-title">Configurar <span className="text-primary-color">Disparo</span></h2>
-                                        <p className="text-white/40 text-sm">Defina o destino e o código de rastreio.</p>
-                                    </div>
-                                    <div className="space-y-6">
-                                        <div className="supreme-field-box">
-                                            <label className="field-label">CÓDIGO DE TRACKING (UTM)</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Ex: campanha-maio" 
-                                                value={employeeData.tracking}
-                                                onChange={e => setEmployeeData({...employeeData, tracking: e.target.value})}
-                                            />
-                                        </div>
-                                        <div className="supreme-field-box">
-                                            <label className="field-label">WHATSAPP DE DESTINO</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Ex: 5511999999999" 
-                                                value={employeeData.phone}
-                                                onChange={e => setEmployeeData({...employeeData, phone: e.target.value})}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="pt-8 flex gap-4">
-                                        <button onClick={() => setWizardStep(1)} className="nav-btn nav-btn-secondary"><ArrowLeft size={18}/> VOLTAR</button>
-                                        <button onClick={handleFinalizeDispatch} disabled={isSaving} className="nav-btn nav-btn-primary flex-1">
-                                            {isSaving ? 'ENVIANDO...' : 'FINALIZAR E ENVIAR'} <Send size={18}/>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {wizardStep === 3 && (
-                                <div className="space-y-8 animate-fade-in text-center py-20">
-                                    <div className="w-20 h-20 bg-primary-color/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <Check size={40} className="text-primary-color" />
-                                    </div>
-                                    <div>
-                                        <h2 className="wizard-title">Disparo <span className="text-primary-color">Realizado!</span></h2>
-                                        <p className="text-white/40 text-sm">O template foi gerado e enviado para a fila.</p>
-                                    </div>
-                                    <div className="pt-8">
-                                        <button onClick={() => { setIsWizardOpen(false); setWizardStep(1); }} className="nav-btn nav-btn-primary mx-auto">CONCLUÍDO</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="wizard-preview-side">
-                            <div className="wa-header-mock">
-                                <div className="wa-avatar-mock">
-                                    {employeeData.photo ? (
-                                        <img src={employeeData.photo} className="w-full h-full rounded-full object-cover" />
-                                    ) : (
-                                        <User size={20} className="text-white/40" />
-                                    )}
-                                    <div className="wa-status-dot" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-white text-[15px] font-bold leading-none">{employeeData.name || 'Sua Empresa'}</p>
-                                        <Zap size={14} className="wa-verified-badge" fill="currentColor" />
-                                    </div>
-                                    <p className="text-[#00a884] text-[11px] mt-1 font-bold">Online agora</p>
-                                </div>
-                            </div>
-
-                            <div className="wa-body-mock">
-                                <div className="wa-bubble-official animate-fade-in">
-                                    <div className="wa-sender-name">
-                                        {employeeData.name || 'Atendimento'} 
-                                        <Zap size={10} fill="currentColor" />
-                                    </div>
-                                    <p className="wa-message-text">
-                                        Olá! 👋 Acabei de gerar sua página exclusiva com todos os nossos materiais e links oficiais. Clique abaixo para acessar:
-                                    </p>
-                                    
-                                    <div className="wa-link-preview-card">
-                                        {bio.avatar_url && (
-                                            <img src={bio.avatar_url} className="wa-preview-hero" />
-                                        )}
-                                        <div className="wa-preview-body">
-                                            <p className="wa-preview-site">PLUGSALES.COM</p>
-                                            <p className="wa-preview-title">{bio.title}</p>
-                                            <p className="text-[#8696a0] text-[12px] mt-1 line-clamp-1">{bio.description}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="wa-action-button">
-                                        <ExternalLink size={16} /> ACESSAR MEUS LINKS
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

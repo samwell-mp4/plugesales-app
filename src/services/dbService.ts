@@ -1219,5 +1219,11 @@ export const dbService = {
             });
             return await res.json();
         } catch (err) { return { error: err }; }
+    },
+    deleteSmartBio: async (id: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/smart-bio/${id}`, { method: 'DELETE' });
+            return await res.json();
+        } catch (err) { return { error: err }; }
     }
 };

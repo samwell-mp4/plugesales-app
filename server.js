@@ -224,7 +224,7 @@ const initDB = async () => {
             )`,
             `CREATE TABLE IF NOT EXISTS smart_bios (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id INTEGER UNIQUE,
+                user_id INTEGER,
                 title TEXT,
                 description TEXT,
                 avatar_url TEXT,
@@ -473,19 +473,12 @@ const initDB = async () => {
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION`);
         
-        // Robust migration for smart_bios: Deduplicate then add constraint
+        // Migration to allow multiple bios (remove constraint if exists)
         try {
-            await client.query(`
-                DELETE FROM smart_bios a USING smart_bios b 
-                WHERE a.created_at < b.created_at AND a.user_id = b.user_id
-            `);
-            await client.query(`ALTER TABLE smart_bios ADD CONSTRAINT unique_user_id UNIQUE (user_id)`);
-            console.log('✅ Unique constraint added to smart_bios.');
+            await client.query(`ALTER TABLE smart_bios DROP CONSTRAINT IF EXISTS unique_user_id`);
+            console.log('✅ Multiple bios per user enabled (constraint removed).');
         } catch (e) {
-            // Already exists or other error, safe to ignore if already unique
-            if (!e.message.includes('already exists')) {
-                console.warn('⚠️ Migration warning (smart_bios):', e.message);
-            }
+            console.warn('⚠️ Migration warning (smart_bios drop):', e.message);
         }
         
         await client.query(`
@@ -5148,19 +5141,25 @@ app.post('/api/materials/favorite', async (req, res) => {
 
 // --- SMART BIO ---
 app.post('/api/smart-bio', async (req, res) => {
-    const { title, description, avatar_url, video_url, buttons, images, slug, user_id } = req.body;
+    const { id, title, description, avatar_url, video_url, buttons, images, slug, user_id } = req.body;
     try {
-        const result = await pool.query(
-            `INSERT INTO smart_bios (title, description, avatar_url, video_url, buttons, images, slug, user_id) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-             ON CONFLICT (user_id) DO UPDATE SET 
-             title = EXCLUDED.title, description = EXCLUDED.description, avatar_url = EXCLUDED.avatar_url, 
-             video_url = EXCLUDED.video_url, buttons = EXCLUDED.buttons, images = EXCLUDED.images,
-             slug = EXCLUDED.slug
-             RETURNING *`,
-            [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, user_id]
-        );
-        res.json(result.rows[0]);
+        if (id) {
+            const result = await pool.query(
+                `UPDATE smart_bios SET 
+                 title = $1, description = $2, avatar_url = $3, video_url = $4, 
+                 buttons = $5, images = $6, slug = $7 
+                 WHERE id = $8 AND user_id = $9 RETURNING *`,
+                [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, id, user_id]
+            );
+            return res.json(result.rows[0]);
+        } else {
+            const result = await pool.query(
+                `INSERT INTO smart_bios (title, description, avatar_url, video_url, buttons, images, slug, user_id) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+                [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, user_id]
+            );
+            return res.json(result.rows[0]);
+        }
     } catch (err) {
         console.error('Smart Bio Save Error:', err);
         res.status(500).json({ error: err.message });
@@ -5170,9 +5169,17 @@ app.post('/api/smart-bio', async (req, res) => {
 app.get('/api/smart-bio', async (req, res) => {
     const { user_id } = req.query;
     try {
-        const result = await pool.query('SELECT * FROM smart_bios WHERE user_id = $1', [user_id]);
-        if (result.rows.length === 0) return res.status(404).json({ error: 'Bio não encontrada' });
-        res.json(result.rows[0]);
+        const result = await pool.query('SELECT * FROM smart_bios WHERE user_id = $1 ORDER BY created_at DESC', [user_id]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/smart-bio/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM smart_bios WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
