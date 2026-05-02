@@ -399,8 +399,14 @@ const TemplateCreator = () => {
         const lang = overrideLanguage || selectedPayloadLanguage;
         const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
         const varCount = isFiveVars ? 5 : 4;
-        const examples = variablesOverride || LEANDRO_EXAMPLES.slice(0, varCount);
+        
+        // Ensure examples array has the correct number of items
+        let examples = variablesOverride && variablesOverride.length >= varCount 
+            ? variablesOverride.slice(0, varCount) 
+            : LEANDRO_EXAMPLES.slice(0, varCount);
+        
         const effectiveHeaderType = overrideHeaderType || headerType;
+
 
         const components: any[] = [
             {
