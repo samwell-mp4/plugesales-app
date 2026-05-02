@@ -52,7 +52,8 @@ const N8NWorkflow = () => {
         removeGreen: true,
         removeCold: true,
         removeBlack: true,
-        removeAny: false
+        removeAny: false,
+        removeBots: true
     });
     const [activeTab, setActiveTab] = useState<'monitor' | 'campaign'>('monitor');
     const [newMessage, setNewMessage] = useState('');
@@ -408,7 +409,12 @@ const N8NWorkflow = () => {
 
             const data = await res.json();
             if (res.ok) {
-                setFilterResult(data);
+                // Calculate removed numbers by comparing original set with filtered list
+                const originalSet = new Set(numbers);
+                const filteredSet = new Set(data.filteredNumbers.map((n:any) => n.toString().replace(/\D/g, '')));
+                const removedNumbers = Array.from(originalSet).filter(n => !filteredSet.has(n));
+                
+                setFilterResult({ ...data, removedNumbers });
             } else {
                 alert(data.error || "Erro ao processar.");
             }
@@ -449,8 +455,8 @@ const N8NWorkflow = () => {
                     <div style={{ padding: '24px', background: 'var(--primary-gradient)', borderRadius: '25px', color: 'black', display: 'inline-flex', marginBottom: '32px', boxShadow: '0 15px 45px rgba(172, 248, 0, 0.3)' }}>
                         <Database size={48} />
                     </div>
-                    <h1 style={{ fontSize: '3rem', fontWeight: 950, letterSpacing: '-2px', marginBottom: '12px', background: 'linear-gradient(to right, #fff, var(--primary-color))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase' }}>MONITOR n8n</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '48px' }}>CONSULTA DE HISTÓRICO POR NÚMERO</p>
+                    <h1 style={{ fontSize: '4rem', fontWeight: 950, letterSpacing: '-4px', marginBottom: '8px', background: 'linear-gradient(to right, #fff, var(--primary-color), #fff)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase', animation: 'shine 5s linear infinite' }}>MONITOR n8n</h1>
+                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 900, letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '48px' }}>Advanced Real-Time Intelligence</p>
                     
                     <div style={{ position: 'relative', marginBottom: '24px' }}>
                         <Phone size={24} style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.6 }} />
@@ -469,15 +475,29 @@ const N8NWorkflow = () => {
     return (
         <div className="crm-container" style={{ padding: '40px' }}>
             <style>{`
-                .chat-responsive-container { display: grid; grid-template-columns: 400px 1fr; gap: 32px; height: calc(100vh - 180px); min-height: 600px; }
-                @media (max-width: 968px) { .chat-responsive-container { display: flex; flex-direction: column; height: auto; } .chat-sidebar-section { width: 100% !important; max-height: 500px; } .messages-area { height: 500px !important; } }
-                .supreme-card { background: var(--card-bg-subtle); backdrop-filter: blur(25px); border: 1px solid rgba(172, 248, 0, 0.08); border-radius: 28px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
-                .supreme-view-btn { padding: 10px 20px; border-radius: 12px; background: transparent; border: none; color: rgba(255,255,255,0.3); cursor: pointer; display: flex; alignItems: center; gap: 8px; font-weight: 800; font-size: 11px; transition: all 0.2s; }
-                .supreme-view-btn.active { background: rgba(172, 248, 0, 0.1); color: var(--primary-color); }
-                .message-bubble { max-width: 80%; padding: 18px 24px; border-radius: 22px; font-size: 1rem; line-height: 1.6; position: relative; margin-bottom: 8px; }
-                .message-outbound { align-self: flex-end; background: var(--primary-color); color: black; border-bottom-right-radius: 4px; font-weight: 600; }
-                .message-inbound { align-self: flex-start; background: rgba(255, 255, 255, 0.05); color: white; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.08); }
-                .message-time { display: block; font-size: 10px; margin-top: 8px; opacity: 0.5; }
+                .chat-responsive-container { display: grid; grid-template-columns: 400px 1fr; gap: 32px; height: calc(100vh - 120px); min-height: 700px; }
+                @media (max-width: 968px) { .chat-responsive-container { display: flex; flex-direction: column; height: auto; } .chat-sidebar-section { width: 100% !important; max-height: 500px; } .messages-area { height: 600px !important; } }
+                .supreme-card { 
+                    background: rgba(255, 255, 255, 0.02); 
+                    backdrop-filter: blur(40px); 
+                    border: 1px solid rgba(172, 248, 0, 0.1); 
+                    border-radius: 32px; 
+                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); 
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .supreme-view-btn { padding: 12px 24px; border-radius: 16px; background: transparent; border: none; color: rgba(255,255,255,0.4); cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 12px; transition: all 0.3s; letter-spacing: 1px; }
+                .supreme-view-btn.active { background: var(--primary-color); color: black; box-shadow: 0 10px 20px rgba(172, 248, 0, 0.2); }
+                .message-bubble { max-width: 75%; padding: 20px 28px; border-radius: 24px; font-size: 1rem; line-height: 1.6; position: relative; margin-bottom: 12px; transition: transform 0.2s; }
+                .message-bubble:hover { transform: scale(1.01); }
+                .message-outbound { align-self: flex-end; background: var(--primary-gradient); color: black; border-bottom-right-radius: 4px; font-weight: 700; box-shadow: 0 8px 25px rgba(172, 248, 0, 0.15); }
+                .message-inbound { align-self: flex-start; background: rgba(255, 255, 255, 0.04); color: white; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
+                .message-time { display: block; font-size: 10px; margin-top: 10px; opacity: 0.4; font-weight: 800; }
+                .premium-input { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: white; transition: all 0.3s; }
+                .premium-input:focus { border-color: var(--primary-color); background: rgba(255,255,255,0.05); box-shadow: 0 0 20px rgba(172, 248, 0, 0.1); }
+                .hover-lift:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
+                .status-tag { padding: 6px 14px; border-radius: 10px; font-size: 10px; font-weight: 950; letter-spacing: 1px; text-transform: uppercase; }
+                .animate-pulse-slow { animation: pulse 3s infinite; }
+                @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
             `}</style>
 
             <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '20px', width: 'fit-content', margin: '0 auto 40px auto', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -528,17 +548,26 @@ const N8NWorkflow = () => {
 
                     {uniqueRecipients.length > 0 && activeTab === 'campaign' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => downloadCSV('Green List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '16px', color: '#22c55e', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <ShieldCheck size={18} /> BAIXAR GREEN
+                            <button onClick={() => downloadCSV('Green List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.1)', borderRadius: '16px', color: '#22c55e', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <ShieldCheck size={18} /> GREEN
                             </button>
-                            <button onClick={() => downloadCSV('Cold List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '16px', color: '#3b82f6', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <Activity size={18} /> BAIXAR COLD
+                            <button onClick={() => downloadCSV('Cold List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)', borderRadius: '16px', color: '#3b82f6', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <Activity size={18} /> COLD
                             </button>
-                            <button onClick={() => downloadCSV('Black List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', color: '#ef4444', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <Trash2 size={18} /> BAIXAR BLACK
+                            <button onClick={() => downloadCSV('Black List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '16px', color: '#ef4444', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <Trash2 size={18} /> BLACK
                             </button>
-                            <button onClick={downloadIndividualLists} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <FileSpreadsheet size={18} /> BAIXAR LISTAS
+                            <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)', margin: '0 5px' }} />
+                            <button onClick={() => document.getElementById('campaign-filter-input')?.click()} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <Filter size={18} /> FILTRAR POR LISTA
+                                <input type="file" id="campaign-filter-input" hidden accept=".csv,.txt" onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    const text = await file.text();
+                                    const lines = text.split(/\r?\n/).map(l => l.trim().replace(/\D/g, '')).filter(l => l.length > 5);
+                                    setCampaignLeads(prev => prev.filter(lead => lines.includes(lead.id.replace(/\D/g, ''))));
+                                    alert(`Filtro aplicado! ${lines.length} números carregados.`);
+                                }} />
                             </button>
                         </div>
                     )}
@@ -717,10 +746,23 @@ const N8NWorkflow = () => {
                     <div style={{ width: '100%', maxWidth: '800px', background: 'var(--card-bg-subtle)', borderRadius: '32px', border: '1px solid rgba(172, 248, 0, 0.2)', padding: '40px', position: 'relative' }}>
                         <button onClick={() => { setShowFilterModal(false); setFilterResult(null); }} style={{ position: 'absolute', right: '30px', top: '30px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
                         <h2 style={{ textAlign: 'center', fontSize: '2.5rem', fontWeight: 950 }}>Filtro PRO</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeGreen: !o.removeGreen }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeGreen ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer' }}>Remover Green</div>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeCold: !o.removeCold }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeCold ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer' }}>Remover Cold</div>
-                            <div onClick={() => setFilterOptions(o => ({ ...o, removeBlack: !o.removeBlack }))} style={{ padding: '15px', borderRadius: '16px', border: '1px solid', borderColor: filterOptions.removeBlack ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer' }}>Remover Black</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '30px' }}>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeGreen: !o.removeGreen }))} style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeGreen ? '#22c55e' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e', opacity: filterOptions.removeGreen ? 1 : 0.2 }}></div>
+                                <span style={{ fontWeight: 800, fontSize: '13px' }}>Remover GREEN</span>
+                            </div>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeCold: !o.removeCold }))} style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeCold ? '#3b82f6' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#3b82f6', opacity: filterOptions.removeCold ? 1 : 0.2 }}></div>
+                                <span style={{ fontWeight: 800, fontSize: '13px' }}>Remover COLD</span>
+                            </div>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeBlack: !o.removeBlack }))} style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid', borderColor: filterOptions.removeBlack ? '#ef4444' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444', opacity: filterOptions.removeBlack ? 1 : 0.2 }}></div>
+                                <span style={{ fontWeight: 800, fontSize: '13px' }}>Remover BLACK</span>
+                            </div>
+                            <div onClick={() => setFilterOptions(o => ({ ...o, removeBots: !o.removeBots }))} style={{ padding: '18px', borderRadius: '18px', background: 'rgba(172, 248, 0, 0.03)', border: '1px solid', borderColor: filterOptions.removeBots ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <Zap size={18} color={filterOptions.removeBots ? 'var(--primary-color)' : 'white'} style={{ opacity: filterOptions.removeBots ? 1 : 0.2 }} />
+                                <span style={{ fontWeight: 800, fontSize: '13px', color: filterOptions.removeBots ? 'var(--primary-color)' : 'white' }}>REMOVER BOTS 🤖</span>
+                            </div>
                         </div>
                         {!filterResult ? (
                             <div onClick={() => document.getElementById('modal-file-input')?.click()} style={{ border: '2px dashed rgba(172, 248, 0, 0.2)', borderRadius: '24px', padding: '60px', textAlign: 'center', cursor: 'pointer' }}>
@@ -731,11 +773,58 @@ const N8NWorkflow = () => {
                         ) : (
                             <div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
-                                    <div style={{ textAlign: 'center' }}>Original: {filterResult.stats.original}</div>
-                                    <div style={{ textAlign: 'center', color: '#ef4444' }}>Removidos: -{filterResult.stats.removed}</div>
-                                    <div style={{ textAlign: 'center', color: 'var(--primary-color)' }}>Limpos: {filterResult.filteredNumbers.length}</div>
+                                    <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '18px' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '5px' }}>ORIGINAL</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 950 }}>{filterResult.stats.original}</div>
+                                    </div>
+                                    <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '18px', color: '#ef4444' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '5px' }}>REMOVIDOS</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 950 }}>-{filterResult.stats.removed}</div>
+                                    </div>
+                                    <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '18px', color: '#22c55e' }}>
+                                        <div style={{ fontSize: '10px', opacity: 0.5, fontWeight: 900, marginBottom: '5px' }}>LIMPOS</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: 950 }}>{filterResult.filteredNumbers.length}</div>
+                                    </div>
                                 </div>
-                                <button onClick={() => { const b = new Blob([filterResult.filteredNumbers.join('\n')], { type: 'text/csv' }); const u = URL.createObjectURL(b); const l = document.createElement("a"); l.href = u; l.download = "lista_limpa.csv"; l.click(); }} style={{ width: '100%', padding: '20px', background: 'var(--primary-color)', borderRadius: '20px', color: 'black', fontWeight: 900, cursor: 'pointer' }}><Download size={20} /> BAIXAR LISTA LIMPA</button>
+                                <div style={{ display: 'flex', gap: '15px' }}>
+                                    <button onClick={() => { const b = new Blob([filterResult.filteredNumbers.join('\n')], { type: 'text/csv' }); const u = URL.createObjectURL(b); const l = document.createElement("a"); l.href = u; l.download = "lista_limpa.csv"; l.click(); }} style={{ flex: 1, padding: '20px', background: 'var(--primary-color)', borderRadius: '20px', color: 'black', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }} className="hover-lift"><Download size={20} /> BAIXAR CSV</button>
+                                    <button 
+                                        onClick={async () => {
+                                            if (!filterResult.removedNumbers?.length) {
+                                                alert("Nenhum número removido para marcar.");
+                                                return;
+                                            }
+                                            if (!window.confirm(`Deseja marcar ${filterResult.removedNumbers.length} números removidos como BLACK LIST no banco de dados?`)) return;
+                                            
+                                            setIsLoading(true);
+                                            try {
+                                                const res = await fetch('/api/monitor/bulk-status', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ 
+                                                        recipientIds: filterResult.removedNumbers, 
+                                                        status: 'Black List',
+                                                        campanha: selectedCampaign 
+                                                    })
+                                                });
+                                                if (res.ok) {
+                                                    alert("Números marcados como BLACK LIST com sucesso!");
+                                                    setShowFilterModal(false);
+                                                    setFilterResult(null);
+                                                    if (activeTab === 'monitor') handleSearch(); else fetchCampaignLeads();
+                                                } else {
+                                                    alert("Erro ao atualizar status.");
+                                                }
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert("Erro na requisição.");
+                                            } finally {
+                                                setIsLoading(false);
+                                            }
+                                        }}
+                                        style={{ padding: '20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', color: 'white', fontWeight: 900, cursor: 'pointer' }}
+                                    >TAG BLACK LIST</button>
+                                </div>
                             </div>
                         )}
                     </div>

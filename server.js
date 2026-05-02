@@ -954,10 +954,12 @@ app.post('/api/monitor/bulk-status', async (req, res) => {
     }
 });
 
+const BOT_DETECTION_REGEX = '(bem[- ]?vindo|olá|ola|atendimento|assistente|aguarde|responderemos|recebemos sua|seja bem[- ]?vindo|bem-vindo\\(a\\)|seja bem[- ]?vinda|tudo bem|você está falando com|você entrou em contato com|central de atendimento|atendimento automático|assistente virtual|sou um assistente virtual|chatbot|em breve responderemos|aguarde um momento|já iremos te atender|nossa equipe irá responder|logo retornaremos|digite uma opção|escolha uma opção|responda com o número|menu de atendimento|selecione uma opção|recebemos sua mensagem|mensagem recebida|obrigado pelo contato|agradecemos seu contato|sua mensagem foi recebida|nosso horário de atendimento|fora do horário comercial|retornaremos no próximo horário útil|clique no link abaixo|acesse o link|confira nossas opções|veja nosso catálogo)';
+
 app.post('/api/monitor/filter-pro', async (req, res) => {
     try {
         const { phoneNumbers, options, campanha } = req.body; 
-        // options: { removeGreen: bool, removeCold: bool, removeBlack: bool, removeAny: bool }
+        // options: { removeGreen: bool, removeCold: bool, removeBlack: bool, removeAny: bool, removeBots: bool }
         if (!phoneNumbers || !Array.isArray(phoneNumbers)) {
             return res.status(400).json({ error: 'Lista de números inválida.' });
         }
@@ -965,37 +967,46 @@ app.post('/api/monitor/filter-pro', async (req, res) => {
         const cleanNumbers = phoneNumbers.map(n => n.toString().replace(/\D/g, '')).filter(n => n.length > 5);
         if (cleanNumbers.length === 0) return res.json({ filteredNumbers: [], stats: { original: 0, removed: 0 } });
 
+        // Query status and check for bot patterns in one go
         let query = `
-            SELECT DISTINCT identifier, status FROM (
-                SELECT remetente as identifier, status, campanha FROM public.data_log_old WHERE remetente = ANY($1)
+            SELECT identifier, status, bool_or(is_bot) as has_bot_msg FROM (
+                SELECT remetente as identifier, status, (mensagem ~* $2) as is_bot 
+                FROM public.data_log_old 
+                WHERE remetente = ANY($1) ${campanha ? 'AND campanha = $3' : ''}
                 UNION
-                SELECT destinatario as identifier, status, campanha FROM public.data_log_old WHERE destinatario = ANY($1)
+                SELECT destinatario as identifier, status, (mensagem ~* $2) as is_bot 
+                FROM public.data_log_old 
+                WHERE destinatario = ANY($1) ${campanha ? 'AND campanha = $3' : ''}
             ) as subquery
+            GROUP BY identifier, status
         `;
 
-        const queryParams = [cleanNumbers];
-        if (campanha) {
-            query += ` WHERE campanha = $2`;
-            queryParams.push(campanha);
-        }
+        const queryParams = [cleanNumbers, BOT_DETECTION_REGEX];
+        if (campanha) queryParams.push(campanha);
 
         const result = await pool.query(query, queryParams);
 
-        const statusMap = new Map();
+        const dataMap = new Map();
         result.rows.forEach(row => {
-            statusMap.set(row.identifier, row.status);
+            // Se já existir, priorizamos status que não sejam default ou o fato de ter bot
+            const existing = dataMap.get(row.identifier) || { status: 'Default', hasBot: false };
+            dataMap.set(row.identifier, {
+                status: row.status || existing.status,
+                hasBot: row.has_bot_msg || existing.hasBot
+            });
         });
 
         const filteredList = phoneNumbers.filter(original => {
             const clean = original.toString().replace(/\D/g, '');
-            const status = statusMap.get(clean);
+            const info = dataMap.get(clean);
 
-            if (!status) return true; 
+            if (!info) return true; // Se não tem histórico, mantemos na lista
 
             if (options.removeAny) return false;
-            if (options.removeGreen && status === 'Green List') return false;
-            if (options.removeCold && status === 'Cold List') return false;
-            if (options.removeBlack && status === 'Black List') return false;
+            if (options.removeGreen && info.status === 'Green List') return false;
+            if (options.removeCold && info.status === 'Cold List') return false;
+            if (options.removeBlack && info.status === 'Black List') return false;
+            if (options.removeBots && info.hasBot) return false;
 
             return true;
         });
@@ -1005,7 +1016,7 @@ app.post('/api/monitor/filter-pro', async (req, res) => {
             stats: {
                 original: phoneNumbers.length,
                 removed: phoneNumbers.length - filteredList.length,
-                foundInDb: statusMap.size
+                foundInDb: dataMap.size
             }
         });
 
