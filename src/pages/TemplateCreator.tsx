@@ -61,6 +61,12 @@ const TemplateCreator = () => {
     const LUIS_HENRIQUE_BASE = '9kn66r.api-us.infobip.com';
     const DEFAULT_BASE = '8k6xv1.api-us.infobip.com';
 
+    // --- META DIRECT CONFIG ---
+    const [useMetaDirect, setUseMetaDirect] = useState(false);
+    const META_TOKEN = 'EAAR8bIZClsZCUBRWtOZB59QitbLQXFZAKuDIpGpipNZBKY6RvCp9K6CdBzULsYIp94YcALoOkTAqNEH320QZCPVJVTyCZCu8Ep1oX8OZB9MLOwCOZC5cIkV263CaxGwtk9BNs4zNhfYzej8qFNBLlKZCTYumQSMfI4bZCTRDOTtKlqPnudVzO189FZAwikKYndd2TQZDZD';
+    const META_WABA_ID = '1262705619350517';
+
+
     const effectiveApiKey = useLuisHenrique ? LUIS_HENRIQUE_KEY : apiKey;
     const effectiveBaseUrl = useLuisHenrique ? LUIS_HENRIQUE_BASE : (infobipUrl || DEFAULT_BASE);
 
@@ -383,11 +389,102 @@ const TemplateCreator = () => {
                     `Erro HTTP ${response.status}: ${response.statusText}`;
                 return { success: false, error: apiError };
             }
+    const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, variablesOverride?: string[]) => {
+        const lang = overrideLanguage || selectedPayloadLanguage;
+        const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
+        const varCount = isFiveVars ? 5 : 4;
+        const examples = variablesOverride || LEANDRO_EXAMPLES.slice(0, varCount);
+        const effectiveHeaderType = overrideHeaderType || headerType;
+
+        const components: any[] = [
+            {
+                type: 'BODY',
+                text: bodyValue,
+                example: {
+                    body_text: [examples]
+                }
+            }
+        ];
+
+        if (effectiveHeaderType !== 'TEXT') {
+            const format = effectiveHeaderType.toUpperCase();
+            const mediaUrl = (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.imgur.com/gZLbY6p.jpeg');
+            components.push({
+                type: 'HEADER',
+                format: format,
+                example: {
+                    header_handle: [mediaUrl] // Direct Meta API usually uses handles, but for simplicity in this flow we pass the URL as the example handle
+                }
+            });
+        }
+
+        components.push({
+            type: 'FOOTER',
+            text: LEANDRO_FOOTER
+        });
+
+        const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
+        if (effectiveHasButtons && buttons.length > 0) {
+            let urlIdxCount = 0;
+            const metaButtons = buttons.map((btn: any) => {
+                const b: any = {
+                    type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
+                    text: (btn.type === 'url' && buttonTextOverrides && buttonTextOverrides[urlIdxCount]) ? buttonTextOverrides[urlIdxCount] : btn.text,
+                };
+                if (btn.type === 'url') {
+                    const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
+                    b.url = finalUrl || 'https://site.com';
+                    urlIdxCount++;
+                }
+                return b;
+            });
+            components.push({
+                type: 'BUTTONS',
+                buttons: metaButtons
+            });
+        }
+
+        return {
+            name: name,
+            language: lang,
+            category: 'UTILITY',
+            components: components
+        };
+    };
+
+    const callMetaAPI = async (payload: any) => {
+        try {
+            const url = `https://graph.facebook.com/v21.0/${META_WABA_ID}/message_templates`;
+            const headers = {
+                'Authorization': `Bearer ${META_TOKEN}`,
+                'Content-Type': 'application/json'
+            };
+
+            console.group('🚀 Meta Direct API Request');
+            console.log('URL:', url);
+            console.log('Payload:', payload);
+            console.groupEnd();
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                return { success: true, data: result };
+            } else {
+                console.error("Meta API Error Response:", result);
+                const errorMsg = result.error?.message || JSON.stringify(result);
+                return { success: false, error: errorMsg };
+            }
         } catch (err: any) {
-            console.error("Fetch Exception:", err);
-            return { success: false, error: `Falha na requisição: ${err.message || 'Erro desconhecido de rede'}` };
+            console.error("Meta Fetch Exception:", err);
+            return { success: false, error: `Falha na requisição Meta: ${err.message || 'Erro desconhecido'}` };
         }
     };
+
 
     const sendToWebhook = async (payload: any) => {
         const targetUrl = "https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado";
@@ -486,8 +583,15 @@ const TemplateCreator = () => {
                     const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
                     setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
 
-                    const payload = buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage);
-                    const res = await callInfobipAPI(payload, sender);
+                    const payload = useMetaDirect 
+                        ? buildMetaPayload(currentName, selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, variablesExample)
+                        : buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage);
+
+                    
+                    const res = useMetaDirect
+                        ? await callMetaAPI(payload)
+                        : await callInfobipAPI(payload, sender);
+
                     if (res.success) {
                         totalSuccess++;
                         if (user?.id) await dbService.trackTemplate(currentName, user.id);
@@ -499,7 +603,15 @@ const TemplateCreator = () => {
                             mode: 'SINGLE',
                             userId: isInternalUser ? undefined : Number(selectedClientId)
                         });
-                        await sendToWebhook(payload);
+                        
+                        // Adapt payload for webhook if Meta Direct
+                        const webhookPayload = useMetaDirect ? {
+                            ...payload,
+                            category: 'UTILITY', // Meta payload has category, components
+                            original_button_link: buttons.find(b => b.type === 'url')?.url || ''
+                        } : payload;
+                        
+                        await sendToWebhook(webhookPayload);
 
                         const client = clients.find(c => String(c.id) === String(selectedClientId));
                         const clientName = client?.name || (user?.role === 'ASSINATURA_BASICA' ? user?.name : '');
@@ -543,6 +655,7 @@ const TemplateCreator = () => {
                             timestamp: new Date().toLocaleTimeString()
                         }, ...prev].slice(0, 50));
                     }
+
 
                     if (currentOp < totalOps) await new Promise(r => setTimeout(r, 4000));
                 }
@@ -606,10 +719,12 @@ const TemplateCreator = () => {
                         row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
                     }
 
-                    const payload = buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl);
+                    const payload = useMetaDirect
+                        ? buildMetaPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, row.variables)
+                        : buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumbers.split(/[\n,]/)[0]?.trim();
-                    if (!rowSender) {
+                    if (!rowSender && !useMetaDirect) {
                         const errorMsg = `Remetente não encontrado para a linha ${i + 1}`;
                         errors.push({ name, error: errorMsg });
                         setOperationErrors(prev => [{
@@ -626,7 +741,11 @@ const TemplateCreator = () => {
                         sender: rowSender,
                         original_button_link: (row.originalButtonUrls && row.originalButtonUrls.length > 0) ? row.originalButtonUrls[0] : ''
                     };
-                    const res = await callInfobipAPI(payload, rowSender);
+                    
+                    const res = useMetaDirect
+                        ? await callMetaAPI(payload)
+                        : await callInfobipAPI(payload, rowSender);
+
                     if (res.success) {
                         successCount++;
                         if (user?.id) await dbService.trackTemplate(name, user.id);
@@ -662,6 +781,7 @@ const TemplateCreator = () => {
                             timestamp: new Date().toLocaleTimeString()
                         }, ...prev].slice(0, 50));
                     }
+
 
                     if (currentOpTotal < totalTotal) await new Promise(r => setTimeout(r, 5000));
                 }
@@ -1419,6 +1539,32 @@ const TemplateCreator = () => {
                                     </span>
                                 </label>
                             </div>
+
+                            <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <div className="flex flex-col">
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Meta Direct?</span>
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Criar template diretamente na API da Meta</span>
+                                </div>
+                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
+                                    <input
+                                        type="checkbox"
+                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                        checked={useMetaDirect}
+                                        onChange={(e) => setUseMetaDirect(e.target.checked)}
+                                    />
+                                    <span style={{
+                                        position: 'absolute', cursor: 'pointer', inset: 0,
+                                        backgroundColor: useMetaDirect ? 'var(--primary-color)' : '#333',
+                                        transition: '.4s', borderRadius: '34px'
+                                    }}>
+                                        <span style={{
+                                            position: 'absolute', height: '16px', width: '16px', left: useMetaDirect ? '24px' : '4px', bottom: '3px',
+                                            backgroundColor: useMetaDirect ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                                        }}></span>
+                                    </span>
+                                </label>
+                            </div>
+
 
                             <div className="flex flex-col gap-3">
                                 <label>Idioma do Template</label>
