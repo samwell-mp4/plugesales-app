@@ -389,6 +389,12 @@ const TemplateCreator = () => {
                     `Erro HTTP ${response.status}: ${response.statusText}`;
                 return { success: false, error: apiError };
             }
+        } catch (err: any) {
+            console.error("Fetch Exception:", err);
+            return { success: false, error: `Falha na requisição: ${err.message || 'Erro desconhecido de rede'}` };
+        }
+    };
+
     const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, variablesOverride?: string[]) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
         const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
