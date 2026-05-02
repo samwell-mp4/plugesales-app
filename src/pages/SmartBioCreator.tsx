@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { dbService } from '../services/dbService';
 import { 
     FileText,
     Smartphone, 
@@ -31,6 +33,17 @@ const SmartBioCreator = () => {
         images: [],
         slug: 'seu-link'
     });
+    const { user } = useAuth();
+
+    useEffect(() => {
+        if (user?.id) {
+            const loadBio = async () => {
+                const existing = await dbService.getSmartBio(user.id!);
+                if (existing) setBio(existing);
+            };
+            loadBio();
+        }
+    }, [user?.id]);
     const [showPDFs, setShowPDFs] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -58,16 +71,20 @@ const SmartBioCreator = () => {
 
     const handleSave = async () => {
         if (!bio.slug) return alert('Defina um link personalizado (slug)');
+        if (!user?.id) return alert('Usuário não identificado. Faça login novamente.');
+        
         setIsSaving(true);
         try {
-            const res = await fetch('/api/smart-bio', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bio)
-            });
-            if (res.ok) alert('Smart Bio salva com sucesso!');
+            const payload = { ...bio, user_id: user.id };
+            const res = await dbService.saveSmartBio(payload);
+            if (res && !res.error) {
+                alert('Smart Bio salva com sucesso!');
+            } else {
+                alert('Erro ao salvar: ' + (res?.error || 'Erro desconhecido'));
+            }
         } catch (err) {
             console.error(err);
+            alert('Erro de conexão ao salvar');
         } finally {
             setIsSaving(false);
         }
@@ -530,8 +547,8 @@ const SmartBioCreator = () => {
                     <div className="crm-section-card">
                         <div className="flex justify-between items-center mb-6">
                             <div className="section-header mb-0"><MousePointer2 size={16} /> BOTÕES DE AÇÃO</div>
-                            <button onClick={addButton} className="btn-supreme" style={{ padding: '8px 16px', borderRadius: '10px' }}>
-                                <Plus size={18} /> ADICIONAR
+                            <button onClick={addButton} className="btn-supreme flex items-center gap-2" style={{ padding: '12px 24px', background: 'var(--primary-color)', color: 'black', borderRadius: '14px', fontWeight: '900' }}>
+                                <Plus size={20} /> ADICIONAR LINK +
                             </button>
                         </div>
                         

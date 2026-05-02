@@ -224,7 +224,7 @@ const initDB = async () => {
             )`,
             `CREATE TABLE IF NOT EXISTS smart_bios (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id INTEGER,
+                user_id INTEGER UNIQUE,
                 title TEXT,
                 description TEXT,
                 avatar_url TEXT,
@@ -472,6 +472,8 @@ const initDB = async () => {
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS region TEXT`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION`);
         await client.query(`ALTER TABLE link_clicks ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION`);
+        
+        await safeAlter(`ALTER TABLE smart_bios ADD CONSTRAINT unique_user_id UNIQUE (user_id)`);
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS infobip_templates (
@@ -5138,12 +5140,25 @@ app.post('/api/smart-bio', async (req, res) => {
         const result = await pool.query(
             `INSERT INTO smart_bios (title, description, avatar_url, video_url, buttons, images, slug, user_id) 
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-             ON CONFLICT (slug) DO UPDATE SET 
+             ON CONFLICT (user_id) DO UPDATE SET 
              title = EXCLUDED.title, description = EXCLUDED.description, avatar_url = EXCLUDED.avatar_url, 
-             video_url = EXCLUDED.video_url, buttons = EXCLUDED.buttons, images = EXCLUDED.images 
+             video_url = EXCLUDED.video_url, buttons = EXCLUDED.buttons, images = EXCLUDED.images,
+             slug = EXCLUDED.slug
              RETURNING *`,
             [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, user_id]
         );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Smart Bio Save Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/smart-bio', async (req, res) => {
+    const { user_id } = req.query;
+    try {
+        const result = await pool.query('SELECT * FROM smart_bios WHERE user_id = $1', [user_id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Bio não encontrada' });
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });

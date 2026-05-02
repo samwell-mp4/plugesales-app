@@ -1201,5 +1201,23 @@ export const dbService = {
             console.error("Error fetching spreadsheet messages:", err);
             return [];
         }
+    },
+    // --- Smart Bio ---
+    getSmartBio: async (userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/smart-bio?user_id=${userId}`);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (err) { return null; }
+    },
+    saveSmartBio: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/smart-bio`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
     }
 };
