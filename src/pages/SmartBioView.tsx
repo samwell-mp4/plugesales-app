@@ -1,43 +1,58 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Zap, MessageCircle, ExternalLink, Loader2, Share2, User, ChevronRight, ArrowLeft, Send, Check, Smartphone, FileText } from 'lucide-react';
+import { useParams, useLocation } from 'react-router-dom';
+import { Zap, MessageCircle, ExternalLink, Loader2, Share2, User, ChevronRight, ArrowLeft, Send, Check, Smartphone, FileText, Globe } from 'lucide-react';
 
 const SmartBioView = () => {
     const { slug } = useParams();
+    const location = useLocation();
     const [bio, setBio] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [wizardStep, setWizardStep] = useState(1);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Tracking/Ref query param
+    const queryParams = new URLSearchParams(location.search);
+    const ref = queryParams.get('ref') || '';
+
     const [employeeData, setEmployeeData] = useState({
         name: '',
         photo: '',
         phone: '',
-        tracking: ''
+        tracking: ref
     });
 
     useEffect(() => {
         const fetchBio = async () => {
             try {
+                // Ensure absolute path from root
                 const res = await fetch(`/api/smart-bio/${slug}`);
+                if (!res.ok) throw new Error('Not found');
                 const data = await res.json();
-                setBio(data);
+                
+                // Parse buttons/images if they are strings from DB
+                const parsedBio = {
+                    ...data,
+                    buttons: typeof data.buttons === 'string' ? JSON.parse(data.buttons) : data.buttons,
+                    images: typeof data.images === 'string' ? JSON.parse(data.images) : data.images
+                };
+                setBio(parsedBio);
             } catch (err) {
-                console.error(err);
+                console.error('Fetch Bio Error:', err);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchBio();
+        if (slug) fetchBio();
     }, [slug]);
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <div className="min-h-screen bg-[#020202] flex items-center justify-center">
                 <div className="relative">
-                    <div className="w-16 h-16 border-4 border-primary-color/20 border-t-primary-color rounded-full animate-spin"></div>
+                    <div className="w-20 h-20 border-2 border-primary-color/10 border-t-primary-color rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Zap size={20} className="text-primary-color animate-pulse" />
+                        <Zap size={24} className="text-primary-color animate-pulse" />
                     </div>
                 </div>
             </div>
@@ -46,32 +61,48 @@ const SmartBioView = () => {
 
     if (!bio) {
         return (
-            <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center text-center p-10">
-                <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
+            <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center text-center p-10">
+                <div className="w-24 h-24 bg-red-500/10 rounded-[35px] flex items-center justify-center mb-8 border border-red-500/20">
                     <Zap size={40} className="text-red-500" />
                 </div>
-                <h1 className="text-white font-black text-4xl mb-2">404</h1>
-                <p className="text-white/40 font-bold uppercase tracking-widest text-xs">Página não encontrada</p>
+                <h1 className="text-white font-black text-5xl mb-4 tracking-tighter">404</h1>
+                <p className="text-white/20 font-black uppercase tracking-[5px] text-[10px]">Página não encontrada ou desativada</p>
+                <button 
+                    onClick={() => window.location.href = '/'}
+                    className="mt-12 px-8 py-4 bg-white/5 rounded-2xl text-white font-black text-xs tracking-widest uppercase border border-white/10 hover:bg-white/10 transition-all"
+                >
+                    Voltar ao Início
+                </button>
             </div>
         );
     }
 
-    const handleButtonClick = async (btn: any) => {
+    const handleButtonClick = (btn: any) => {
         if (btn.type === 'preview') {
             setIsWizardOpen(true);
             return;
         }
+        
+        let finalUrl = btn.url;
+        // Append tracking if present
+        if (ref && finalUrl.includes('?')) {
+            finalUrl += `&ref=${ref}`;
+        } else if (ref) {
+            finalUrl += `?ref=${ref}`;
+        }
+
         if (btn.type === 'whatsapp') {
-            window.open(`https://wa.me/${btn.url.replace(/\D/g, '')}`, '_blank');
+            const cleanPhone = btn.url.replace(/\D/g, '');
+            window.open(`https://wa.me/${cleanPhone}`, '_blank');
         } else {
-            window.open(btn.url, '_blank');
+            window.open(finalUrl, '_blank');
         }
     };
 
     const handleFinalizeDispatch = async () => {
         setIsSaving(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await new Promise(resolve => setTimeout(resolve, 2000));
             setWizardStep(3);
         } catch (err) {
             console.error(err);
@@ -81,476 +112,281 @@ const SmartBioView = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#020617] text-white flex flex-col items-center px-6 py-16 sm:py-24 relative overflow-hidden">
-            {/* Ambient Background Lights */}
-            <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary-color/10 rounded-full blur-[120px] pointer-events-none"></div>
-            <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-primary-color/5 rounded-full blur-[120px] pointer-events-none"></div>
-
+        <div className="min-h-screen bg-[#020202] text-white flex flex-col items-center px-6 py-20 relative overflow-hidden font-sans">
             <style>{`
-                .bio-avatar-wrapper {
-                    position: relative;
-                    margin-bottom: 32px;
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+                
+                body { font-family: 'Outfit', sans-serif; background: #020202; }
+
+                .supreme-bio-container {
+                    width: 100%;
+                    max-width: 480px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
                     z-index: 10;
                 }
-                .bio-avatar-wrapper::after {
-                    content: '';
-                    position: absolute;
-                    inset: -8px;
-                    border: 2px solid rgba(172, 248, 0, 0.3);
-                    border-radius: 50%;
-                    animation: pulse-ring 2s infinite;
-                }
-                @keyframes pulse-ring {
-                    0% { transform: scale(1); opacity: 1; }
-                    100% { transform: scale(1.1); opacity: 0; }
-                }
-                .bio-avatar {
+
+                .avatar-supreme-view {
                     width: 130px;
                     height: 130px;
-                    border-radius: 50%;
-                    border: 4px solid var(--primary-color);
-                    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-                    object-fit: cover;
+                    border-radius: 45px;
+                    padding: 5px;
+                    background: linear-gradient(135deg, #acf800, #00f2fe);
+                    margin-bottom: 35px;
+                    box-shadow: 0 25px 50px rgba(172, 248, 0, 0.2);
+                    position: relative;
                 }
-                .bio-btn {
+                .avatar-supreme-view::after {
+                    content: '';
+                    position: absolute;
+                    inset: -10px;
+                    border: 1px solid rgba(172, 248, 0, 0.2);
+                    border-radius: 50px;
+                    animation: pulse-ring 3s infinite;
+                }
+                @keyframes pulse-ring {
+                    0% { transform: scale(0.9); opacity: 1; }
+                    100% { transform: scale(1.2); opacity: 0; }
+                }
+
+                .btn-supreme-view {
                     width: 100%;
-                    max-width: 450px;
-                    padding: 22px;
                     background: rgba(255, 255, 255, 0.03);
-                    backdrop-filter: blur(20px);
-                    color: white;
-                    border-radius: 24px;
-                    font-weight: 900;
-                    font-size: 1rem;
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    padding: 24px;
+                    border-radius: 28px;
+                    margin-bottom: 16px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 12px;
-                    margin-bottom: 16px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    cursor: pointer;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                    gap: 15px;
+                    font-weight: 900;
+                    font-size: 1.1rem;
+                    color: #fff;
+                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
+                    backdrop-filter: blur(10px);
                 }
-                .bio-btn:hover {
-                    transform: translateY(-5px) scale(1.02);
-                    background: white;
-                    color: black;
-                    border-color: white;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+                .btn-supreme-view:hover {
+                    background: #fff;
+                    color: #000;
+                    transform: translateY(-8px) scale(1.02);
+                    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+                    border-color: #fff;
                 }
-                .bio-btn.primary {
-                    background: var(--primary-color);
-                    color: black;
+                .btn-supreme-view.primary {
+                    background: #acf800;
+                    color: #000;
                     border: none;
+                    box-shadow: 0 15px 35px rgba(172, 248, 0, 0.3);
                 }
-                .video-container {
+                .btn-supreme-view.primary:hover {
+                    background: #fff;
+                    box-shadow: 0 30px 60px rgba(255, 255, 255, 0.2);
+                }
+
+                .video-supreme-view {
                     width: 100%;
-                    max-width: 450px;
-                    border-radius: 32px;
+                    border-radius: 40px;
                     overflow: hidden;
+                    border: 1px solid rgba(255, 255, 255, 0.05);
                     margin-bottom: 40px;
-                    border: 1px solid rgba(255,255,255,0.1);
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-                    z-index: 10;
+                    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
                 }
-                /* Wizard & Preview Styles */
-                .wizard-overlay {
+
+                /* Ambient Lights */
+                .light-top { position: absolute; top: -20%; left: 50%; transform: translateX(-50%); width: 100%; height: 60%; background: radial-gradient(circle, rgba(172, 248, 0, 0.07) 0%, transparent 70%); pointer-events: none; }
+                .light-bottom { position: absolute; bottom: -10%; left: 50%; transform: translateX(-50%); width: 80%; height: 40%; background: radial-gradient(circle, rgba(0, 242, 254, 0.05) 0%, transparent 70%); pointer-events: none; }
+
+                /* Wizard Custom Premium */
+                .supreme-wizard-overlay {
                     position: fixed;
                     inset: 0;
-                    background: #020617ee;
-                    backdrop-filter: blur(40px) saturate(180%);
+                    background: rgba(0, 0, 0, 0.95);
+                    backdrop-filter: blur(30px);
                     z-index: 1000;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     padding: 20px;
                 }
-                .wizard-card {
-                    background: #0f172a;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 48px;
+                .supreme-wizard-card {
+                    background: #0a0a0a;
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 50px;
                     width: 100%;
                     max-width: 1100px;
                     height: 800px;
                     display: grid;
-                    grid-template-columns: 1fr 450px;
+                    grid-template-columns: 1fr 440px;
                     overflow: hidden;
-                    box-shadow: 0 100px 150px -50px rgba(0,0,0,0.9);
+                    box-shadow: 0 100px 200px rgba(0,0,0,0.9);
                 }
-                .wizard-content {
-                    padding: 80px;
-                    display: flex;
-                    flex-direction: column;
-                    background: radial-gradient(circle at 0% 0%, rgba(172, 248, 0, 0.08), transparent 60%);
-                }
-                .wizard-preview-side {
-                    background: #0b141a;
-                    border-left: 1px solid rgba(255, 255, 255, 0.05);
-                    display: flex;
-                    flex-direction: column;
-                    position: relative;
-                }
-                .wa-header-mock {
-                    background: #202c33;
-                    padding: 45px 25px 20px;
-                    display: flex;
-                    align-items: center;
-                    gap: 15px;
-                    border-bottom: 1px solid rgba(0,0,0,0.2);
-                }
-                .wa-avatar-mock {
-                    width: 42px;
-                    height: 42px;
-                    background: #6a7175;
-                    border-radius: 50%;
-                    position: relative;
-                    flex-shrink: 0;
-                }
-                .wa-status-dot {
-                    width: 12px;
-                    height: 12px;
-                    background: #00a884;
-                    border: 2px solid #202c33;
-                    border-radius: 50%;
-                    position: absolute;
-                    bottom: 0;
-                    right: 0;
-                }
-                .wa-body-mock {
-                    flex: 1;
-                    padding: 25px;
-                    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-                    background-size: 400px;
-                    background-repeat: repeat;
-                    background-blend-mode: overlay;
+                .wa-mock-bg {
                     background-color: #0b141a;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 15px;
-                    overflow-y: auto;
-                }
-                .wa-bubble-official {
-                    background: #202c33;
-                    border-radius: 0 16px 16px 16px;
-                    max-width: 95%;
-                    padding: 10px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    position: relative;
-                }
-                .wa-sender-name {
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: #53bdeb;
-                    margin-bottom: 6px;
-                    padding: 0 6px;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-                .wa-verified-badge {
-                    color: #00a884;
-                    fill: #00a884;
-                }
-                .wa-message-text {
-                    color: #e9edef;
-                    font-size: 14.5px;
-                    line-height: 1.6;
-                    padding: 0 6px 8px;
-                }
-                .wa-link-preview-card {
-                    background: rgba(0,0,0,0.25);
-                    border-radius: 12px;
-                    margin: 4px;
-                    overflow: hidden;
-                    border: 1px solid rgba(255,255,255,0.05);
-                }
-                .wa-preview-hero {
-                    width: 100%;
-                    height: 180px;
-                    background: #1f2937;
-                    object-fit: cover;
-                }
-                .wa-preview-body {
-                    padding: 15px;
-                    background: #182229;
-                }
-                .wa-preview-site {
-                    color: #8696a0;
-                    font-size: 11px;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    margin-bottom: 4px;
-                }
-                .wa-preview-title {
-                    color: white;
-                    font-size: 15px;
-                    font-weight: 700;
-                    line-height: 1.3;
-                }
-                .wa-action-button {
-                    background: #202c33;
-                    margin-top: 10px;
-                    padding: 12px;
-                    border-radius: 12px;
-                    text-align: center;
-                    color: #53bdeb;
-                    font-weight: 700;
-                    font-size: 14px;
-                    border-top: 1px solid rgba(255,255,255,0.05);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                    cursor: pointer;
-                    transition: background 0.2s;
-                }
-                .wa-action-button:hover { background: #2a3942; }
-                .wizard-title {
-                    font-size: 3.5rem;
-                    font-weight: 950;
-                    letter-spacing: -4px;
-                    line-height: 0.9;
-                    margin-bottom: 20px;
-                }
-                .step-dot {
-                    width: 40px;
-                    height: 6px;
-                    border-radius: 3px;
-                    background: rgba(255, 255, 255, 0.1);
-                    transition: all 0.3s;
-                }
-                .step-dot.active {
-                    background: #acf800;
-                    box-shadow: 0 0 15px #acf800;
-                }
-                .nav-btn {
-                    padding: 18px 30px;
-                    border-radius: 18px;
-                    font-weight: 900;
-                    text-transform: uppercase;
-                    letter-spacing: 2px;
-                    font-size: 12px;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                }
-                .nav-btn-primary { background: #acf800; color: #000; border: none; }
-                .nav-btn-secondary { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-                .supreme-field-box {
-                    background: rgba(0, 0, 0, 0.2);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 20px;
-                    padding: 20px;
-                }
-                .field-label {
-                    color: #acf800;
-                    font-size: 9px;
-                    font-weight: 900;
-                    text-transform: uppercase;
-                    letter-spacing: 2px;
-                    margin-bottom: 8px;
-                    display: block;
-                }
-                .field-input {
-                    background: transparent;
-                    border: none;
-                    color: white;
-                    width: 100%;
-                    font-weight: 700;
-                    font-size: 15px;
-                    outline: none;
+                    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+                    background-size: 500px;
+                    background-blend-mode: overlay;
+                    opacity: 0.8;
                 }
             `}</style>
 
-            <div className="bio-avatar-wrapper">
-                <img src={bio.avatar_url || 'https://via.placeholder.com/150'} alt={bio.title} className="bio-avatar" />
+            <div className="light-top" />
+            <div className="light-bottom" />
+
+            <div className="supreme-bio-container">
+                <div className="avatar-supreme-view">
+                    <img 
+                        src={bio.avatar_url || 'https://via.placeholder.com/150'} 
+                        alt={bio.title} 
+                        className="w-full h-full rounded-[40px] object-cover bg-white/5" 
+                    />
+                </div>
+
+                <h1 className="text-4xl font-black mb-4 text-center tracking-tight leading-none">{bio.title}</h1>
+                <p className="text-white/40 text-center mb-12 font-bold leading-relaxed px-4 uppercase tracking-[2px] text-[11px]">{bio.description}</p>
+
+                {bio.video_url && (
+                    <div className="video-supreme-view">
+                        <iframe 
+                            width="100%" 
+                            height="280" 
+                            src={bio.video_url.replace('watch?v=', 'embed/')} 
+                            title="Apresentação"
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                )}
+
+                <div className="w-full space-y-4">
+                    {bio.buttons.map((btn: any, i: number) => (
+                        <button 
+                            key={i} 
+                            onClick={() => handleButtonClick(btn)} 
+                            className={`btn-supreme-view ${i === 0 ? 'primary' : ''}`}
+                        >
+                            {btn.type === 'whatsapp' ? <MessageCircle size={22} strokeWidth={2.5} /> : <ExternalLink size={22} strokeWidth={2.5} />}
+                            {btn.label}
+                        </button>
+                    ))}
+                </div>
+
+                <footer className="mt-24 flex flex-col items-center gap-8 opacity-20">
+                    <div className="flex items-center gap-2">
+                        <Zap size={18} fill="currentColor" className="text-primary-color" />
+                        <span className="text-[10px] font-black tracking-[4px] uppercase">Powered by Plug & Sales Supreme</span>
+                    </div>
+                </footer>
             </div>
-
-            <h1 className="text-3xl font-black mb-3 z-10">{bio.title}</h1>
-            <p className="text-white/40 text-center max-w-sm mb-12 leading-relaxed font-bold z-10">{bio.description}</p>
-
-            {bio.video_url && (
-                <div className="video-container">
-                    <iframe 
-                        width="100%" 
-                        height="250" 
-                        src={bio.video_url.replace('watch?v=', 'embed/')} 
-                        title="Video"
-                        frameBorder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowFullScreen
-                    ></iframe>
-                </div>
-            )}
-
-            <div className="w-full flex flex-col items-center z-10 px-4">
-                {bio.buttons.map((btn: any, i: number) => (
-                    <button 
-                        key={i} 
-                        onClick={() => handleButtonClick(btn)} 
-                        className={`bio-btn ${i === 0 ? 'primary' : ''}`}
-                    >
-                        {btn.type === 'whatsapp' ? <MessageCircle size={22} /> : <ExternalLink size={22} />}
-                        {btn.label}
-                    </button>
-                ))}
-            </div>
-
-            <footer className="mt-20 flex flex-col items-center gap-6 opacity-40 z-10">
-                <div className="flex items-center gap-3 px-6 py-3 bg-white/5 rounded-full border border-white/10">
-                    <Share2 size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Compartilhar Página</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Zap size={16} fill="currentColor" className="text-primary-color" />
-                    <span className="text-[11px] font-black tracking-widest uppercase">Powered by Plug & Sales</span>
-                </div>
-            </footer>
 
             {isWizardOpen && (
-                <div className="wizard-overlay">
-                    <div className="wizard-card">
-                        <div className="wizard-content">
-                            <div className="flex gap-2 mb-10">
-                                <div className={`step-dot ${wizardStep >= 1 ? 'active' : ''}`} />
-                                <div className={`step-dot ${wizardStep >= 2 ? 'active' : ''}`} />
-                                <div className={`step-dot ${wizardStep >= 3 ? 'active' : ''}`} />
+                <div className="supreme-wizard-overlay animate-fade-in">
+                    <div className="supreme-wizard-card">
+                        <div className="p-20 flex flex-col h-full bg-gradient-to-br from-white/[0.02] to-transparent">
+                            <div className="flex gap-3 mb-16">
+                                {[1, 2, 3].map(s => (
+                                    <div key={s} className={`h-1.5 rounded-full transition-all duration-500 ${wizardStep >= s ? 'w-12 bg-primary-color shadow-[0_0_15px_rgba(172,248,0,0.5)]' : 'w-6 bg-white/10'}`} />
+                                ))}
                             </div>
 
                             {wizardStep === 1 && (
-                                <div className="space-y-8 animate-fade-in">
-                                    <div>
-                                        <h2 className="wizard-title">Sua Identidade <span className="text-[#acf800]">Profissional</span></h2>
-                                        <p className="text-white/40 text-sm">Personalize como você aparecerá no card do WhatsApp.</p>
-                                    </div>
+                                <div className="space-y-10 animate-slide-up">
+                                    <h2 className="text-6xl font-black tracking-tighter leading-[0.9]">Identidade <br/><span className="text-primary-color">Premium</span></h2>
                                     <div className="space-y-6">
-                                        <div className="supreme-field-box">
-                                            <label className="field-label">SEU NOME COMPLETO</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Ex: Carlos Alberto" 
-                                                value={employeeData.name}
-                                                onChange={e => setEmployeeData({...employeeData, name: e.target.value})}
-                                            />
+                                        <div className="bg-white/5 p-6 rounded-3xl border border-white/5 focus-within:border-primary-color/50 transition-all">
+                                            <span className="text-[9px] font-black text-white/30 uppercase tracking-[3px] mb-2 block">Seu Nome Comercial</span>
+                                            <input className="bg-transparent border-none outline-none text-xl font-bold w-full text-white" placeholder="Ex: Rodrigo Silva" value={employeeData.name} onChange={e => setEmployeeData({...employeeData, name: e.target.value})} />
                                         </div>
-                                        <div className="supreme-field-box">
-                                            <label className="field-label">URL DA SUA FOTO</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="https://..." 
-                                                value={employeeData.photo}
-                                                onChange={e => setEmployeeData({...employeeData, photo: e.target.value})}
-                                            />
+                                        <div className="bg-white/5 p-6 rounded-3xl border border-white/5 focus-within:border-primary-color/50 transition-all">
+                                            <span className="text-[9px] font-black text-white/30 uppercase tracking-[3px] mb-2 block">URL da Foto de Perfil</span>
+                                            <input className="bg-transparent border-none outline-none text-xl font-bold w-full text-white" placeholder="https://..." value={employeeData.photo} onChange={e => setEmployeeData({...employeeData, photo: e.target.value})} />
                                         </div>
                                     </div>
-                                    <div className="pt-8 flex gap-4">
-                                        <button onClick={() => setIsWizardOpen(false)} className="nav-btn nav-btn-secondary">FECHAR</button>
-                                        <button onClick={() => setWizardStep(2)} className="nav-btn nav-btn-primary flex-1">PRÓXIMO PASSO <ChevronRight size={18}/></button>
+                                    <div className="pt-10 flex gap-4">
+                                        <button onClick={() => setIsWizardOpen(false)} className="px-8 py-5 rounded-2xl bg-white/5 text-white font-black text-xs uppercase tracking-widest border border-white/10">Sair</button>
+                                        <button onClick={() => setWizardStep(2)} className="flex-1 px-8 py-5 rounded-2xl bg-primary-color text-black font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3">Próxima Etapa <ChevronRight size={18}/></button>
                                     </div>
                                 </div>
                             )}
 
                             {wizardStep === 2 && (
-                                <div className="space-y-8 animate-fade-in">
-                                    <div>
-                                        <h2 className="wizard-title">Configurar <span className="text-[#acf800]">Rastreio</span></h2>
-                                        <p className="text-white/40 text-sm">Defina seu código de rastreio para monitorar suas vendas.</p>
-                                    </div>
+                                <div className="space-y-10 animate-slide-up">
+                                    <h2 className="text-6xl font-black tracking-tighter leading-[0.9]">Ativação de <br/><span className="text-primary-color">Rastreio</span></h2>
                                     <div className="space-y-6">
-                                        <div className="supreme-field-box">
-                                            <label className="field-label">SEU CÓDIGO DE TRACKING (UTM)</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Ex: ref-carlos" 
-                                                value={employeeData.tracking}
-                                                onChange={e => setEmployeeData({...employeeData, tracking: e.target.value})}
-                                            />
+                                        <div className="bg-white/5 p-6 rounded-3xl border border-white/5 focus-within:border-primary-color/50 transition-all">
+                                            <span className="text-[9px] font-black text-white/30 uppercase tracking-[3px] mb-2 block">Código de Tracking (Ref)</span>
+                                            <input className="bg-transparent border-none outline-none text-xl font-bold w-full text-white" placeholder="Ex: ref-rodrigo" value={employeeData.tracking} onChange={e => setEmployeeData({...employeeData, tracking: e.target.value})} />
                                         </div>
-                                        <div className="supreme-field-box">
-                                            <label className="field-label">SEU WHATSAPP COMERCIAL</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Ex: 5511999999999" 
-                                                value={employeeData.phone}
-                                                onChange={e => setEmployeeData({...employeeData, phone: e.target.value})}
-                                            />
+                                        <div className="bg-white/5 p-6 rounded-3xl border border-white/5 focus-within:border-primary-color/50 transition-all">
+                                            <span className="text-[9px] font-black text-white/30 uppercase tracking-[3px] mb-2 block">Seu WhatsApp Comercial</span>
+                                            <input className="bg-transparent border-none outline-none text-xl font-bold w-full text-white" placeholder="Ex: 5511999999999" value={employeeData.phone} onChange={e => setEmployeeData({...employeeData, phone: e.target.value})} />
                                         </div>
                                     </div>
-                                    <div className="pt-8 flex gap-4">
-                                        <button onClick={() => setWizardStep(1)} className="nav-btn nav-btn-secondary"><ArrowLeft size={18}/> VOLTAR</button>
-                                        <button onClick={handleFinalizeDispatch} disabled={isSaving} className="nav-btn nav-btn-primary flex-1">
-                                            {isSaving ? 'GERANDO LINK...' : 'FINALIZAR E SALVAR'} <Send size={18}/>
+                                    <div className="pt-10 flex gap-4">
+                                        <button onClick={() => setWizardStep(1)} className="px-8 py-5 rounded-2xl bg-white/5 text-white font-black text-xs uppercase tracking-widest border border-white/10 flex items-center gap-3"><ArrowLeft size={18}/> Voltar</button>
+                                        <button onClick={handleFinalizeDispatch} disabled={isSaving} className="flex-1 px-8 py-5 rounded-2xl bg-primary-color text-black font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3">
+                                            {isSaving ? <Loader2 className="animate-spin" size={18}/> : <Check size={18}/>}
+                                            {isSaving ? 'CONFIGURANDO...' : 'ATIVAR MINHA PÁGINA'}
                                         </button>
                                     </div>
                                 </div>
                             )}
 
                             {wizardStep === 3 && (
-                                <div className="space-y-8 animate-fade-in text-center py-20">
-                                    <div className="w-20 h-20 bg-[#acf800]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <Check size={40} className="text-[#acf800]" />
+                                <div className="space-y-10 animate-slide-up text-center py-20">
+                                    <div className="w-24 h-24 bg-primary-color/20 rounded-full flex items-center justify-center mx-auto mb-10 border border-primary-color/30">
+                                        <Check size={40} className="text-primary-color" strokeWidth={4} />
                                     </div>
-                                    <div>
-                                        <h2 className="wizard-title">Página <span className="text-[#acf800]">Personalizada!</span></h2>
-                                        <p className="text-white/40 text-sm">Seu link único de vendas foi gerado com sucesso.</p>
-                                        <div className="mt-8 p-6 bg-white/5 rounded-3xl border border-white/10">
-                                            <p className="text-[#acf800] font-black text-lg break-all">plugsales.com/bio/{slug}?ref={employeeData.tracking || 'meu-link'}</p>
-                                        </div>
+                                    <h2 className="text-6xl font-black tracking-tighter leading-[0.9]">Pronto para <br/><span className="text-primary-color">Vender!</span></h2>
+                                    <p className="text-white/40 font-bold uppercase tracking-widest text-[10px]">Sua página personalizada está ativa e rastreada.</p>
+                                    <div className="mt-12 p-8 bg-white/5 rounded-[40px] border border-white/10">
+                                        <p className="text-primary-color font-black text-xl break-all">plugsales.com/bio/{slug}?ref={employeeData.tracking}</p>
                                     </div>
-                                    <div className="pt-8">
-                                        <button onClick={() => { setIsWizardOpen(false); setWizardStep(1); }} className="nav-btn nav-btn-primary mx-auto">CONCLUÍDO</button>
-                                    </div>
+                                    <button onClick={() => setIsWizardOpen(false)} className="mt-10 px-12 py-6 bg-primary-color text-black font-black rounded-3xl uppercase tracking-widest text-xs">Acessar Meu Painel</button>
                                 </div>
                             )}
                         </div>
 
-                        <div className="wizard-preview-side">
-                            <div className="wa-header-mock">
-                                <div className="wa-avatar-mock">
-                                    {employeeData.photo ? (
-                                        <img src={employeeData.photo} className="w-full h-full rounded-full object-cover" />
-                                    ) : (
-                                        <User size={20} className="text-white/40" />
-                                    )}
-                                    <div className="wa-status-dot" />
+                        <div className="relative wa-mock-bg flex flex-col border-l border-white/5">
+                            <div className="bg-[#202c33] p-10 pt-16 flex items-center gap-5 border-bottom border-black/20">
+                                <div className="w-14 h-14 bg-white/5 rounded-full overflow-hidden border-2 border-white/10">
+                                    {employeeData.photo ? <img src={employeeData.photo} className="w-full h-full object-cover" /> : <User className="w-full h-full p-3 text-white/20" />}
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
-                                        <p className="text-white text-[15px] font-bold leading-none">{employeeData.name || 'Sua Empresa'}</p>
-                                        <Zap size={14} className="wa-verified-badge" fill="currentColor" />
+                                        <p className="text-white font-bold text-lg">{employeeData.name || 'Seu Atendimento'}</p>
+                                        <Zap size={14} className="text-[#00a884]" fill="currentColor" />
                                     </div>
-                                    <p className="text-[#00a884] text-[11px] mt-1 font-bold">Online agora</p>
+                                    <p className="text-[#00a884] text-xs font-bold mt-0.5">Online agora</p>
                                 </div>
                             </div>
 
-                            <div className="wa-body-mock">
-                                <div className="wa-bubble-official animate-fade-in">
-                                    <div className="wa-sender-name">
-                                        {employeeData.name || 'Atendimento'} 
-                                        <Zap size={10} fill="currentColor" />
+                            <div className="flex-1 p-10 flex flex-col gap-6 overflow-y-auto">
+                                <div className="bg-[#202c33] rounded-[0_24px_24px_24px] p-2 shadow-2xl max-w-[95%]">
+                                    <div className="p-4 pt-2">
+                                        <p className="text-[#53bdeb] font-bold text-sm mb-1 flex items-center gap-2">
+                                            {employeeData.name || 'Atendimento'} <Zap size={12} fill="currentColor" />
+                                        </p>
+                                        <p className="text-[#e9edef] text-[15px] leading-relaxed">
+                                            Olá! Acabei de configurar sua página exclusiva com nossos materiais oficiais. Clique abaixo para acessar:
+                                        </p>
                                     </div>
-                                    <p className="wa-message-text">
-                                        Olá! 👋 Acabei de gerar sua página exclusiva com todos os nossos materiais e links oficiais. Clique abaixo para acessar:
-                                    </p>
                                     
-                                    <div className="wa-link-preview-card">
-                                        {bio.avatar_url && (
-                                            <img src={bio.avatar_url} className="wa-preview-hero" />
-                                        )}
-                                        <div className="wa-preview-body">
-                                            <p className="wa-preview-site">PLUGSALES.COM</p>
-                                            <p className="wa-preview-title">{bio.title}</p>
-                                            <p className="text-[#8696a0] text-[12px] mt-1 line-clamp-1">{bio.description}</p>
+                                    <div className="m-1 rounded-2xl overflow-hidden bg-black/40 border border-white/5">
+                                        {bio.avatar_url && <img src={bio.avatar_url} className="w-full h-48 object-cover opacity-80" />}
+                                        <div className="p-4 bg-[#182229]">
+                                            <p className="text-[#8696a0] text-[10px] font-black tracking-widest mb-1 uppercase">PLUGSALES.COM</p>
+                                            <p className="text-white font-bold text-base leading-tight">{bio.title}</p>
+                                            <p className="text-[#8696a0] text-xs mt-1 line-clamp-1 font-medium">{bio.description}</p>
                                         </div>
                                     </div>
 
-                                    <div className="wa-action-button">
-                                        <ExternalLink size={16} /> ACESSAR MEUS LINKS
+                                    <div className="mt-2 p-4 border-t border-white/5 text-center text-[#53bdeb] font-black text-sm tracking-wider uppercase flex items-center justify-center gap-3">
+                                        <ExternalLink size={16} /> Abrir Página
                                     </div>
                                 </div>
                             </div>

@@ -5143,6 +5143,7 @@ app.post('/api/materials/favorite', async (req, res) => {
 app.post('/api/smart-bio', async (req, res) => {
     const { id, title, description, avatar_url, video_url, buttons, images, slug, user_id } = req.body;
     try {
+        // If we have an ID, we update that specific bio
         if (id) {
             const result = await pool.query(
                 `UPDATE smart_bios SET 
@@ -5151,15 +5152,27 @@ app.post('/api/smart-bio', async (req, res) => {
                  WHERE id = $8 AND user_id = $9 RETURNING *`,
                 [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, id, user_id]
             );
+            if (result.rows.length === 0) return res.status(404).json({ error: 'Bio não encontrada ou sem permissão' });
             return res.json(result.rows[0]);
-        } else {
-            const result = await pool.query(
-                `INSERT INTO smart_bios (title, description, avatar_url, video_url, buttons, images, slug, user_id) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-                [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, user_id]
-            );
-            return res.json(result.rows[0]);
+        } 
+        
+        // If no ID, we try to insert. If slug conflicts, we only update if the slug belongs to the same user
+        const result = await pool.query(
+            `INSERT INTO smart_bios (title, description, avatar_url, video_url, buttons, images, slug, user_id) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+             ON CONFLICT (slug) DO UPDATE SET 
+             title = EXCLUDED.title, description = EXCLUDED.description, avatar_url = EXCLUDED.avatar_url, 
+             video_url = EXCLUDED.video_url, buttons = EXCLUDED.buttons, images = EXCLUDED.images
+             WHERE smart_bios.user_id = EXCLUDED.user_id
+             RETURNING *`,
+            [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, user_id]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(403).json({ error: 'Este slug já está sendo usado por outro usuário.' });
         }
+        
+        res.json(result.rows[0]);
     } catch (err) {
         console.error('Smart Bio Save Error:', err);
         res.status(500).json({ error: err.message });
