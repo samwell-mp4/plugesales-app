@@ -612,6 +612,23 @@ h3 {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
 }
+/* Modern scrollbar for elements using .no-scrollbar */
+.no-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) rgba(255,255,255,0.05);
+}
+.no-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.no-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+}
+.no-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+}
 
 .user-footer-supreme {
   margin-top: auto;

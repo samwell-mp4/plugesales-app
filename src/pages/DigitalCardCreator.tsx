@@ -1,34 +1,35 @@
 import React, { useState } from 'react';
 import { 
     CreditCard, 
-    QrCode, 
-    Download, 
     Save, 
-    User, 
     Smartphone, 
-    Globe, 
     Instagram, 
-    Linkedin,
-    Trash2,
+    Linkedin, 
+    Globe, 
+    User,
+    QrCode,
+    Download,
+    Zap,
+    Briefcase,
     Plus,
-    Share2,
-    Loader2
+    MessageCircle,
+    CheckCircle2
 } from 'lucide-react';
 
 const DigitalCardCreator = () => {
     const [card, setCard] = useState({
         name: 'Seu Nome Completo',
-        company: 'Nome da Empresa',
         photo_url: '',
-        whatsapp: '',
+        company: 'Sua Empresa / Cargo',
+        whatsapp: '5511999999999',
         social_links: {
-            site: '',
-            instagram: '',
-            linkedin: ''
+            instagram: '@seuusuario',
+            linkedin: 'seu-perfil',
+            site: 'https://...'
         }
     });
     const [isSaving, setIsSaving] = useState(false);
-    const [generatedId, setGeneratedId] = useState<string | null>(null);
+    const [savedId, setSavedId] = useState<string | null>(null);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -40,8 +41,8 @@ const DigitalCardCreator = () => {
             });
             const data = await res.json();
             if (res.ok) {
-                setGeneratedId(data.id);
-                alert('Cartão Digital salvo com sucesso!');
+                setSavedId(data.id);
+                alert('Cartão criado com sucesso!');
             }
         } catch (err) {
             console.error(err);
@@ -50,154 +51,272 @@ const DigitalCardCreator = () => {
         }
     };
 
-    const downloadVCard = () => {
-        const vcard = `BEGIN:VCARD
-VERSION:3.0
-FN:${card.name}
-ORG:${card.company}
-TEL;TYPE=CELL:${card.whatsapp}
-END:VCARD`;
-        const blob = new Blob([vcard], { type: 'text/vcard' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${card.name.replace(/\s+/g, '_')}.vcf`;
-        link.click();
-    };
-
-    const cardLink = generatedId ? `${window.location.origin}/card/${generatedId}` : null;
-    const qrCodeUrl = cardLink ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(cardLink)}` : null;
-
     return (
-        <div className="crm-container" style={{ padding: '40px' }}>
+        <div className="crm-container" style={{ padding: '20px 40px' }}>
             <style>{`
-                .card-preview {
-                    width: 350px;
-                    background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-                    border: 1px solid rgba(172, 248, 0, 0.1);
-                    border-radius: 32px;
-                    padding: 40px;
-                    text-align: center;
-                    box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+                .creator-main-wrapper {
+                    display: grid;
+                    grid-template-columns: 1fr 400px;
+                    gap: 40px;
+                    margin-top: 20px;
+                }
+                @media (max-width: 1200px) {
+                    .creator-main-wrapper {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
+                .crm-section-card {
+                    background: rgba(15, 23, 42, 0.4);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 24px;
+                    padding: 32px;
+                    margin-bottom: 32px;
+                }
+
+                .section-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    color: var(--primary-color);
+                    font-size: 11px;
+                    font-weight: 900;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    margin-bottom: 24px;
+                }
+
+                .input-grid-2 {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px !important;
+                }
+
+                .supreme-field-box {
+                    background: rgba(0, 0, 0, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 20px;
+                    padding: 20px;
+                    transition: all 0.3s;
+                    margin-bottom: 12px;
+                }
+                .supreme-field-box:focus-within {
+                    border-color: var(--primary-color);
+                    background: rgba(172, 248, 0, 0.02);
+                }
+
+                .field-label {
+                    color: var(--primary-color);
+                    font-size: 9px;
+                    font-weight: 900;
+                    text-transform: uppercase;
+                    letter-spacing: 1.5px;
+                    margin-bottom: 8px;
+                    display: block;
+                }
+
+                .field-input {
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    width: 100%;
+                    font-weight: 700;
+                    font-size: 15px;
+                    outline: none;
+                }
+
+                /* PREVIEW CARD STYLES EXACTLY LIKE SCREENSHOT */
+                .preview-sticky-side {
+                    position: sticky;
+                    top: 20px;
+                }
+                .preview-sticky-side .bg-blob:first-child {
+                    top: -80px;
+                    left: -80px;
+                }
+                .preview-sticky-side .bg-blob:nth-child(2) {
+                    bottom: -80px;
+                    right: -80px;
+                }
+                .preview-unique .vcard-preview-card {
                     position: relative;
                     overflow: hidden;
+                    background: #111827;
+                    border: 1px solid rgba(172, 248, 0, 0.1);
+                    border-radius: 40px;
+                    padding: 60px 40px;
+                    text-align: center;
+                    box-shadow: 0 40px 100px rgba(0,0,0,0.5);
                 }
-                .card-preview::before {
+                 .preview-unique .vcard-preview-card::before {
                     content: '';
                     position: absolute;
-                    top: -50%;
-                    left: -50%;
-                    width: 200%;
-                    height: 200%;
-                    background: radial-gradient(circle, rgba(172,248,0,0.03) 0%, transparent 70%);
-                    pointer-events: none;
+                    inset: 0;
+                    background: radial-gradient(circle at 30% 30%, rgba(172, 248, 0, 0.15), transparent 70%);
+                    animation: gradientShift 12s infinite alternate;
+                    z-index: -1;
                 }
-                .qr-box {
-                    width: 200px;
-                    height: 200px;
-                    background: white;
-                    border-radius: 24px;
-                    margin: 0 auto 32px auto;
-                    padding: 15px;
+                @keyframes gradientShift {
+                    0% { background-position: 0% 0%; }
+                    100% { background-position: 100% 100%; }
+                }
+                .bg-blob {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 260px;
+                    height: 260px;
+                    background: var(--primary-color);
+                    filter: blur(90px);
+                    opacity: 0.07;
+                    border-radius: 50%;
+                    animation: floatBlob 10s infinite alternate;
+                    z-index: -1;
+                }
+                @keyframes floatBlob {
+                    0% { transform: translate(-30%, -30%); }
+                    100% { transform: translate(30%, 30%); }
+                }
+                .vcard-avatar-ring {
+                    width: 130px;
+                    height: 130px;
+                    border-radius: 50%;
+                    border: 4px solid var(--primary-color);
+                    margin: 0 auto 30px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    overflow: hidden;
+                    background: #1f2937;
                 }
-                .input-group { margin-bottom: 24px; }
-                .input-group label { display: block; font-size: 11px; font-weight: 900; color: rgba(255,255,255,0.3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-                .card-input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px 20px; color: white; font-weight: 600; outline: none; transition: all 0.2s; }
-                .card-input:focus { border-color: var(--primary-color); background: rgba(255,255,255,0.05); }
+                .vcard-avatar-img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                .vcard-name {
+                    color: white;
+                    font-size: 24px;
+                    font-weight: 900;
+                    margin-bottom: 8px;
+                }
+                .vcard-company {
+                    color: white;
+                    opacity: 0.6;
+                    font-size: 13px;
+                    font-weight: 600;
+                    margin-bottom: 30px;
+                }
+                .vcard-social-row {
+                    display: flex;
+                    justify-content: center;
+                    gap: 12px;
+                    margin-bottom: 30px;
+                }
+                .social-icon-box {
+                    width: 44px;
+                    height: 44px;
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                }
+                .vcard-qr-placeholder {
+                    margin-top: 20px;
+                }
             `}</style>
 
-            <div className="flex flex-col lg:flex-row gap-12">
-                <div className="flex-1">
-                    <div className="flex justify-between items-center mb-10">
-                        <div>
-                            <h1 className="text-4xl font-black tracking-tighter text-white mb-2">CARTÃO DIGITAL</h1>
-                            <p className="text-white/40 text-sm font-bold tracking-widest uppercase">Facilite o compartilhamento do seu contato</p>
+            <header className="crm-header-premium">
+                <div className="crm-title-group">
+                    <span className="crm-badge-small">
+                        <Zap size={12} fill="currentColor" /> NETWORKING DIGITAL
+                    </span>
+                    <h1 className="crm-main-title">Cartão de Visita</h1>
+                    <p className="text-white/40 text-[11px] font-bold tracking-widest mt-1">
+                        Sua identidade comercial em um QR Code
+                    </p>
+                </div>
+
+                <button onClick={handleSave} disabled={isSaving} className="btn-supreme">
+                    <Save size={18} /> {isSaving ? 'Gerando...' : 'GERAR CARTÃO DIGITAL'}
+                </button>
+            </header>
+
+            <div className="creator-main-wrapper">
+                <div className="editor-column">
+                    <div className="crm-section-card">
+                        <div className="section-header">
+                            <User size={16} /> PERFIL PROFISSIONAL
                         </div>
-                        <button onClick={handleSave} disabled={isSaving} className="px-10 py-5 bg-primary-color rounded-2xl text-black font-black hover:opacity-80 transition-all flex items-center gap-3">
-                            {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                            SALVAR CARTÃO
-                        </button>
+                        <div className="input-grid-2 mb-5">
+                            <div className="supreme-field-box">
+                                <label className="field-label">NOME COMPLETO</label>
+                                <input className="field-input" type="text" value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value })} />
+                            </div>
+                            <div className="supreme-field-box">
+                                <label className="field-label">CARGO OU EMPRESA</label>
+                                <input className="field-input" type="text" value={card.company} onChange={(e) => setCard({ ...card, company: e.target.value })} />
+                            </div>
+                        </div>
+                        <div className="input-grid-2">
+                            <div className="supreme-field-box">
+                                <label className="field-label">WHATSAPP (COM DDD)</label>
+                                <input className="field-input" type="text" value={card.whatsapp} onChange={(e) => setCard({ ...card, whatsapp: e.target.value })} />
+                            </div>
+                            <div className="supreme-field-box">
+                                <label className="field-label">URL DA FOTO DE PERFIL</label>
+                                <input className="field-input" type="text" value={card.photo_url} onChange={(e) => setCard({ ...card, photo_url: e.target.value })} />
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="bg-white/2 p-10 rounded-[32px] border border-white/5">
-                        <div className="grid grid-cols-2 gap-8 mb-8">
-                            <div className="input-group">
-                                <label><User size={14} className="inline mr-2" /> Nome Completo</label>
-                                <input type="text" value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value })} className="card-input" />
-                            </div>
-                            <div className="input-group">
-                                <label><Smartphone size={14} className="inline mr-2" /> WhatsApp (com DDD)</label>
-                                <input type="text" value={card.whatsapp} onChange={(e) => setCard({ ...card, whatsapp: e.target.value })} className="card-input" placeholder="5511..." />
-                            </div>
+                    <div className="crm-section-card">
+                        <div className="section-header">
+                            <Globe size={16} /> CONECTIVIDADE
                         </div>
-
-                        <div className="grid grid-cols-2 gap-8 mb-8">
-                            <div className="input-group">
-                                <label>Empresa / Cargo</label>
-                                <input type="text" value={card.company} onChange={(e) => setCard({ ...card, company: e.target.value })} className="card-input" />
+                        <div className="space-y-4">
+                            <div className="supreme-field-box">
+                                <label className="field-label">INSTAGRAM (USUÁRIO)</label>
+                                <input className="field-input" type="text" value={card.social_links.instagram} onChange={(e) => setCard({ ...card, social_links: { ...card.social_links, instagram: e.target.value } })} />
                             </div>
-                            <div className="input-group">
-                                <label>URL da Foto de Perfil</label>
-                                <input type="text" value={card.photo_url} onChange={(e) => setCard({ ...card, photo_url: e.target.value })} className="card-input" placeholder="https://..." />
-                            </div>
-                        </div>
-
-                        <div className="mb-4 pt-6 border-t border-white/5">
-                            <h3 className="text-white font-black text-sm mb-6 flex items-center gap-2 uppercase tracking-widest opacity-50"><Globe size={16} /> REDES SOCIAIS</h3>
-                            <div className="grid grid-cols-3 gap-6">
-                                <div className="input-group">
-                                    <label><Instagram size={14} className="inline mr-2" /> Instagram</label>
-                                    <input type="text" value={card.social_links.instagram} onChange={(e) => setCard({ ...card, social_links: { ...card.social_links, instagram: e.target.value } })} className="card-input py-3" placeholder="@usuario" />
-                                </div>
-                                <div className="input-group">
-                                    <label><Linkedin size={14} className="inline mr-2" /> LinkedIn</label>
-                                    <input type="text" value={card.social_links.linkedin} onChange={(e) => setCard({ ...card, social_links: { ...card.social_links, linkedin: e.target.value } })} className="card-input py-3" placeholder="perfil" />
-                                </div>
-                                <div className="input-group">
-                                    <label><Globe size={14} className="inline mr-2" /> Site / Linktree</label>
-                                    <input type="text" value={card.social_links.site} onChange={(e) => setCard({ ...card, social_links: { ...card.social_links, site: e.target.value } })} className="card-input py-3" placeholder="www..." />
-                                </div>
+                            <div className="supreme-field-box">
+                                <label className="field-label">LINKEDIN (SLUG)</label>
+                                <input className="field-input" type="text" value={card.social_links.linkedin} onChange={(e) => setCard({ ...card, social_links: { ...card.social_links, linkedin: e.target.value } })} />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col items-center">
-                    <div className="card-preview mb-10">
-                        <div className="w-24 h-24 rounded-full bg-white/5 mx-auto mb-6 border-4 border-primary-color/20 overflow-hidden">
-                            {card.photo_url ? <img src={card.photo_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-20"><User size={48} /></div>}
-                        </div>
-                        <h2 className="text-white font-black text-2xl mb-1">{card.name}</h2>
-                        <p className="text-primary-color font-bold text-xs uppercase tracking-widest mb-8">{card.company}</p>
-
-                        <div className="qr-box">
-                            {qrCodeUrl ? <img src={qrCodeUrl} alt="QR Code" className="w-full h-full" /> : <QrCode size={64} className="text-black/10" />}
-                        </div>
-
-                        <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-10">Escaneie para salvar</p>
-
-                        <div className="flex flex-col gap-4">
-                            <button onClick={downloadVCard} className="w-full py-5 bg-white text-black font-black rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform">
-                                <Download size={20} /> SALVAR CONTATO
-                            </button>
-                            {cardLink && (
-                                <button onClick={() => { navigator.clipboard.writeText(cardLink); alert('Link copiado!'); }} className="w-full py-5 bg-white/5 border border-white/10 text-white font-black rounded-2xl flex items-center justify-center gap-3">
-                                    <Share2 size={20} /> COPIAR LINK
-                                </button>
+                <div className="preview-unique"><div className="preview-sticky-side">
+                    <div className="vcard-preview-card"><div className="bg-blob"></div><div className="bg-blob" style={{ bottom: '-80px', right: '-80px' }}></div>
+                        <div className="vcard-avatar-ring">
+                            {card.photo_url ? (
+                                <img src={card.photo_url} className="vcard-avatar-img" />
+                            ) : (
+                                <User size={50} className="text-white/20" />
                             )}
                         </div>
-                    </div>
-
-                    {cardLink && (
-                        <div className="text-center">
-                            <p className="text-white/40 text-xs font-bold mb-2">SEU LINK ÚNICO:</p>
-                            <a href={cardLink} target="_blank" className="text-primary-color font-black text-sm underline">{cardLink}</a>
+                        <h2 className="vcard-name">{card.name}</h2>
+                        <p className="vcard-company">{card.company}</p>
+                        
+                        <div className="vcard-social-row">
+                            <div className="social-icon-box"><Instagram size={20} /></div>
+                            <div className="social-icon-box"><Linkedin size={20} /></div>
+                            <div className="social-icon-box"><Globe size={20} /></div>
                         </div>
-                    )}
-                </div>
+
+                        <div className="vcard-qr-placeholder">
+                            <QrCode size={80} className="mx-auto text-white" />
+                        </div>
+                        <p className="text-white font-bold text-[10px] mt-6">QR Code gerado ao salvar</p>
+                        <div className="flex items-center justify-center gap-2 mt-4 opacity-40">
+                            <Zap size={14} fill="currentColor" />
+                            <span className="text-[10px] font-black uppercase">Powered by Plug & Sales</span>
+                        </div>
+                    </div>
+                </div></div>
             </div>
         </div>
     );

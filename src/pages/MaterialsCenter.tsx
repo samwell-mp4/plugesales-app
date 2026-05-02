@@ -11,7 +11,8 @@ import {
     RefreshCcw,
     FolderOpen,
     Send,
-    Loader2
+    Loader2,
+    Zap
 } from 'lucide-react';
 
 const MaterialsCenter = () => {
@@ -45,7 +46,6 @@ const MaterialsCenter = () => {
         try {
             const res = await fetch('/api/materials/index', { method: 'POST' });
             if (res.ok) {
-                alert('Indexação concluída!');
                 fetchMaterials();
             }
         } catch (err) {
@@ -82,130 +82,90 @@ const MaterialsCenter = () => {
 
     const getIcon = (type: string) => {
         switch (type) {
-            case 'pdf': return <FileText className="text-red-400" />;
-            case 'image': return <ImageIcon className="text-blue-400" />;
-            case 'video': return <Video className="text-purple-400" />;
-            default: return <FolderOpen className="text-yellow-400" />;
+            case 'pdf': return <FileText size={24} className="text-red-400" />;
+            case 'image': return <ImageIcon size={24} className="text-blue-400" />;
+            case 'video': return <Video size={24} className="text-purple-400" />;
+            default: return <FolderOpen size={24} className="text-yellow-400" />;
         }
     };
 
     return (
-        <div className="crm-container" style={{ padding: '40px' }}>
+        <div className="crm-container" style={{ paddingTop: '20px' }}>
             <style>{`
-                .material-card {
-                    background: rgba(255, 255, 255, 0.02);
-                    backdrop-filter: blur(20px);
-                    border: 1px solid rgba(172, 248, 0, 0.05);
-                    border-radius: 24px;
-                    padding: 24px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    position: relative;
-                    overflow: hidden;
-                }
-                .material-card:hover {
-                    transform: translateY(-8px);
-                    border-color: rgba(172, 248, 0, 0.3);
-                    background: rgba(255, 255, 255, 0.04);
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-                }
-                .folder-tab {
-                    padding: 12px 24px;
-                    border-radius: 16px;
-                    font-size: 13px;
-                    font-weight: 800;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    border: 1px solid rgba(255,255,255,0.05);
-                    background: rgba(255,255,255,0.02);
-                    color: rgba(255,255,255,0.4);
-                    white-space: nowrap;
-                }
-                .folder-tab.active {
-                    background: var(--primary-color);
-                    color: black;
-                    border-color: var(--primary-color);
-                    box-shadow: 0 10px 20px rgba(172, 248, 0, 0.2);
-                }
-                .search-container {
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.08);
-                    border-radius: 20px;
-                    padding: 0 24px;
-                    display: flex;
-                    align-items: center;
-                    gap: 15px;
-                    flex: 1;
-                    transition: all 0.3s;
-                }
-                .search-container:focus-within {
-                    border-color: var(--primary-color);
-                    background: rgba(255,255,255,0.05);
-                }
-                .action-btn {
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(255,255,255,0.05);
-                    color: white;
-                    border: none;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .action-btn:hover {
-                    background: var(--primary-color);
-                    color: black;
-                }
-                .thumbnail-placeholder {
+                .materials-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                    gap: 32px; /* GAP EXPLÍCITO AQUI */
+                    margin-top: 40px;
                     width: 100%;
-                    aspect-ratio: 16/9;
-                    background: rgba(255,255,255,0.02);
-                    border-radius: 16px;
+                }
+                .materials-header {
+                    margin-bottom: 40px;
+                }
+                .materials-filter-row {
                     display: flex;
+                    gap: 20px;
                     align-items: center;
-                    justify-content: center;
-                    margin-bottom: 20px;
-                    position: relative;
+                    margin-bottom: 32px;
+                    background: rgba(15, 23, 42, 0.4);
+                    padding: 20px;
+                    border-radius: 24px;
+                    border: 1px solid rgba(255,255,255,0.05);
+                }
+                @media (max-width: 768px) {
+                    .materials-filter-row {
+                        flex-direction: column;
+                        align-items: stretch;
+                    }
+                    .materials-filter-row .flex {
+                        overflow-x: auto;
+                        padding-bottom: 8px;
+                    }
                 }
             `}</style>
 
-            <div className="flex justify-between items-center mb-10">
-                <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-white mb-2">CENTRAL DE MATERIAIS</h1>
-                    <p className="text-white/40 text-sm font-bold tracking-widest uppercase">Envio rápido de arquivos e apresentações</p>
+            <header className="crm-header-premium materials-header">
+                <div className="crm-title-group">
+                    <span className="crm-badge-small">
+                        <Zap size={12} fill="currentColor" className="text-primary-color" /> ACERVO DE ALTA CONVERSÃO
+                    </span>
+                    <h1 className="crm-main-title">Central de Materiais</h1>
+                    <p className="text-white/40 text-[11px] font-bold tracking-[2px] uppercase mt-1">
+                        Sincronize seu Google Drive e venda com um clique
+                    </p>
                 </div>
+
                 <button 
                     onClick={handleIndex} 
                     disabled={isIndexing}
-                    className="flex items-center gap-3 px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black hover:bg-primary-color hover:text-black transition-all"
+                    className="btn-supreme"
                 >
-                    {isIndexing ? <Loader2 className="animate-spin" /> : <RefreshCcw size={20} />}
-                    {isIndexing ? 'SINCRONIZANDO...' : 'SINCRONIZAR DRIVE'}
+                    {isIndexing ? <Loader2 className="animate-spin" size={18} /> : <RefreshCcw size={18} />}
+                    {isIndexing ? 'Sincronizando...' : 'SINCRONIZAR DRIVE'}
                 </button>
-            </div>
+            </header>
 
-            <div className="flex gap-4 mb-10 flex-wrap lg:flex-nowrap">
-                <div className="search-container">
-                    <Search size={20} className="text-white/20" />
+            <div className="materials-filter-row">
+                <div className="crm-control-group" style={{ flex: 1 }}>
+                    <Search size={18} className="icon" />
                     <input 
                         type="text" 
-                        placeholder="Pesquisar por nome ou contexto..." 
+                        placeholder="O que você está procurando?" 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-transparent border-none outline-none py-5 text-white w-full font-semibold"
+                        className="crm-input-premium"
                     />
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+
+                <div className="flex gap-2">
                     {folders.map(folder => (
-                        <div 
-                            key={folder} 
-                            className={`folder-tab ${activeFolder === folder ? 'active' : ''}`}
+                        <button 
+                            key={folder}
                             onClick={() => setActiveFolder(folder)}
+                            className={`crm-toggle-btn ${activeFolder === folder ? 'active' : ''}`}
                         >
                             {folder}
-                        </div>
+                        </button>
                     ))}
                 </div>
             </div>
@@ -213,52 +173,70 @@ const MaterialsCenter = () => {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px] opacity-20">
                     <Loader2 size={64} className="animate-spin mb-4" />
-                    <p className="font-black tracking-widest">CARREGANDO ACERVO...</p>
+                    <p className="font-black tracking-[5px] uppercase">Acessando Banco de Dados...</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <div className="materials-grid">
                     {filteredMaterials.map((file) => (
-                        <div key={file.id} className="material-card group">
-                            <div className="thumbnail-placeholder">
+                        <div key={file.id} className="crm-card group relative flex flex-col p-6 hover:border-primary-color/40" style={{ height: '100%' }}>
+                            {/* Favorite */}
+                            <button 
+                                onClick={() => toggleFavorite(file.id, file.is_favorite)}
+                                className={`absolute top-6 right-6 z-10 w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+                                    file.is_favorite ? 'bg-primary-color text-black shadow-lg shadow-primary-color/20' : 'bg-white/5 text-white/20 hover:bg-white/10 hover:text-white'
+                                }`}
+                            >
+                                <Star size={16} fill={file.is_favorite ? 'currentColor' : 'none'} />
+                            </button>
+
+                            {/* Preview Area */}
+                            <div className="w-full aspect-[4/3] bg-[#020617] rounded-3xl mb-6 overflow-hidden relative flex items-center justify-center border border-white/5">
                                 {file.thumbnail_link ? (
-                                    <img src={file.thumbnail_link} alt={file.name} className="w-full h-full object-cover rounded-16" />
+                                    <img src={file.thumbnail_link} alt={file.name} className="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-all duration-500 scale-100 group-hover:scale-110" />
                                 ) : (
-                                    <div className="opacity-20">{React.cloneElement(getIcon(file.type), { size: 48 })}</div>
+                                    <div className="opacity-20 group-hover:opacity-100 group-hover:scale-125 transition-all duration-500">
+                                        {getIcon(file.type)}
+                                    </div>
                                 )}
-                                <div className="absolute top-3 right-3 flex gap-2">
+                                
+                                <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-4">
                                     <button 
-                                        onClick={() => toggleFavorite(file.id, file.is_favorite)}
-                                        className={`action-btn ${file.is_favorite ? 'bg-primary-color text-black' : ''}`}
+                                        onClick={() => window.open(`https://drive.google.com/file/d/${file.drive_id}/view`, '_blank')} 
+                                        className="w-14 h-14 rounded-2xl bg-white/10 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all"
+                                        title="Visualizar Arquivo"
                                     >
-                                        <Star size={18} fill={file.is_favorite ? 'currentColor' : 'none'} />
+                                        <ExternalLink size={24} />
+                                    </button>
+                                    <button 
+                                        onClick={() => sendWhatsApp(file)} 
+                                        className="w-14 h-14 rounded-2xl bg-primary-color text-black flex items-center justify-center hover:scale-110 transition-all shadow-xl"
+                                        title="Enviar no WhatsApp"
+                                    >
+                                        <Send size={24} />
                                     </button>
                                 </div>
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                                    <button onClick={() => window.open(`https://drive.google.com/file/d/${file.drive_id}/view`, '_blank')} className="action-btn"><ExternalLink size={20} /></button>
-                                    <button onClick={() => sendWhatsApp(file)} className="action-btn bg-primary-color text-black"><Send size={20} /></button>
-                                </div>
                             </div>
-                            
-                            <div className="flex gap-4">
-                                <div className="p-3 bg-white/5 rounded-xl self-start">
+
+                            <div className="flex gap-4 items-start mb-6">
+                                <div className="w-12 h-12 bg-primary-color/5 rounded-2xl flex items-center justify-center shrink-0 border border-primary-color/10">
                                     {getIcon(file.type)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="text-white font-bold text-sm truncate mb-1">{file.name}</h3>
+                                    <h3 className="text-white font-black text-sm truncate leading-tight mb-1">{file.name}</h3>
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{file.folder}</span>
-                                        <div className="w-1 h-1 rounded-full bg-white/10"></div>
+                                        <div className="w-1 h-1 rounded-full bg-primary-color/30"></div>
                                         <span className="text-[10px] font-black text-primary-color uppercase tracking-widest">{file.type}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
-                                <button onClick={() => sendWhatsApp(file)} className="flex items-center gap-2 text-primary-color text-xs font-black hover:opacity-70 transition-opacity">
-                                    <Share2 size={14} /> ENVIAR VIA WHATSAPP
+                            <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+                                <button onClick={() => sendWhatsApp(file)} className="flex items-center gap-2 text-primary-color text-[11px] font-black hover:tracking-widest transition-all uppercase">
+                                    <Share2 size={14} /> Enviar agora
                                 </button>
-                                <div className="flex gap-2">
-                                    <Download size={14} className="text-white/20 cursor-pointer hover:text-white" />
+                                <div className="flex gap-3">
+                                    <Download size={16} className="text-white/20 cursor-pointer hover:text-white" />
                                 </div>
                             </div>
                         </div>
@@ -268,9 +246,9 @@ const MaterialsCenter = () => {
 
             {!isLoading && filteredMaterials.length === 0 && (
                 <div className="text-center py-40 opacity-20">
-                    <FolderOpen size={80} className="mx-auto mb-6" />
-                    <h3 className="text-2xl font-black">NENHUM MATERIAL ENCONTRADO</h3>
-                    <p className="font-bold">Tente mudar o filtro ou sincronizar o Drive</p>
+                    <FolderOpen size={100} className="mx-auto mb-8 text-primary-color" />
+                    <h2 className="text-3xl font-black mb-2">NADA POR AQUI</h2>
+                    <p className="font-bold tracking-[3px] uppercase"> SINCRONIZE O DRIVE PARA CARREGAR MATERIAIS</p>
                 </div>
             )}
         </div>
