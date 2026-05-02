@@ -14,7 +14,8 @@ import {
     ArrowLeft,
     Check,
     MessageSquare,
-    Send
+    Send,
+    ExternalLink
 } from 'lucide-react';
 
 const SmartBioCreator = () => {
