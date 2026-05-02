@@ -11,7 +11,8 @@ import {
     Layout,
     Type,
     MousePointer2,
-    BarChart3
+    BarChart3,
+    Zap
 } from 'lucide-react';
 
 const SmartBioCreator = () => {
