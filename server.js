@@ -3798,6 +3798,98 @@ app.post('/api/infobip/conversations/:id/messages', async (req, res) => {
     }
 });
 
+// --- SMART BIO ---
+app.post('/api/smart-bio', async (req, res) => {
+    const { id, title, description, avatar_url, video_url, buttons, images, slug, user_id } = req.body;
+    try {
+        if (id) {
+            const result = await pool.query(
+                `UPDATE smart_bios SET 
+                 title = $1, description = $2, avatar_url = $3, video_url = $4, 
+                 buttons = $5, images = $6, slug = $7 
+                 WHERE id = $8 AND user_id = $9 RETURNING *`,
+                [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, id, user_id]
+            );
+            if (result.rows.length === 0) return res.status(404).json({ error: 'Bio não encontrada ou sem permissão' });
+            return res.json(result.rows[0]);
+        } 
+        const result = await pool.query(
+            `INSERT INTO smart_bios (title, description, avatar_url, video_url, buttons, images, slug, user_id) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+             ON CONFLICT (slug) DO UPDATE SET 
+             title = EXCLUDED.title, description = EXCLUDED.description, avatar_url = EXCLUDED.avatar_url, 
+             video_url = EXCLUDED.video_url, buttons = EXCLUDED.buttons, images = EXCLUDED.images
+             WHERE smart_bios.user_id = EXCLUDED.user_id
+             RETURNING *`,
+            [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, user_id]
+        );
+        if (result.rows.length === 0) return res.status(403).json({ error: 'Este slug já está sendo usado por outro usuário.' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Smart Bio Save Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/smart-bio', async (req, res) => {
+    const { user_id } = req.query;
+    try {
+        const result = await pool.query('SELECT * FROM smart_bios WHERE user_id = $1 ORDER BY created_at DESC', [user_id]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/smart-bio/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM smart_bios WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/smart-bio/:slug', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM smart_bios WHERE slug = $1', [req.params.slug]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Bio não encontrada' });
+        await pool.query('UPDATE smart_bios SET clicks = clicks + 1 WHERE slug = $1', [req.params.slug]);
+        await pool.query('INSERT INTO tracking_events (target_id, event_type, metadata) VALUES ($1, $2, $3)', 
+            [result.rows[0].id, 'view', JSON.stringify({ origin: req.query.origin || 'direct' })]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- DIGITAL CARDS ---
+app.post('/api/digital-card', async (req, res) => {
+    const { name, photo_url, company, whatsapp, social_links, user_id } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO digital_cards (name, photo_url, company, whatsapp, social_links, user_id) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [name, photo_url, company, whatsapp, JSON.stringify(social_links), user_id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/digital-card/:id', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM digital_cards WHERE id = $1', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Cartão não encontrado' });
+        await pool.query('UPDATE digital_cards SET opens = opens + 1 WHERE id = $1', [req.params.id]);
+        await pool.query('INSERT INTO tracking_events (target_id, event_type) VALUES ($1, $2)', [req.params.id, 'view']);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -5140,108 +5232,7 @@ app.post('/api/materials/favorite', async (req, res) => {
 });
 
 // --- SMART BIO ---
-app.post('/api/smart-bio', async (req, res) => {
-    const { id, title, description, avatar_url, video_url, buttons, images, slug, user_id } = req.body;
-    try {
-        // If we have an ID, we update that specific bio
-        if (id) {
-            const result = await pool.query(
-                `UPDATE smart_bios SET 
-                 title = $1, description = $2, avatar_url = $3, video_url = $4, 
-                 buttons = $5, images = $6, slug = $7 
-                 WHERE id = $8 AND user_id = $9 RETURNING *`,
-                [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, id, user_id]
-            );
-            if (result.rows.length === 0) return res.status(404).json({ error: 'Bio não encontrada ou sem permissão' });
-            return res.json(result.rows[0]);
-        } 
-        
-        // If no ID, we try to insert. If slug conflicts, we only update if the slug belongs to the same user
-        const result = await pool.query(
-            `INSERT INTO smart_bios (title, description, avatar_url, video_url, buttons, images, slug, user_id) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-             ON CONFLICT (slug) DO UPDATE SET 
-             title = EXCLUDED.title, description = EXCLUDED.description, avatar_url = EXCLUDED.avatar_url, 
-             video_url = EXCLUDED.video_url, buttons = EXCLUDED.buttons, images = EXCLUDED.images
-             WHERE smart_bios.user_id = EXCLUDED.user_id
-             RETURNING *`,
-            [title, description, avatar_url, video_url, JSON.stringify(buttons), JSON.stringify(images), slug, user_id]
-        );
-        
-        if (result.rows.length === 0) {
-            return res.status(403).json({ error: 'Este slug já está sendo usado por outro usuário.' });
-        }
-        
-        res.json(result.rows[0]);
-    } catch (err) {
-        console.error('Smart Bio Save Error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
 
-app.get('/api/smart-bio', async (req, res) => {
-    const { user_id } = req.query;
-    try {
-        const result = await pool.query('SELECT * FROM smart_bios WHERE user_id = $1 ORDER BY created_at DESC', [user_id]);
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/api/smart-bio/:id', async (req, res) => {
-    try {
-        await pool.query('DELETE FROM smart_bios WHERE id = $1', [req.params.id]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/smart-bio/:slug', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM smart_bios WHERE slug = $1', [req.params.slug]);
-        if (result.rows.length === 0) return res.status(404).json({ error: 'Bio não encontrada' });
-        
-        // Log view event
-        await pool.query('UPDATE smart_bios SET clicks = clicks + 1 WHERE slug = $1', [req.params.slug]);
-        await pool.query('INSERT INTO tracking_events (target_id, event_type, metadata) VALUES ($1, $2, $3)', 
-            [result.rows[0].id, 'view', JSON.stringify({ origin: req.query.origin || 'direct' })]);
-        
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// --- DIGITAL CARDS ---
-app.post('/api/digital-card', async (req, res) => {
-    const { name, photo_url, company, whatsapp, social_links, user_id } = req.body;
-    try {
-        const result = await pool.query(
-            `INSERT INTO digital_cards (name, photo_url, company, whatsapp, social_links, user_id) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [name, photo_url, company, whatsapp, JSON.stringify(social_links), user_id]
-        );
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/digital-card/:id', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM digital_cards WHERE id = $1', [req.params.id]);
-        if (result.rows.length === 0) return res.status(404).json({ error: 'Cartão não encontrado' });
-        
-        await pool.query('UPDATE digital_cards SET opens = opens + 1 WHERE id = $1', [req.params.id]);
-        await pool.query('INSERT INTO tracking_events (target_id, event_type) VALUES ($1, $2)', [req.params.id, 'view']);
-        
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${port}`);
