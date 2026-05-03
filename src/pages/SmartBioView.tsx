@@ -25,7 +25,7 @@ const SmartBioView = () => {
     useEffect(() => {
         const fetchBio = async () => {
             try {
-                // Ensure absolute path from root
+                // Absolute path from root
                 const res = await fetch(`/api/smart-bio/${slug}`);
                 if (!res.ok) throw new Error('Not found');
                 const data = await res.json();
@@ -48,11 +48,16 @@ const SmartBioView = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#020202] flex items-center justify-center">
+            <div className="sb-view-root min-h-screen bg-[#020202] flex items-center justify-center">
+                <style>{`
+                    .sb-view-root { --sb-primary: #acf800; }
+                    .sb-view-spinner { width: 80px; height: 80px; border: 2px solid rgba(172,248,0,0.1); border-top-color: var(--sb-primary); border-radius: 50%; animation: sb-spin 1s linear infinite; }
+                    @keyframes sb-spin { to { transform: rotate(360deg); } }
+                `}</style>
                 <div className="relative">
-                    <div className="w-20 h-20 border-2 border-primary-color/10 border-t-primary-color rounded-full animate-spin"></div>
+                    <div className="sb-view-spinner" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Zap size={24} className="text-primary-color animate-pulse" />
+                        <Zap size={24} className="text-[#acf800] animate-pulse" />
                     </div>
                 </div>
             </div>
@@ -61,12 +66,12 @@ const SmartBioView = () => {
 
     if (!bio) {
         return (
-            <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center text-center p-10">
+            <div className="sb-view-root min-h-screen bg-[#020202] flex flex-col items-center justify-center text-center p-10">
                 <div className="w-24 h-24 bg-red-500/10 rounded-[35px] flex items-center justify-center mb-8 border border-red-500/20">
                     <Zap size={40} className="text-red-500" />
                 </div>
                 <h1 className="text-white font-black text-5xl mb-4 tracking-tighter">404</h1>
-                <p className="text-white/20 font-black uppercase tracking-[5px] text-[10px]">Página não encontrada ou desativada</p>
+                <p className="text-white/20 font-black uppercase tracking-[5px] text-[10px]">Página não encontrada</p>
                 <button 
                     onClick={() => window.location.href = '/'}
                     className="mt-12 px-8 py-4 bg-white/5 rounded-2xl text-white font-black text-xs tracking-widest uppercase border border-white/10 hover:bg-white/10 transition-all"
@@ -84,7 +89,6 @@ const SmartBioView = () => {
         }
         
         let finalUrl = btn.url;
-        // Append tracking if present
         if (ref && finalUrl.includes('?')) {
             finalUrl += `&ref=${ref}`;
         } else if (ref) {
@@ -112,13 +116,16 @@ const SmartBioView = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#020202] text-white flex flex-col items-center px-6 py-20 relative overflow-hidden font-sans">
+        <div className="sb-public-wrapper min-h-screen bg-[#020202] text-white flex flex-col items-center px-6 py-20 relative overflow-hidden">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
                 
-                body { font-family: 'Outfit', sans-serif; background: #020202; }
+                .sb-public-wrapper {
+                    font-family: 'Outfit', sans-serif;
+                    --sb-primary: #acf800;
+                }
 
-                .supreme-bio-container {
+                .sb-view-container {
                     width: 100%;
                     max-width: 480px;
                     display: flex;
@@ -127,30 +134,32 @@ const SmartBioView = () => {
                     z-index: 10;
                 }
 
-                .avatar-supreme-view {
+                .sb-avatar-view {
                     width: 130px;
                     height: 130px;
                     border-radius: 45px;
                     padding: 5px;
-                    background: linear-gradient(135deg, #acf800, #00f2fe);
+                    background: linear-gradient(135deg, var(--sb-primary), #00f2fe);
                     margin-bottom: 35px;
                     box-shadow: 0 25px 50px rgba(172, 248, 0, 0.2);
                     position: relative;
                 }
-                .avatar-supreme-view::after {
+
+                .sb-avatar-view::after {
                     content: '';
                     position: absolute;
                     inset: -10px;
                     border: 1px solid rgba(172, 248, 0, 0.2);
                     border-radius: 50px;
-                    animation: pulse-ring 3s infinite;
+                    animation: sb-pulse-ring 3s infinite;
                 }
-                @keyframes pulse-ring {
+
+                @keyframes sb-pulse-ring {
                     0% { transform: scale(0.9); opacity: 1; }
                     100% { transform: scale(1.2); opacity: 0; }
                 }
 
-                .btn-supreme-view {
+                .sb-view-btn {
                     width: 100%;
                     background: rgba(255, 255, 255, 0.03);
                     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -169,39 +178,33 @@ const SmartBioView = () => {
                     letter-spacing: 0.5px;
                     backdrop-filter: blur(10px);
                 }
-                .btn-supreme-view:hover {
+
+                .sb-view-btn:hover {
                     background: #fff;
                     color: #000;
-                    transform: translateY(-8px) scale(1.02);
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+                    transform: translateY(-8px);
                     border-color: #fff;
                 }
-                .btn-supreme-view.primary {
-                    background: #acf800;
+
+                .sb-view-btn.primary {
+                    background: var(--sb-primary);
                     color: #000;
                     border: none;
                     box-shadow: 0 15px 35px rgba(172, 248, 0, 0.3);
                 }
-                .btn-supreme-view.primary:hover {
-                    background: #fff;
-                    box-shadow: 0 30px 60px rgba(255, 255, 255, 0.2);
-                }
 
-                .video-supreme-view {
+                .sb-video-box {
                     width: 100%;
                     border-radius: 40px;
                     overflow: hidden;
                     border: 1px solid rgba(255, 255, 255, 0.05);
                     margin-bottom: 40px;
-                    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
                 }
 
-                /* Ambient Lights */
-                .light-top { position: absolute; top: -20%; left: 50%; transform: translateX(-50%); width: 100%; height: 60%; background: radial-gradient(circle, rgba(172, 248, 0, 0.07) 0%, transparent 70%); pointer-events: none; }
-                .light-bottom { position: absolute; bottom: -10%; left: 50%; transform: translateX(-50%); width: 80%; height: 40%; background: radial-gradient(circle, rgba(0, 242, 254, 0.05) 0%, transparent 70%); pointer-events: none; }
+                .sb-ambient-top { position: absolute; top: -20%; left: 50%; transform: translateX(-50%); width: 100%; height: 60%; background: radial-gradient(circle, rgba(172, 248, 0, 0.07) 0%, transparent 70%); pointer-events: none; }
+                .sb-ambient-bottom { position: absolute; bottom: -10%; left: 50%; transform: translateX(-50%); width: 80%; height: 40%; background: radial-gradient(circle, rgba(0, 242, 254, 0.05) 0%, transparent 70%); pointer-events: none; }
 
-                /* Wizard Custom Premium */
-                .supreme-wizard-overlay {
+                .sb-wiz-overlay {
                     position: fixed;
                     inset: 0;
                     background: rgba(0, 0, 0, 0.95);
@@ -212,7 +215,8 @@ const SmartBioView = () => {
                     justify-content: center;
                     padding: 20px;
                 }
-                .supreme-wizard-card {
+
+                .sb-wiz-card {
                     background: #0a0a0a;
                     border: 1px solid rgba(255,255,255,0.05);
                     border-radius: 50px;
@@ -224,51 +228,28 @@ const SmartBioView = () => {
                     overflow: hidden;
                     box-shadow: 0 100px 200px rgba(0,0,0,0.9);
                 }
-                .wa-mock-bg {
-                    background-color: #0b141a;
-                    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-                    background-size: 500px;
-                    background-blend-mode: overlay;
-                    opacity: 0.8;
-                }
             `}</style>
 
-            <div className="light-top" />
-            <div className="light-bottom" />
+            <div className="sb-ambient-top" />
+            <div className="sb-ambient-bottom" />
 
-            <div className="supreme-bio-container">
-                <div className="avatar-supreme-view">
-                    <img 
-                        src={bio.avatar_url || 'https://via.placeholder.com/150'} 
-                        alt={bio.title} 
-                        className="w-full h-full rounded-[40px] object-cover bg-white/5" 
-                    />
+            <div className="sb-view-container">
+                <div className="sb-avatar-view">
+                    <img src={bio.avatar_url || 'https://via.placeholder.com/150'} alt={bio.title} className="w-full h-full rounded-[40px] object-cover bg-white/5" />
                 </div>
 
                 <h1 className="text-4xl font-black mb-4 text-center tracking-tight leading-none">{bio.title}</h1>
                 <p className="text-white/40 text-center mb-12 font-bold leading-relaxed px-4 uppercase tracking-[2px] text-[11px]">{bio.description}</p>
 
                 {bio.video_url && (
-                    <div className="video-supreme-view">
-                        <iframe 
-                            width="100%" 
-                            height="280" 
-                            src={bio.video_url.replace('watch?v=', 'embed/')} 
-                            title="Apresentação"
-                            frameBorder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowFullScreen
-                        ></iframe>
+                    <div className="sb-video-box">
+                        <iframe width="100%" height="280" src={bio.video_url.replace('watch?v=', 'embed/')} title="Apresentação" frameBorder="0" allowFullScreen></iframe>
                     </div>
                 )}
 
                 <div className="w-full space-y-4">
                     {bio.buttons.map((btn: any, i: number) => (
-                        <button 
-                            key={i} 
-                            onClick={() => handleButtonClick(btn)} 
-                            className={`btn-supreme-view ${i === 0 ? 'primary' : ''}`}
-                        >
+                        <button key={i} onClick={() => handleButtonClick(btn)} className={`sb-view-btn ${i === 0 ? 'primary' : ''}`}>
                             {btn.type === 'whatsapp' ? <MessageCircle size={22} strokeWidth={2.5} /> : <ExternalLink size={22} strokeWidth={2.5} />}
                             {btn.label}
                         </button>
@@ -278,14 +259,14 @@ const SmartBioView = () => {
                 <footer className="mt-24 flex flex-col items-center gap-8 opacity-20">
                     <div className="flex items-center gap-2">
                         <Zap size={18} fill="currentColor" className="text-primary-color" />
-                        <span className="text-[10px] font-black tracking-[4px] uppercase">Powered by Plug & Sales Supreme</span>
+                        <span className="text-[10px] font-black tracking-[4px] uppercase">Plug & Sales Supreme</span>
                     </div>
                 </footer>
             </div>
 
             {isWizardOpen && (
-                <div className="supreme-wizard-overlay animate-fade-in">
-                    <div className="supreme-wizard-card">
+                <div className="sb-wiz-overlay animate-fade-in">
+                    <div className="sb-wiz-card">
                         <div className="p-20 flex flex-col h-full bg-gradient-to-br from-white/[0.02] to-transparent">
                             <div className="flex gap-3 mb-16">
                                 {[1, 2, 3].map(s => (
@@ -351,8 +332,8 @@ const SmartBioView = () => {
                             )}
                         </div>
 
-                        <div className="relative wa-mock-bg flex flex-col border-l border-white/5">
-                            <div className="bg-[#202c33] p-10 pt-16 flex items-center gap-5 border-bottom border-black/20">
+                        <div className="relative flex flex-col border-l border-white/5" style={{ backgroundColor: '#0b141a', backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')", backgroundSize: '400px', backgroundBlendMode: 'overlay' }}>
+                            <div className="bg-[#202c33] p-10 pt-16 flex items-center gap-5">
                                 <div className="w-14 h-14 bg-white/5 rounded-full overflow-hidden border-2 border-white/10">
                                     {employeeData.photo ? <img src={employeeData.photo} className="w-full h-full object-cover" /> : <User className="w-full h-full p-3 text-white/20" />}
                                 </div>
