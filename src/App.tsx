@@ -52,6 +52,15 @@ import SupremeLoading from './components/SupremeLoading';
 import './index.css';
 import './crm.css';
 
+import PublicLayout from './components/PublicLayout';
+import ProtectedRoute from './components/ProtectedRoute';
+import AboutPage from './pages/AboutPage';
+import PresentationsPage from './pages/PresentationsPage';
+import BlogPage from './pages/BlogPage';
+import BlogPostPage from './pages/BlogPostPage';
+import HomePage from './pages/HomePage';
+import ForumProfilePage from './pages/ForumProfilePage';
+
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Control from './pages/Control';
@@ -59,10 +68,6 @@ import Control from './pages/Control';
 function AppContent() {
   const { user, theme, isLoading } = useAuth();
   const location = useLocation();
-
-  if (isLoading) {
-    return <SupremeLoading />;
-  }
 
   // Automatic Push Notification Subscription for Agents/Admins
   useEffect(() => {
@@ -77,7 +82,16 @@ function AppContent() {
     }
   }, [user]);
 
+  if (isLoading) {
+    return <SupremeLoading />;
+  }
+
   const isPublicRoute = 
+    location.pathname === '/' ||
+    location.pathname === '/sobre' ||
+    location.pathname === '/apresentacoes' ||
+    location.pathname === '/blog' ||
+    location.pathname.startsWith('/blog/') ||
     location.pathname.startsWith('/landing') || 
     location.pathname.startsWith('/obrigado') || 
     location.pathname === '/finalizado' || 
@@ -88,7 +102,10 @@ function AppContent() {
     location.pathname.startsWith('/client-add/') ||
     location.pathname.startsWith('/bio/') ||
     location.pathname.startsWith('/card/') ||
-    location.pathname === '/test-cards';
+    location.pathname === '/test-cards' ||
+    location.pathname === '/perfil/comentarios' ||
+    location.pathname === '/perfil/editar' ||
+    location.pathname === '/login';
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -166,55 +183,72 @@ function AppContent() {
       )}
       <main className={`main-content ${isPublicRoute ? 'no-padding' : ''}`}>
         <Routes>
-          <Route path="/" element={<Navigate to={isClient ? "/client-dashboard" : "/accounts"} replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/accounts" element={<Accounts />} />
-          <Route path="/admin/changes" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminChanges /> : <Navigate to="/accounts" />} />
-          <Route path="/live-chat" element={<LiveChat />} />
-          <Route path="/crm/n8n-monitor" element={<N8NWorkflow />} />
-          <Route path="/templates" element={<TemplateCreator />} />
-          <Route path="/client-submissions" element={<ClientSubmissions />} />
-          <Route path="/client-submissions/:id" element={<ClientSubmissionDetail />} />
-          <Route path="/client-submissions/add" element={<ClientSubmissionAdd />} />
-          <Route path="/client-form" element={<ClientExternalForm />} />
-          <Route path="/client" element={<ClientExternalForm />} />
-          <Route path="/client-dashboard" element={<ClientDashboard />} />
-          <Route path="/upload" element={<UploadContacts />} />
-          <Route path="/campaigns" element={<CampaignPlanner />} />
-          <Route path="/engine" element={<EngineExecution />} />
-          <Route path="/media" element={<MediaHosting />} />
-          <Route path="/dispatch" element={<TemplateDispatch />} />
-          <Route path="/link-shortener" element={<LinkShortener />} />
-          <Route path="/link-rotator" element={<LinkRotator />} />
-          <Route path="/rotator-stats/:id" element={<RotatorDetails />} />
-          <Route path="/client-reports" element={<ClientReports />} />
-          <Route path="/link-stats/:id" element={<LinkStats />} />
-          <Route path="/productivity/materials" element={<MaterialsCenter />} />
-          <Route path="/productivity/smart-bio" element={<SmartBioCreator />} />
-          <Route path="/productivity/digital-card" element={<DigitalCardCreator />} />
-          <Route path="/bio/:slug" element={<SmartBioView />} />
-          <Route path="/card/:id" element={<DigitalCardView />} />
-          <Route path="/download" element={<Download />} />
+          {/* Public Corporate Site */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/sobre" element={<AboutPage />} />
+            <Route path="/apresentacoes" element={<PresentationsPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
+            <Route path="/perfil/comentarios" element={<ForumProfilePage />} />
+            <Route path="/perfil/editar" element={<ForumProfilePage />} />
+          </Route>
+
+          {/* Legacy/Specific Public Routes */}
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/landing/:id" element={<LandingPage />} />
           <Route path="/lead-flow" element={<LeadStepForm />} />
           <Route path="/obrigado" element={<Obrigado />} />
           <Route path="/obrigado/:id" element={<Obrigado />} />
           <Route path="/finalizado" element={<Finalizado />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/client-add/:parentId/:submissionId?" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <ClientForClientForm /> : <Navigate to="/accounts" />} />
-          <Route path="/control" element={user?.role === 'ADMIN' ? <Control /> : <Navigate to="/accounts" />} />
-          <Route path="/admin/step-leads" element={user?.role === 'ADMIN' ? <LeadAdminView /> : <Navigate to="/accounts" />} />
-          <Route path="/crm/analise" element={<CRMAnalise />} />
-          <Route path="/crm/funil" element={<CRMFunil />} />
-          <Route path="/crm/consultiva" element={<GestaoConsultiva />} />
-          <Route path="/cron-report" element={<CronReport />} />
-          {/* PLUG CARDS MODULE — isolated, no impact on existing routes */}
-          <Route path="/plug-cards" element={<PlugCardsExchange />} />
-          <Route path="/my-cards" element={<MyPlugCards />} />
-          <Route path="/my-wallet" element={<MyWallet />} />
-          <Route path="/admin/plug-cards" element={user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? <AdminPlugCards /> : <Navigate to="/dashboard" />} />
+          <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+
+          {/* Shielded Routes (Authentication Required) */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
+          <Route path="/admin/changes" element={<ProtectedRoute><AdminChanges /></ProtectedRoute>} />
+          <Route path="/live-chat" element={<ProtectedRoute><LiveChat /></ProtectedRoute>} />
+          <Route path="/crm/n8n-monitor" element={<ProtectedRoute><N8NWorkflow /></ProtectedRoute>} />
+          <Route path="/templates" element={<ProtectedRoute><TemplateCreator /></ProtectedRoute>} />
+          <Route path="/client-submissions" element={<ProtectedRoute><ClientSubmissions /></ProtectedRoute>} />
+          <Route path="/client-submissions/:id" element={<ProtectedRoute><ClientSubmissionDetail /></ProtectedRoute>} />
+          <Route path="/client-submissions/add" element={<ProtectedRoute><ClientSubmissionAdd /></ProtectedRoute>} />
+          <Route path="/client-form" element={<ProtectedRoute><ClientExternalForm /></ProtectedRoute>} />
+          <Route path="/client" element={<ProtectedRoute><ClientExternalForm /></ProtectedRoute>} />
+          <Route path="/client-dashboard" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
+          <Route path="/upload" element={<ProtectedRoute><UploadContacts /></ProtectedRoute>} />
+          <Route path="/campaigns" element={<ProtectedRoute><CampaignPlanner /></ProtectedRoute>} />
+          <Route path="/engine" element={<ProtectedRoute><EngineExecution /></ProtectedRoute>} />
+          <Route path="/media" element={<ProtectedRoute><MediaHosting /></ProtectedRoute>} />
+          <Route path="/dispatch" element={<ProtectedRoute><TemplateDispatch /></ProtectedRoute>} />
+          <Route path="/link-shortener" element={<ProtectedRoute><LinkShortener /></ProtectedRoute>} />
+          <Route path="/link-rotator" element={<ProtectedRoute><LinkRotator /></ProtectedRoute>} />
+          <Route path="/rotator-stats/:id" element={<ProtectedRoute><RotatorDetails /></ProtectedRoute>} />
+          <Route path="/client-reports" element={<ProtectedRoute><ClientReports /></ProtectedRoute>} />
+          <Route path="/link-stats/:id" element={<ProtectedRoute><LinkStats /></ProtectedRoute>} />
+          <Route path="/productivity/materials" element={<ProtectedRoute><MaterialsCenter /></ProtectedRoute>} />
+          <Route path="/productivity/smart-bio" element={<ProtectedRoute><SmartBioCreator /></ProtectedRoute>} />
+          <Route path="/productivity/digital-card" element={<ProtectedRoute><DigitalCardCreator /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/client-add/:parentId/:submissionId?" element={<ProtectedRoute><ClientForClientForm /></ProtectedRoute>} />
+          <Route path="/control" element={<ProtectedRoute adminOnly={true}><Control /></ProtectedRoute>} />
+          <Route path="/admin/step-leads" element={<ProtectedRoute adminOnly={true}><LeadAdminView /></ProtectedRoute>} />
+          <Route path="/crm/analise" element={<ProtectedRoute><CRMAnalise /></ProtectedRoute>} />
+          <Route path="/crm/funil" element={<ProtectedRoute><CRMFunil /></ProtectedRoute>} />
+          <Route path="/crm/consultiva" element={<ProtectedRoute><GestaoConsultiva /></ProtectedRoute>} />
+          <Route path="/cron-report" element={<ProtectedRoute><CronReport /></ProtectedRoute>} />
+          <Route path="/plug-cards" element={<ProtectedRoute><PlugCardsExchange /></ProtectedRoute>} />
+          <Route path="/my-cards" element={<ProtectedRoute><MyPlugCards /></ProtectedRoute>} />
+          <Route path="/my-wallet" element={<ProtectedRoute><MyWallet /></ProtectedRoute>} />
+          <Route path="/admin/plug-cards" element={<ProtectedRoute adminOnly={true}><AdminPlugCards /></ProtectedRoute>} />
+
+          {/* External Public Views (Micro-apps) */}
+          <Route path="/bio/:slug" element={<SmartBioView />} />
+          <Route path="/card/:id" element={<DigitalCardView />} />
           <Route path="/test-cards" element={<TestCards />} />
+          <Route path="/download" element={<Download />} />
+          <Route path="/l/:id" element={<Navigate to="/login" />} /> {/* Placeholder for shortlinks logic if needed */}
+          <Route path="/r/:id" element={<Navigate to="/login" />} />
         </Routes>
       </main>
     </div>

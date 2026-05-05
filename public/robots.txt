@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /sobre
+Allow: /apresentacoes
+Allow: /blog
+Disallow: /dashboard
+Disallow: /accounts
+Disallow: /admin
+Disallow: /control
+Disallow: /crm
+
+Sitemap: https://plugesales.com.br/sitemap.xml

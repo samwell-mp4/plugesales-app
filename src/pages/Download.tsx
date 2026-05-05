@@ -56,7 +56,7 @@ const DownloadPage = () => {
     };
 
     return (
-        <div className="lp-container">
+        <div className="public-page-wrapper">
             {/* ── HERO / HEADER ── */}
             <section className="lp-hero" style={{ paddingBottom: '60px' }}>
                 <div className="lp-hero-content">

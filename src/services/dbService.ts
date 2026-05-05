@@ -505,6 +505,52 @@ export const dbService = {
         }
     },
 
+    // --- Forum & Community ---
+    getBlogComments: async (postSlug: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/blog/comments?slug=${postSlug}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) { return []; }
+    },
+    addBlogComment: async (commentData: { postSlug: string; userId: number; userName: string; text: string }) => {
+        try {
+            const res = await fetch(`${API_BASE}/blog/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(commentData)
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
+    likeBlogComment: async (commentId: number, userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/blog/comments/${commentId}/like`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
+    updateForumProfile: async (userId: number, data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/forum/profile/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
+    getForumUserComments: async (userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/forum/user/${userId}/comments`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) { return []; }
+    },
+
     // --- Link Shortener ---
     createShortLink: async (data: { user_id?: number; client_id?: number; target_user_id?: number; original_url?: string; title?: string; links?: any[] }) => {
         try {
@@ -1225,5 +1271,49 @@ export const dbService = {
             const res = await fetch(`${API_BASE}/smart-bio/${id}`, { method: 'DELETE' });
             return await res.json();
         } catch (err) { return { error: err }; }
+    },
+    // --- Blog Posts ---
+    getBlogPosts: async () => {
+        try {
+            // Trying to get from localStorage first (for local persistence)
+            const localPosts = localStorage.getItem('pns_blog_posts');
+            const parsedLocal = localPosts ? JSON.parse(localPosts) : [];
+            
+            // In a real scenario, we would also fetch from the API
+            // For now, let's merge local posts with any initial data
+            return parsedLocal;
+        } catch (err) {
+            console.error("Error fetching blog posts:", err);
+            return [];
+        }
+    },
+    saveBlogPost: async (postData: any) => {
+        try {
+            const currentPosts = await dbService.getBlogPosts();
+            const newPost = {
+                ...postData,
+                id: Date.now(),
+                date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
+                timestamp: new Date().toISOString()
+            };
+            
+            const updatedPosts = [newPost, ...currentPosts];
+            localStorage.setItem('pns_blog_posts', JSON.stringify(updatedPosts));
+            
+            return { success: true, post: newPost };
+        } catch (err) {
+            console.error("Error saving blog post:", err);
+            return { error: err };
+        }
+    },
+    deleteBlogPost: async (id: number) => {
+        try {
+            const currentPosts = await dbService.getBlogPosts();
+            const updatedPosts = currentPosts.filter((p: any) => p.id !== id);
+            localStorage.setItem('pns_blog_posts', JSON.stringify(updatedPosts));
+            return { success: true };
+        } catch (err) {
+            return { error: err };
+        }
     }
 };

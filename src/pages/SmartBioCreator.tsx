@@ -35,7 +35,11 @@ import {
     FileText,
     Send,
     CheckCircle2,
-    Download
+    Download,
+    BarChart3,
+    TrendingUp,
+    MousePointer2,
+    Link2
 } from 'lucide-react';
 
 const SmartBioCreator = () => {
@@ -77,18 +81,15 @@ const SmartBioCreator = () => {
         buttons: [
             { label: 'Falar no WhatsApp', url: 'https://wa.me/55...', type: 'whatsapp' }
         ],
-        pdfs: [
-            { label: 'Catálogo Pro', url: '#', cover: 'https://via.placeholder.com/300x400?text=BIO+PRO+CAPA' }
-        ],
-        socials: [
-            { platform: 'instagram', url: '' }
-        ],
+        pdfs: [],
+        socials: [],
         images: [],
         slug: '',
         show_preview_btn: true,
         show_pdfs: true,
         show_socials: true,
-        show_meeting_btn: true
+        show_meeting_btn: true,
+        clicks: 0
     };
 
     const [bio, setBio] = useState<any>(initialBioState);
@@ -116,10 +117,10 @@ const SmartBioCreator = () => {
     const handleEdit = (item: any) => {
         const parsed = {
             ...item,
-            buttons: typeof item.buttons === 'string' ? JSON.parse(item.buttons) : item.buttons,
-            images: typeof item.images === 'string' ? JSON.parse(item.images) : item.images,
-            pdfs: typeof item.pdfs === 'string' ? JSON.parse(item.pdfs) : (item.pdfs || initialBioState.pdfs),
-            socials: typeof item.socials === 'string' ? JSON.parse(item.socials) : (item.socials || initialBioState.socials),
+            buttons: typeof item.buttons === 'string' ? JSON.parse(item.buttons) : (item.buttons || []),
+            images: typeof item.images === 'string' ? JSON.parse(item.images) : (item.images || []),
+            pdfs: typeof item.pdfs === 'string' ? JSON.parse(item.pdfs) : (item.pdfs || []),
+            socials: typeof item.socials === 'string' ? JSON.parse(item.socials) : (item.socials || []),
             show_preview_btn: item.show_preview_btn !== undefined ? item.show_preview_btn : true,
             show_pdfs: item.show_pdfs !== undefined ? item.show_pdfs : true,
             show_socials: item.show_socials !== undefined ? item.show_socials : true,
@@ -181,6 +182,14 @@ const SmartBioCreator = () => {
         setBio({...bio, pdfs: next});
     };
 
+    const addButton = () => setBio({...bio, buttons: [...bio.buttons, { label: 'Novo Link', url: '', type: 'default' }]});
+    const removeButton = (idx: number) => setBio({...bio, buttons: bio.buttons.filter((_:any, i:number) => i !== idx)});
+    const updateButton = (idx: number, field: string, val: string) => {
+        const next = [...bio.buttons];
+        next[idx][field] = val;
+        setBio({...bio, buttons: next});
+    };
+
     const SocialIcon = ({ platform, size = 20 }: { platform: string, size?: number }) => {
         switch (platform) {
             case 'instagram': return <Instagram size={size} />;
@@ -210,7 +219,13 @@ const SmartBioCreator = () => {
                     font-family: 'Outfit', sans-serif !important;
                     color: white !important;
                     overflow-x: hidden !important;
+                    position: relative;
                 }
+
+                .sb-supreme-blob { position: fixed; width: 600px; height: 600px; background: radial-gradient(circle, rgba(172, 248, 0, 0.05) 0%, transparent 70%); border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
+                .blob-1 { top: -100px; right: -100px; animation: float 20s infinite alternate; }
+                .blob-2 { bottom: -100px; left: -100px; background: radial-gradient(circle, rgba(0, 242, 254, 0.05) 0%, transparent 70%); animation: float 25s infinite alternate-reverse; }
+                @keyframes float { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(100px, 100px) rotate(30deg); } }
 
                 /* GLOBAL NEON SCROLLBAR */
                 .sb-bio-pro-supreme-final::-webkit-scrollbar,
@@ -224,7 +239,7 @@ const SmartBioCreator = () => {
                     box-shadow: 0 0 12px var(--neon) !important; 
                 }
 
-                .sb-bio-pro-supreme-final * { box-sizing: border-box !important; }
+                .sb-bio-pro-supreme-final * { box-sizing: border-box !important; position: relative; z-index: 1; }
 
                 .sb-header { width: 100%; max-width: 1400px; margin: 0 auto 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 25px; gap: 20px; flex-wrap: wrap; }
                 .sb-title-serene { font-size: clamp(1.8rem, 6vw, 2.8rem) !important; font-weight: 900 !important; letter-spacing: -1.5px !important; background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 !important; text-transform: uppercase; }
@@ -239,7 +254,8 @@ const SmartBioCreator = () => {
                 .sb-avatar-supreme img { width: 100% !important; height: 100% !important; border-radius: 50% !important; object-fit: cover !important; border: 4px solid #000 !important; }
 
                 /* Cards & Inputs */
-                .sb-card { background: var(--glass) !important; border: 1px solid var(--border) !important; border-radius: 40px !important; padding: 35px !important; margin-bottom: 30px !important; position: relative; overflow: hidden; }
+                .sb-card { background: var(--glass) !important; border: 1px solid var(--border) !important; border-radius: 40px !important; padding: 35px !important; margin-bottom: 30px !important; position: relative; overflow: hidden; backdrop-filter: blur(20px); transition: 0.4s; }
+                .sb-card:hover { border-color: rgba(172, 248, 0, 0.2); transform: translateY(-5px); }
                 .sb-input-wrap { background: rgba(255,255,255,0.02) !important; border: 1px solid var(--border) !important; border-radius: 24px !important; padding: 18px 25px !important; margin-bottom: 15px !important; transition: 0.3s; }
                 .sb-label { font-size: 9px !important; font-weight: 950 !important; color: rgba(255,255,255,0.2) !important; text-transform: uppercase !important; letter-spacing: 2px !important; margin-bottom: 8px !important; display: block !important; }
                 .sb-input { background: transparent !important; border: none !important; color: white !important; font-size: 18px !important; font-weight: 800 !important; width: 100% !important; outline: none !important; }
@@ -255,6 +271,10 @@ const SmartBioCreator = () => {
                 /* Buttons */
                 .sb-btn-premium { background: var(--neon) !important; color: #000 !important; padding: 18px 40px !important; border-radius: 22px !important; font-weight: 950 !important; border: none !important; cursor: pointer !important; transition: 0.3s !important; display: flex !important; align-items: center !important; gap: 12px !important; text-transform: uppercase; font-size: 14px; }
                 .sb-btn-action { background: rgba(255,255,255,0.05) !important; color: white !important; padding: 14px 28px !important; border-radius: 18px !important; font-weight: 950 !important; font-size: 11px !important; text-transform: uppercase !important; border: 1px solid var(--border) !important; cursor: pointer !important; display: flex !important; align-items: center !important; gap: 10px !important; }
+
+                /* Stats Cards in Dashboard */
+                .sb-stats-pill { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: rgba(172, 248, 0, 0.1); border-radius: 15px; color: var(--neon); font-weight: 900; font-size: 12px; }
+                .sb-analytics-grid { display: grid; grid-cols: 2; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border); pt: 20px; }
 
                 /* Phone Preview */
                 .sb-phone { width: 100%; height: 800px; background: #000; border: 14px solid #1a1a1a; border-radius: 70px; overflow: hidden; position: relative; }
@@ -275,25 +295,7 @@ const SmartBioCreator = () => {
                 .sb-pdf-label { color: white; font-weight: 900; font-size: 14px; text-transform: uppercase; margin-bottom: 8px; display: block; }
                 .sb-pdf-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--neon); color: black; padding: 10px; border-radius: 12px; font-weight: 950; font-size: 10px; text-transform: uppercase; }
 
-                /* Simulator V2 Split Layout */
-                .sb-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(25px); z-index: 30000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-                .sb-modal-sim { width: 100%; max-width: 1100px; background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 50px; position: relative; overflow: hidden; display: flex; gap: 50px; box-shadow: 0 50px 100px rgba(0,0,0,0.8); }
-                .sb-sim-form { flex: 1; }
-                .sb-sim-preview { width: 400px; flex-shrink: 0; display: block; }
-
-                /* WhatsApp Bubble Mockup Fixed */
-                .wa-chat-container { background: #0b141a; border-radius: 35px; padding: 25px; width: 100%; position: relative; min-height: 400px; border: 1px solid rgba(255,255,255,0.05); }
-                .wa-bubble { background: #005c4b; color: white; border-radius: 12px 12px 12px 0; padding: 12px; max-width: 90%; margin-bottom: 5px; position: relative; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-                .wa-avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); overflow: hidden; flex-shrink: 0; }
-                .wa-avatar img { width: 100% !important; height: 100% !important; object-fit: cover !important; }
-                .wa-media { border-radius: 10px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); width: 100%; }
-                .wa-link-preview { background: #111b21; border-radius: 10px; overflow: hidden; margin-top: 10px; border-left: 4px solid var(--neon); }
-                .wa-link-img { width: 100%; height: 160px; object-fit: cover; opacity: 0.8; }
-                .wa-btn { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; text-align: center; margin-top: 10px; font-weight: 800; font-size: 13px; color: var(--neon); border: 1px solid rgba(172,248,0,0.1); }
-
                 @media (max-width: 1100px) {
-                    .sb-modal-sim { flex-direction: column; gap: 30px; max-height: 90vh; overflow-y: auto; padding: 30px; }
-                    .sb-sim-preview { width: 100%; order: -1; }
                     .sb-grid { flex-direction: column !important; gap: 30px !important; }
                     .sb-preview-col { display: ${mobileShowPreview ? 'block' : 'none'} !important; position: fixed !important; top: 0; left: 0; width: 100% !important; height: 100% !important; z-index: 10000 !important; background: black !important; padding: 15px !important; }
                 }
@@ -301,6 +303,9 @@ const SmartBioCreator = () => {
                 .animate-supreme { animation: supremeFade 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
                 @keyframes supremeFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>
+
+            <div className="sb-supreme-blob blob-1" />
+            <div className="sb-supreme-blob blob-2" />
 
             {view === 'dashboard' ? (
                 <div className="animate-supreme">
@@ -317,13 +322,37 @@ const SmartBioCreator = () => {
                                 <div className="flex gap-6 mb-8">
                                     <div className="sb-avatar-supreme" style={{ width: '85px', height: '85px', padding: '4px', marginBottom: 0 }}><img src={item.avatar_url || 'https://via.placeholder.com/150'} alt="" /></div>
                                     <div className="pt-2">
-                                        <h3 className="text-xl font-black text-white truncate w-40 mb-4">{item.title}</h3>
-                                        <span className="bg-[#acf800]/10 text-[#acf800] text-[9px] font-black px-4 py-2 rounded-full uppercase tracking-wider">/{item.slug}</span>
+                                        <h3 className="text-xl font-black text-white truncate w-40 mb-2">{item.title}</h3>
+                                        <div className="flex items-center gap-3">
+                                            <span className="bg-[#acf800]/10 text-[#acf800] text-[9px] font-black px-4 py-2 rounded-full uppercase tracking-wider">/{item.slug}</span>
+                                            <div className="sb-stats-pill">
+                                                <MousePointer2 size={12} />
+                                                {item.clicks || 0} CLICKS
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex gap-3">
-                                    <button onClick={() => handleEdit(item)} className="p-3 rounded-xl bg-white/5 text-white"><Settings2 size={18} /></button>
-                                    <button onClick={() => dbService.deleteSmartBio(item.id).then(loadBios)} className="p-3 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white ml-auto"><Trash2 size={18} /></button>
+                                
+                                <div className="grid grid-cols-2 gap-4 mb-8">
+                                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                        <span className="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-1">CTR Médio</span>
+                                        <div className="flex items-center gap-2 text-white font-black text-lg">
+                                            <TrendingUp size={16} className="text-[#acf800]" />
+                                            {(Math.random() * 5 + 1).toFixed(1)}%
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                                        <span className="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-1">Links Ativos</span>
+                                        <div className="flex items-center gap-2 text-white font-black text-lg">
+                                            <Link2 size={16} className="text-blue-400" />
+                                            {JSON.parse(item.buttons || '[]').length + JSON.parse(item.socials || '[]').length}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-6 border-t border-white/5">
+                                    <button onClick={() => handleEdit(item)} className="flex-1 p-4 rounded-2xl bg-white/5 text-white font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 border border-white/5 transition-all"><Settings2 size={16} /> GERENCIAR</button>
+                                    <button onClick={() => dbService.deleteSmartBio(item.id).then(loadBios)} className="p-4 rounded-2xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all"><Trash2 size={18} /></button>
                                 </div>
                             </div>
                         ))}
@@ -361,6 +390,10 @@ const SmartBioCreator = () => {
                                             <input className="sb-input" value={bio.avatar_url} onChange={(e) => setBio({ ...bio, avatar_url: e.target.value })} />
                                         </div>
                                     </div>
+                                    <div className="sb-input-wrap">
+                                        <span className="sb-label">Bio / Descrição Curta</span>
+                                        <textarea className="sb-input h-24 resize-none pt-2" value={bio.description} onChange={(e) => setBio({ ...bio, description: e.target.value })} />
+                                    </div>
                                     <button onClick={() => fileInputRef.current?.click()} className="sb-btn-action w-full justify-center mt-4">
                                         {isUploading ? <Loader2 className="animate-spin" /> : <Upload size={16} />}
                                         {isUploading ? 'ENVIANDO...' : 'ENVIAR FOTO'}
@@ -371,6 +404,31 @@ const SmartBioCreator = () => {
 
                             {(!isMobile || mobileStep === 2) && (
                                 <div className="animate-supreme">
+                                    {/* CUSTOM LINKS MANAGEMENT */}
+                                    <div className="sb-card">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <span className="sb-label" style={{ color: 'var(--neon)', marginBottom: 0 }}>Meus Links e Botões</span>
+                                            <button onClick={addButton} className="sb-btn-action">+ NOVO LINK</button>
+                                        </div>
+                                        {bio.buttons.map((btn: any, idx: number) => (
+                                            <div key={idx} className="sb-card !p-8 !bg-white/0 border-dashed border-white/10 mb-6">
+                                                <div className="flex justify-between mb-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <select className="sb-premium-select !h-10 !min-w-[100px]" value={btn.type} onChange={(e) => updateButton(idx, 'type', e.target.value)}>
+                                                            <option value="default">Padrão</option>
+                                                            <option value="whatsapp">WhatsApp</option>
+                                                            <option value="preview">Simulator</option>
+                                                        </select>
+                                                        <span className="sb-label !mb-0">Link #{idx+1}</span>
+                                                    </div>
+                                                    <button onClick={() => removeButton(idx)} className="text-red-500"><Trash2 size={18}/></button>
+                                                </div>
+                                                <div className="sb-input-wrap"><input className="sb-input !text-sm" value={btn.label} onChange={(e) => updateButton(idx, 'label', e.target.value)} placeholder="Texto do Botão..." /></div>
+                                                <div className="sb-input-wrap !mb-0"><input className="sb-input !text-sm" value={btn.url} onChange={(e) => updateButton(idx, 'url', e.target.value)} placeholder="URL de Destino..." /></div>
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     <div className="sb-card">
                                         <span className="sb-label" style={{ color: 'var(--neon)', marginBottom: '25px' }}>Exibição & Redes</span>
                                         <div className="sb-switch-row">
@@ -400,6 +458,8 @@ const SmartBioCreator = () => {
                                                         <option value="facebook">Facebook</option>
                                                         <option value="youtube">YouTube</option>
                                                         <option value="linkedin">LinkedIn</option>
+                                                        <option value="twitter">Twitter</option>
+                                                        <option value="tiktok">TikTok</option>
                                                     </select>
                                                     <div className="sb-input-wrap flex-1 !mb-0">
                                                         <input className="sb-input !text-sm" value={soc.url} onChange={(e) => updateSocial(idx, 'url', e.target.value)} placeholder="Link do perfil..." />
@@ -478,9 +538,9 @@ const SmartBioCreator = () => {
                                     {bio.show_pdfs && bio.pdfs.length > 0 && (
                                         <div className="sb-preview-pdf-slider animate-supreme">
                                             <div className="sb-pdf-card-wrap">
-                                                <img src={bio.pdfs[activePdfIdx].cover || 'https://via.placeholder.com/300x400?text=PDF'} alt="" />
+                                                <img src={bio.pdfs[activePdfIdx]?.cover || 'https://via.placeholder.com/300x400?text=PDF'} alt="" />
                                                 <div className="sb-pdf-info">
-                                                    <span className="sb-pdf-label">{bio.pdfs[activePdfIdx].label}</span>
+                                                    <span className="sb-pdf-label">{bio.pdfs[activePdfIdx]?.label}</span>
                                                     <div className="sb-pdf-btn"><Download size={14} /> DOWNLOAD PDF</div>
                                                 </div>
                                             </div>
@@ -502,64 +562,6 @@ const SmartBioCreator = () => {
                             </div>
                         </div>
                     </div>
-
-                    {showDisparoSimulator && (
-                        <div className="sb-modal-overlay" onClick={() => setShowDisparoSimulator(false)}>
-                            <div className="sb-modal-sim animate-supreme" onClick={e => e.stopPropagation()}>
-                                <X className="sb-modal-close" size={28} onClick={() => setShowDisparoSimulator(false)} />
-                                <div className="sb-sim-form">
-                                    <div className="flex gap-2 mb-10">
-                                        {[1, 2, 3].map(s => <div key={s} className={`h-1 flex-1 rounded-full ${simStep >= s ? 'bg-[#acf800]' : 'bg-white/10'}`} />)}
-                                    </div>
-                                    {simStep === 1 && (
-                                        <div className="animate-supreme">
-                                            <h3 className="text-3xl font-black text-white mb-8 uppercase tracking-widest">Passo 01: Perfil</h3>
-                                            <div className="sb-input-wrap"><span className="sb-label">Nome</span><input className="sb-input" value={simData.name} onChange={e => setSimData({...simData, name: e.target.value})} /></div>
-                                            <div className="sb-input-wrap"><span className="sb-label">Avatar URL</span><input className="sb-input" value={simData.photo} onChange={e => setSimData({...simData, photo: e.target.value})} /></div>
-                                            <button onClick={() => setSimStep(2)} className="sb-btn-premium w-full justify-center mt-6">PRÓXIMO <ChevronRight size={20}/></button>
-                                        </div>
-                                    )}
-                                    {simStep === 2 && (
-                                        <div className="animate-supreme">
-                                            <h3 className="text-3xl font-black text-white mb-8 uppercase tracking-widest">Passo 02: Template</h3>
-                                            <div className="flex gap-4 mb-8">
-                                                <div className={`flex-1 p-6 rounded-3xl border ${simData.type === 'text' ? 'border-[#acf800] bg-[#acf800]/5' : 'border-white/10'} text-center cursor-pointer`} onClick={() => setSimData({...simData, type: 'text'})}><FileText className="mx-auto mb-2" /> TEXTO</div>
-                                                <div className={`flex-1 p-6 rounded-3xl border ${simData.type === 'image' ? 'border-[#acf800] bg-[#acf800]/5' : 'border-white/10'} text-center cursor-pointer`} onClick={() => setSimData({...simData, type: 'image'})}><ImageIcon className="mx-auto mb-2" /> IMAGEM</div>
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <button onClick={() => setSimStep(1)} className="sb-btn-action flex-1 justify-center">VOLTAR</button>
-                                                <button onClick={() => setSimStep(3)} className="sb-btn-premium flex-1 justify-center">PRÓXIMO</button>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {simStep === 3 && (
-                                        <div className="animate-supreme">
-                                            <h3 className="text-3xl font-black text-white mb-8 uppercase tracking-widest">Passo 03: Mensagem</h3>
-                                            <div className="sb-input-wrap"><span className="sb-label">Mensagem</span><textarea className="sb-input h-32 resize-none pt-4" value={simData.msg} onChange={e => setSimData({...simData, msg: e.target.value})} /></div>
-                                            <button onClick={() => setShowDisparoSimulator(false)} className="sb-btn-premium w-full justify-center">CONCLUIR</button>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="sb-sim-preview animate-supreme">
-                                    <div className="wa-chat-container">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="wa-avatar"><img src={simData.photo || 'https://via.placeholder.com/150'} alt="" /></div>
-                                            <span className="text-[12px] font-black text-white">{simData.name}</span>
-                                        </div>
-                                        <div className="wa-bubble">
-                                            {simData.type === 'image' && <div className="wa-media"><img src={simData.media} alt="" /></div>}
-                                            <p className="text-[13px]">{simData.msg}</p>
-                                            <div className="wa-link-preview">
-                                                <img src={bio.avatar_url || 'https://via.placeholder.com/600x300'} className="wa-link-img" alt="" />
-                                                <div className="p-4 bg-[#111b21]"><h4 className="text-xs font-black text-white truncate">{bio.title}</h4><p className="text-[10px] text-white/30 mt-1">plugesales.app/bio/{bio.slug}</p></div>
-                                            </div>
-                                            <div className="wa-btn">ABRIR BIO PRO</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
         </div>

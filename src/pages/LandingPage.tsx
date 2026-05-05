@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import SEO from '../components/SEO';
 import {
-    MessageSquare,
     Zap,
-    ShieldCheck,
-    Smartphone,
     Plus,
     X,
     CheckCircle2,
@@ -16,8 +14,14 @@ import {
     Video,
     MousePointer2,
     ShieldAlert,
+    ShieldCheck,
     AlertTriangle,
-    Check
+    Smartphone,
+    Check,
+    Bot,
+    BarChart3,
+    Target,
+    Layers
 } from 'lucide-react';
 import './LandingPage.css';
 
@@ -115,28 +119,59 @@ const LandingPage = () => {
         }
     ];
 
-    return (
-        <div className="lp-container">
+    const schemas = [
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "url": "https://plugesales.com.br",
+            "name": "Plug & Sales",
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://plugesales.com.br/?s={search_term}",
+                "query-input": "required name=search_term"
+            }
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": faqs.map(f => ({
+                "@type": "Question",
+                "name": f.q,
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": f.a
+                }
+            }))
+        }
+    ];
 
+    return (
+        <div className="public-page-wrapper">
+            <SEO 
+                title="API Oficial WhatsApp | Disparos em Massa e Escala" 
+                description="Ative sua base de leads no WhatsApp com a API Oficial. Sem bloqueios e sem limite de escala. Estrutura profissional para bases acima de 10 mil contatos."
+                schema={schemas}
+            />
 
             {/* ── HERO ── */}
             <section className="lp-hero">
+                <div className="lp-hero-bg-glow"></div>
                 <div className="lp-hero-content">
-                    <div className="lp-hero-tag">
+                    <div className="lp-hero-tag animate-supreme-pulse">
                         <Zap size={14} /> API OFICIAL WHATSAPP
                     </div>
                     <h1 className="lp-hero-title">
-                        Ative sua base de leads no WhatsApp com a <span style={{ color: '#acf800' }}>API Oficial</span>
+                        Ative sua base de <span className="text-gradient">leads</span> no WhatsApp com a API Oficial
                     </h1>
                     <p className="lp-hero-subtitle">
-                        Sem bloqueios e sem limite de escala. Para empresas com bases acima de 10 mil contatos que querem estrutura profissional, estabilidade e alta entrega.
+                        Sem bloqueios, sem limites e com a segurança da API Oficial Meta. A estrutura profissional definitiva para empresas que faturam alto.
                     </p>
                     <div className="lp-cta-group">
                         <Link
                             to={currentAgentParam ? `/lead-flow?agent=${currentAgentParam}` : "/lead-flow"}
-                            className="lp-btn lp-btn-primary ripple"
+                            className="lp-btn lp-btn-primary ripple lp-btn-glow"
                         >
-                            👉 Quero Agendar Um Disparo em Massa
+                            Quero Ativar Minha Estrutura Agora 👉
                         </Link>
                     </div>
                 </div>
@@ -192,7 +227,6 @@ const LandingPage = () => {
                             Elas usam a <strong>API Oficial do WhatsApp</strong> para escalar envios com estabilidade,
                             segurança e controle total da operação.
                         </p>
-
                     </div>
                 </div>
             </section>
@@ -342,7 +376,7 @@ const LandingPage = () => {
                     <h2 className="lp-section-title">Perguntas Frequentes</h2>
                 </div>
 
-                <div className="lp-faq-container">
+                <div className="lp-faq-container container">
                     {faqs.map((faq, i) => (
                         <div key={i} className={`lp-faq-item ${activeFaq === i ? 'active' : ''}`} onClick={() => toggleFaq(i)}>
                             <div className="lp-faq-question">
@@ -356,21 +390,6 @@ const LandingPage = () => {
                     ))}
                 </div>
             </section>
-
-            {/* ── FOOTER ── */}
-            <footer className="lp-footer">
-                <div className="lp-logo" style={{ justifyContent: 'center', marginBottom: '32px' }}>
-                    Plug & Sales
-                </div>
-                <div className="lp-footer-links">
-                    <a href="#" className="lp-nav-link">Termos de Uso</a>
-                    <a href="#" className="lp-nav-link">Privacidade</a>
-                    <a href="#" className="lp-nav-link">Diretrizes da Meta</a>
-                </div>
-                <p className="lp-copyright">
-                    © 2026 Plug & Sales Pro. Operação Profissional de WhatsApp API.
-                </p>
-            </footer>
         </div>
     );
 };

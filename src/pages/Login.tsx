@@ -249,6 +249,22 @@ const Login = () => {
                     text-align: center;
                     backdrop-filter: blur(10px);
                 }
+
+                .security-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    background: rgba(172, 248, 0, 0.1);
+                    color: var(--primary-color);
+                    padding: 6px 14px;
+                    border-radius: 20px;
+                    font-size: 0.65rem;
+                    font-weight: 900;
+                    letter-spacing: 1px;
+                    border: 1px solid rgba(172, 248, 0, 0.2);
+                    margin-bottom: 24px;
+                    text-transform: uppercase;
+                }
             `}</style>
 
             <div className="mesh-bg"></div>
@@ -265,9 +281,9 @@ const Login = () => {
                         </p>
                     </div>
 
-                    {error && <div className="error-toast">{error}</div>}
+                    {error && <div className="error-toast w-full">{error}</div>}
 
-                    <form onSubmit={handleSubmit} autoComplete="off">
+                    <form onSubmit={handleSubmit} autoComplete="off" className="w-full">
                         <div className="input-wrapper">
                             <input 
                                 type="text" 
