@@ -35,7 +35,7 @@ const ForumProfilePage = () => {
         }
     }, []);
 
-    const loadUserComments = async (userId: number) => {
+    const loadUserComments = async (_userId: number) => {
         setIsLoading(true);
         // Em um cenário real, chamamos o dbService
         // const data = await dbService.getForumUserComments(userId);

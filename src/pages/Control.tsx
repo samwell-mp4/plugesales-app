@@ -84,7 +84,8 @@ const Control = () => {
             const doc = parser.parseFromString(html, 'text/html');
             
             // --- REAL EXTRACTION ---
-            const originalTitle = doc.querySelector('h1')?.innerText || doc.title || "Artigo Clonado";
+            const h1Element = doc.querySelector('h1');
+            const originalTitle = (h1Element ? h1Element.textContent : '') || doc.title || "Artigo Clonado";
             
             // Clean title for rewriting
             const rewrittenTitle = originalTitle.includes('|') ? originalTitle.split('|')[0] : originalTitle;
@@ -94,8 +95,9 @@ const Control = () => {
             const elements = doc.querySelectorAll('p, h2, h3');
             let count = 0;
             elements.forEach(el => {
-                if (el.innerText.length > 30 && count < 10) { // Limit to first 10 relevant blocks
-                    const text = el.innerText.trim();
+                const textContent = el.textContent || '';
+                if (textContent.length > 30 && count < 10) { // Limit to first 10 relevant blocks
+                    const text = textContent.trim();
                     // Simple "AI Rewrite" simulation: Swap some words and structure
                     const rewrittenPara = text
                         .replace(/você/g, 'sua empresa')
