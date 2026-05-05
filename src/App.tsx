@@ -116,8 +116,14 @@ function AppContent() {
   const isAdmin = user?.role === 'ADMIN';
   const isEmployee = user?.role === 'EMPLOYEE';
 
-  // Redirect clients to their dashboard if they try to access root or general dashboard
-  if (isClient && (location.pathname === '/' || location.pathname === '/dashboard')) {
+  // Redirect logged-in users (except forum users) accessing the main page
+  if (user && user.role !== 'usuario_forum' && location.pathname === '/') {
+      window.location.href = 'https://plugesales.com/accounts';
+      return null;
+  }
+
+  // Redirect clients to their dashboard if they try to access general dashboard
+  if (isClient && location.pathname === '/dashboard') {
       return <Navigate to="/client-dashboard" replace />;
   }
 
