@@ -3995,10 +3995,18 @@ app.delete('/api/blog/:id', async (req, res) => {
 // --- Blog AI Generation ---
 app.post('/api/blog/generate', async (req, res) => {
     const { title, content, language = 'pt-BR' } = req.body;
+    console.log(`[AI BLOG] Generating article for: ${title}`);
+    
     try {
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.error("[AI BLOG] CRITICAL: OPENAI_API_KEY is not defined in environment variables.");
+            return res.status(500).json({ error: "Chave da OpenAI não configurada no servidor." });
+        }
+
+        const openai = new OpenAI({ apiKey });
         const response = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-4o-mini", // Faster and more reliable for long text
             messages: [
                 {
                     role: "system",
@@ -4020,13 +4028,15 @@ app.post('/api/blog/generate', async (req, res) => {
                     
                     Gere o conteúdo em HTML formatado.`
                 }
-            ]
+            ],
+            temperature: 0.7
         });
 
+        console.log("[AI BLOG] Generation successful.");
         res.json({ content: response.choices[0].message.content });
     } catch (err) {
-        console.error("AI Generation Error:", err);
-        res.status(500).json({ error: err.message });
+        console.error("[AI BLOG] Error during OpenAI call:", err.message);
+        res.status(500).json({ error: `Erro na IA: ${err.message}` });
     }
 });
 
