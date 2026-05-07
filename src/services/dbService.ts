@@ -1275,13 +1275,9 @@ export const dbService = {
     // --- Blog Posts ---
     getBlogPosts: async () => {
         try {
-            // Trying to get from localStorage first (for local persistence)
-            const localPosts = localStorage.getItem('pns_blog_posts');
-            const parsedLocal = localPosts ? JSON.parse(localPosts) : [];
-            
-            // In a real scenario, we would also fetch from the API
-            // For now, let's merge local posts with any initial data
-            return parsedLocal;
+            const res = await fetch(`${API_BASE}/blog`);
+            if (!res.ok) return [];
+            return await res.json();
         } catch (err) {
             console.error("Error fetching blog posts:", err);
             return [];
@@ -1289,18 +1285,12 @@ export const dbService = {
     },
     saveBlogPost: async (postData: any) => {
         try {
-            const currentPosts = await dbService.getBlogPosts();
-            const newPost = {
-                ...postData,
-                id: Date.now(),
-                date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
-                timestamp: new Date().toISOString()
-            };
-            
-            const updatedPosts = [newPost, ...currentPosts];
-            localStorage.setItem('pns_blog_posts', JSON.stringify(updatedPosts));
-            
-            return { success: true, post: newPost };
+            const res = await fetch(`${API_BASE}/blog`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(postData)
+            });
+            return await res.json();
         } catch (err) {
             console.error("Error saving blog post:", err);
             return { error: err };
@@ -1308,10 +1298,8 @@ export const dbService = {
     },
     deleteBlogPost: async (id: number) => {
         try {
-            const currentPosts = await dbService.getBlogPosts();
-            const updatedPosts = currentPosts.filter((p: any) => p.id !== id);
-            localStorage.setItem('pns_blog_posts', JSON.stringify(updatedPosts));
-            return { success: true };
+            const res = await fetch(`${API_BASE}/blog/${id}`, { method: 'DELETE' });
+            return await res.json();
         } catch (err) {
             return { error: err };
         }

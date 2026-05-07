@@ -38,7 +38,7 @@ const PublicNavbar = () => {
     ];
 
     return (
-        <nav className={`public-navbar ${isScrolled ? 'scrolled' : ''}`}>
+        <nav className={`public-navbar ${isScrolled ? 'scrolled' : ''} ${isMenuOpen ? 'menu-open' : ''}`}>
             <div className="nav-container">
                 <Link to="/" className="nav-logo-wrapper">
                     <SupremeLogo size={32} animate="shimmer" showText={false} />

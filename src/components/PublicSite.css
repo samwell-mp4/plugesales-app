@@ -405,3 +405,12 @@
 .rotate-180 {
     transform: rotate(180deg);
 }
+
+@media (max-width: 768px) {
+    .public-navbar.menu-open {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: #05070a !important;
+    }
+}
+

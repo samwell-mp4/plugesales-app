@@ -292,6 +292,10 @@ const BlogPostPage = () => {
                     schema={[breadcrumbSchema, articleSchema]}
                 />
 
+                {/* Background Blobs for Visual Depth */}
+                <div className="sp-blob sp-blob-1"></div>
+                <div className="sp-blob sp-blob-2"></div>
+
                 <header className="post-hero-supreme" style={{ backgroundImage: `url(${post.image})` }}>
                     <div className="hero-overlay-supreme"></div>
                     <div className="container hero-content-wrapper">
@@ -418,12 +422,13 @@ const BlogPostPage = () => {
                                     ))}
                                 </div>
                             </div>
-                            <div className="sidebar-widget newsletter-widget-premium">
-                                <div className="newsletter-content">
-                                    <Zap size={32} color="#000" />
-                                    <h4>Segredos da Escala</h4>
-                                    <div className="newsletter-form-sidebar">
-                                        <input type="email" placeholder="Seu e-mail" /><button><Mail size={18} /></button>
+                            <div className="sidebar-widget wa-widget-premium" onClick={() => window.open('https://wa.me/5531983994058?text=Olá, vim do blog e gostaria de tirar uma dúvida!', '_blank')} style={{ cursor: 'pointer', background: 'var(--primary-gradient)', color: '#000', borderRadius: '32px', padding: '40px', boxShadow: '0 20px 40px rgba(172, 248, 0, 0.2)' }}>
+                                <div className="wa-widget-content" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                                    <MessageCircle size={40} color="#000" />
+                                    <h4 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Dúvidas sobre Escala?</h4>
+                                    <p style={{ color: 'rgba(0,0,0,0.7)', fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>Fale com um atendente agora no WhatsApp.</p>
+                                    <div style={{ background: '#000', color: 'var(--primary-color)', padding: '15px 30px', borderRadius: '15px', fontWeight: 900, fontSize: '0.9rem', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        ABRIR WHATSAPP <ArrowUpRight size={18} />
                                     </div>
                                 </div>
                             </div>
@@ -440,10 +445,16 @@ const BlogPostPage = () => {
                 <style>{`
                     * { box-sizing: border-box; }
                     .reading-progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--primary-gradient); z-index: 100000; transition: width 0.1s ease; box-shadow: 0 0 10px var(--primary-color); }
-                    .blog-post-page { background: #05070a; color: #fff; padding-bottom: 100px; overflow-x: hidden; width: 100%; position: relative; }
-                    .container { width: 100%; max-width: 1300px; margin: 0 auto; padding: 0 24px; position: relative; }
+                    .blog-post-page { background: transparent; color: #fff; padding-bottom: 100px; overflow-x: hidden; width: 100%; position: relative; }
+                    .container { width: 100%; max-width: 1300px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 5; }
+                    
+                    /* Background Blobs */
+                    .sp-blob { position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.15; z-index: 0; pointer-events: none; }
+                    .sp-blob-1 { width: 600px; height: 600px; background: var(--primary-color); top: -200px; left: -200px; }
+                    .sp-blob-2 { width: 500px; height: 500px; background: #3b82f6; bottom: 10%; right: -100px; }
+
                     .post-hero-supreme { height: 100vh; min-height: 850px; background-size: cover; background-position: center; position: relative; display: flex; align-items: center; margin-top: -100px; z-index: 1; overflow: hidden; }
-                    .hero-overlay-supreme { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(5,7,10,0.1) 0%, #05070a 100%), linear-gradient(to bottom, rgba(5,7,10,0.7) 0%, transparent 30%, #05070a 100%); z-index: 1; }
+                    .hero-overlay-supreme { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(5,7,10,0.4) 0%, rgba(5,7,10,0.95) 100%); z-index: 1; }
                     .hero-content-wrapper { position: relative; z-index: 10; width: 100%; animation: supremeHeroFadeUp 1.2s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; gap: 40px; padding-top: clamp(100px, 15vh, 160px); }
                     .breadcrumbs-supreme { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
                     .breadcrumbs-supreme a { color: var(--primary-color); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: 0.3s; opacity: 0.7; }
@@ -455,7 +466,7 @@ const BlogPostPage = () => {
                         to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
                     }
                     .post-main-layout { display: grid; grid-template-columns: 1fr 380px; gap: 40px; margin-top: -120px; position: relative; z-index: 10; width: 100%; }
-                    .post-body-card { background: rgba(10, 12, 18, 0.8); backdrop-filter: blur(20px); border-radius: 40px; padding: 60px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 40px 80px rgba(0,0,0,0.5); width: 100%; overflow-wrap: break-word; }
+                    .post-body-card { background: rgba(15, 18, 25, 0.7); backdrop-filter: blur(30px) saturate(150%); border-radius: 40px; padding: 60px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 40px 80px rgba(0,0,0,0.5); width: 100%; overflow-wrap: break-word; }
                     .post-body { font-size: 1.2rem; line-height: 2; color: rgba(255,255,255,0.8); }
                     .post-body img { max-width: 100%; height: auto; border-radius: 20px; }
                     .post-body p { margin-bottom: 24px; }
@@ -570,6 +581,15 @@ const BlogPostPage = () => {
                     .newsletter-form-sidebar button { background: #000; color: var(--primary-color); border: none; width: 45px; height: 45px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
                     .cat-pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 12px; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: 0.3s; }
                     .cat-pill:hover { background: var(--primary-color); color: #000; }
+
+                    .login-to-comment { text-align: center; padding: 60px 40px; margin: 40px 0; border-radius: 40px; border: 2px dashed rgba(172, 248, 0, 0.2); background: rgba(172, 248, 0, 0.02); }
+                    .login-prompt-content { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+                    .login-prompt-content h3 { margin: 0; font-size: 1.8rem; font-weight: 900; color: #fff; }
+                    .login-prompt-content p { color: rgba(255,255,255,0.6); margin: 0; }
+
+                    .action-btn { padding: 12px 24px; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; border: none; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+                    .primary-btn { background: var(--primary-gradient); color: #000; }
+                    .primary-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(172, 248, 0, 0.2); }
 
                     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; z-index: 100000; }
                     .modal-content { background: #080a0f; padding: 60px; border-radius: 40px; width: 100%; max-width: 480px; text-align: center; border: 1px solid rgba(255,255,255,0.1); position: relative; box-shadow: 0 40px 80px rgba(0,0,0,0.5); }

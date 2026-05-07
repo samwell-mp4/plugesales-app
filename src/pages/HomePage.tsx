@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import SEO from '../components/SEO';
 import {
     Zap,
@@ -28,17 +29,25 @@ const HomePage = () => {
     const [quantities, setQuantities] = useState<Record<number, number>>({});
 
     useEffect(() => {
-        fetch('/api/plug-cards')
-            .then(res => res.json())
-            .then(data => {
-                if(Array.isArray(data)) {
+        const fetchCards = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('plug_cards')
+                    .select('*')
+                    .neq('is_active', false)
+                    .order('price', { ascending: true });
+                    
+                if (!error && data) {
                     setCards(data);
                     const initialQts: Record<number, number> = {};
                     data.forEach((c: any) => initialQts[c.id] = 1);
                     setQuantities(initialQts);
                 }
-            })
-            .catch(err => console.error("Error fetching plug cards:", err));
+            } catch (err) {
+                console.error("Error fetching plug cards from supabase:", err);
+            }
+        };
+        fetchCards();
     }, []);
 
     const handleQtyChange = (id: number, delta: number) => {
@@ -51,7 +60,7 @@ const HomePage = () => {
     const handleWhatsAppRedirect = (card: any) => {
         const qty = quantities[card.id] || 1;
         const message = `Olá, tenho interesse em adquirir o card *${card.name}* com volume de *${card.total_volume}* disparos.\nQuantidade desejada: *${qty}*`;
-        const waLink = `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`;
+        const waLink = `https://wa.me/5531983994058?text=${encodeURIComponent(message)}`;
         window.open(waLink, '_blank');
     };
 
@@ -258,7 +267,7 @@ const HomePage = () => {
                 
                 <div className="lp-carousel-wrapper">
                     <div className="lp-carousel-track">
-                        {cards.map(card => {
+                        {cards.slice(0, -1).map(card => {
                             let featuresArr = [];
                             if (card.features) {
                                 if (Array.isArray(card.features.resources)) featuresArr = card.features.resources;
@@ -396,6 +405,17 @@ const HomePage = () => {
                     ))}
                 </div>
             </section>
+
+            {/* ── FLOATING WHATSAPP BUTTON ── */}
+            <a 
+                href="https://wa.me/5531983994058?text=Olá! Gostaria de saber mais sobre o Plug & Sales." 
+                className="lp-floating-wa"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <MessageCircle size={28} />
+                <span className="wa-tooltip">Fale conosco</span>
+            </a>
         </div>
     );
 };

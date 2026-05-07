@@ -143,7 +143,7 @@ const BlogPage = () => {
             </section>
 
             <style>{`
-                .blog-page { padding-bottom: 100px; position: relative; overflow: hidden; background: #05070a; }
+                .blog-page { padding-bottom: 100px; position: relative; overflow: hidden; background: transparent; }
                 .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2; }
                 
                 /* Spectactular Background Blobs */

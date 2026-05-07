@@ -106,7 +106,7 @@ const ThankYou = () => {
                 <div className="ty-btn-group">
                     <button 
                         className="ty-btn ty-btn-primary"
-                        onClick={() => window.open('https://wa.me/5511999999999?text=Olá, acabei de preencher o simulador e gostaria de falar com um especialista!', '_blank')}
+                        onClick={() => window.open('https://wa.me/5531983994058?text=Olá, acabei de preencher o simulador e gostaria de falar com um especialista!', '_blank')}
                     >
                         <MessageCircle size={20} /> CONVERSAR COM ESPECIALISTA
                     </button>

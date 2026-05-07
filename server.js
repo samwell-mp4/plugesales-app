@@ -3921,6 +3921,83 @@ app.delete('/api/smart-bio/:id', async (req, res) => {
     }
 });
 
+// --- Blog Posts ---
+app.get('/api/blog', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM blog_posts ORDER BY created_at DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/blog', async (req, res) => {
+    const { title, slug, excerpt, content, category, author, image } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO blog_posts (title, slug, excerpt, content, category, author, image)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (slug) DO UPDATE SET
+                title = EXCLUDED.title,
+                excerpt = EXCLUDED.excerpt,
+                content = EXCLUDED.content,
+                category = EXCLUDED.category,
+                author = EXCLUDED.author,
+                image = EXCLUDED.image,
+                updated_at = CURRENT_TIMESTAMP
+             RETURNING *`,
+            [title, slug, excerpt, content, category, author, image]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/blog/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM blog_posts WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Blog Comments ---
+app.get('/api/blog/comments', async (req, res) => {
+    const { slug } = req.query;
+    try {
+        const result = await pool.query('SELECT * FROM blog_comments WHERE post_slug = $1 ORDER BY created_at DESC', [slug]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/blog/comments', async (req, res) => {
+    const { postSlug, userId, userName, text } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO blog_comments (post_slug, user_id, user_name, comment_text)
+             VALUES ($1, $2, $3, $4)
+             RETURNING *`,
+            [postSlug, userId, userName, text]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/blog/comments/:id/like', async (req, res) => {
+    try {
+        await pool.query('UPDATE blog_comments SET likes = likes + 1 WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/smart-bio/:slug', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM smart_bios WHERE slug = $1', [req.params.slug]);
