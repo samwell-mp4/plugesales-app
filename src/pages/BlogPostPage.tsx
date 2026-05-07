@@ -4,7 +4,7 @@ import SEO from '../components/SEO';
 import {
     ArrowLeft, Calendar, User, Share2, Facebook, Twitter,
     Link as LinkIcon, MessageSquare, ThumbsUp, Send,
-    MoreVertical, TrendingUp, Clock, ChevronRight, Zap, ShieldCheck, X, Search, Mail, Users, ArrowUpRight, Home
+    MoreVertical, TrendingUp, Clock, ChevronRight, Zap, ShieldCheck, X, Search, Mail, Users, ArrowUpRight, Home, MessageCircle
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
