@@ -688,6 +688,35 @@ const initDB = async () => {
         console.log('✅ Table push_subscriptions verified/created.');
         // ============================================================
 
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS blog_posts (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                excerpt TEXT,
+                content TEXT,
+                category TEXT,
+                author TEXT,
+                image TEXT,
+                read_time TEXT DEFAULT '5 min',
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS blog_comments (
+                id SERIAL PRIMARY KEY,
+                post_slug TEXT NOT NULL,
+                user_id INTEGER,
+                user_name TEXT NOT NULL,
+                comment_text TEXT NOT NULL,
+                likes INTEGER DEFAULT 0,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✔ Blog tables verified/created.');
+
         await client.query(`ALTER TABLE public.data_log_old ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
         await client.query(`ALTER TABLE public.data_log_old ADD COLUMN IF NOT EXISTS campanha_target TEXT`);
         console.log('✅ Database initialized and verified (data_log_old).');
@@ -3959,6 +3988,44 @@ app.delete('/api/blog/:id', async (req, res) => {
         await pool.query('DELETE FROM blog_posts WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Blog AI Generation ---
+app.post('/api/blog/generate', async (req, res) => {
+    const { title, content, language = 'pt-BR' } = req.body;
+    try {
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: `Você é um Redator Chefe e Especialista em SEO da Plug & Sales. 
+                    Seu objetivo é criar artigos de blog de altíssima qualidade, com autoridade, que engajem o leitor e sejam otimizados para mecanismos de busca.
+                    Regras:
+                    1. Use títulos H2 e H3 persuasivos.
+                    2. Escreva parágrafos fluidos e fáceis de ler.
+                    3. Use listas (ul/li) e negritos (strong) para destacar pontos importantes.
+                    4. O texto deve ser longo (mínimo 1000 palavras) e profundo.
+                    5. Devolva APENAS o HTML do corpo do texto (sem tags html, head ou body).`
+                },
+                {
+                    role: "user",
+                    content: `Por favor, reescreva e amplie o seguinte conteúdo para um artigo de blog épico sobre o tema: "${title}".
+                    
+                    Conteúdo Base:
+                    ${content}
+                    
+                    Gere o conteúdo em HTML formatado.`
+                }
+            ]
+        });
+
+        res.json({ content: response.choices[0].message.content });
+    } catch (err) {
+        console.error("AI Generation Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

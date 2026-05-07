@@ -1303,5 +1303,17 @@ export const dbService = {
         } catch (err) {
             return { error: err };
         }
+    },
+    generateBlogPost: async (title: string, content: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/blog/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+            return await res.json();
+        } catch (err) {
+            return { error: err };
+        }
     }
 };

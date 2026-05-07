@@ -3,7 +3,7 @@ import {
     ShieldCheck, MessageSquare, Send, Activity,
     ChevronRight, User, Link as LinkIcon,
     Search, LayoutDashboard, Clock, AlertCircle, CheckCircle2,
-    Users, ShieldAlert, Zap
+    Users, ShieldAlert, Zap, Upload, Sparkles, Image as ImageIcon
 } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -69,11 +69,38 @@ const Control = () => {
         }
     };
 
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.url) {
+                // Ensure we use the correct absolute URL for the image
+                const imageUrl = data.url.startsWith('http') ? data.url : `https://plug-sales-dispatch-app-dispatch-app.hx8235.easypanel.host${data.url}`;
+                setNewPost({ ...newPost, image: imageUrl });
+            }
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Erro ao enviar imagem.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleAiClone = async (targetUrl: string) => {
         setIsAiProcessing(true);
-        
         try {
-            // Using a more resilient CORS proxy
             const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
             const response = await fetch(proxyUrl);
             const html = await response.text();
@@ -82,61 +109,32 @@ const Control = () => {
 
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
+            const title = (doc.querySelector('h1')?.textContent || doc.title || "Artigo Clonado").split('|')[0].trim();
             
-            // --- REAL EXTRACTION ---
-            const h1Element = doc.querySelector('h1');
-            const originalTitle = (h1Element ? h1Element.textContent : '') || doc.title || "Artigo Clonado";
-            
-            // Clean title for rewriting
-            const rewrittenTitle = originalTitle.includes('|') ? originalTitle.split('|')[0] : originalTitle;
-            
-            // Extracting real paragraphs
-            let extractedText = "";
-            const elements = doc.querySelectorAll('p, h2, h3');
-            let count = 0;
-            elements.forEach(el => {
-                const textContent = el.textContent || '';
-                if (textContent.length > 30 && count < 10) { // Limit to first 10 relevant blocks
-                    const text = textContent.trim();
-                    // Simple "AI Rewrite" simulation: Swap some words and structure
-                    const rewrittenPara = text
-                        .replace(/você/g, 'sua empresa')
-                        .replace(/fazer/g, 'implementar')
-                        .replace(/muito/g, 'extremamente')
-                        .replace(/bom/g, 'eficiente');
-                        
-                    const tag = el.tagName.toLowerCase();
-                    extractedText += `<${tag}>${rewrittenPara}</${tag}>\n`;
-                    count++;
-                }
+            let rawContent = "";
+            doc.querySelectorAll('p, h2, h3').forEach(el => {
+                const text = el.textContent?.trim();
+                if (text && text.length > 20) rawContent += text + "\n";
             });
 
-            // Extracting image
-            const images = Array.from(doc.querySelectorAll('img'));
-            const validImg = images.find(img => {
-                const src = img.getAttribute('src');
-                return src && src.startsWith('http') && !src.includes('logo') && !src.includes('icon');
-            });
-            const featuredImg = validImg?.getAttribute('src') || 'https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=1200';
-
-            const slug = rewrittenTitle.toLowerCase().trim()
-                .replace(/[^\w\s-]/g, '')
-                .replace(/[\s_-]+/g, '-')
-                .replace(/^-+|-+$/g, '');
-
-            setNewPost({
-                ...newPost,
-                title: `[REESCRITO] ${rewrittenTitle}`,
-                slug,
-                content: extractedText || "Não foi possível extrair o texto principal. Tente outra URL.",
-                description: `Uma análise profunda sobre ${rewrittenTitle}, adaptada para a Plug & Sales.`,
-                image: featuredImg
-            });
-
-            alert("✅ IA REAL: Conteúdo extraído do link com sucesso! Títulos e textos reais identificados e adaptados.");
+            // Call REAL AI Backend for Epic Content & SEO
+            const aiRes = await dbService.generateBlogPost(title, rawContent.substring(0, 8000));
+            
+            if (aiRes.content) {
+                setNewPost({
+                    ...newPost,
+                    title: title,
+                    slug: title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, ''),
+                    content: aiRes.content,
+                    description: title + " - Aprenda estratégias avançadas neste guia completo e exclusivo da Plug & Sales."
+                });
+                alert("✨ Conteúdo gerado com IA de alta qualidade! O artigo foi reescrito para ser épico e otimizado para SEO.");
+            } else {
+                throw new Error("Falha na geração da IA");
+            }
         } catch (err) {
-            console.error(err);
-            alert("Erro ao ler o link real. Alguns sites bloqueiam o acesso por robôs. Tente outro link ou cole o HTML manualmente.");
+            console.error("AI Error:", err);
+            alert("Erro ao processar com IA. Tente outro link ou verifique sua conexão.");
         } finally {
             setIsAiProcessing(false);
         }
@@ -566,13 +564,21 @@ const Control = () => {
                                 </div>
 
                                 <div>
-                                    <label className="field-label">URL DA IMAGEM DE CAPA</label>
-                                    <input 
-                                        className="field-input" 
-                                        placeholder="https://unsplash.com/..." 
-                                        value={newPost.image}
-                                        onChange={(e) => setNewPost({...newPost, image: e.target.value})}
-                                    />
+                                    <label className="field-label">IMAGEM DE CAPA</label>
+                                    <div style={{ display: 'flex', gap: '15px' }}>
+                                        <input 
+                                            className="field-input" 
+                                            style={{ flex: 1 }}
+                                            placeholder="https://unsplash.com/..." 
+                                            value={newPost.image}
+                                            onChange={(e) => setNewPost({...newPost, image: e.target.value})}
+                                        />
+                                        <label className="action-btn ghost-btn" style={{ height: '54px', width: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                            <Upload size={20} />
+                                            <input type="file" hidden accept="image/*" onChange={handleImageUpload} />
+                                        </label>
+                                    </div>
+                                    {isUploading && <p style={{ fontSize: '10px', color: 'var(--primary-color)', marginTop: '5px' }}>Enviando imagem...</p>}
                                 </div>
 
                                 <div>
