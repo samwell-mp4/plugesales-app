@@ -2914,9 +2914,9 @@ app.get('/api/shortener/stats/all', async (req, res) => {
         let linksUserFilter = "";
         if (targetUserId) {
             params.push(targetUserId);
-            // Allow parent to see their own AND their children's data
-            userFilter = `AND (sl.target_user_id = $3 OR sl.target_user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
-            linksUserFilter = `AND (target_user_id = $3 OR target_user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
+            // Fix: table shortened_links uses 'user_id' not 'target_user_id'
+            userFilter = `AND (sl.user_id = $3 OR sl.user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
+            linksUserFilter = `AND (user_id = $3 OR user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
         }
 
         // 1. Aggregated Total Clicks & Link Count
@@ -3998,7 +3998,7 @@ app.post('/api/blog/generate', async (req, res) => {
     console.log(`[AI BLOG] Generating article for: ${title}`);
     
     try {
-        const apiKey = process.env.OPENAI_API_KEY;
+        const apiKey = process.env.OPENAI_API_KEY || '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';
         if (!apiKey) {
             console.error("[AI BLOG] CRITICAL: OPENAI_API_KEY is not defined in environment variables.");
             return res.status(500).json({ error: "Chave da OpenAI não configurada no servidor." });
