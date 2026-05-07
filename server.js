@@ -3998,7 +3998,7 @@ app.post('/api/blog/generate', async (req, res) => {
     console.log(`[AI BLOG] Generating article for: ${title}`);
     
     try {
-        const apiKey = process.env.OPENAI_API_KEY || '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';
+        const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
             console.error("[AI BLOG] CRITICAL: OPENAI_API_KEY is not defined in environment variables.");
             return res.status(500).json({ error: "Chave da OpenAI não configurada no servidor." });
