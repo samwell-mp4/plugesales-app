@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
 import {
@@ -16,12 +16,44 @@ import {
     Video,
     MousePointer2,
     Users,
-    Check
+    Check,
+    Minus,
+    MessageCircle
 } from 'lucide-react';
 import './LandingPage.css';
 
 const HomePage = () => {
     const [activeFaq, setActiveFaq] = useState<number | null>(null);
+    const [cards, setCards] = useState<any[]>([]);
+    const [quantities, setQuantities] = useState<Record<number, number>>({});
+
+    useEffect(() => {
+        fetch('/api/plug-cards')
+            .then(res => res.json())
+            .then(data => {
+                if(Array.isArray(data)) {
+                    setCards(data);
+                    const initialQts: Record<number, number> = {};
+                    data.forEach((c: any) => initialQts[c.id] = 1);
+                    setQuantities(initialQts);
+                }
+            })
+            .catch(err => console.error("Error fetching plug cards:", err));
+    }, []);
+
+    const handleQtyChange = (id: number, delta: number) => {
+        setQuantities(prev => ({
+            ...prev,
+            [id]: Math.max(1, (prev[id] || 1) + delta)
+        }));
+    };
+
+    const handleWhatsAppRedirect = (card: any) => {
+        const qty = quantities[card.id] || 1;
+        const message = `Olá, tenho interesse em adquirir o card *${card.name}* com volume de *${card.total_volume}* disparos.\nQuantidade desejada: *${qty}*`;
+        const waLink = `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`;
+        window.open(waLink, '_blank');
+    };
 
     const toggleFaq = (index: number) => {
         setActiveFaq(activeFaq === index ? null : index);
@@ -212,6 +244,60 @@ const HomePage = () => {
                             <h4>Suporte e Operação</h4>
                             <p>Equipe interna dedicada ao sucesso da sua campanha.</p>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── MARKETPLACE CAROUSEL ── */}
+            <section className="lp-section">
+                <div className="lp-section-header">
+                    <span className="lp-section-tag">MARKETPLACE</span>
+                    <h2 className="lp-section-title">Plug Cards</h2>
+                    <p style={{ marginTop: '16px', opacity: 0.7 }}>Acesso imediato à infraestrutura sem burocracia.</p>
+                </div>
+                
+                <div className="lp-carousel-wrapper">
+                    <div className="lp-carousel-track">
+                        {cards.map(card => {
+                            let featuresArr = [];
+                            if (card.features) {
+                                if (Array.isArray(card.features.resources)) featuresArr = card.features.resources;
+                                else if (typeof card.features === 'string') {
+                                    try { featuresArr = JSON.parse(card.features).resources || []; } catch(e){}
+                                }
+                            }
+
+                            return (
+                                <div key={card.id} className="lp-carousel-card">
+                                    <div className="lp-card-tier">{card.tier.toUpperCase()}</div>
+                                    <h3 className="lp-card-title">{card.name}</h3>
+                                    
+                                    <div className="lp-card-vol">
+                                        <div className="lp-card-vol-label">Volume do Card</div>
+                                        <div className="lp-card-vol-val">{card.total_volume.toLocaleString('pt-BR')} <span style={{ fontSize: '12px', opacity: 0.6, fontWeight: 500 }}>disparos</span></div>
+                                    </div>
+
+                                    <div className="lp-card-desc">{card.copy}</div>
+
+                                    <div className="lp-card-features">
+                                        {featuresArr.map((f: string, i: number) => (
+                                            <div key={i} className="lp-card-feature-item"><Check size={14} color="#acf800" /> {f}</div>
+                                        ))}
+                                    </div>
+
+                                    <div className="lp-card-footer">
+                                        <div className="lp-card-qty">
+                                            <button onClick={() => handleQtyChange(card.id, -1)}><Minus size={14} /></button>
+                                            <span>{quantities[card.id] || 1}</span>
+                                            <button onClick={() => handleQtyChange(card.id, 1)}><Plus size={14} /></button>
+                                        </div>
+                                        <button className="lp-card-wa-btn" onClick={() => handleWhatsAppRedirect(card)}>
+                                            <MessageCircle size={16} /> WhatsApp
+                                        </button>
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                 </div>
             </section>
