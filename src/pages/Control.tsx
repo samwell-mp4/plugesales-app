@@ -101,11 +101,11 @@ const Control = () => {
     const handleAiClone = async (targetUrl: string) => {
         setIsAiProcessing(true);
         try {
-            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
-            const response = await fetch(proxyUrl);
+            // Use OUR backend proxy to avoid CORS and public proxy failures
+            const response = await fetch(`/api/proxy?url=${encodeURIComponent(targetUrl)}`);
             const html = await response.text();
             
-            if (!html || html.length < 100) throw new Error("Não foi possível acessar o conteúdo.");
+            if (!html || html.length < 100) throw new Error("Não foi possível acessar o conteúdo do link.");
 
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
