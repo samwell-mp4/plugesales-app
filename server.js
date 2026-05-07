@@ -957,7 +957,19 @@ const updateInfluencerLead = async (sheets, spreadsheetId, rowIndex, data) => {
 
 app.get('/api/monitor/logs', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM public.data_log_old ORDER BY data_final DESC LIMIT 2000');
+        const phone = req.query.phone;
+        let result;
+        if (phone) {
+            const cleanPhone = phone.replace(/\D/g, '');
+            result = await pool.query(`
+                SELECT * FROM public.data_log_old 
+                WHERE remetente LIKE $1 OR destinatario LIKE $1
+                ORDER BY data_final DESC 
+                LIMIT 2000
+            `, [`%${cleanPhone}%`]);
+        } else {
+            result = await pool.query('SELECT * FROM public.data_log_old ORDER BY data_final DESC LIMIT 2000');
+        }
         res.json(result.rows);
     } catch (err) {
         console.error("Monitor Logs Error:", err.message);
@@ -1104,6 +1116,65 @@ app.post('/api/monitor/send', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error("Send Message Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/monitor/send-mass-text', async (req, res) => {
+    try {
+        const { recipientIds, message, userId } = req.body;
+        if (!recipientIds || !Array.isArray(recipientIds) || recipientIds.length === 0 || !message || !userId) {
+            return res.status(400).json({ error: 'Faltam dados obrigatórios' });
+        }
+
+        const userRes = await pool.query('SELECT infobip_key, infobip_sender FROM users WHERE id = $1', [userId]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
+        
+        const { infobip_key: apiKey, infobip_sender: sender } = userRes.rows[0];
+        if (!apiKey || !sender) return res.status(400).json({ error: 'Chave ou Remetente (Sender) da Infobip não configurados' });
+
+        const results = { success: 0, failed: 0, errors: [] };
+        
+        for (const recipient of recipientIds) {
+            const cleanRecipient = recipient.replace(/\D/g, '');
+            if (!cleanRecipient) continue;
+            
+            try {
+                const response = await fetch(`https://8k6xv1.api-us.infobip.com/whatsapp/1/message/text`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `App ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        from: sender,
+                        to: cleanRecipient,
+                        content: { text: message }
+                    })
+                });
+
+                if (response.ok) {
+                    results.success++;
+                    await pool.query(
+                        `INSERT INTO public.data_log_old (remetente, destinatario, mensagem, data_final, status)
+                         VALUES ($1, $2, $3, NOW(), 'OUTBOUND')`,
+                        [sender, cleanRecipient, message]
+                    );
+                } else {
+                    const errData = await response.json().catch(()=>({}));
+                    results.failed++;
+                    results.errors.push({ recipient: cleanRecipient, error: errData });
+                }
+            } catch (err) {
+                results.failed++;
+                results.errors.push({ recipient: cleanRecipient, error: err.message });
+            }
+        }
+
+        res.json(results);
+    } catch (err) {
+        console.error("Mass Send Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

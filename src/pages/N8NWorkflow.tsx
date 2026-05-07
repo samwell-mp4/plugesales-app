@@ -60,6 +60,13 @@ const N8NWorkflow = () => {
     const [isSending, setIsSending] = useState(false);
     const [filterStep, setFilterStep] = useState<'upload' | 'options' | 'result'>('upload');
     const [uploadedNumbers, setUploadedNumbers] = useState<string[]>([]);
+    
+    // Novas variaveis de estado para o envio em massa
+    const [showMassMessageModal, setShowMassMessageModal] = useState(false);
+    const [massMessageText, setMassMessageText] = useState('');
+    const [isSendingMassMessage, setIsSendingMassMessage] = useState(false);
+    const [massMessageResult, setMassMessageResult] = useState<any>(null);
+
     const uniqueRecipients = activeTab === 'monitor' ? monitorLeads : campaignLeads;
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -120,7 +127,8 @@ const N8NWorkflow = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch('/api/monitor/logs');
+            const cleanPhone = searchNumber.replace(/\D/g, '');
+            const response = await fetch(`/api/monitor/logs?phone=${cleanPhone}`);
             if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
             
             const text = await response.text();
@@ -270,6 +278,47 @@ const N8NWorkflow = () => {
             console.error(err);
         } finally {
             setIsSending(false);
+        }
+    };
+
+    const handleSendMassMessage = async () => {
+        if (!massMessageText.trim() || selectedIds.length === 0) return;
+        setIsSendingMassMessage(true);
+        setMassMessageResult(null);
+
+        try {
+            const res = await fetch('/api/monitor/send-mass-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipientIds: selectedIds,
+                    message: massMessageText,
+                    userId: user?.id
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                setMassMessageResult({
+                    success: data.success,
+                    failed: data.failed,
+                    errors: data.errors
+                });
+                if (data.failed === 0) {
+                    setTimeout(() => {
+                        setShowMassMessageModal(false);
+                        setMassMessageText('');
+                        setMassMessageResult(null);
+                        setSelectedIds([]);
+                    }, 3000);
+                }
+            } else {
+                setMassMessageResult({ error: data.error || 'Erro ao enviar.' });
+            }
+        } catch (err: any) {
+            setMassMessageResult({ error: err.message });
+        } finally {
+            setIsSendingMassMessage(false);
         }
     };
 
@@ -607,6 +656,12 @@ const N8NWorkflow = () => {
                             {campaigns.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                         </select>
 
+                        {activeTab === 'campaign' && (
+                            <button onClick={() => setShowMassMessageModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '14px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }} className="hover-lift">
+                                <Send size={16} /> ENVIAR MENSAGEM
+                            </button>
+                        )}
+
                         <button onClick={() => setSelectedIds([])} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>CANCELAR</button>
                     </div>
                 </div>
@@ -745,6 +800,51 @@ const N8NWorkflow = () => {
                         </table>
                     </div>
                 )
+            )}
+
+            {showMassMessageModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div style={{ width: '100%', maxWidth: '500px', background: 'var(--card-bg-subtle)', borderRadius: '32px', border: '1px solid rgba(172, 248, 0, 0.2)', padding: '40px', position: 'relative' }}>
+                        <button onClick={() => { setShowMassMessageModal(false); setMassMessageResult(null); setMassMessageText(''); }} style={{ position: 'absolute', right: '30px', top: '30px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', cursor: 'pointer', zIndex: 10 }}><X size={20} /></button>
+                        
+                        <h2 style={{ fontSize: '2rem', fontWeight: 950, marginBottom: '20px', textAlign: 'center' }}>Enviar Mensagem</h2>
+                        <p style={{ textAlign: 'center', opacity: 0.6, fontSize: '13px', marginBottom: '30px', fontWeight: 700 }}>
+                            Você está prestes a enviar uma mensagem para <strong style={{ color: 'var(--primary-color)' }}>{selectedIds.length}</strong> contatos selecionados.<br/>
+                            <span style={{ fontSize: '11px', color: '#ef4444' }}>Atenção: Apenas texto livre. Contatos fora da janela de 24h do WhatsApp podem ser rejeitados pela API.</span>
+                        </p>
+
+                        <textarea 
+                            value={massMessageText}
+                            onChange={(e) => setMassMessageText(e.target.value)}
+                            placeholder="Digite a mensagem a ser enviada para os contatos..."
+                            style={{ width: '100%', height: '150px', padding: '20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', color: 'white', resize: 'none', outline: 'none', marginBottom: '20px', fontSize: '14px' }}
+                        />
+
+                        {massMessageResult && (
+                            <div style={{ padding: '15px', borderRadius: '15px', marginBottom: '20px', background: massMessageResult.error ? 'rgba(239, 68, 68, 0.1)' : 'rgba(172, 248, 0, 0.1)', border: '1px solid', borderColor: massMessageResult.error ? 'rgba(239, 68, 68, 0.2)' : 'rgba(172, 248, 0, 0.2)', color: massMessageResult.error ? '#ef4444' : 'var(--primary-color)', fontSize: '13px', fontWeight: 800 }}>
+                                {massMessageResult.error ? (
+                                    <span>Erro: {massMessageResult.error}</span>
+                                ) : (
+                                    <span>
+                                        Envio Concluído! <br/>
+                                        Sucessos: {massMessageResult.success} <br/>
+                                        Falhas: {massMessageResult.failed}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={handleSendMassMessage}
+                            disabled={isSendingMassMessage || !massMessageText.trim()}
+                            style={{ width: '100%', padding: '16px', borderRadius: '20px', background: 'var(--primary-color)', color: 'black', border: 'none', fontWeight: 900, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', opacity: (isSendingMassMessage || !massMessageText.trim()) ? 0.5 : 1 }}
+                            className="hover-lift"
+                        >
+                            {isSendingMassMessage ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+                            {isSendingMassMessage ? 'ENVIANDO...' : 'DISPARAR MENSAGENS'}
+                        </button>
+                    </div>
+                </div>
             )}
 
             {showFilterModal && (

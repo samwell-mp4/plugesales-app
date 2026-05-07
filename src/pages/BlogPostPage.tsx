@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SEO from '../components/SEO';
-import { 
-    ArrowLeft, Calendar, User, Share2, Facebook, Twitter, 
-    Link as LinkIcon, MessageSquare, ThumbsUp, Send, 
+import {
+    ArrowLeft, Calendar, User, Share2, Facebook, Twitter,
+    Link as LinkIcon, MessageSquare, ThumbsUp, Send,
     MoreVertical, TrendingUp, Clock, ChevronRight, Zap, ShieldCheck, X, Search, Mail, Users, ArrowUpRight, Home
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
@@ -209,9 +209,9 @@ const BlogPostPage = () => {
     const handleSimulatedLogin = async () => {
         setIsLoading(true);
         try {
-            const forumUser = { 
-                name: modalMode === 'login' ? 'Visitante VIP' : 'Novo Membro', 
-                role: 'usuario_forum', 
+            const forumUser = {
+                name: modalMode === 'login' ? 'Visitante VIP' : 'Novo Membro',
+                role: 'usuario_forum',
                 email: 'user@forum.com',
                 password: 'password123',
                 avatar: modalMode === 'login' ? 'V' : 'N'
@@ -229,7 +229,7 @@ const BlogPostPage = () => {
             setCurrentUser(userToStore);
             setIsLoggedIn(true);
             setShowLoginModal(false);
-            window.location.reload(); 
+            window.location.reload();
         } catch (err) {
             console.error("Login error:", err);
         } finally {
@@ -284,8 +284,8 @@ const BlogPostPage = () => {
             <div className="reading-progress-bar" style={{ width: `${scrollProgress}%` }}></div>
 
             <div className="blog-post-page animate-fade-in">
-                <SEO 
-                    title={post.title} 
+                <SEO
+                    title={post.title}
                     description={post.description}
                     ogImage={post.image}
                     ogType="article"
@@ -302,7 +302,7 @@ const BlogPostPage = () => {
                             <ChevronRight size={14} />
                             <span className="current-crumb">{post.category}</span>
                         </nav>
-                        
+
                         <div className="hero-text-content">
                             <span className="post-category-badge-supreme">{post.category}</span>
                             <h1 className="post-title-supreme">{post.title}</h1>
@@ -367,8 +367,8 @@ const BlogPostPage = () => {
                                 ) : (
                                     <form className="comment-form" onSubmit={handleCommentSubmit}>
                                         <div className="comment-input-wrapper">
-                                            <textarea 
-                                                placeholder={`E aí ${currentUser?.name.split(' ')[0]}, o que achou?`} 
+                                            <textarea
+                                                placeholder={`E aí ${currentUser?.name.split(' ')[0]}, o que achou?`}
                                                 value={comment}
                                                 onChange={(e) => setComment(e.target.value)}
                                             ></textarea>
@@ -589,7 +589,7 @@ const BlogPostPage = () => {
                         <button className="close-modal-x" onClick={() => setShowLoginModal(false)}><X size={24} /></button>
                         <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '10px' }}>{modalMode === 'login' ? 'Entrar' : 'Cadastrar'}</h2>
                         <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '30px' }}>{modalMode === 'login' ? 'Acesse sua conta para interagir.' : 'Crie sua conta em segundos.'}</p>
-                        
+
                         <div className="modal-input-group">
                             <input type="email" placeholder="E-mail corporativo" className="modal-input" />
                             <input type="password" placeholder="Senha segura" className="modal-input" />
