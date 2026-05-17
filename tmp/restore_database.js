@@ -65,6 +65,8 @@ async function runRecovery() {
                 notification_number TEXT,
                 infobip_key TEXT,
                 infobip_sender TEXT,
+                infobip_url TEXT,
+                parent_id INTEGER,
                 google_access_token TEXT,
                 google_refresh_token TEXT,
                 google_token_expiry BIGINT,
@@ -466,6 +468,7 @@ async function runRecovery() {
         await safeAlter(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_number TEXT`);
         await safeAlter(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_key TEXT`);
         await safeAlter(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_sender TEXT`);
+        await safeAlter(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_url TEXT`);
         await safeAlter(`ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES users(id)`);
         await safeAlter(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_access_token TEXT`);
         await safeAlter(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token TEXT`);
