@@ -79,14 +79,14 @@ const TemplateDispatch = () => {
     // Dynamic Config Sync - loaded from DB on mount
     const [apiKey, setApiKey] = useState('');
     const [senderNumbers, setSenderNumbers] = useState('');
-    const [useLuisHenrique, setUseLuisHenrique] = useState(false);
+    const [useOtavio, setUseOtavio] = useState(false);
 
-    const LUIS_HENRIQUE_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
-    const LUIS_HENRIQUE_BASE = '9kn66r.api-us.infobip.com';
+    const OTAVIO_KEY = '0a52ec9aee6160c78dfbf0fd451bb143-0d152122-2244-4550-9689-e648d917a45d';
+    const OTAVIO_BASE = '4k3e4p.api-us.infobip.com';
     const DEFAULT_BASE = '8k6xv1.api-us.infobip.com';
 
-    const effectiveApiKey = useLuisHenrique ? LUIS_HENRIQUE_KEY : apiKey;
-    const effectiveBaseUrl = useLuisHenrique ? LUIS_HENRIQUE_BASE : DEFAULT_BASE;
+    const effectiveApiKey = useOtavio ? OTAVIO_KEY : apiKey;
+    const effectiveBaseUrl = useOtavio ? OTAVIO_BASE : DEFAULT_BASE;
 
     // Support for single sender preview
     const fromNumber = senderNumbers.split(/[\n,]/)[0]?.trim() || '';
@@ -699,24 +699,24 @@ const TemplateDispatch = () => {
 
                             <div className="flex items-center justify-between p-4" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
                                 <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Luis Henrique?</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Otávio?</span>
                                     <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>Ativar credenciais alternativas de disparo</span>
                                 </div>
                                 <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
                                     <input
                                         type="checkbox"
                                         style={{ opacity: 0, width: 0, height: 0 }}
-                                        checked={useLuisHenrique}
-                                        onChange={(e) => setUseLuisHenrique(e.target.checked)}
+                                        checked={useOtavio}
+                                        onChange={(e) => setUseOtavio(e.target.checked)}
                                     />
                                     <span style={{
                                         position: 'absolute', cursor: 'pointer', inset: 0,
-                                        backgroundColor: useLuisHenrique ? 'var(--primary-color)' : '#333',
+                                        backgroundColor: useOtavio ? 'var(--primary-color)' : '#333',
                                         transition: '.4s', borderRadius: '34px'
                                     }}>
                                         <span style={{
-                                            position: 'absolute', height: '16px', width: '16px', left: useLuisHenrique ? '24px' : '4px', bottom: '3px',
-                                            backgroundColor: useLuisHenrique ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                                            position: 'absolute', height: '16px', width: '16px', left: useOtavio ? '24px' : '4px', bottom: '3px',
+                                            backgroundColor: useOtavio ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
                                         }}></span>
                                     </span>
                                 </label>
