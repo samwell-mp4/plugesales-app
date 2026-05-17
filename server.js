@@ -674,6 +674,41 @@ const initDB = async () => {
         console.log('✅ Tables submission_change_requests and notifications verified/created.');
 
         // ============================================================
+        // MÓDULO FINANCEIRO
+        // ============================================================
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS salesperson_configs (
+                user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                commission_percentage NUMERIC DEFAULT 0,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS finance_sales (
+                id SERIAL PRIMARY KEY,
+                client_name TEXT NOT NULL,
+                client_cpf_cnpj TEXT,
+                client_contact TEXT,
+                package_hired TEXT,
+                quantity_hired INTEGER DEFAULT 0,
+                unit_value NUMERIC DEFAULT 0,
+                total_value NUMERIC DEFAULT 0,
+                sale_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                salesperson_id INTEGER REFERENCES users(id),
+                payment_status TEXT DEFAULT 'PENDENTE',
+                payment_competence TEXT,
+                commission_status TEXT DEFAULT 'PREVISTA',
+                commission_value NUMERIC DEFAULT 0,
+                quantity_delivered INTEGER DEFAULT 0,
+                investment_used NUMERIC DEFAULT 0,
+                campaign_status TEXT DEFAULT 'ATIVA',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log('✅ Finance tables verified/created.');
+
+        // ============================================================
         // PWA PUSH SUBSCRIPTIONS
         // ============================================================
         await client.query(`
@@ -1546,6 +1581,160 @@ app.delete('/api/crm/consultiva/:id', async (req, res) => {
         
         if (error) throw error;
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+
+// --- FINANCE MODULE ENDPOINTS ---
+app.get('/api/finance/sales', async (req, res) => {
+    try {
+        const { userId, role, salespersonId, startDate, endDate } = req.query;
+        let query = 'SELECT s.*, u.name as salesperson_name FROM finance_sales s LEFT JOIN users u ON s.salesperson_id = u.id WHERE 1=1';
+        const params = [];
+
+        if (role === 'EMPLOYEE' || role === 'VENDEDOR') {
+            params.push(userId);
+            query += ` AND s.salesperson_id = $${params.length}`;
+        } else if (salespersonId) {
+            params.push(salespersonId);
+            query += ` AND s.salesperson_id = $${params.length}`;
+        }
+
+        if (startDate) {
+            params.push(startDate);
+            query += ` AND s.sale_date >= $${params.length}`;
+        }
+        if (endDate) {
+            params.push(endDate);
+            query += ` AND s.sale_date <= $${params.length}`;
+        }
+
+        query += ' ORDER BY s.sale_date DESC';
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/finance/sales', async (req, res) => {
+    try {
+        const {
+            client_name, client_cpf_cnpj, client_contact, package_hired,
+            quantity_hired, unit_value, total_value, sale_date,
+            salesperson_id, payment_status, payment_competence,
+            commission_status, commission_value
+        } = req.body;
+
+        const query = `
+            INSERT INTO finance_sales (
+                client_name, client_cpf_cnpj, client_contact, package_hired,
+                quantity_hired, unit_value, total_value, sale_date,
+                salesperson_id, payment_status, payment_competence,
+                commission_status, commission_value
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            RETURNING *
+        `;
+        const params = [
+            client_name, client_cpf_cnpj, client_contact, package_hired,
+            quantity_hired, unit_value, total_value, sale_date || new Date(),
+            salesperson_id, payment_status || 'PENDENTE', payment_competence,
+            commission_status || 'PREVISTA', commission_value || 0
+        ];
+
+        const result = await pool.query(query, params);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/finance/sales/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const fields = Object.keys(req.body);
+        const params = [id];
+        const setClause = fields.map((field, idx) => `${field} = $${idx + 2}`).join(', ');
+        
+        fields.forEach(field => params.push(req.body[field]));
+
+        const query = `UPDATE finance_sales SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`;
+        const result = await pool.query(query, params);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/finance/sales/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM finance_sales WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/finance/salespeople', async (req, res) => {
+    try {
+        const query = `
+            SELECT u.id, u.name, u.email, c.commission_percentage 
+            FROM users u 
+            LEFT JOIN salesperson_configs c ON u.id = c.user_id 
+            WHERE u.role IN ('EMPLOYEE', 'ADMIN', 'VENDEDOR')
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/finance/salespeople/config', async (req, res) => {
+    try {
+        const { user_id, commission_percentage } = req.body;
+        const query = `
+            INSERT INTO salesperson_configs (user_id, commission_percentage)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id) DO UPDATE SET 
+                commission_percentage = EXCLUDED.commission_percentage,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING *
+        `;
+        const result = await pool.query(query, [user_id, commission_percentage]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/finance/stats', async (req, res) => {
+    try {
+        const { userId, role } = req.query;
+        let whereClause = '';
+        const params = [];
+
+        if (role === 'EMPLOYEE' || role === 'VENDEDOR') {
+            params.push(userId);
+            whereClause = ' WHERE salesperson_id = $1';
+        }
+
+        const statsQuery = `
+            SELECT 
+                SUM(total_value) as total_revenue,
+                SUM(CASE WHEN payment_status = 'RECEBIDO' THEN total_value ELSE 0 END) as total_received,
+                SUM(CASE WHEN payment_status = 'PENDENTE' THEN total_value ELSE 0 END) as total_pending,
+                SUM(commission_value) as total_commission,
+                COUNT(*) as total_sales
+            FROM finance_sales
+            ${whereClause}
+        `;
+        const result = await pool.query(statsQuery, params);
+        res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

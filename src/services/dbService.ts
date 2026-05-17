@@ -1315,5 +1315,77 @@ export const dbService = {
         } catch (err) {
             return { error: err };
         }
+    },
+    // --- Finance Module ---
+    getFinanceSales: async (params: any = {}) => {
+        try {
+            const searchParams = new URLSearchParams(params);
+            const res = await fetch(`${API_BASE}/finance/sales?${searchParams.toString()}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching finance sales:", err);
+            return [];
+        }
+    },
+    saveFinanceSale: async (saleData: any) => {
+        try {
+            const method = saleData.id ? 'PUT' : 'POST';
+            const url = saleData.id ? `${API_BASE}/finance/sales/${saleData.id}` : `${API_BASE}/finance/sales`;
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(saleData)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error saving finance sale:", err);
+            return { error: err };
+        }
+    },
+    deleteFinanceSale: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/sales/${id}`, { method: 'DELETE' });
+            return await res.json();
+        } catch (err) {
+            console.error("Error deleting finance sale:", err);
+            return { error: err };
+        }
+    },
+    getFinanceSalespeople: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/salespeople`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching finance salespeople:", err);
+            return [];
+        }
+    },
+    saveSalespersonConfig: async (configData: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/salespeople/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(configData)
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error saving salesperson config:", err);
+            return { error: err };
+        }
+    },
+    getFinanceStats: async (userId?: number, role?: string) => {
+        try {
+            let url = `${API_BASE}/finance/stats?`;
+            if (userId) url += `userId=${userId}&`;
+            if (role) url += `role=${role}&`;
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching finance stats:", err);
+            return null;
+        }
     }
 };

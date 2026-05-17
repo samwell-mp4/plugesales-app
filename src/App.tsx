@@ -49,8 +49,14 @@ import DigitalCardCreator from './pages/DigitalCardCreator';
 import DigitalCardView from './pages/DigitalCardView';
 import MetaPixel from './components/MetaPixel';
 import SupremeLoading from './components/SupremeLoading';
+import FinanceDashboard from './pages/FinanceDashboard';
+import FinanceSales from './pages/FinanceSales';
+import FinanceControl from './pages/FinanceControl';
+import FinanceCommissions from './pages/FinanceCommissions';
+import FinanceReports from './pages/FinanceReports';
 import './index.css';
 import './crm.css';
+import './finance.css';
 
 import PublicLayout from './components/PublicLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -153,9 +159,14 @@ function AppContent() {
     '/admin/plug-cards'
   ];
 
-  const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA';
+  const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA' || user?.role === 'VENDEDOR';
   
   if (isRestrictedRole && adminOnlyRoutes.some(route => {
+    // Special case for VENDEDOR: They can access the finance module
+    if (user?.role === 'VENDEDOR' && location.pathname.startsWith('/finance')) {
+        return false;
+    }
+
     // Special case: Clients CAN access /client-submissions/:id but NOT /client-submissions (list) or /client-submissions/add
     // ASSINATURA_BASICA CAN access /client-submissions (list) and /accounts and /templates
     if (user?.role === 'ASSINATURA_BASICA') {
@@ -249,6 +260,13 @@ function AppContent() {
           <Route path="/my-cards" element={<ProtectedRoute><MyPlugCards /></ProtectedRoute>} />
           <Route path="/my-wallet" element={<ProtectedRoute><MyWallet /></ProtectedRoute>} />
           <Route path="/admin/plug-cards" element={<ProtectedRoute adminOnly={true}><AdminPlugCards /></ProtectedRoute>} />
+          
+          {/* Finance Module Routes */}
+          <Route path="/finance/dashboard" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
+          <Route path="/finance/sales" element={<ProtectedRoute><FinanceSales /></ProtectedRoute>} />
+          <Route path="/finance/control" element={<ProtectedRoute><FinanceControl /></ProtectedRoute>} />
+          <Route path="/finance/commissions" element={<ProtectedRoute><FinanceCommissions /></ProtectedRoute>} />
+          <Route path="/finance/reports" element={<ProtectedRoute><FinanceReports /></ProtectedRoute>} />
 
           {/* External Public Views (Micro-apps) */}
           <Route path="/bio/:slug" element={<SmartBioView />} />
