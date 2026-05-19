@@ -207,7 +207,7 @@ const TemplateCreator = () => {
 
     // --- MODEL STATE ---
     const [modelName, setModelName] = useState('pagamento_confirmado');
-    const [selectedPayloadLanguage, setSelectedPayloadLanguage] = useState('en_US');
+    const [selectedPayloadLanguage, setSelectedPayloadLanguage] = useState('pt_BR');
 
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
     const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/gZLbY6p.jpeg');
@@ -1587,7 +1587,13 @@ const TemplateCreator = () => {
                                     ].map(lang => (
                                         <button
                                             key={lang.code}
-                                            onClick={() => setSelectedPayloadLanguage(lang.code)}
+                                            onClick={() => {
+                                                setSelectedPayloadLanguage(lang.code);
+                                                const defaultText = isFiveVars
+                                                    ? (lang.code === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5)
+                                                    : (lang.code === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4);
+                                                _setBodyText(defaultText);
+                                            }}
                                             className={`global-tile-btn ${selectedPayloadLanguage === lang.code ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}
                                             style={{ flex: 1, height: '44px' }}
                                         >
