@@ -56,7 +56,7 @@ const ClientExternalForm = () => {
         ads: [{
             template_type: 'TEXT' as 'TEXT' | 'IMAGE' | 'VIDEO',
             media_url: '',
-            ad_copy: 'Oi {{1}}! Informamos que {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇',
+            ad_copy: 'Oi {{1}}! \n\nTemos uma novidade: {{2}}.\n\n{{3}}.\n\nPara {{4}}, use o botão abaixo 👇',
             ad_copy_file: '',
             button_link: '',
             spreadsheet_url: '',
@@ -903,9 +903,9 @@ const ClientExternalForm = () => {
                                                         const v5 = v[4] || '{{5}}';
 
                                                         if (e.target.checked) {
-                                                            ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\n${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
+                                                            ad.ad_copy = `Oi ${v1}! \n\nTemos uma novidade: ${v2}.\n\n${v3}.\n\n${v4}.\n\nPara ${v5}, use o botão abaixo 👇`;
                                                         } else {
-                                                            ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\nPara ${v4}, clique no botão abaixo 👇`;
+                                                            ad.ad_copy = `Oi ${v1}! \n\nTemos uma novidade: ${v2}.\n\n${v3}.\n\nPara ${v4}, use o botão abaixo 👇`;
                                                         }
                                                         setFormData(p => ({ ...p, ads: newAds }));
                                                     }}
@@ -1013,9 +1013,9 @@ const ClientExternalForm = () => {
                                                                         const v5 = v[4] || '{{5}}';
 
                                                                         if (ad.showFifthVariable) {
-                                                                            ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\n${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
+                                                                            ad.ad_copy = `Oi ${v1}! \n\nTemos uma novidade: ${v2}.\n\n${v3}.\n\n${v4}.\n\nPara ${v5}, use o botão abaixo 👇`;
                                                                         } else {
-                                                                            ad.ad_copy = `Oi ${v1}! Informamos que ${v2}\n\n${v3}\n\nPara ${v4}, clique no botão abaixo 👇`;
+                                                                            ad.ad_copy = `Oi ${v1}! \n\nTemos uma novidade: ${v2}.\n\n${v3}.\n\nPara ${v4}, use o botão abaixo 👇`;
                                                                         }
                                                                         setFormData(p => ({ ...p, ads: newAds }));
                                                                     }}
