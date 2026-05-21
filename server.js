@@ -1968,12 +1968,7 @@ app.get('/api/reports/:id', async (req, res) => {
 app.get('/api/reports/:id/details', async (req, res) => {
     try {
         const query = `
-            SELECT id, user_id, submission_id, report_name, filename, summary, timestamp,
-                   (SELECT jsonb_agg(jsonb_build_object(
-                       'to', COALESCE(x->>'To', x->>'to'), 
-                       'status', COALESCE(x->>'Status', x->>'status'), 
-                       'done_at', COALESCE(x->>'Done At', x->>'done_at')
-                   )) FROM jsonb_array_elements(data) x) as data
+            SELECT id, user_id, submission_id, report_name, filename, summary, timestamp, data
             FROM client_reports 
             WHERE id = $1
         `;
