@@ -59,29 +59,47 @@ const ClientReports = () => {
             if (!details || !details.data) throw new Error("Erro ao buscar dados.");
 
             // STRICT FILTERING: 21 exact columns requested by the user
-            const filteredData = details.data.map((r: any) => ({
-                "Traffic Source": r['Traffic Source'] || r.traffic_source || '',
-                "Communication Name": r['Communication Name'] || r.communication_name || '',
-                "Communication Scheduled For": r['Communication Scheduled For'] || r.communication_scheduled_for || '',
-                "Communication Start Date": r['Communication Start Date'] || r.communication_start_date || '',
-                "Communication Template": r['Communication Template'] || r.communication_template || '',
-                "From": r['From'] || r.from || '',
-                "To": r['To'] || r.to || r.Phone || r.phone || r.TELEFONE || r.Telefone || '',
-                "Message Id": r['Message Id'] || r.message_id || '',
-                "Send At": r['Send At'] || r.send_at || '',
-                "Country Prefix": r['Country Prefix'] || r.country_prefix || '',
-                "Country Name": r['Country Name'] || r.country_name || '',
-                "Network Name": r['Network Name'] || r.network_name || '',
-                "Status": r['Status'] || r.status || r.STATUS || '',
-                "Reason": r['Reason'] || r.reason || '',
-                "Action": r['Action'] || r.action || '',
-                "Error Group": r['Error Group'] || r.error_group || '',
-                "Error Name": r['Error Name'] || r.error_name || '',
-                "Done At": r['Done At'] || r.done_at || r.DoneAt || r.timestamp || '',
-                "Text": r['Text'] || r.text || '',
-                "Messages Count": r['Messages Count'] || r.messages_count || '',
-                "Seen At": r['Seen At'] || r.seen_at || ''
-            }));
+            const filteredData = details.data.map((r: any) => {
+                const normalizedRow: Record<string, any> = {};
+                for (const key in r) {
+                    const normKey = key.toLowerCase().replace(/[\s_-]+/g, '');
+                    normalizedRow[normKey] = r[key];
+                }
+
+                const getVal = (possibleKeys: string[]) => {
+                    for (const pk of possibleKeys) {
+                        const nk = pk.toLowerCase().replace(/[\s_-]+/g, '');
+                        if (normalizedRow[nk] !== undefined && normalizedRow[nk] !== null) {
+                            return normalizedRow[nk];
+                        }
+                    }
+                    return '';
+                };
+
+                return {
+                    "Traffic Source": getVal(['Traffic Source', 'TrafficSource']),
+                    "Communication Name": getVal(['Communication Name', 'CommunicationName', 'Nome da Comunicação', 'Nome Comunicacao']),
+                    "Communication Scheduled For": getVal(['Communication Scheduled For', 'CommunicationScheduledFor']),
+                    "Communication Start Date": getVal(['Communication Start Date', 'CommunicationStartDate']),
+                    "Communication Template": getVal(['Communication Template', 'CommunicationTemplate', 'Template']),
+                    "From": getVal(['From', 'De']),
+                    "To": getVal(['To', 'Phone', 'Telefone', 'Numero', 'Para']),
+                    "Message Id": getVal(['Message Id', 'MessageId', 'Id da Mensagem']),
+                    "Send At": getVal(['Send At', 'SendAt', 'Enviado Em']),
+                    "Country Prefix": getVal(['Country Prefix', 'CountryPrefix']),
+                    "Country Name": getVal(['Country Name', 'CountryName', 'Pais']),
+                    "Network Name": getVal(['Network Name', 'NetworkName', 'Rede']),
+                    "Status": getVal(['Status', 'Situação', 'Situacao']),
+                    "Reason": getVal(['Reason', 'Motivo', 'Razao']),
+                    "Action": getVal(['Action', 'Acao', 'Ação']),
+                    "Error Group": getVal(['Error Group', 'ErrorGroup', 'Grupo de Erro']),
+                    "Error Name": getVal(['Error Name', 'ErrorName', 'Nome do Erro']),
+                    "Done At": getVal(['Done At', 'DoneAt', 'Data de Entrega', 'Entregue Em']),
+                    "Text": getVal(['Text', 'Texto', 'Mensagem']),
+                    "Messages Count": getVal(['Messages Count', 'MessagesCount', 'Contagem']),
+                    "Seen At": getVal(['Seen At', 'SeenAt', 'Visto Em', 'Lido Em'])
+                };
+            });
 
             const worksheet = XLSX.utils.json_to_sheet(filteredData);
             const workbook = XLSX.utils.book_new();
