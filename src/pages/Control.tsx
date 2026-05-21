@@ -20,7 +20,7 @@ const Control = () => {
 
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<'ALL' | 'TEMPLATE' | 'DISPATCH'>('ALL');
-    const [activeTab, setActiveTab] = useState<'MONITOR' | 'USUARIOS' | 'BLOG'>('MONITOR');
+    const [activeTab, setActiveTab] = useState<'MONITOR' | 'USUARIOS' | 'BLOG' | 'CLIENTES_PENDENTES'>('MONITOR');
     const [searchTerm, setSearchTerm] = useState('');
     const [userSearchTerm, setUserSearchTerm] = useState('');
     const [blogPosts, setBlogPosts] = useState<any[]>([]);
@@ -42,6 +42,8 @@ const Control = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [isStatsLoading, setIsStatsLoading] = useState(true);
     const [isUsersLoading, setIsUsersLoading] = useState(false);
+    const [pendingClients, setPendingClients] = useState<any[]>([]);
+    const [isPendingClientsLoading, setIsPendingClientsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 8;
 
@@ -152,6 +154,13 @@ const Control = () => {
                 setIsUsersLoading(false);
             });
         }
+        if (activeTab === 'CLIENTES_PENDENTES') {
+            setIsPendingClientsLoading(true);
+            fetch('/api/users/pending').then(res => res.json()).then(data => {
+                setPendingClients(data);
+                setIsPendingClientsLoading(false);
+            }).catch(() => setIsPendingClientsLoading(false));
+        }
     }, [activeTab]);
 
     const getStats = (name: string) => {
@@ -243,6 +252,13 @@ const Control = () => {
                     style={{ flex: 1, height: '54px', minWidth: '150px' }}
                 >
                     <MessageSquare size={20} /> ADICIONAR BLOG
+                </button>
+                <button 
+                    onClick={() => setActiveTab('CLIENTES_PENDENTES')} 
+                    className={`action-btn ${activeTab === 'CLIENTES_PENDENTES' ? 'primary-btn' : 'ghost-btn'}`}
+                    style={{ flex: 1, height: '54px', minWidth: '150px' }}
+                >
+                    <Users size={20} /> CLIENTES PENDENTES
                 </button>
             </div>
 
@@ -399,6 +415,64 @@ const Control = () => {
                                 )}
                             </div>
                         </div>
+                    </div>
+                </div>
+            ) : activeTab === 'CLIENTES_PENDENTES' ? (
+                <div className="crm-card animate-fade-in" style={{ padding: '40px' }}>
+                    <div className="flex items-center justify-between mb-12 flex-wrap gap-6">
+                        <div>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 950, margin: 0, letterSpacing: '-0.5px' }}>Clientes Pendentes</h2>
+                            <p style={{ margin: '8px 0 0', color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 700 }}>Aprove novos cadastros para liberar o acesso</p>
+                        </div>
+                        <div className="status-badge-premium" style={{ padding: '10px 24px', fontSize: '12px', background: 'rgba(245, 158, 11, 0.05)', color: '#f59e0b' }}>
+                            {pendingClients.length} AGUARDANDO
+                        </div>
+                    </div>
+
+                    <div className="card-grid-responsive">
+                        {isPendingClientsLoading ? (
+                            <p style={{ color: 'var(--text-muted)' }}>Carregando...</p>
+                        ) : pendingClients.length === 0 ? (
+                            <p style={{ color: 'var(--text-muted)' }}>Nenhum cliente aguardando aprovação.</p>
+                        ) : pendingClients.map(client => (
+                            <div key={client.id} className="crm-card" style={{ background: 'rgba(0,0,0,0.15)', border: '1px solid var(--surface-border-subtle)', padding: '32px' }}>
+                                <div className="flex-col gap-2 mb-6">
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 950, color: 'white' }}>{client.name}</div>
+                                    <div style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>{client.document_type}: {client.document_number}</div>
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{client.email} | {client.whatsapp}</div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <button 
+                                        className="action-btn primary-btn w-full" 
+                                        style={{ height: '48px', fontSize: '12px' }}
+                                        onClick={async () => {
+                                            if(!window.confirm("Aprovar este cliente?")) return;
+                                            try {
+                                                const res = await fetch(`/api/users/${client.id}/approve`, { method: 'POST' });
+                                                if (res.ok) {
+                                                    setPendingClients(pendingClients.filter(c => c.id !== client.id));
+                                                    alert("Cliente aprovado com sucesso!");
+                                                }
+                                            } catch (err) { alert("Erro ao aprovar."); }
+                                        }}
+                                    >APROVAR</button>
+                                    <button 
+                                        className="action-btn ghost-btn w-full" 
+                                        style={{ height: '48px', fontSize: '12px', borderColor: '#ef4444', color: '#ef4444' }}
+                                        onClick={async () => {
+                                            if(!window.confirm("Rejeitar e excluir este cliente?")) return;
+                                            try {
+                                                const res = await fetch(`/api/users/${client.id}/reject`, { method: 'POST' });
+                                                if (res.ok) {
+                                                    setPendingClients(pendingClients.filter(c => c.id !== client.id));
+                                                    alert("Cliente rejeitado.");
+                                                }
+                                            } catch (err) { alert("Erro ao rejeitar."); }
+                                        }}
+                                    >REJEITAR</button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             ) : activeTab === 'USUARIOS' ? (

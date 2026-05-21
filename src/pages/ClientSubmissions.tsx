@@ -182,6 +182,26 @@ const ClientSubmissions = () => {
         return () => clearInterval(interval);
     }, [user?.role]);
 
+    const handleGenerateInvite = async () => {
+        try {
+            const res = await fetch('/api/invites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ created_by: user?.id })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const inviteUrl = `https://plugesales.com/news-clients/${data.code}`;
+                navigator.clipboard.writeText(inviteUrl);
+                alert(`Convite gerado e copiado para a área de transferência!\n\nLink: ${inviteUrl}\n\nVálido por 24 horas.`);
+            } else {
+                alert('Erro ao gerar convite.');
+            }
+        } catch (err) {
+            alert('Erro de conexão ao gerar convite.');
+        }
+    };
+
     const handleDuplicate = async (submission: ClientSubmission) => {
         if (!window.confirm(`Deseja duplicar a campanha de ${submission.profile_name}?`)) return;
         try {
@@ -939,14 +959,10 @@ const ClientSubmissions = () => {
                         </div>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <button
-                                onClick={() => {
-                                    const url = window.location.origin + '/client-form';
-                                    navigator.clipboard.writeText(url);
-                                    alert("Link copiado: " + url);
-                                }}
+                                onClick={handleGenerateInvite}
                                 style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', color: 'var(--text-secondary)', padding: '10px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
                             >
-                                <LinkIcon size={15} /> COPIAR LINK
+                                <User size={15} /> GERAR NOVO CLIENTE
                             </button>
                             <button
                                 onClick={() => navigate('/client-submissions/add')}

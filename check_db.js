@@ -1,2 +1,2 @@
 import { pool } from './backend/database/db.js';
-pool.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'users'").then(res => { console.log(res.rows); process.exit(0); }).catch(e => console.error(e));
+pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'").then(res => { console.log(res.rows.map(r => r.table_name)); process.exit(0); }).catch(e => console.error(e));

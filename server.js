@@ -1741,21 +1741,93 @@ app.get('/api/finance/stats', async (req, res) => {
 });
 
 
-// --- AUTH ENDPOINTS ---
-app.post('/api/auth/register', async (req, res) => {
-    const { name, email, phone, password, role, document_type, document_number, fantasy_name, responsible_name, address, whatsapp } = req.body;
-    if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
-    }
-
+// --- INVITE ENDPOINTS ---
+app.post('/api/invites', async (req, res) => {
+    const { created_by } = req.body;
+    const code = Math.random().toString(36).substring(2, 10);
     try {
         const result = await pool.query(
-            'INSERT INTO users (name, email, phone, password, role, notification_number, document_type, document_number, fantasy_name, responsible_name, address, whatsapp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, name, email, role, notification_number, infobip_key, infobip_sender',
-            [name, email, phone, password, role || 'CLIENT', phone || null, document_type || null, document_number || null, fantasy_name || null, responsible_name || null, address || null, whatsapp || null]
+            "INSERT INTO client_invites (code, created_by, expires_at) VALUES ($1, $2, NOW() + INTERVAL '24 HOURS') RETURNING *",
+            [code, created_by]
         );
         res.json(result.rows[0]);
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/invites/:code', async (req, res) => {
+    const { code } = req.params;
+    try {
+        const result = await pool.query(
+            "SELECT * FROM client_invites WHERE code = $1",
+            [code]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Convite não encontrado.' });
+        const invite = result.rows[0];
+        if (invite.used) return res.status(400).json({ error: 'Este convite já foi utilizado.' });
+        if (new Date(invite.expires_at) < new Date()) return res.status(400).json({ error: 'Este convite expirou.' });
+        res.json(invite);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- AUTH ENDPOINTS ---
+app.post('/api/auth/register', async (req, res) => {
+    const { name, email, phone, password, role, document_type, document_number, fantasy_name, responsible_name, address, whatsapp, invite_code } = req.body;
+    if (!name || !email || !password || !invite_code) {
+        return res.status(400).json({ error: 'Nome, email, senha e código de convite são obrigatórios.' });
+    }
+
+    try {
+        const inviteCheck = await pool.query("SELECT * FROM client_invites WHERE code = $1 AND used = false AND expires_at > NOW()", [invite_code]);
+        if (inviteCheck.rows.length === 0) {
+            return res.status(400).json({ error: 'Convite inválido, já usado ou expirado.' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO users (name, email, phone, password, role, notification_number, document_type, document_number, fantasy_name, responsible_name, address, whatsapp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, name, email, role, notification_number, infobip_key, infobip_sender',
+            [name, email, phone, password, 'WAITING_APPROVAL', phone || null, document_type || null, document_number || null, fantasy_name || null, responsible_name || null, address || null, whatsapp || null]
+        );
+
+        await pool.query("UPDATE client_invites SET used = true WHERE id = $1", [inviteCheck.rows[0].id]);
+
+        res.json(result.rows[0]);
+    } catch (err) {
         if (err.code === '23505') return res.status(400).json({ error: 'Este email já está cadastrado.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- PENDING USERS MANAGEMENT ---
+app.get('/api/users/pending', async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT id, name, email, phone, document_type, document_number, fantasy_name, responsible_name, address, whatsapp, created_at FROM users WHERE role = 'WAITING_APPROVAL' ORDER BY created_at DESC"
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/users/:id/approve', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query("UPDATE users SET role = 'CLIENT' WHERE id = $1", [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/users/:id/reject', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query("DELETE FROM users WHERE id = $1 AND role = 'WAITING_APPROVAL'", [id]);
+        res.json({ success: true });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });

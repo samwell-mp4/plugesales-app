@@ -112,8 +112,7 @@ function AppContent() {
     location.pathname === '/test-cards' ||
     location.pathname === '/perfil/comentarios' ||
     location.pathname === '/perfil/editar' ||
-    location.pathname === '/news-clients' ||
-    location.pathname === '/news-clients/' ||
+    location.pathname.startsWith('/news-clients') ||
     location.pathname === '/login';
 
   if (!user && !isPublicRoute) {
@@ -218,7 +217,7 @@ function AppContent() {
 
           {/* Legacy/Specific Public Routes */}
           <Route path="/news-clients/" element={<ClientRegistration />} />
-          <Route path="/news-clients" element={<ClientRegistration />} />
+          <Route path="/news-clients/:code" element={<ClientRegistration />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/landing/:id" element={<LandingPage />} />
           <Route path="/lead-flow" element={<LeadStepForm />} />

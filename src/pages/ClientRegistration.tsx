@@ -1,12 +1,43 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
-import { Building2, User, Mail, MapPin, Phone, MessageCircle, Lock, ChevronRight, Briefcase } from 'lucide-react';
+import { Building2, User, Mail, MapPin, Phone, MessageCircle, Lock, ChevronRight, Briefcase, AlertCircle } from 'lucide-react';
+
+const API_BASE = '/api'; // fallback for local fetch since dbService doesnt expose API_BASE easily
 
 const ClientRegistration = () => {
+    const { code } = useParams();
     const navigate = useNavigate();
     const { login } = useAuth();
+    
+    const [isInviteValid, setIsInviteValid] = useState<boolean | null>(null);
+    const [inviteError, setInviteError] = useState('');
+    
+    useEffect(() => {
+        if (!code) {
+            setIsInviteValid(false);
+            setInviteError('Código de convite ausente. Você precisa de um convite para se cadastrar.');
+            return;
+        }
+
+        const checkInvite = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/invites/${code}`);
+                if (res.ok) {
+                    setIsInviteValid(true);
+                } else {
+                    const data = await res.json();
+                    setIsInviteValid(false);
+                    setInviteError(data.error || 'Convite inválido ou expirado.');
+                }
+            } catch (err) {
+                setIsInviteValid(false);
+                setInviteError('Erro ao verificar convite.');
+            }
+        };
+        checkInvite();
+    }, [code]);
     
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
@@ -54,13 +85,14 @@ const ClientRegistration = () => {
         try {
             const result = await dbService.register({
                 ...formData,
-                role: 'CLIENT',
-                document_type: docType
+                role: 'WAITING_APPROVAL',
+                document_type: docType,
+                invite_code: code
             });
 
             if (result && !result.error && result.id) {
-                await login(formData.email, formData.password);
-                navigate('/client-dashboard');
+                alert("Cadastro realizado com sucesso! Aguarde a aprovação do seu acesso.");
+                navigate('/login');
             } else {
                 alert(result?.error || "Erro ao registrar. O email já pode estar em uso.");
             }
@@ -70,6 +102,26 @@ const ClientRegistration = () => {
             setIsLoading(false);
         }
     };
+
+    if (isInviteValid === false) {
+        return (
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0a', color: 'white', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                <div style={{ background: '#111', padding: '40px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', maxWidth: '400px' }}>
+                    <AlertCircle size={48} color="#ff4444" style={{ margin: '0 auto 20px' }} />
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '10px' }}>Acesso Negado</h2>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{inviteError}</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (isInviteValid === null) {
+        return (
+            <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0a', color: 'white', alignItems: 'center', justifyContent: 'center' }}>
+                Carregando validação do convite...
+            </div>
+        );
+    }
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', background: '#0a0a0a', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
