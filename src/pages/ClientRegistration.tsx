@@ -58,7 +58,7 @@ const ClientRegistration = () => {
                 document_type: docType
             });
 
-            if (result && result.token) {
+            if (result && !result.error && result.id) {
                 await login(formData.email, formData.password);
                 navigate('/client-dashboard');
             } else {
