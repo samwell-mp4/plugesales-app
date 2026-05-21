@@ -360,6 +360,15 @@ const ClientSubmissions = () => {
         }
     };
 
+    const handleChangeClient = async (id: number, newUserId: string) => {
+        try {
+            await dbService.updateClientSubmission(id, { user_id: newUserId || null });
+            loadSubmissions();
+        } catch (err) {
+            console.error("Error changing client:", err);
+        }
+    };
+
     const handleBulkDelete = async () => {
         if (selectedIds.length === 0) return;
         if (!window.confirm(`Deseja realmente excluir ${selectedIds.length} envios selecionados?`)) return;
@@ -556,10 +565,14 @@ const ClientSubmissions = () => {
                             </div>
                         )}
                         {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && (
-                            <div style={{ marginBottom: '14px' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }} onClick={e => e.stopPropagation()}>
                                 <select value={s.assigned_to || ''} onChange={e => handleAssign(s.id, e.target.value)} style={{ width: '100%', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '10px', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, outline: 'none' }}>
                                     <option value="">Atribuir...</option>
                                     {employees.map(emp => <option key={emp} value={emp}>{emp}</option>)}
+                                </select>
+                                <select value={s.user_id || ''} onChange={e => handleChangeClient(s.id, e.target.value)} style={{ width: '100%', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '10px', color: 'var(--text-primary)', fontSize: '11px', fontWeight: 700, outline: 'none' }}>
+                                    <option value="">Cliente...</option>
+                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                             </div>
                         )}
@@ -609,9 +622,16 @@ const ClientSubmissions = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '120px' }}>
                         <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>DETALHES</span>
                         <div className="flex-col">
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                                {s.client_name ? `Cliente: ${s.client_name}` : 'Sem Cliente'}
-                            </span>
+                            {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') ? (
+                                <select value={s.user_id || ''} onChange={e => { e.stopPropagation(); handleChangeClient(s.id, e.target.value); }} style={{ background: 'transparent', border: '1px solid var(--surface-border-subtle)', borderRadius: '4px', color: 'var(--text-secondary)', fontSize: '10px', padding: '2px', maxWidth: '100px' }}>
+                                    <option value="">Sem Cliente</option>
+                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            ) : (
+                                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                    {s.client_name ? `Cliente: ${s.client_name}` : 'Sem Cliente'}
+                                </span>
+                            )}
                             <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
                                 DDD: {s.ddd || '--'} | Ad: {(Array.isArray(s.ads) && s.ads.length > 0) ? s.ads[0].ad_name : 'Sem Ad'}
                             </span>
