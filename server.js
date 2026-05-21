@@ -5663,7 +5663,119 @@ app.post('/api/materials/favorite', async (req, res) => {
     }
 });
 
-// --- SMART BIO ---
+// ============================================================
+// EXTERNAL ACCOUNTING API
+// ============================================================
+
+const ACCOUNTING_API_KEY = process.env.ACCOUNTING_API_KEY || 'sk_plugesales_contab_d9f8e7c6b5a4_exemplo_producao';
+
+const checkAccountingAuth = (req, res, next) => {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey || apiKey !== ACCOUNTING_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized. Invalid or missing X-API-KEY.' });
+    }
+    next();
+};
+
+app.get('/api/external/accounting/campaigns', checkAccountingAuth, async (req, res) => {
+    const { clientId, status, startDate, endDate } = req.query;
+    try {
+        let query = `
+            SELECT 
+                c.id, c.status, c.timestamp as created_at, c.user_id, c.assigned_to, c.profile_name, c.ddd, c.ads,
+                u.name as client_name, u.parent_id as partner_id,
+                p.name as partner_name
+            FROM client_submissions c 
+            LEFT JOIN users u ON c.user_id = u.id 
+            LEFT JOIN users p ON u.parent_id = p.id
+            WHERE 1=1
+        `;
+        let params = [];
+
+        if (clientId) {
+            params.push(clientId);
+            query += ` AND c.user_id = $${params.length}`;
+        }
+        if (status) {
+            params.push(status);
+            query += ` AND c.status = $${params.length}`;
+        }
+        if (startDate) {
+            params.push(startDate);
+            query += ` AND c.timestamp >= $${params.length}`;
+        }
+        if (endDate) {
+            params.push(endDate);
+            query += ` AND c.timestamp <= $${params.length}`;
+        }
+
+        query += ` ORDER BY c.timestamp DESC`;
+
+        const result = await pool.query(query, params);
+        
+        // Parse JSON for accounting metrics
+        const campaigns = result.rows.map(row => {
+            let ads = [];
+            try { ads = typeof row.ads === 'string' ? JSON.parse(row.ads) : (row.ads || []); } catch(e) {}
+            
+            // Calculate total delivered and revenue based on ads array
+            const delivered_leads = ads.reduce((sum, ad) => sum + (Number(ad.delivered_leads) || 0), 0);
+            const total_revenue = ads.reduce((sum, ad) => sum + ((Number(ad.delivered_leads) || 0) * (Number(ad.price_per_msg) || 0)), 0);
+            
+            // Delete the raw 'ads' string to keep payload light for accounting
+            delete row.ads;
+
+            return {
+                ...row,
+                accounting_metrics: {
+                    delivered_leads,
+                    total_revenue_brl: total_revenue,
+                    partner_commission_eligible: !!row.partner_id
+                }
+            };
+        });
+
+        res.json({
+            success: true,
+            total_campaigns: campaigns.length,
+            data: campaigns
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
+
+app.get('/api/external/accounting/reports', checkAccountingAuth, async (req, res) => {
+    const { clientId, submissionId } = req.query;
+    try {
+        let query = `
+            SELECT r.id, r.user_id, r.submission_id, r.report_name, r.timestamp as created_at, r.summary
+            FROM client_reports r
+            WHERE 1=1
+        `;
+        let params = [];
+
+        if (clientId) {
+            params.push(clientId);
+            query += ` AND r.user_id = $${params.length}`;
+        }
+        if (submissionId) {
+            params.push(submissionId);
+            query += ` AND r.submission_id = $${params.length}`;
+        }
+
+        query += ` ORDER BY r.timestamp DESC`;
+
+        const result = await pool.query(query, params);
+        res.json({
+            success: true,
+            total_reports: result.rows.length,
+            data: result.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message, stack: err.stack });
+    }
+});
 
 
 app.listen(port, '0.0.0.0', () => {
