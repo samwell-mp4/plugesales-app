@@ -1743,15 +1743,15 @@ app.get('/api/finance/stats', async (req, res) => {
 
 // --- AUTH ENDPOINTS ---
 app.post('/api/auth/register', async (req, res) => {
-    const { name, email, phone, password, role } = req.body;
+    const { name, email, phone, password, role, document_type, document_number, fantasy_name, responsible_name, address, whatsapp } = req.body;
     if (!name || !email || !password) {
         return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
     }
 
     try {
         const result = await pool.query(
-            'INSERT INTO users (name, email, phone, password, role, notification_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, notification_number, infobip_key, infobip_sender',
-            [name, email, phone, password, role || 'CLIENT', phone || null]
+            'INSERT INTO users (name, email, phone, password, role, notification_number, document_type, document_number, fantasy_name, responsible_name, address, whatsapp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, name, email, role, notification_number, infobip_key, infobip_sender',
+            [name, email, phone, password, role || 'CLIENT', phone || null, document_type || null, document_number || null, fantasy_name || null, responsible_name || null, address || null, whatsapp || null]
         );
         res.json(result.rows[0]);
     } catch (err) {

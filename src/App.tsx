@@ -66,6 +66,7 @@ import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
 import HomePage from './pages/HomePage';
 import ForumProfilePage from './pages/ForumProfilePage';
+import ClientRegistration from './pages/ClientRegistration';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
@@ -214,6 +215,8 @@ function AppContent() {
           </Route>
 
           {/* Legacy/Specific Public Routes */}
+          <Route path="/news-clients/" element={user ? <Navigate to="/client-dashboard" replace /> : <ClientRegistration />} />
+          <Route path="/news-clients" element={user ? <Navigate to="/client-dashboard" replace /> : <ClientRegistration />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/landing/:id" element={<LandingPage />} />
           <Route path="/lead-flow" element={<LeadStepForm />} />
