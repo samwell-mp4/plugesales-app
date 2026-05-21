@@ -28,7 +28,7 @@ import ClientAuth from './ClientAuth';
 const ClientExternalForm = () => {
     const { user } = useAuth() as any;
     const navigate = useNavigate();
-    const [step, setStep] = useState(user?.role === 'ADMIN' ? 0 : 1);
+    const [step, setStep] = useState(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? 0 : 1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
@@ -38,7 +38,7 @@ const ClientExternalForm = () => {
     const [hasSubmissions, setHasSubmissions] = useState(false);
 
     React.useEffect(() => {
-        if (user?.role === 'ADMIN') {
+        if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
             dbService.getClients().then(setClients);
         } else if (user?.id) {
             dbService.getClientSubmissions().then(subs => {
@@ -49,14 +49,14 @@ const ClientExternalForm = () => {
     }, [user]);
 
     const [formData, setFormData] = useState({
-        user_id: user?.role === 'ADMIN' ? ('' as string | number) : user?.id,
+        user_id: user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? ('' as string | number) : user?.id,
         profile_photo: '',
         profile_name: '',
         ddd: '',
         ads: [{
             template_type: 'TEXT' as 'TEXT' | 'IMAGE' | 'VIDEO',
             media_url: '',
-            ad_copy: 'Oi {{1}}! \n\nTemos uma novidade: {{2}}.\n\n{{3}}.\n\nPara {{4}}, use o botão abaixo 👇',
+            ad_copy: 'Oi {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\nPara {{4}}, use o botão abaixo 👇',
             ad_copy_file: '',
             button_link: '',
             spreadsheet_url: '',
@@ -204,7 +204,7 @@ const ClientExternalForm = () => {
     };
 
     const nextStep = () => {
-        if (step === 0 && !formData.user_id && user?.role === 'ADMIN') {
+        if (step === 0 && !formData.user_id && (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE')) {
             alert("Por favor, selecione ou cadastre um cliente antes de continuar.");
             return;
         }
@@ -221,7 +221,7 @@ const ClientExternalForm = () => {
         }
         setStep(prev => Math.min(prev + 1, 3));
     };
-    const prevStep = () => setStep(prev => Math.max(prev - 1, user?.role === 'ADMIN' ? 0 : 1));
+    const prevStep = () => setStep(prev => Math.max(prev - 1, user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? 0 : 1));
 
     if (!user) return <ClientAuth />;
 
@@ -688,7 +688,7 @@ const ClientExternalForm = () => {
                                 </div>
                             </div>
 
-                            {step === 0 && user?.role === 'ADMIN' && (
+                            {step === 0 && (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
                                 <div className="glass-card animate-fade-in space-y-12">
                                     <div className="space-y-4">
                                         <h2 className="section-title">Selecionar Cliente</h2>
@@ -789,16 +789,16 @@ const ClientExternalForm = () => {
                                             >
                                                 <span>ANÚNCIO {idx + 1}</span>
                                                 {formData.ads.length > 1 && (
-                                                    <Trash2 
-                                                        size={12} 
-                                                        className="text-rose-500 hover:scale-125 ml-2" 
+                                                    <Trash2
+                                                        size={12}
+                                                        className="text-rose-500 hover:scale-125 ml-2"
                                                         onClick={e => {
                                                             e.stopPropagation();
                                                             setFormData(p => {
                                                                 const newAds = p.ads.filter((_, i) => i !== idx);
                                                                 return { ...p, ads: newAds, currentAdIndex: 0 };
                                                             });
-                                                        }} 
+                                                        }}
                                                     />
                                                 )}
                                             </div>
@@ -1004,7 +1004,7 @@ const ClientExternalForm = () => {
                                                                         const newAds = [...formData.ads];
                                                                         const ad = newAds[formData.currentAdIndex];
                                                                         ad.variables[vNum - 1] = e.target.value;
-                                                                        
+
                                                                         const v = ad.variables;
                                                                         const v1 = v[0] || '{{1}}';
                                                                         const v2 = v[1] || '{{2}}';

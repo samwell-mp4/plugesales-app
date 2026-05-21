@@ -2337,13 +2337,14 @@ app.get('/api/client/submissions', async (req, res) => {
             SELECT c.*, u.name as child_name 
             FROM client_submissions c
             LEFT JOIN users u ON c.user_id = u.id
-            WHERE (c.user_id = $1 OR u.parent_id = $1)
+            WHERE (c.user_id = $1 OR u.parent_id = $1 OR c.submitted_by = (SELECT name FROM users WHERE id = $1))
             ORDER BY c.timestamp DESC
         `, [userId]);
 
+        const userName = userRes.rows[0]?.name || '';
         const submissions = result.rows.map(s => ({
             ...s,
-            is_referral: s.user_id && Number(s.user_id) !== Number(userId)
+            is_referral: s.user_id && Number(s.user_id) !== Number(userId) && s.submitted_by !== userName
         }));
         res.json(submissions || []);
     } catch (err) {

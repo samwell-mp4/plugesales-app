@@ -58,12 +58,29 @@ const ClientReports = () => {
             const details = await dbService.getReportDetails(report.id);
             if (!details || !details.data) throw new Error("Erro ao buscar dados.");
 
-            // STRICT FILTERING: Name, Phone, Status, Done At
+            // STRICT FILTERING: 21 exact columns requested by the user
             const filteredData = details.data.map((r: any) => ({
-                "NOME": r.Name || r.name || r.NOME || r.Nome || '',
-                "TELEFONE": r.Phone || r.phone || r.TELEFONE || r.Telefone || '',
-                "STATUS": r.Status || r.status || r.STATUS || (r.delivered ? 'Entregue' : 'Não Entregue'),
-                "DATA DE ENTREGA": r.DoneAt || r['Done At'] || r.done_at || r.timestamp || ''
+                "Traffic Source": r['Traffic Source'] || r.traffic_source || '',
+                "Communication Name": r['Communication Name'] || r.communication_name || '',
+                "Communication Scheduled For": r['Communication Scheduled For'] || r.communication_scheduled_for || '',
+                "Communication Start Date": r['Communication Start Date'] || r.communication_start_date || '',
+                "Communication Template": r['Communication Template'] || r.communication_template || '',
+                "From": r['From'] || r.from || '',
+                "To": r['To'] || r.to || r.Phone || r.phone || r.TELEFONE || r.Telefone || '',
+                "Message Id": r['Message Id'] || r.message_id || '',
+                "Send At": r['Send At'] || r.send_at || '',
+                "Country Prefix": r['Country Prefix'] || r.country_prefix || '',
+                "Country Name": r['Country Name'] || r.country_name || '',
+                "Network Name": r['Network Name'] || r.network_name || '',
+                "Status": r['Status'] || r.status || r.STATUS || '',
+                "Reason": r['Reason'] || r.reason || '',
+                "Action": r['Action'] || r.action || '',
+                "Error Group": r['Error Group'] || r.error_group || '',
+                "Error Name": r['Error Name'] || r.error_name || '',
+                "Done At": r['Done At'] || r.done_at || r.DoneAt || r.timestamp || '',
+                "Text": r['Text'] || r.text || '',
+                "Messages Count": r['Messages Count'] || r.messages_count || '',
+                "Seen At": r['Seen At'] || r.seen_at || ''
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(filteredData);
