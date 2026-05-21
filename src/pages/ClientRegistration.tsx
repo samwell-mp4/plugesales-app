@@ -94,10 +94,14 @@ const ClientRegistration = () => {
                     display: flex; justify-content: center; align-items: center; gap: 8px;
                 }
                 .cr-type-btn.active { background: rgba(172,248,0,0.1); border-color: #acf800; color: #acf800; }
+                .cr-left-section { display: none; }
+                @media (min-width: 1024px) {
+                    .cr-left-section { display: block; }
+                }
             `}</style>
             
             {/* Left Image Section */}
-            <div style={{ flex: 1, display: 'none', '@media (min-width: 1024px)': { display: 'block' }, position: 'relative', overflow: 'hidden' }} className="lg:block hidden">
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }} className="cr-left-section">
                 <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" alt="Business" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,10,10,0) 0%, rgba(10,10,10,1) 100%)' }} />
                 <div style={{ position: 'absolute', bottom: '10%', left: '10%', right: '20%' }}>
