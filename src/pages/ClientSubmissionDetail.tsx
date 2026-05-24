@@ -74,6 +74,7 @@ interface Submission {
     button_link?: string;
     original_button_link?: string;
     spreadsheet_url?: string;
+    payment_receipt_url?: string;
     timestamp: string;
     notes?: string;
     logs?: any[];
@@ -373,6 +374,35 @@ const ClientSubmissionDetail = () => {
         reader.readAsArrayBuffer(file);
     };
 
+    const handlePaymentReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !id) return;
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.url || data.path) {
+                const hostedUrl = data.url?.startsWith('http') ? data.url : `${window.location.origin}${data.path || data.url}`;
+                await dbService.updateClientSubmission(Number(id), { payment_receipt_url: hostedUrl });
+                await addLog("Comprovante de pagamento anexado", 'success');
+                await load();
+                alert("Comprovante anexado com sucesso!");
+            } else {
+                throw new Error("Erro no upload");
+            }
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Erro ao enviar o comprovante.");
+        }
+    };
+
     const handleDeleteReport = async (reportId: number) => {
         if (!window.confirm("Deseja realmente excluir este relatório?")) return;
         try {
@@ -639,6 +669,21 @@ const ClientSubmissionDetail = () => {
                                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '16px', border: '2px dashed var(--surface-border-subtle)', cursor: 'pointer' }} className="ghost-btn">
                                     <input type="file" style={{ display: 'none' }} onChange={handleReportUpload} accept=".xlsx,.xls,.csv" />
                                     <Upload size={18} /> <span style={{ fontSize: '11px', fontWeight: 900 }}>ANEXAR RELATÓRIO</span>
+                                </label>
+                            )}
+
+                            {sub.payment_receipt_url && (
+                                <a href={sub.payment_receipt_url} target="_blank" rel="noreferrer" className="asset-link">
+                                    <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}><FileText size={20} /></div>
+                                    <div style={{ flex: 1 }}><p style={{ margin: 0, fontSize: '11px', fontWeight: 900 }}>COMPROVANTE DE PAGAMENTO</p></div>
+                                    <ExternalLink size={14} style={{ opacity: 0.3 }} />
+                                </a>
+                            )}
+
+                            {sub.status === 'GERADO' && (
+                                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '16px', border: '2px dashed #22c55e', cursor: 'pointer', color: '#22c55e', background: 'rgba(34,197,94,0.05)' }}>
+                                    <input type="file" style={{ display: 'none' }} onChange={handlePaymentReceiptUpload} accept="image/*,.pdf" />
+                                    <Upload size={18} /> <span style={{ fontSize: '11px', fontWeight: 900 }}>ANEXAR COMPROVANTE</span>
                                 </label>
                             )}
                         </div>

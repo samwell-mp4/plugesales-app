@@ -461,6 +461,11 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_approved BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_feedback TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS origin VARCHAR(50)`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS payment_receipt_url TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS disparo_quantidade INTEGER DEFAULT 0`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pacote TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS preco_vendido TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS comissao_vendedor TEXT`);
 
         // Migration: Tag existing data
         console.log('Running security migration: tagging submission origin...');
@@ -1814,8 +1819,12 @@ app.get('/api/users/pending', async (req, res) => {
 
 app.post('/api/users/:id/approve', async (req, res) => {
     const { id } = req.params;
+    const { disparo_quantidade, pacote, preco_vendido, comissao_vendedor } = req.body || {};
     try {
-        await pool.query("UPDATE users SET role = 'CLIENT' WHERE id = $1", [id]);
+        await pool.query(
+            "UPDATE users SET role = 'CLIENT', disparo_quantidade = $1, pacote = $2, preco_vendido = $3, comissao_vendedor = $4 WHERE id = $5", 
+            [disparo_quantidade || 0, pacote || '', preco_vendido || '', comissao_vendedor || '', id]
+        );
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
