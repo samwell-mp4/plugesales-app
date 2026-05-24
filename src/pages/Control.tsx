@@ -42,6 +42,7 @@ const Control = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [isStatsLoading, setIsStatsLoading] = useState(true);
     const [isUsersLoading, setIsUsersLoading] = useState(false);
+    const [pendingClients, setPendingClients] = useState<any[]>([]);
     const [isPendingClientsLoading, setIsPendingClientsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 8;
