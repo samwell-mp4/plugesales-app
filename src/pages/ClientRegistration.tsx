@@ -41,6 +41,7 @@ const ClientRegistration = () => {
     
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
     const [docType, setDocType] = useState<'CPF' | 'CNPJ'>('CPF');
     
     const [formData, setFormData] = useState({
@@ -91,8 +92,7 @@ const ClientRegistration = () => {
             });
 
             if (result && !result.error && result.id) {
-                alert("Cadastro realizado com sucesso! Aguarde a aprovação do seu acesso.");
-                navigate('/login');
+                setIsSuccess(true);
             } else {
                 alert(result?.error || "Erro ao registrar. O email já pode estar em uso.");
             }
@@ -165,6 +165,24 @@ const ClientRegistration = () => {
             {/* Form Section */}
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
                 <div style={{ width: '100%', maxWidth: '440px' }}>
+                    {isSuccess ? (
+                        <div style={{ textAlign: 'center', animation: 'fadeIn 0.5s ease' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', background: 'rgba(172,248,0,0.1)', borderRadius: '24px', marginBottom: '24px' }}>
+                                <Lock size={40} color="#acf800" />
+                            </div>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '16px' }}>Cadastro em Análise!</h2>
+                            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1.1rem', lineHeight: 1.6, marginBottom: '32px' }}>
+                                Conta criada com sucesso. Para garantir a segurança e exclusividade da nossa plataforma, seu perfil está <strong style={{ color: '#acf800' }}>bloqueado temporariamente</strong> e passará por uma análise interna da nossa equipe.
+                            </p>
+                            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', marginBottom: '32px' }}>
+                                Você receberá um aviso assim que o seu acesso ao painel de controle for liberado.
+                            </p>
+                            <button onClick={() => navigate('/login')} className="cr-btn">
+                                VOLTAR PARA O LOGIN
+                            </button>
+                        </div>
+                    ) : (
+                        <>
                     <div style={{ marginBottom: '40px', textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '60px', height: '60px', background: 'rgba(172,248,0,0.1)', borderRadius: '16px', marginBottom: '20px' }}>
                             <Briefcase size={30} color="#acf800" />
@@ -259,6 +277,8 @@ const ClientRegistration = () => {
                             </div>
                         )}
                     </form>
+                    </>
+                )}
                 </div>
             </div>
         </div>

@@ -12,7 +12,9 @@ const Login = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const success = await login(username, password);
-        if (!success) {
+        if (success === "WAITING_APPROVAL") {
+            setError('Sua conta foi criada com sucesso, mas ainda aguarda aprovação do administrador.');
+        } else if (!success) {
             setError('Usuário ou senha incorretos.');
         }
     };

@@ -42,17 +42,9 @@ const Control = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [isStatsLoading, setIsStatsLoading] = useState(true);
     const [isUsersLoading, setIsUsersLoading] = useState(false);
-    const [pendingClients, setPendingClients] = useState<any[]>([]);
     const [isPendingClientsLoading, setIsPendingClientsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 8;
-    const [approvingClientId, setApprovingClientId] = useState<number | null>(null);
-    const [approvalData, setApprovalData] = useState({
-        disparo_quantidade: '',
-        pacote: '',
-        preco_vendido: '',
-        comissao_vendedor: ''
-    });
 
     const loadData = async () => {
         setIsStatsLoading(true);
@@ -214,6 +206,73 @@ const Control = () => {
     useEffect(() => {
         setCurrentPage(1);
     }, [activeFilter, searchTerm, selectedEmployee]);
+
+    // PendingClientCard Component
+    const PendingClientCard = ({ client, onApprove, onReject }: { client: any, onApprove: (id: number) => void, onReject: (id: number) => void }) => {
+        const [approvalData, setApprovalData] = useState({
+            disparo_quantidade: '',
+            pacote: '',
+            preco_vendido: '',
+            comissao_vendedor: ''
+        });
+
+        const handleApprove = async () => {
+            try {
+                const res = await fetch(`/api/users/${client.id}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(approvalData)
+                });
+                if (res.ok) {
+                    onApprove(client.id);
+                    alert("Cliente aprovado com sucesso!");
+                } else {
+                    const errData = await res.json();
+                    alert(`Erro ao aprovar: ${errData.error}`);
+                }
+            } catch (err) { alert("Erro ao aprovar."); }
+        };
+
+        const handleReject = async () => {
+            if(!window.confirm("Rejeitar e excluir este cliente?")) return;
+            try {
+                const res = await fetch(`/api/users/${client.id}/reject`, { method: 'POST' });
+                if (res.ok) {
+                    onReject(client.id);
+                    alert("Cliente rejeitado.");
+                }
+            } catch (err) { alert("Erro ao rejeitar."); }
+        };
+
+        return (
+            <div className="crm-card" style={{ background: 'rgba(0,0,0,0.15)', border: '1px solid var(--surface-border-subtle)', padding: '32px' }}>
+                <div className="flex-col gap-2 mb-6">
+                    <div style={{ fontSize: '1.5rem', fontWeight: 950, color: 'white' }}>{client.name}</div>
+                    <div style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>{client.document_type}: {client.document_number}</div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{client.email} | {client.whatsapp}</div>
+                </div>
+                <div className="flex-col gap-4 mt-4">
+                    <label className="field-label" style={{ marginBottom: 0 }}>DADOS DE APROVAÇÃO</label>
+                    <input className="field-input" placeholder="Quantidade de disparo" value={approvalData.disparo_quantidade} onChange={e => setApprovalData({...approvalData, disparo_quantidade: e.target.value})} />
+                    <input className="field-input" placeholder="Pacote" value={approvalData.pacote} onChange={e => setApprovalData({...approvalData, pacote: e.target.value})} />
+                    <input className="field-input" placeholder="Preço Vendido" value={approvalData.preco_vendido} onChange={e => setApprovalData({...approvalData, preco_vendido: e.target.value})} />
+                    <input className="field-input" placeholder="Comissão do vendedor" value={approvalData.comissao_vendedor} onChange={e => setApprovalData({...approvalData, comissao_vendedor: e.target.value})} />
+                    <div className="flex gap-4 mt-4">
+                        <button 
+                            className="action-btn primary-btn w-full" 
+                            style={{ height: '48px', fontSize: '12px' }}
+                            onClick={handleApprove}
+                        >CONFIRMAR APROVAÇÃO</button>
+                        <button 
+                            className="action-btn ghost-btn w-full" 
+                            style={{ height: '48px', fontSize: '12px', borderColor: '#ef4444', color: '#ef4444' }}
+                            onClick={handleReject}
+                        >REJEITAR</button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="crm-container">
@@ -442,74 +501,12 @@ const Control = () => {
                         ) : pendingClients.length === 0 ? (
                             <p style={{ color: 'var(--text-muted)' }}>Nenhum cliente aguardando aprovação.</p>
                         ) : pendingClients.map(client => (
-                            <div key={client.id} className="crm-card" style={{ background: 'rgba(0,0,0,0.15)', border: '1px solid var(--surface-border-subtle)', padding: '32px' }}>
-                                <div className="flex-col gap-2 mb-6">
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 950, color: 'white' }}>{client.name}</div>
-                                    <div style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>{client.document_type}: {client.document_number}</div>
-                                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{client.email} | {client.whatsapp}</div>
-                                </div>
-                                {approvingClientId === client.id ? (
-                                    <div className="flex-col gap-4 mt-4">
-                                        <input className="field-input" placeholder="Quantidade de disparo" value={approvalData.disparo_quantidade} onChange={e => setApprovalData({...approvalData, disparo_quantidade: e.target.value})} />
-                                        <input className="field-input" placeholder="Pacote" value={approvalData.pacote} onChange={e => setApprovalData({...approvalData, pacote: e.target.value})} />
-                                        <input className="field-input" placeholder="Preço Vendido" value={approvalData.preco_vendido} onChange={e => setApprovalData({...approvalData, preco_vendido: e.target.value})} />
-                                        <input className="field-input" placeholder="Comissão do vendedor" value={approvalData.comissao_vendedor} onChange={e => setApprovalData({...approvalData, comissao_vendedor: e.target.value})} />
-                                        <div className="flex gap-4">
-                                            <button 
-                                                className="action-btn primary-btn w-full" 
-                                                style={{ height: '48px', fontSize: '12px' }}
-                                                onClick={async () => {
-                                                    try {
-                                                        const res = await fetch(`/api/users/${client.id}/approve`, {
-                                                            method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify(approvalData)
-                                                        });
-                                                        if (res.ok) {
-                                                            setPendingClients(pendingClients.filter(c => c.id !== client.id));
-                                                            setApprovingClientId(null);
-                                                            alert("Cliente aprovado com sucesso!");
-                                                        } else {
-                                                            const errData = await res.json();
-                                                            alert(`Erro ao aprovar: ${errData.error}`);
-                                                        }
-                                                    } catch (err) { alert("Erro ao aprovar."); }
-                                                }}
-                                            >CONFIRMAR APROVAÇÃO</button>
-                                            <button 
-                                                className="action-btn ghost-btn w-full" 
-                                                style={{ height: '48px', fontSize: '12px' }}
-                                                onClick={() => setApprovingClientId(null)}
-                                            >CANCELAR</button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex gap-4 mt-4">
-                                        <button 
-                                            className="action-btn primary-btn w-full" 
-                                            style={{ height: '48px', fontSize: '12px' }}
-                                            onClick={() => {
-                                                setApprovingClientId(client.id);
-                                                setApprovalData({ disparo_quantidade: '', pacote: '', preco_vendido: '', comissao_vendedor: '' });
-                                            }}
-                                        >APROVAR</button>
-                                        <button 
-                                            className="action-btn ghost-btn w-full" 
-                                            style={{ height: '48px', fontSize: '12px', borderColor: '#ef4444', color: '#ef4444' }}
-                                            onClick={async () => {
-                                                if(!window.confirm("Rejeitar e excluir este cliente?")) return;
-                                                try {
-                                                    const res = await fetch(`/api/users/${client.id}/reject`, { method: 'POST' });
-                                                    if (res.ok) {
-                                                        setPendingClients(pendingClients.filter(c => c.id !== client.id));
-                                                        alert("Cliente rejeitado.");
-                                                    }
-                                                } catch (err) { alert("Erro ao rejeitar."); }
-                                            }}
-                                        >REJEITAR</button>
-                                    </div>
-                                )}
-                            </div>
+                            <PendingClientCard 
+                                key={client.id} 
+                                client={client} 
+                                onApprove={(id) => setPendingClients(pendingClients.filter(c => c.id !== id))}
+                                onReject={(id) => setPendingClients(pendingClients.filter(c => c.id !== id))}
+                            />
                         ))}
                     </div>
                 </div>

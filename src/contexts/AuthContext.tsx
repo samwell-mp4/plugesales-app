@@ -18,7 +18,7 @@ interface User {
 
 interface AuthContextType {
     user: User | null;
-    login: (username: string, password: string) => Promise<boolean>;
+    login: (username: string, password: string) => Promise<boolean | string>;
     register: (userData: any) => Promise<boolean>;
     logout: () => void;
     setUser: (user: User | null) => void;
@@ -107,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [user?.id]);
 
-    const login = async (username: string, password: string): Promise<boolean> => {
+    const login = async (username: string, password: string): Promise<boolean | string> => {
         // Try static login first (Internal Team)
         const foundStatic = VALID_USERS.find(u =>
             u.name.toLowerCase() === username.toLowerCase() && u.password === password
@@ -158,6 +158,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Try API login (Clients)
         const result = await dbService.login({ email: username, password });
         if (result && !result.error) {
+            if (result.role === 'WAITING_APPROVAL') {
+                return "WAITING_APPROVAL";
+            }
             setUser(result);
             localStorage.setItem('auth_user', JSON.stringify(result));
             return true;
