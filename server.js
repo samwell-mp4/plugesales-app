@@ -1608,7 +1608,7 @@ app.delete('/api/crm/consultiva/:id', async (req, res) => {
 app.get('/api/finance/sales', async (req, res) => {
     try {
         const { userId, role, salespersonId, startDate, endDate } = req.query;
-        let query = 'SELECT s.*, u.name as salesperson_name, cs.campaign_name FROM finance_sales s LEFT JOIN users u ON s.salesperson_id = u.id LEFT JOIN client_submissions cs ON s.submission_id = cs.id WHERE 1=1';
+        let query = 'SELECT s.*, u.name as salesperson_name, cs.profile_name as campaign_name FROM finance_sales s LEFT JOIN users u ON s.salesperson_id = u.id LEFT JOIN client_submissions cs ON s.submission_id = cs.id WHERE 1=1';
         const params = [];
 
         if (role === 'EMPLOYEE' || role === 'VENDEDOR') {
