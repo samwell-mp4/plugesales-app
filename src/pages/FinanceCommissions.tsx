@@ -125,7 +125,11 @@ const FinanceCommissions = () => {
                 td { padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
                 .supreme-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px; }
-                .supreme-modal-content { background: #0f172a; border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 400px; padding: 40px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
+                .supreme-modal-content { background: #0f172a; border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 90%; max-width: 400px; padding: 30px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
+
+                @media (max-width: 768px) {
+                    .supreme-modal-content { padding: 24px; border-radius: 24px; }
+                }
             `}</style>
 
             <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
@@ -145,14 +149,14 @@ const FinanceCommissions = () => {
                 </div>
             </header>
 
-            <div className="space-y-12">
+            <div className="flex flex-col gap-12">
                 {salespeople.map((person) => {
                     const stats = calculateCommissionStats(person.id);
                     if (stats.count === 0 && !isAdmin) return null;
 
                     return (
-                        <div key={person.id}>
-                            <div className="flex items-center justify-between mb-4 mt-8">
+                        <div key={person.id} className="bg-white/[0.01] p-6 rounded-[24px] border border-white/5">
+                            <div className="flex flex-wrap items-center justify-between gap-6 mb-6">
                                 <div className="flex items-center gap-4">
                                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
                                         <User size={18} />

@@ -96,7 +96,7 @@ const FinanceDashboard = () => {
                 .stats-grid-finance { 
                     display: grid; 
                     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
-                    gap: 20px; 
+                    gap: 24px; 
                     margin-top: 32px; 
                     margin-bottom: 32px;
                 }
@@ -165,7 +165,7 @@ const FinanceDashboard = () => {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Receita por Status */}
                 <div className="chart-container-finance">
                     <div className="flex items-center justify-between mb-8">

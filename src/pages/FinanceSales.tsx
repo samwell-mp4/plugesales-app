@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     Zap, Search, Plus, Edit2, Trash2, 
     Download, Filter, ChevronLeft, ChevronRight,
     User, Smartphone, Package, DollarSign,
     Calendar as CalendarIcon, CheckCircle2, 
-    AlertCircle, RefreshCw, X, ArrowUpRight
+    AlertCircle, RefreshCw, X, ArrowUpRight, Upload, ExternalLink
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,8 +17,15 @@ const FinanceSales = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Filtros
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState('TODOS');
+    
     const [editingSale, setEditingSale] = useState<any>(null);
+    const [uploadingReceipt, setUploadingReceipt] = useState<number | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [saleIdToUpload, setSaleIdToUpload] = useState<number | null>(null);
 
     const [formData, setFormData] = useState({
         client_name: '',
@@ -138,11 +145,50 @@ const FinanceSales = () => {
         });
     };
 
-    const filteredSales = sales.filter(s => 
-        (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (s.client_cpf_cnpj || '').includes(searchTerm) ||
-        (s.salesperson_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleUploadReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !saleIdToUpload) return;
+        
+        setUploadingReceipt(saleIdToUpload);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const uploadData = await uploadRes.json();
+            const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
+            
+            await dbService.saveFinanceSale({ id: saleIdToUpload, payment_receipt_url: hostedUrl, payment_status: 'RECEBIDO' });
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao fazer upload do comprovante.");
+        } finally {
+            setUploadingReceipt(null);
+            setSaleIdToUpload(null);
+        }
+    };
+
+    const exportToExcel = () => {
+        const ws = XLSX.utils.json_to_sheet(filteredSales);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
+        XLSX.writeFile(wb, `vendas_plug_sales_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    const filteredSales = sales.filter(s => {
+        const term = searchTerm.toLowerCase();
+        const matchesSearch = 
+            (s.client_name || '').toLowerCase().includes(term) ||
+            (s.campaign_name || '').toLowerCase().includes(term) ||
+            (s.salesperson_name || '').toLowerCase().includes(term);
+        
+        const matchesStatus = filterStatus === 'TODOS' || s.payment_status === filterStatus;
+        return matchesSearch && matchesStatus;
+    });
 
     return (
         <div className="animate-fade-in finance-page" style={{ padding: '40px', paddingBottom: '80px' }}>
@@ -161,7 +207,7 @@ const FinanceSales = () => {
                 
                 table { width: 100%; border-collapse: collapse; }
                 th { 
-                    padding: 20px 32px; 
+                    padding: 20px 24px; 
                     background: rgba(255,255,255,0.02); 
                     color: var(--text-muted); 
                     font-size: 0.75rem; 
@@ -170,7 +216,7 @@ const FinanceSales = () => {
                     letter-spacing: 1px;
                     text-align: left;
                 }
-                td { padding: 20px 32px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                td { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
                 .search-bar-finance {
                     position: relative;
@@ -180,7 +226,7 @@ const FinanceSales = () => {
                     display: flex;
                     align-items: center;
                     padding: 0 16px;
-                    width: 320px;
+                    width: 250px;
                 }
                 .search-bar-finance input {
                     background: transparent;
@@ -191,6 +237,18 @@ const FinanceSales = () => {
                     padding: 12px 0;
                     outline: none;
                     width: 100%;
+                }
+
+                .filter-select {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 14px;
+                    color: white;
+                    font-weight: 800;
+                    font-size: 0.85rem;
+                    padding: 12px 16px;
+                    outline: none;
+                    cursor: pointer;
                 }
 
                 .badge-finance {
@@ -217,19 +275,37 @@ const FinanceSales = () => {
             <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
                 <div>
                     <h1>Cadastro de Vendas</h1>
-                    <p className="subtitle">Gestão de contratos e faturamento de clientes</p>
+                    <p className="subtitle">Gestão de faturamento, anexos de pagamentos e relatórios</p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="search-bar-finance">
                         <Search size={16} color="var(--primary-color)" style={{ marginRight: '12px' }} />
                         <input 
-                            placeholder="Buscar cliente..." 
+                            placeholder="Buscar cliente, card..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
+
+                    <select 
+                        className="filter-select"
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                        <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Status</option>
+                        <option value="PENDENTE" style={{ background: '#0a0f18' }}>Pendentes</option>
+                        <option value="RECEBIDO" style={{ background: '#0a0f18' }}>Recebidos</option>
+                        <option value="INADIMPLENTE" style={{ background: '#0a0f18' }}>Inadimplentes</option>
+                    </select>
                     
+                    <button 
+                        onClick={exportToExcel}
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '12px 16px', color: 'white', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                        <Download size={16} /> EXPORTAR
+                    </button>
+
                     <button 
                         onClick={fetchData} 
                         disabled={isLoading}
@@ -247,31 +323,52 @@ const FinanceSales = () => {
                 </div>
             </header>
 
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleUploadReceipt}
+                accept="image/*,.pdf"
+            />
+
             <div className="table-container-finance">
                 <table>
                     <thead>
                         <tr>
-                            <th>DATA</th>
-                            <th>CLIENTE</th>
+                            <th>DATA / COMP.</th>
+                            <th>CLIENTE & CAMPANHA (CARD)</th>
                             <th>PACOTE</th>
                             <th>VALOR BRUTO</th>
-                            <th>VENDEDOR</th>
                             <th>STATUS</th>
-                            <th style={{ textAlign: 'right' }}>AÇÕES</th>
+                            <th style={{ textAlign: 'right' }}>AÇÕES RÁPIDAS</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '80px' }}><RefreshCw className="animate-spin mx-auto text-primary-color" /></td></tr>
+                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px' }}><RefreshCw className="animate-spin mx-auto text-primary-color" /></td></tr>
                         ) : filteredSales.length === 0 ? (
-                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUM REGISTRO ENCONTRADO</td></tr>
+                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUM REGISTRO ENCONTRADO</td></tr>
                         ) : filteredSales.map((sale) => (
                             <tr key={sale.id} style={{ transition: 'all 0.2s' }}>
-                                <td style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</td>
+                                <td style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                    <span style={{ display: 'block', color: 'white', fontWeight: 800 }}>{sale.payment_competence}</span>
+                                    {new Date(sale.sale_date).toLocaleDateString('pt-BR')}
+                                </td>
                                 <td>
-                                    <div className="flex flex-col">
+                                    <div className="flex flex-col gap-1">
                                         <span style={{ fontWeight: 900, color: 'white', fontSize: '0.95rem' }}>{sale.client_name}</span>
-                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>{sale.client_cpf_cnpj || '---'}</span>
+                                        {sale.submission_id ? (
+                                            <a 
+                                                href={`/client-submissions/${sale.submission_id}`} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                            >
+                                                CARD: {sale.campaign_name || `Campanha #${sale.submission_id}`} <ArrowUpRight size={12} />
+                                            </a>
+                                        ) : (
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>VENDA MANUAL</span>
+                                        )}
                                     </div>
                                 </td>
                                 <td>
@@ -280,21 +377,39 @@ const FinanceSales = () => {
                                         <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', fontWeight: 900 }}>{sale.quantity_hired} UNID.</span>
                                     </div>
                                 </td>
-                                <td><span style={{ fontWeight: 900, color: 'white' }}>R$ {parseFloat(sale.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></td>
-                                <td><span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{sale.salesperson_name || '---'}</span></td>
+                                <td><span style={{ fontWeight: 900, color: 'white', fontSize: '1rem' }}>R$ {parseFloat(sale.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></td>
                                 <td>
                                     <span className="badge-finance" style={{ 
-                                        background: sale.payment_status === 'RECEBIDO' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
-                                        color: sale.payment_status === 'RECEBIDO' ? '#10b981' : '#ef4444',
-                                        border: `1px solid ${sale.payment_status === 'RECEBIDO' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                                        background: sale.payment_status === 'RECEBIDO' ? 'rgba(16, 185, 129, 0.1)' : sale.payment_status === 'PENDENTE' ? 'rgba(250, 204, 21, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+                                        color: sale.payment_status === 'RECEBIDO' ? '#10b981' : sale.payment_status === 'PENDENTE' ? '#facc15' : '#ef4444',
+                                        border: `1px solid ${sale.payment_status === 'RECEBIDO' ? 'rgba(16, 185, 129, 0.2)' : sale.payment_status === 'PENDENTE' ? 'rgba(250, 204, 21, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
                                     }}>
                                         {sale.payment_status}
                                     </span>
                                 </td>
                                 <td style={{ textAlign: 'right' }}>
-                                    <div className="flex justify-end gap-2">
-                                        <button className="btn-icon-only" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }} onClick={() => handleEdit(sale)}><Edit2 size={14} /></button>
-                                        <button className="btn-icon-only" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--danger-color)' }} onClick={() => handleDelete(sale.id)}><Trash2 size={14} /></button>
+                                    <div className="flex justify-end items-center gap-2">
+                                        {sale.payment_receipt_url ? (
+                                            <button 
+                                                onClick={() => window.open(sale.payment_receipt_url, '_blank')}
+                                                style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                title="Visualizar Comprovante do Cliente"
+                                            >
+                                                <ExternalLink size={14} /> RECIBO
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={() => { setSaleIdToUpload(sale.id); setTimeout(() => fileInputRef.current?.click(), 100); }}
+                                                disabled={uploadingReceipt === sale.id}
+                                                style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                title="Anexar Comprovante do Cliente"
+                                            >
+                                                {uploadingReceipt === sale.id ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />} 
+                                                {uploadingReceipt === sale.id ? '...' : 'ANEXAR PAG.'}
+                                            </button>
+                                        )}
+                                        <button className="btn-icon-only" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '6px', borderRadius: '8px', color: 'white', cursor: 'pointer' }} onClick={() => handleEdit(sale)}><Edit2 size={14} /></button>
+                                        <button className="btn-icon-only" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '6px', borderRadius: '8px', color: '#ef4444', cursor: 'pointer' }} onClick={() => handleDelete(sale.id)}><Trash2 size={14} /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -306,7 +421,7 @@ const FinanceSales = () => {
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '40px' }}>
                     <div className="modal-premium" style={{ margin: 'auto' }}>
-                        <header style={{ padding: '32px 40px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <header style={{ padding: '32px 40px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justify-content: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <h2 style={{ margin: 0, fontWeight: 950, color: 'white', fontSize: '1.8rem', letterSpacing: '-1px' }}>{editingSale ? 'Editar Negociação' : 'Nova Venda'}</h2>
                                 <p style={{ margin: '4px 0 0', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px' }}>Registro completo de transação comercial</p>
@@ -323,16 +438,16 @@ const FinanceSales = () => {
                                     </h3>
                                     <div>
                                         <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Nome Completo / Razão Social</label>
-                                        <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="client_name" value={formData.client_name} onChange={handleInputChange} required placeholder="Ex: João da Silva ou Empresa LTDA" />
+                                        <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="client_name" value={formData.client_name} onChange={handleInputChange} required placeholder="Ex: João da Silva ou Empresa LTDA" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>CPF / CNPJ</label>
-                                            <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="client_cpf_cnpj" value={formData.client_cpf_cnpj} onChange={handleInputChange} placeholder="000.000.000-00" />
+                                            <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="client_cpf_cnpj" value={formData.client_cpf_cnpj} onChange={handleInputChange} placeholder="000.000.000-00" />
                                         </div>
                                         <div>
                                             <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>WhatsApp / Contato</label>
-                                            <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="client_contact" value={formData.client_contact} onChange={handleInputChange} placeholder="(00) 00000-0000" />
+                                            <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="client_contact" value={formData.client_contact} onChange={handleInputChange} placeholder="(00) 00000-0000" />
                                         </div>
                                     </div>
 
@@ -343,11 +458,11 @@ const FinanceSales = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Data da Venda</label>
-                                                <input type="date" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="sale_date" value={formData.sale_date} onChange={handleInputChange} required />
+                                                <input type="date" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="sale_date" value={formData.sale_date} onChange={handleInputChange} required />
                                             </div>
                                             <div>
                                                 <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Vendedor</label>
-                                                <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="salesperson_id" value={formData.salesperson_id} onChange={handleInputChange} required>
+                                                <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="salesperson_id" value={formData.salesperson_id} onChange={handleInputChange} required>
                                                     <option value="" style={{ background: '#0a0f18' }}>Selecione...</option>
                                                     {salespeople.map(sp => (
                                                         <option key={sp.id} value={sp.id} style={{ background: '#0a0f18' }}>{sp.name}</option>
@@ -365,7 +480,7 @@ const FinanceSales = () => {
                                     </h3>
                                     <div>
                                         <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Pacote Contratado</label>
-                                        <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="package_hired" value={formData.package_hired} onChange={handleInputChange} required>
+                                        <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="package_hired" value={formData.package_hired} onChange={handleInputChange} required>
                                             <option value="" style={{ background: '#0a0f18' }}>Selecione o plano...</option>
                                             <option value="Starter" style={{ background: '#0a0f18' }}>Starter (10k disparos)</option>
                                             <option value="Growth" style={{ background: '#0a0f18' }}>Growth (50k disparos)</option>
@@ -376,11 +491,11 @@ const FinanceSales = () => {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Quantidade</label>
-                                            <input type="number" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="quantity_hired" value={formData.quantity_hired} onChange={handleInputChange} required />
+                                            <input type="number" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="quantity_hired" value={formData.quantity_hired} onChange={handleInputChange} required />
                                         </div>
                                         <div>
                                             <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Valor Unitário (R$)</label>
-                                            <input type="number" step="0.01" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="unit_value" value={formData.unit_value} onChange={handleInputChange} required />
+                                            <input type="number" step="0.01" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="unit_value" value={formData.unit_value} onChange={handleInputChange} required />
                                         </div>
                                     </div>
 
@@ -391,7 +506,7 @@ const FinanceSales = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Status do Pagamento</label>
-                                                <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="payment_status" value={formData.payment_status} onChange={handleInputChange} required>
+                                                <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="payment_status" value={formData.payment_status} onChange={handleInputChange} required>
                                                     <option value="PENDENTE" style={{ background: '#0a0f18' }}>Pendente</option>
                                                     <option value="RECEBIDO" style={{ background: '#0a0f18' }}>Recebido</option>
                                                     <option value="INADIMPLENTE" style={{ background: '#0a0f18' }}>Inadimplente</option>
@@ -399,12 +514,12 @@ const FinanceSales = () => {
                                             </div>
                                             <div>
                                                 <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Competência</label>
-                                                <input type="month" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700 }} name="payment_competence" value={formData.payment_competence} onChange={handleInputChange} required />
+                                                <input type="month" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="payment_competence" value={formData.payment_competence} onChange={handleInputChange} required />
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div style={{ padding: '24px', background: 'rgba(172, 248, 0, 0.08)', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', boxShadow: '0 10px 30px rgba(172, 248, 0, 0.1)' }}>
+                                    <div style={{ padding: '24px', background: 'rgba(172, 248, 0, 0.08)', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.15)', display: 'flex', justify-content: 'space-between', alignItems: 'center', marginTop: '12px', boxShadow: '0 10px 30px rgba(172, 248, 0, 0.1)' }}>
                                         <div className="flex flex-col">
                                             <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Faturamento Bruto</span>
                                             <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--primary-color)', opacity: 0.6 }}>Cálculo automático: Qtd x Unit.</span>
