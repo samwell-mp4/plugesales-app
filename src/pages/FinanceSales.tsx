@@ -8,6 +8,7 @@ import {
     CheckSquare, MessageCircle
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
 
 const FinanceSales = () => {
