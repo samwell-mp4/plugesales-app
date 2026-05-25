@@ -70,6 +70,7 @@ interface ClientSubmission {
     user_id?: number | string;
     client_name?: string;
     timestamp: string;
+    logs?: any[];
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
