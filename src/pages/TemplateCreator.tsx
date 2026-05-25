@@ -30,8 +30,8 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
-const LEANDRO_BODY_4 = 'Oi {{1}}! \n\nTemos uma novidade: {{2}}.\n\n{{3}}.\n\nPara {{4}}, use o botão abaixo 👇';
-const LEANDRO_BODY_5 = 'Oi {{1}}! \n\nTemos uma novidade: {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}}, use o botão abaixo 👇';
+const LEANDRO_BODY_4 = 'Oi {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\nPara {{4}}, use o botão abaixo 👇';
+const LEANDRO_BODY_5 = 'Oi {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\n{{4}}\n\nPara {{5}}, use o botão abaixo 👇';
 const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇';
 const LEANDRO_BODY_5_EN = 'Hello {{1}}!\n\nWe inform you that {{2}}\n\n{{3}}\n\n{{4}}\n\nTo {{5}}, click the button below 👇';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
@@ -212,7 +212,7 @@ const TemplateCreator = () => {
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
     const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/gZLbY6p.jpeg');
 
-    const [bodyText, _setBodyText] = useState('Oi {{1}}! \n\nTemos uma novidade: {{2}}.\n\n{{3}}.\n\nPara {{4}}, use o botão abaixo 👇');
+    const [bodyText, _setBodyText] = useState('Oi {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\nPara {{4}}, use o botão abaixo 👇');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
 
     const defaultVars = ['', '', '', ''];
@@ -399,12 +399,12 @@ const TemplateCreator = () => {
         const lang = overrideLanguage || selectedPayloadLanguage;
         const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
         const varCount = isFiveVars ? 5 : 4;
-        
+
         // Ensure examples array has the correct number of items
-        let examples = variablesOverride && variablesOverride.length >= varCount 
-            ? variablesOverride.slice(0, varCount) 
+        let examples = variablesOverride && variablesOverride.length >= varCount
+            ? variablesOverride.slice(0, varCount)
             : LEANDRO_EXAMPLES.slice(0, varCount);
-        
+
         const effectiveHeaderType = overrideHeaderType || headerType;
 
 
@@ -595,11 +595,11 @@ const TemplateCreator = () => {
                     const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
                     setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
 
-                    const payload = useMetaDirect 
+                    const payload = useMetaDirect
                         ? buildMetaPayload(currentName, selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, variablesExample)
                         : buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage);
 
-                    
+
                     const res = useMetaDirect
                         ? await callMetaAPI(payload)
                         : await callInfobipAPI(payload, sender);
@@ -615,14 +615,14 @@ const TemplateCreator = () => {
                             mode: 'SINGLE',
                             userId: isInternalUser ? undefined : Number(selectedClientId)
                         });
-                        
+
                         // Adapt payload for webhook if Meta Direct
                         const webhookPayload = useMetaDirect ? {
                             ...payload,
                             category: 'UTILITY', // Meta payload has category, components
                             original_button_link: buttons.find(b => b.type === 'url')?.url || ''
                         } : payload;
-                        
+
                         await sendToWebhook(webhookPayload);
 
                         const client = clients.find(c => String(c.id) === String(selectedClientId));
@@ -753,7 +753,7 @@ const TemplateCreator = () => {
                         sender: rowSender,
                         original_button_link: (row.originalButtonUrls && row.originalButtonUrls.length > 0) ? row.originalButtonUrls[0] : ''
                     };
-                    
+
                     const res = useMetaDirect
                         ? await callMetaAPI(payload)
                         : await callInfobipAPI(payload, rowSender);
@@ -1469,8 +1469,8 @@ const TemplateCreator = () => {
                                                 }
                                             } else {
                                                 const defaultText = selectedPayloadLanguage === 'en_US'
-                                                    ? 'Hi {{1}}! We inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇'
-                                                    : 'Oi {{1}}! \n\nTemos uma novidade: {{2}}.\n\n{{3}}.\n\nPara {{4}}, use o botão abaixo 👇';
+                                                    ? 'Hi {{1}} We inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇'
+                                                    : 'Oi {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\nPara {{4}}, use o botão abaixo 👇';
                                                 _setBodyText(defaultText);
                                                 if (variablesExample.length > 4) {
                                                     _setVariablesExample(variablesExample.slice(0, 4));

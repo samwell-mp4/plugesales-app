@@ -452,7 +452,6 @@ const ClientSubmissions = () => {
             console.error("Bulk status error:", err);
             alert("Erro ao alterar status em lote.");
         } finally {
-        } finally {
             setIsProcessing(false);
         }
     };
