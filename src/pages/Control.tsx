@@ -210,6 +210,7 @@ const Control = () => {
 
     // PendingClientCard Component
     const PendingClientCard = ({ client, onApprove, onReject }: { client: any, onApprove: (id: number) => void, onReject: (id: number) => void }) => {
+        const { user } = useAuth();
         const [approvalData, setApprovalData] = useState({
             disparo_quantidade: '',
             pacote: '',
@@ -222,7 +223,7 @@ const Control = () => {
                 const res = await fetch(`/api/users/${client.id}/approve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(approvalData)
+                    body: JSON.stringify({ ...approvalData, seller_name: user?.name || '' })
                 });
                 if (res.ok) {
                     onApprove(client.id);

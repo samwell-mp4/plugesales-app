@@ -126,10 +126,7 @@ function AppContent() {
 
   // Redirect logged-in users (except forum users) accessing the main page
   if (user && user.role !== 'usuario_forum' && location.pathname === '/') {
-      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-          window.location.href = 'https://plugesales.com/accounts';
-          return null;
-      }
+      return <Navigate to="/accounts" replace />;
   }
 
   // Redirect clients to their dashboard if they try to access general dashboard

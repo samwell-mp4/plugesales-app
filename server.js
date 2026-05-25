@@ -466,6 +466,10 @@ const initDB = async () => {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pacote TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS preco_vendido TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS comissao_vendedor TEXT`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS seller_name TEXT`);
+        await client.query(`ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS submission_id INTEGER`);
+        await client.query(`ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS salesperson_name TEXT`);
+        await client.query(`ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS comissao_vendedor TEXT`);
 
         // Migration: Tag existing data
         console.log('Running security migration: tagging submission origin...');
@@ -1819,11 +1823,25 @@ app.get('/api/users/pending', async (req, res) => {
 
 app.post('/api/users/:id/approve', async (req, res) => {
     const { id } = req.params;
-    const { disparo_quantidade, pacote, preco_vendido, comissao_vendedor } = req.body || {};
+    const { disparo_quantidade, pacote, preco_vendido, comissao_vendedor, seller_name } = req.body || {};
     try {
         await pool.query(
-            "UPDATE users SET role = 'CLIENT', disparo_quantidade = $1, pacote = $2, preco_vendido = $3, comissao_vendedor = $4 WHERE id = $5", 
-            [disparo_quantidade || 0, pacote || '', preco_vendido || '', comissao_vendedor || '', id]
+            "UPDATE users SET role = 'CLIENT', disparo_quantidade = $1, pacote = $2, preco_vendido = $3, comissao_vendedor = $4, seller_name = $5 WHERE id = $6", 
+            [disparo_quantidade || 0, pacote || '', preco_vendido || '', comissao_vendedor || '', seller_name || '', id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/users/:id/commercial', async (req, res) => {
+    const { id } = req.params;
+    const { pacote, preco_vendido, comissao_vendedor, seller_name } = req.body || {};
+    try {
+        await pool.query(
+            "UPDATE users SET pacote = $1, preco_vendido = $2, comissao_vendedor = $3, seller_name = $4 WHERE id = $5", 
+            [pacote || '', preco_vendido || '', comissao_vendedor || '', seller_name || '', id]
         );
         res.json({ success: true });
     } catch (err) {
@@ -2069,6 +2087,52 @@ app.post('/api/reports', async (req, res) => {
             'INSERT INTO client_reports (user_id, submission_id, report_name, filename, data, summary) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
             [userId, submissionId, reportName, filename, JSON.stringify(data), JSON.stringify(summary)]
         );
+
+        if (submissionId) {
+            const userRes = await pool.query("SELECT * FROM users WHERE id = $1", [userId]);
+            const subRes = await pool.query("SELECT * FROM client_submissions WHERE id = $1", [submissionId]);
+            if (userRes.rows.length > 0 && subRes.rows.length > 0) {
+                const user = userRes.rows[0];
+                const sub = subRes.rows[0];
+                const delivered = summary?.delivered || 0;
+                
+                let precoVendidoStr = String(user.preco_vendido || '0').replace(',', '.').trim();
+                let precoVendido = parseFloat(precoVendidoStr) || 0;
+                const totalValue = delivered * precoVendido;
+
+                const checkFinance = await pool.query("SELECT * FROM finance_sales WHERE submission_id = $1", [submissionId]);
+                if (checkFinance.rows.length === 0) {
+                    await pool.query(`
+                        INSERT INTO finance_sales (
+                            client_name, client_cpf_cnpj, package_hired, quantity_hired, unit_value, total_value, 
+                            salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10)
+                    `, [
+                        user.name, 
+                        user.phone || '', 
+                        user.pacote || 'Avulso', 
+                        delivered, 
+                        precoVendido, 
+                        totalValue, 
+                        user.seller_name || sub.assigned_to || '',
+                        submissionId,
+                        new Date().toISOString().substring(0, 7),
+                        user.comissao_vendedor || ''
+                    ]);
+                } else {
+                    await pool.query(`
+                        UPDATE finance_sales SET 
+                            quantity_hired = $1, 
+                            unit_value = $2, 
+                            total_value = $3,
+                            comissao_vendedor = $4,
+                            salesperson_name = $5
+                        WHERE submission_id = $6
+                    `, [delivered, precoVendido, totalValue, user.comissao_vendedor || '', user.seller_name || sub.assigned_to || '', submissionId]);
+                }
+            }
+        }
+
         res.json({ success: true, id: result.rows[0].id });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2338,7 +2402,7 @@ app.post('/api/planner-drafts', async (req, res) => {
 // Client Submissions
 app.get('/api/clients', async (req, res) => {
     try {
-        const result = await pool.query("SELECT id, name, email, phone FROM users WHERE role = 'CLIENT' ORDER BY name ASC");
+        const result = await pool.query("SELECT id, name, email, phone, disparo_quantidade, pacote, preco_vendido, comissao_vendedor, seller_name FROM users WHERE role = 'CLIENT' ORDER BY name ASC");
         res.json(result.rows || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2574,11 +2638,17 @@ app.post('/api/client-submissions', async (req, res) => {
         // Set status to AGUARDANDO_APROVACAO_PAI, UNLESS submitted by Admin/Employee
         const isManagement = submitted_role === 'ADMIN' || submitted_role === 'EMPLOYEE';
 
-        if (user_id && !isManagement) {
-            const userRes = await pool.query('SELECT parent_id FROM users WHERE id = $1', [user_id]);
-            if (userRes.rows[0] && userRes.rows[0].parent_id) {
-                finalStatus = 'AGUARDANDO_APROVACAO_PAI';
-                parentApproved = false;
+        let finalAssignedTo = assigned_to;
+        if (user_id) {
+            const userRes = await pool.query('SELECT parent_id, seller_name FROM users WHERE id = $1', [user_id]);
+            if (userRes.rows[0]) {
+                if (!isManagement && userRes.rows[0].parent_id) {
+                    finalStatus = 'AGUARDANDO_APROVACAO_PAI';
+                    parentApproved = false;
+                }
+                if (!finalAssignedTo && userRes.rows[0].seller_name) {
+                    finalAssignedTo = userRes.rows[0].seller_name;
+                }
             }
         }
 
@@ -2591,7 +2661,7 @@ app.post('/api/client-submissions', async (req, res) => {
                 template_type || 'none', media_url || '', ad_copy || '', button_link || '', original_button_link || button_link || '',
                 ads ? JSON.stringify(ads) : '[]',
                 spreadsheet_url, finalStatus,
-                user_id, submitted_by, submitted_role || null, assigned_to, accepted_by, parentApproved,
+                user_id, submitted_by, submitted_role || null, finalAssignedTo, accepted_by, parentApproved,
                 req.body.origin || 'CLIENT_FORM'
             ]
         );

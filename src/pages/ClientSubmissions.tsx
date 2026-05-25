@@ -483,10 +483,20 @@ const ClientSubmissions = () => {
         const renderGridView = () => (
         <div className="cs-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
             {paginatedSubmissions.map(s => {
+                const clientObj = clients.find(c => c.id == s.user_id);
+                const precoVendido = parseFloat(String(clientObj?.preco_vendido || '0').replace(',', '.')) || 0;
+                const comissaoVendedor = parseFloat(String(clientObj?.comissao_vendedor || '0').replace(',', '.')) || 0;
+                const pacote = clientObj?.pacote || 'Não definido';
+
                 const adsArr = Array.isArray(s.ads) ? s.ads : [];
                 const adCount = adsArr.length || 0;
                 const subTotalEntregues = adsArr.reduce((sum, ad) => sum + (ad.delivered_leads || 0), 0) || 0;
-                const subTotalFaturado = adsArr.reduce((sum, ad) => sum + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0;
+                
+                const naoEntregues = (adsArr.reduce((sum, ad) => sum + ((ad as any).total_leads || 0), 0) || 0) - subTotalEntregues;
+
+                const subTotalFaturado = precoVendido > 0 ? (subTotalEntregues * precoVendido) : (adsArr.reduce((sum, ad) => sum + ((ad.delivered_leads || 0) * (ad.price_per_msg || 0)), 0) || 0);
+                const subTotalComissao = subTotalEntregues * comissaoVendedor;
+
                 return (
                     <div key={s.id} className={`cs-card ${selectedIds.includes(s.id) ? 'selected' : ''}`} onClick={() => toggleSelect(s.id)} style={{ padding: '20px' }}>
                         <div className="card-actions" style={{ gap: '8px', zIndex: 10 }}>
@@ -573,14 +583,32 @@ const ClientSubmissions = () => {
                         )}
 
                         {s.status === 'CONCLUIDO' && subTotalEntregues > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
-                                <div style={{ background: 'rgba(34,197,94,0.08)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(34,197,94,0.15)' }}>
-                                    <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#22c55e', letterSpacing: '0.5px' }}>TOTAL ENTREGUE</p>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#22c55e' }}>{subTotalEntregues.toLocaleString('pt-BR')}</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div style={{ flex: 1, background: 'rgba(34,197,94,0.08)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(34,197,94,0.15)' }}>
+                                        <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#22c55e', letterSpacing: '0.5px' }}>ENTREGUES</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#22c55e' }}>{subTotalEntregues.toLocaleString('pt-BR')}</p>
+                                    </div>
+                                    <div style={{ flex: 1, background: 'rgba(239,68,68,0.08)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(239,68,68,0.15)' }}>
+                                        <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#ef4444', letterSpacing: '0.5px' }}>NÃO ENTREGUES</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: '#ef4444' }}>{naoEntregues > 0 ? naoEntregues.toLocaleString('pt-BR') : '-'}</p>
+                                    </div>
                                 </div>
-                                <div style={{ background: 'rgba(172,248,0,0.1)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(172,248,0,0.2)' }}>
-                                    <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '0.5px' }}>CUSTO DO CLIENTE</p>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {subTotalFaturado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits:2})}</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                    <div style={{ background: 'rgba(172,248,0,0.1)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(172,248,0,0.2)' }}>
+                                        <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '0.5px' }}>PREÇO VENDIDO</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {precoVendido.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</p>
+                                    </div>
+                                    <div style={{ background: 'rgba(56,189,248,0.1)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(56,189,248,0.2)' }}>
+                                        <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: '#38bdf8', letterSpacing: '0.5px' }}>COMISSÃO VENDEDOR</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', fontWeight: 900, color: '#38bdf8' }}>R$ {subTotalComissao.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</p>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                        <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.5px' }}>PACOTE</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', fontWeight: 900, color: '#fff' }}>{pacote.toUpperCase()}</p>
+                                    </div>
                                 </div>
                             </div>
                         )}
