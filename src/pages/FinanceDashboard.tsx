@@ -85,7 +85,7 @@ const FinanceDashboard = () => {
             icon: <AlertCircle size={24} />, 
             color: '#ef4444' 
         },
-    ];
+    ].filter(m => user?.role !== 'CLIENT' || m.label !== 'Lucro Líquido');
 
     return (
         <div className="animate-fade-in finance-page" style={{ padding: '40px', paddingBottom: '80px' }}>
