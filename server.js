@@ -2101,7 +2101,19 @@ app.post('/api/reports', async (req, res) => {
             if (userRes.rows.length > 0 && subRes.rows.length > 0) {
                 const user = userRes.rows[0];
                 const sub = subRes.rows[0];
-                const delivered = summary?.delivered || 0;
+                
+                const allReports = await pool.query("SELECT summary FROM client_reports WHERE submission_id = $1", [submissionId]);
+                let totalDelivered = 0;
+                for (let r of allReports.rows) {
+                    try {
+                        let sm = r.summary;
+                        if (typeof sm === 'string') sm = JSON.parse(sm);
+                        if (sm && sm.delivered) totalDelivered += Number(sm.delivered);
+                    } catch (e) {
+                        console.error('Error parsing report summary:', e);
+                    }
+                }
+                const delivered = totalDelivered;
                 
                 let precoVendidoStr = String(user.preco_vendido || '0').replace(',', '.').trim();
                 let precoVendido = parseFloat(precoVendidoStr) || 0;
