@@ -29,10 +29,12 @@ import {
     ChevronDown,
     ChevronUp,
     Bell,
-    X
+    X,
+    Upload
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
+import * as XLSX from 'xlsx';
 
 interface Ad {
     ad_name?: string;
@@ -155,6 +157,9 @@ const ClientSubmissions = () => {
                 data = await dbService.getClientSubmissionsByUserId(user.id as number);
             } else {
                 data = await dbService.getClientSubmissions();
+                if (user?.role === 'EMPLOYEE' || user?.role === 'VENDEDOR') {
+                    data = data.filter((s: any) => s.assigned_to === user?.name || s.submitted_by === user?.name || s.user_id === user?.id);
+                }
             }
             
             const filtered = Array.isArray(data) ? data.filter((s: any) => s.status !== 'AGUARDANDO_APROVACAO_PAI') : [];
@@ -447,8 +452,82 @@ const ClientSubmissions = () => {
             console.error("Bulk status error:", err);
             alert("Erro ao alterar status em lote.");
         } finally {
+        } finally {
             setIsProcessing(false);
         }
+    };
+
+    const handleQuickReportUpload = async (e: React.ChangeEvent<HTMLInputElement>, sub: Submission) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        
+        setIsProcessing(true);
+        let errorCount = 0;
+        
+        for (const file of files) {
+            try {
+                const buffer = await file.arrayBuffer();
+                const wb = XLSX.read(buffer, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rawData = XLSX.utils.sheet_to_json(ws);
+                
+                const summary = {
+                    total: rawData.length,
+                    delivered: rawData.filter((r: any) => String(r.Status || r.status || '').toLowerCase().includes('delivered')).length,
+                    expired: rawData.filter((r: any) => String(r.Status || r.status || '').toLowerCase().includes('expired')).length,
+                    others: 0
+                };
+                summary.others = summary.total - summary.delivered - summary.expired;
+                
+                const res = await dbService.addReport({
+                    userId: Number(sub.user_id),
+                    submissionId: sub.id,
+                    reportName: `Relatório: ${file.name}`,
+                    filename: file.name,
+                    data: rawData,
+                    summary: summary
+                });
+                
+                if (res.error) throw new Error(res.error);
+                
+                // Add a log for the upload
+                const newLog = {
+                    id: Date.now() + Math.floor(Math.random() * 1000),
+                    type: 'success',
+                    message: `Relatório rápido anexado: ${file.name}`,
+                    timestamp: new Date().toISOString(),
+                    author: user?.name || 'Sistema'
+                };
+                const updatedLogs = [...(sub.logs || []), newLog];
+                await dbService.updateClientSubmission(sub.id, { logs: JSON.stringify(updatedLogs) });
+            } catch (err: any) { 
+                console.error(err); 
+                errorCount++;
+            }
+        }
+        
+        // Auto-change status to CONCLUIDO if files were uploaded (to trigger sale generation)
+        if (sub.status !== 'CONCLUIDO' && sub.status !== 'CONCLUÍDO') {
+            await dbService.updateClientSubmissionStatus(sub.id, 'CONCLUIDO');
+            const newLog = {
+                id: Date.now(),
+                type: 'info',
+                message: 'Status atualizado automaticamente para CONCLUIDO após upload de relatório',
+                timestamp: new Date().toISOString(),
+                author: 'Sistema (Automação)'
+            };
+            const updatedLogs = [...(sub.logs || []), newLog];
+            await dbService.updateClientSubmission(sub.id, { logs: JSON.stringify(updatedLogs) });
+        }
+        
+        setIsProcessing(false);
+        if (errorCount > 0) {
+            alert(`Upload concluído com falhas. ${errorCount} arquivo(s) com erro.`);
+        } else {
+            alert('Relatório(s) anexado(s) e status atualizado para CONCLUÍDO!');
+        }
+        loadSubmissions();
+        if (e.target) e.target.value = '';
     };
 
     const getTemplateIcon = (type: string) => {
@@ -503,6 +582,10 @@ const ClientSubmissions = () => {
                             <button onClick={e => { e.stopPropagation(); setSelectedSubForChange(s); setShowChangeRequestModal(true); }} style={{ padding: '8px', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.2)', borderRadius: '10px', cursor: 'pointer', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Pedir Alteração (Alerta)">
                                 <Bell size={16} />
                             </button>
+                            <label style={{ display: 'flex', padding: '6px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '8px', cursor: 'pointer', color: '#22c55e', alignItems: 'center', justifyContent: 'center' }} title="Anexar Relatórios em Lote" onClick={e => e.stopPropagation()}>
+                                <input type="file" multiple accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => handleQuickReportUpload(e, s)} />
+                                <Upload size={13} />
+                            </label>
                             <button onClick={e => { e.stopPropagation(); handleDuplicate(s); }} style={{ padding: '6px', background: 'rgba(172,248,0,0.1)', border: '1px solid var(--surface-border-subtle)', borderRadius: '8px', cursor: 'pointer', color: 'var(--primary-color)', display: 'flex' }} title="Duplicar">
                                 <CopyIcon size={13} />
                             </button>
@@ -721,6 +804,10 @@ const ClientSubmissions = () => {
                                 >
                                     <CopyIcon size={16} />
                                 </button>
+                                <label className="list-btn" style={{ display: 'flex', background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)', cursor: 'pointer' }} title="Anexar Relatórios em Lote" onClick={e => e.stopPropagation()}>
+                                    <input type="file" multiple accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => handleQuickReportUpload(e, s)} />
+                                    <Upload size={16} />
+                                </label>
                                 <button 
                                     className="list-btn" 
                                     onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
@@ -778,12 +865,18 @@ const ClientSubmissions = () => {
                                     </div>
                                     {s.assigned_to && <p style={{ margin: 0, fontSize: '9px', color: '#f59e0b', fontWeight: 800 }}>👤 {s.assigned_to}</p>}
                                     {s.status !== 'CONCLUIDO' && (
-                                        <button 
-                                            onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
-                                            style={{ width: '100%', marginTop: '12px', background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)', padding: '8px', borderRadius: '8px', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                                        >
-                                            <Layers size={12} /> CREATOR
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
+                                            <button 
+                                                onClick={e => { e.stopPropagation(); handlePreFillCreator(s); }}
+                                                style={{ flex: 1, background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)', padding: '8px', borderRadius: '8px', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                            >
+                                                <Layers size={12} /> CREATOR
+                                            </button>
+                                            <label style={{ width: '30px', background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Anexar Relatórios" onClick={e => e.stopPropagation()}>
+                                                <input type="file" multiple accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => handleQuickReportUpload(e, s)} />
+                                                <Upload size={12} />
+                                            </label>
+                                        </div>
                                     )}
                                 </div>
                             ))}
@@ -1155,12 +1248,14 @@ const ClientSubmissions = () => {
                                                 <option value="CANCELADO" style={{ background: '#0f172a' }}>CANCELADO</option>
                                             </select>
                                         </div>
-                                        <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
-                                            <select value={selectedEmployeeFilter} onChange={e => { setSelectedEmployeeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedEmployeeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
-                                                <option value="" style={{ background: '#0f172a' }}>FUNCIONÁRIOS</option>
-                                                {Array.isArray(employees) && employees.map(emp => <option key={emp} value={emp} style={{ background: '#0f172a' }}>{(emp || '').toUpperCase()}</option>)}
-                                            </select>
-                                        </div>
+                                        {user?.role === 'ADMIN' && (
+                                            <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
+                                                <select value={selectedEmployeeFilter} onChange={e => { setSelectedEmployeeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedEmployeeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
+                                                    <option value="" style={{ background: '#0f172a' }}>FUNCIONÁRIOS</option>
+                                                    {Array.isArray(employees) && employees.map(emp => <option key={emp} value={emp} style={{ background: '#0f172a' }}>{(emp || '').toUpperCase()}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
                                         <div style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 14px' }}>
                                             <select value={selectedTypeFilter} onChange={e => { setSelectedTypeFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', outline: 'none', color: selectedTypeFilter ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, padding: '10.5px 0', cursor: 'pointer', appearance: 'none' }}>
                                                 <option value="" style={{ background: '#0f172a' }}>TIPO</option>

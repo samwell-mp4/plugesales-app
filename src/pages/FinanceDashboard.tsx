@@ -20,7 +20,7 @@ const FinanceDashboard = () => {
     const fetchSales = async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getFinanceSales();
+            const data = await dbService.getFinanceSales({ userId: user?.id, role: user?.role });
             setSales(data);
         } catch (err) {
             console.error(err);

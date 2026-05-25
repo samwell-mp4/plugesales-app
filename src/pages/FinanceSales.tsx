@@ -493,7 +493,7 @@ const FinanceSales = () => {
                         />
                     </div>
 
-                    {user?.role !== 'CLIENT' && (
+                    {user?.role === 'ADMIN' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignSelf: 'flex-end' }}>
                             <select
                                 className="filter-select"

@@ -333,16 +333,19 @@ const ClientSubmissionDetail = () => {
     };
 
     const handleReportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !sub) return;
+        const files = Array.from(e.target.files || []);
+        if (!files.length || !sub) return;
+        
         setIsUploadingReport(true);
-        const reader = new FileReader();
-        reader.onload = async (evt) => {
+        let errorCount = 0;
+        
+        for (const file of files) {
             try {
-                const bstr = evt.target?.result;
-                const wb = XLSX.read(bstr, { type: 'array' });
+                const buffer = await file.arrayBuffer();
+                const wb = XLSX.read(buffer, { type: 'array' });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const rawData = XLSX.utils.sheet_to_json(ws);
+                
                 const summary = {
                     total: rawData.length,
                     delivered: rawData.filter((r: any) => String(r.Status || r.status || '').toLowerCase().includes('delivered')).length,
@@ -350,6 +353,7 @@ const ClientSubmissionDetail = () => {
                     others: 0
                 };
                 summary.others = summary.total - summary.delivered - summary.expired;
+                
                 const res = await dbService.addReport({
                     userId: Number(sub.user_id),
                     submissionId: sub.id,
@@ -358,20 +362,23 @@ const ClientSubmissionDetail = () => {
                     data: rawData,
                     summary: summary
                 });
-                if (res.id) {
-                    await load();
-                    await addLog(`Relatório anexado: ${file.name}`, 'success');
-                } else if (res.error) {
-                    throw new Error(res.error);
-                }
+                
+                if (res.error) throw new Error(res.error);
+                
+                await addLog(`Relatório anexado: ${file.name}`, 'success');
             } catch (err: any) { 
                 console.error(err); 
-                alert("Erro ao enviar o relatório: " + (err.message || 'Erro no servidor'));
-            } finally { 
-                setIsUploadingReport(false); 
+                errorCount++;
             }
-        };
-        reader.readAsArrayBuffer(file);
+        }
+        
+        setIsUploadingReport(false);
+        if (errorCount > 0) {
+            alert(`Concluído com falhas. ${errorCount} arquivo(s) não puderam ser enviados.`);
+        }
+        await load();
+        // Limpar o input para permitir enviar os mesmos arquivos de novo se necessário
+        if (e.target) e.target.value = '';
     };
 
     const handlePaymentReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -667,7 +674,7 @@ const ClientSubmissionDetail = () => {
 
                             {user?.role !== 'CLIENT' && (sub.status === 'CONCLUIDO' || sub.status === 'CONCLUÍDO') && (
                                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '16px', border: '2px dashed var(--surface-border-subtle)', cursor: 'pointer' }} className="ghost-btn">
-                                    <input type="file" style={{ display: 'none' }} onChange={handleReportUpload} accept=".xlsx,.xls,.csv" />
+                                    <input type="file" style={{ display: 'none' }} onChange={handleReportUpload} accept=".xlsx,.xls,.csv" multiple />
                                     <Upload size={18} /> <span style={{ fontSize: '11px', fontWeight: 900 }}>ANEXAR RELATÓRIO</span>
                                 </label>
                             )}
