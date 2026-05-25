@@ -446,102 +446,118 @@ const FinanceSales = () => {
                 }
             `}</style>
 
-            <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
+            <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
                 <div>
                     <h1>Cadastro de Vendas</h1>
                     <p className="subtitle">Gestão de faturamento, anexos de pagamentos e relatórios</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="search-bar-finance">
+                <div className="flex flex-wrap items-end gap-3" style={{ flex: 1, justifyContent: 'flex-end' }}>
+                    <div className="search-bar-finance" style={{ height: '42px', padding: '0 16px' }}>
                         <Search size={16} color="var(--primary-color)" style={{ marginRight: '12px' }} />
                         <input
                             placeholder="Buscar cliente, card..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ height: '100%', padding: '0' }}
                         />
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Data Inicial</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Data Inicial</span>
                         <input
                             type="datetime-local"
                             className="filter-select"
+                            style={{ height: '42px', padding: '0 12px' }}
                             value={filterStartDate}
                             onChange={(e) => setFilterStartDate(e.target.value)}
                         />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Data Final</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Data Final</span>
                         <input
                             type="datetime-local"
                             className="filter-select"
+                            style={{ height: '42px', padding: '0 12px' }}
                             value={filterEndDate}
                             onChange={(e) => setFilterEndDate(e.target.value)}
                         />
                     </div>
 
                     {user?.role !== 'CLIENT' && (
-                        <select
-                            className="filter-select"
-                            value={filterSalesperson}
-                            onChange={(e) => setFilterSalesperson(e.target.value)}
-                        >
-                            <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Vendedores</option>
-                            {salespeople.map(sp => (
-                                <option key={sp.id} value={String(sp.id)} style={{ background: '#0a0f18' }}>{sp.name}</option>
-                            ))}
-                        </select>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vendedor</span>
+                            <select
+                                className="filter-select"
+                                style={{ height: '42px', padding: '0 12px' }}
+                                value={filterSalesperson}
+                                onChange={(e) => setFilterSalesperson(e.target.value)}
+                            >
+                                <option value="TODOS" style={{ background: '#0a0f18' }}>Todos</option>
+                                {salespeople.map(sp => (
+                                    <option key={sp.id} value={String(sp.id)} style={{ background: '#0a0f18' }}>{sp.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     )}
 
                     {user?.role !== 'CLIENT' && (
-                        <select
-                            className="filter-select"
-                            value={filterClient}
-                            onChange={(e) => setFilterClient(e.target.value)}
-                            style={{ maxWidth: '200px' }}
-                        >
-                            <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Clientes</option>
-                            {uniqueClients.map(client => (
-                                <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
-                            ))}
-                        </select>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cliente</span>
+                            <select
+                                className="filter-select"
+                                value={filterClient}
+                                onChange={(e) => setFilterClient(e.target.value)}
+                                style={{ height: '42px', padding: '0 12px', maxWidth: '180px' }}
+                            >
+                                <option value="TODOS" style={{ background: '#0a0f18' }}>Todos</option>
+                                {uniqueClients.map(client => (
+                                    <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
+                                ))}
+                            </select>
+                        </div>
                     )}
 
-                    <select
-                        className="filter-select"
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                        <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Status</option>
-                        <option value="PENDENTE" style={{ background: '#0a0f18' }}>Pendentes</option>
-                        <option value="RECEBIDO" style={{ background: '#0a0f18' }}>Recebidos</option>
-                        <option value="INADIMPLENTE" style={{ background: '#0a0f18' }}>Inadimplentes</option>
-                    </select>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</span>
+                        <select
+                            className="filter-select"
+                            style={{ height: '42px', padding: '0 12px' }}
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="TODOS" style={{ background: '#0a0f18' }}>Todos</option>
+                            <option value="PENDENTE" style={{ background: '#0a0f18' }}>Pendentes</option>
+                            <option value="RECEBIDO" style={{ background: '#0a0f18' }}>Recebidos</option>
+                            <option value="INADIMPLENTE" style={{ background: '#0a0f18' }}>Inadimplentes</option>
+                        </select>
+                    </div>
 
-                    <button
-                        onClick={exportToExcel}
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '12px 16px', color: 'white', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
-                        <Download size={16} /> EXPORTAR
-                    </button>
-
-                    <button
-                        onClick={fetchData}
-                        disabled={isLoading}
-                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px', color: 'white', cursor: 'pointer' }}
-                    >
-                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
-                    </button>
-
-                    {user?.role !== 'CLIENT' && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                         <button
-                            onClick={() => { resetForm(); setEditingSale(null); setIsModalOpen(true); }}
-                            style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '12px 24px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            onClick={exportToExcel}
+                            style={{ height: '42px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '0 16px', color: 'white', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
-                            <Plus size={18} /> NOVA VENDA
+                            <Download size={16} /> EXPORTAR
                         </button>
-                    )}
+
+                        <button
+                            onClick={fetchData}
+                            disabled={isLoading}
+                            style={{ height: '42px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '0 14px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                            <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        </button>
+
+                        {user?.role !== 'CLIENT' && (
+                            <button
+                                onClick={() => { resetForm(); setEditingSale(null); setIsModalOpen(true); }}
+                                style={{ height: '42px', background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '0 20px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                <Plus size={18} /> NOVA VENDA
+                            </button>
+                        )}
+                    </div>
                 </div>
             </header>
 
