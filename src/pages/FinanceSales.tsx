@@ -421,7 +421,7 @@ const FinanceSales = () => {
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '40px' }}>
                     <div className="modal-premium" style={{ margin: 'auto' }}>
-                        <header style={{ padding: '32px 40px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justify-content: 'space-between', alignItems: 'center' }}>
+                        <header style={{ padding: '32px 40px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <h2 style={{ margin: 0, fontWeight: 950, color: 'white', fontSize: '1.8rem', letterSpacing: '-1px' }}>{editingSale ? 'Editar Negociação' : 'Nova Venda'}</h2>
                                 <p style={{ margin: '4px 0 0', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px' }}>Registro completo de transação comercial</p>
@@ -519,7 +519,7 @@ const FinanceSales = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ padding: '24px', background: 'rgba(172, 248, 0, 0.08)', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.15)', display: 'flex', justify-content: 'space-between', alignItems: 'center', marginTop: '12px', boxShadow: '0 10px 30px rgba(172, 248, 0, 0.1)' }}>
+                                    <div style={{ padding: '24px', background: 'rgba(172, 248, 0, 0.08)', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', boxShadow: '0 10px 30px rgba(172, 248, 0, 0.1)' }}>
                                         <div className="flex flex-col">
                                             <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Faturamento Bruto</span>
                                             <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--primary-color)', opacity: 0.6 }}>Cálculo automático: Qtd x Unit.</span>
