@@ -3,7 +3,7 @@ import {
     Zap, Search, Plus, Edit2, Trash2, 
     Download, Filter, ChevronLeft, ChevronRight,
     User, Smartphone, Package, DollarSign,
-    Calendar as CalendarIcon, CheckCircle2, 
+    Calendar as CalendarIcon, CheckCircle2, TrendingUp,
     AlertCircle, RefreshCw, X, ArrowUpRight, Upload, ExternalLink
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
@@ -198,6 +198,46 @@ const FinanceSales = () => {
     // Extract unique clients for filter dropdown
     const uniqueClients = Array.from(new Set(sales.map(s => s.client_name).filter(Boolean))).sort();
 
+    // Cálculos Financeiros (baseados na lista filtrada)
+    const totalRevenue = filteredSales.reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+    const totalReceived = filteredSales.filter(s => s.payment_status === 'RECEBIDO').reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+    const totalOverdue = filteredSales.filter(s => s.payment_status === 'INADIMPLENTE').reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+    
+    const totalCommission = filteredSales.reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
+    const netProfit = totalRevenue - totalCommission;
+    const efficiency = totalRevenue > 0 ? (totalReceived / totalRevenue) * 100 : 0;
+
+    const metrics = [
+        { 
+            label: 'Faturamento Total', 
+            value: `R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+            subtitle: 'Receita bruta gerada',
+            icon: <DollarSign size={24} />, 
+            color: 'var(--primary-color)' 
+        },
+        { 
+            label: 'Lucro Líquido', 
+            value: `R$ ${netProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+            subtitle: 'Faturamento - Comissões',
+            icon: <TrendingUp size={24} />, 
+            color: '#10b981' 
+        },
+        { 
+            label: 'Liquidez (Recebido)', 
+            value: `R$ ${totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+            subtitle: `${efficiency.toFixed(1)}% de eficiência`,
+            icon: <CheckCircle2 size={24} />, 
+            color: '#38bdf8' 
+        },
+        { 
+            label: 'Inadimplência', 
+            value: `R$ ${totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+            subtitle: 'Atrasos no pagamento',
+            icon: <AlertCircle size={24} />, 
+            color: '#ef4444' 
+        },
+    ].filter(m => user?.role !== 'CLIENT' || m.label !== 'Lucro Líquido');
+
     return (
         <div className="animate-fade-in finance-page" style={{ padding: '40px', paddingBottom: '80px' }}>
             <style>{`
@@ -359,6 +399,20 @@ const FinanceSales = () => {
                     )}
                 </div>
             </header>
+
+            <div className="stats-grid-finance" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                {metrics.map((m, i) => (
+                    <div key={i} className="glass-card-finance" style={{ background: 'rgba(255, 255, 255, 0.03)', border: `1px solid rgba(255, 255, 255, 0.08)`, borderLeft: `4px solid ${m.color}`, borderRadius: '20px', padding: '20px' }}>
+                        <div className="flex justify-between items-start mb-2">
+                            <div style={{ color: m.color, background: `${m.color}15`, padding: '10px', borderRadius: '12px' }}>
+                                {m.icon}
+                            </div>
+                        </div>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>{m.label}</p>
+                        <h2 style={{ margin: '4px 0', fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>{m.value}</h2>
+                    </div>
+                ))}
+            </div>
 
             <input 
                 type="file" 

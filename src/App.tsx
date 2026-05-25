@@ -167,7 +167,7 @@ function AppContent() {
     }
 
     // Special case for CLIENT: They can access specific finance routes
-    if (user?.role === 'CLIENT' && (location.pathname === '/finance/dashboard' || location.pathname === '/finance/sales')) {
+    if (user?.role === 'CLIENT' && location.pathname === '/finance/sales') {
         return false;
     }
 
