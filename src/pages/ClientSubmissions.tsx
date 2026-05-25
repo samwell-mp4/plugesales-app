@@ -456,7 +456,7 @@ const ClientSubmissions = () => {
         }
     };
 
-    const handleQuickReportUpload = async (e: React.ChangeEvent<HTMLInputElement>, sub: Submission) => {
+    const handleQuickReportUpload = async (e: React.ChangeEvent<HTMLInputElement>, sub: ClientSubmission) => {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
         
