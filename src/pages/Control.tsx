@@ -212,7 +212,6 @@ const Control = () => {
     const PendingClientCard = ({ client, onApprove, onReject }: { client: any, onApprove: (id: number) => void, onReject: (id: number) => void }) => {
         const { user } = useAuth();
         const [approvalData, setApprovalData] = useState({
-            disparo_quantidade: '',
             pacote: '',
             preco_vendido: '',
             comissao_vendedor: ''
@@ -255,7 +254,6 @@ const Control = () => {
                 </div>
                 <div className="flex-col gap-4 mt-4">
                     <label className="field-label" style={{ marginBottom: 0 }}>DADOS DE APROVAÇÃO</label>
-                    <input className="field-input" placeholder="Quantidade de disparo" value={approvalData.disparo_quantidade} onChange={e => setApprovalData({...approvalData, disparo_quantidade: e.target.value})} />
                     <input className="field-input" placeholder="Pacote" value={approvalData.pacote} onChange={e => setApprovalData({...approvalData, pacote: e.target.value})} />
                     <input className="field-input" placeholder="Preço Vendido" value={approvalData.preco_vendido} onChange={e => setApprovalData({...approvalData, preco_vendido: e.target.value})} />
                     <input className="field-input" placeholder="Comissão do vendedor" value={approvalData.comissao_vendedor} onChange={e => setApprovalData({...approvalData, comissao_vendedor: e.target.value})} />

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     Users, Percent, DollarSign, 
     Save, RefreshCw, User, 
     CheckCircle2, Clock, AlertCircle,
-    ChevronDown, Edit3, TrendingUp
+    ChevronDown, Edit3, TrendingUp, Upload, ExternalLink, X
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,6 +15,11 @@ const FinanceCommissions = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [editingCommission, setEditingCommission] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Upload de comprovante
+    const [saleToPay, setSaleToPay] = useState<any>(null);
+    const [uploadingReceipt, setUploadingReceipt] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchData();
@@ -36,33 +41,50 @@ const FinanceCommissions = () => {
         }
     };
 
-    const handleSaveConfig = async (userId: number, percentage: number) => {
-        setIsSaving(true);
-        try {
-            await dbService.saveSalespersonConfig({ user_id: userId, commission_percentage: percentage });
-            fetchData();
-            setEditingCommission(null);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
     const calculateCommissionStats = (salespersonId: number) => {
         const personSales = sales.filter(s => s.salesperson_id === salespersonId);
-        const totalCommission = personSales.reduce((acc, curr) => acc + parseFloat(curr.commission_value), 0);
-        const paidCommission = personSales.filter(s => s.commission_status === 'PAGA').reduce((acc, curr) => acc + parseFloat(curr.commission_value), 0);
+        const totalCommission = personSales.reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
+        const paidCommission = personSales.filter(s => s.commission_status === 'PAGA').reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
         const pendingCommission = totalCommission - paidCommission;
         return { totalCommission, paidCommission, pendingCommission, count: personSales.length };
     };
 
-    const updateCommissionStatus = async (saleId: number, status: string) => {
+    const updateCommissionStatus = async (saleId: number, status: string, receiptUrl?: string) => {
         try {
-            await dbService.saveFinanceSale({ id: saleId, commission_status: status });
+            const updateData: any = { id: saleId, commission_status: status };
+            if (receiptUrl) {
+                updateData.commission_receipt_url = receiptUrl;
+            }
+            await dbService.saveFinanceSale(updateData);
             fetchData();
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const handleUploadReceiptAndPay = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !saleToPay) return;
+        
+        setUploadingReceipt(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const uploadData = await uploadRes.json();
+            const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
+            
+            await updateCommissionStatus(saleToPay.id, 'PAGA', hostedUrl);
+            setSaleToPay(null);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao fazer upload do comprovante.");
+        } finally {
+            setUploadingReceipt(false);
         }
     };
 
@@ -102,23 +124,14 @@ const FinanceCommissions = () => {
                 }
                 td { padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-                .input-percentage-finance {
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid var(--primary-color);
-                    border-radius: 8px;
-                    color: white;
-                    font-weight: 900;
-                    font-size: 0.8rem;
-                    padding: 4px 8px;
-                    width: 60px;
-                    outline: none;
-                }
+                .supreme-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px; }
+                .supreme-modal-content { background: #0f172a; border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 100%; max-width: 400px; padding: 40px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
             `}</style>
 
             <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
                 <div>
-                    <h1>Comissões & Incentivos</h1>
-                    <p className="subtitle">Gestão de remuneração variável e performance comercial</p>
+                    <h1>Comissões & Pagamentos</h1>
+                    <p className="subtitle">Gestão de repasses e liquidação de comissões para a equipe comercial</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -132,62 +145,6 @@ const FinanceCommissions = () => {
                 </div>
             </header>
 
-            {isAdmin && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    {salespeople.map((person) => (
-                        <div key={person.id} className="commission-card-finance">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
-                                    <User size={24} />
-                                </div>
-                                <div>
-                                    <h4 style={{ margin: 0, fontWeight: 900, color: 'white', fontSize: '1.1rem' }}>{person.name}</h4>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>COMERCIAL</span>
-                                </div>
-                            </div>
-
-                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Comissão</span>
-                                    {editingCommission === person.id ? (
-                                        <div className="flex items-center gap-2">
-                                            <input 
-                                                type="number" 
-                                                className="input-percentage-finance"
-                                                defaultValue={person.commission_percentage || 0}
-                                                id={`perc-${person.id}`}
-                                            />
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>%</span>
-                                        </div>
-                                    ) : (
-                                        <span style={{ fontSize: '1.4rem', fontWeight: 950, color: 'var(--primary-color)' }}>{person.commission_percentage || 0}%</span>
-                                    )}
-                                </div>
-                                
-                                {editingCommission === person.id ? (
-                                    <button 
-                                        onClick={() => {
-                                            const val = (document.getElementById(`perc-${person.id}`) as HTMLInputElement).value;
-                                            handleSaveConfig(person.id, parseFloat(val));
-                                        }}
-                                        style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '10px', padding: '10px', cursor: 'pointer' }}
-                                    >
-                                        <Save size={18} />
-                                    </button>
-                                ) : (
-                                    <button 
-                                        onClick={() => setEditingCommission(person.id)}
-                                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px', color: 'var(--text-muted)', cursor: 'pointer' }}
-                                    >
-                                        <Edit3 size={18} />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
             <div className="space-y-12">
                 {salespeople.map((person) => {
                     const stats = calculateCommissionStats(person.id);
@@ -195,7 +152,7 @@ const FinanceCommissions = () => {
 
                     return (
                         <div key={person.id}>
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center justify-between mb-4 mt-8">
                                 <div className="flex items-center gap-4">
                                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
                                         <User size={18} />
@@ -204,16 +161,16 @@ const FinanceCommissions = () => {
                                 </div>
                                 <div className="flex items-center gap-8">
                                     <div className="text-right">
-                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>ACUMULADO</span>
-                                        <h4 style={{ margin: 0, fontWeight: 950, color: 'white' }}>R$ {stats.totalCommission.toLocaleString('pt-BR')}</h4>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>ACUMULADO TOTAL</span>
+                                        <h4 style={{ margin: 0, fontWeight: 950, color: 'white' }}>R$ {stats.totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
                                     </div>
                                     <div className="text-right">
-                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>PAGO</span>
-                                        <h4 style={{ margin: 0, fontWeight: 950, color: '#10b981' }}>R$ {stats.paidCommission.toLocaleString('pt-BR')}</h4>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>LIQUIDADO</span>
+                                        <h4 style={{ margin: 0, fontWeight: 950, color: '#10b981' }}>R$ {stats.paidCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
                                     </div>
                                     <div className="text-right">
-                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#facc15', textTransform: 'uppercase' }}>A PAGAR</span>
-                                        <h4 style={{ margin: 0, fontWeight: 950, color: '#facc15' }}>R$ {stats.pendingCommission.toLocaleString('pt-BR')}</h4>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#facc15', textTransform: 'uppercase' }}>A REPASSAR</span>
+                                        <h4 style={{ margin: 0, fontWeight: 950, color: '#facc15' }}>R$ {stats.pendingCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
                                     </div>
                                 </div>
                             </div>
@@ -222,26 +179,26 @@ const FinanceCommissions = () => {
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th style={{ textAlign: 'left' }}>DATA</th>
-                                            <th style={{ textAlign: 'left' }}>CLIENTE</th>
-                                            <th style={{ textAlign: 'right' }}>BASE VENDA</th>
-                                            <th style={{ textAlign: 'right' }}>COMISSÃO</th>
-                                            <th style={{ textAlign: 'center' }}>STATUS</th>
+                                            <th style={{ textAlign: 'left' }}>COMPETÊNCIA</th>
+                                            <th style={{ textAlign: 'left' }}>CLIENTE & PACOTE</th>
+                                            <th style={{ textAlign: 'right' }}>BASE (R$)</th>
+                                            <th style={{ textAlign: 'right' }}>COMISSÃO (R$)</th>
+                                            <th style={{ textAlign: 'center' }}>SITUAÇÃO</th>
                                             <th style={{ textAlign: 'right' }}>AÇÕES</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {sales.filter(s => s.salesperson_id === person.id).map((sale) => (
                                             <tr key={sale.id}>
-                                                <td style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{new Date(sale.sale_date).toLocaleDateString('pt-BR')}</td>
+                                                <td style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{sale.payment_competence || new Date(sale.sale_date).toLocaleDateString('pt-BR')}</td>
                                                 <td>
                                                     <div className="flex flex-col">
                                                         <span style={{ fontWeight: 900, color: 'white', fontSize: '0.9rem' }}>{sale.client_name}</span>
                                                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>{sale.package_hired}</span>
                                                     </div>
                                                 </td>
-                                                <td style={{ textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>R$ {parseFloat(sale.total_value).toLocaleString('pt-BR')}</td>
-                                                <td style={{ textAlign: 'right', fontSize: '0.9rem', fontWeight: 950, color: 'var(--primary-color)' }}>R$ {parseFloat(sale.commission_value).toLocaleString('pt-BR')}</td>
+                                                <td style={{ textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>R$ {parseFloat(sale.total_value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                                <td style={{ textAlign: 'right', fontSize: '0.9rem', fontWeight: 950, color: 'var(--primary-color)' }}>R$ {parseFloat(sale.commission_value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
                                                 <td style={{ textAlign: 'center' }}>
                                                     <span style={{ 
                                                         fontSize: '0.65rem', 
@@ -256,17 +213,30 @@ const FinanceCommissions = () => {
                                                     </span>
                                                 </td>
                                                 <td style={{ textAlign: 'right' }}>
-                                                    {isAdmin && sale.commission_status !== 'PAGA' && (
-                                                        <button 
-                                                            onClick={() => updateCommissionStatus(sale.id, 'PAGA')}
-                                                            style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer' }}
-                                                        >
-                                                            <CheckCircle2 size={14} />
-                                                        </button>
-                                                    )}
+                                                    <div className="flex justify-end gap-2">
+                                                        {sale.commission_receipt_url && (
+                                                            <button 
+                                                                onClick={() => window.open(sale.commission_receipt_url, '_blank')}
+                                                                style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                            >
+                                                                <ExternalLink size={14} /> COMPROVANTE
+                                                            </button>
+                                                        )}
+                                                        {isAdmin && sale.commission_status !== 'PAGA' && (
+                                                            <button 
+                                                                onClick={() => setSaleToPay(sale)}
+                                                                style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                            >
+                                                                <CheckCircle2 size={14} /> LIQUIDAR
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
+                                        {sales.filter(s => s.salesperson_id === person.id).length === 0 && (
+                                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUMA COMISSÃO REGISTRADA</td></tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -274,6 +244,57 @@ const FinanceCommissions = () => {
                     );
                 })}
             </div>
+
+            {/* Modal de Pagamento de Comissão */}
+            {saleToPay && (
+                <div className="supreme-modal-overlay" onClick={() => !uploadingReceipt && setSaleToPay(null)}>
+                    <div className="supreme-modal-content" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => !uploadingReceipt && setSaleToPay(null)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                            <X size={24} />
+                        </button>
+                        
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto' }}>
+                            <DollarSign size={32} />
+                        </div>
+                        <h2 style={{ margin: '0 0 8px 0', fontSize: '1.5rem', fontWeight: 900, color: 'white' }}>
+                            Liquidar Comissão
+                        </h2>
+                        <p style={{ margin: '0 0 24px 0', fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                            Você está prestes a registrar o repasse de comissão referente à campanha do cliente <strong style={{ color: 'white' }}>{saleToPay.client_name}</strong> no valor de <strong style={{ color: 'var(--primary-color)' }}>R$ {parseFloat(saleToPay.commission_value).toLocaleString('pt-BR')}</strong>.
+                        </p>
+                        
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            style={{ display: 'none' }} 
+                            onChange={handleUploadReceiptAndPay}
+                            accept="image/*,.pdf"
+                        />
+                        
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploadingReceipt}
+                                style={{ width: '100%', background: 'var(--primary-color)', color: '#000', border: 'none', borderRadius: '14px', padding: '16px', fontWeight: 900, fontSize: '0.9rem', cursor: uploadingReceipt ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                            >
+                                {uploadingReceipt ? <RefreshCw size={18} className="animate-spin" /> : <Upload size={18} />}
+                                {uploadingReceipt ? 'ENVIANDO...' : 'ANEXAR COMPROVANTE E LIQUIDAR'}
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    updateCommissionStatus(saleToPay.id, 'PAGA');
+                                    setSaleToPay(null);
+                                }}
+                                disabled={uploadingReceipt}
+                                style={{ width: '100%', background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '16px', fontWeight: 900, fontSize: '0.8rem', cursor: uploadingReceipt ? 'not-allowed' : 'pointer' }}
+                            >
+                                LIQUIDAR SEM COMPROVANTE
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

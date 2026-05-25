@@ -712,9 +712,15 @@ const initDB = async () => {
                 investment_used NUMERIC DEFAULT 0,
                 campaign_status TEXT DEFAULT 'ATIVA',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                submission_id INTEGER,
+                salesperson_name TEXT,
+                comissao_vendedor NUMERIC
             )
         `);
+        
+        await client.query("ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS commission_receipt_url TEXT");
+        
         console.log('✅ Finance tables verified/created.');
 
         // ============================================================

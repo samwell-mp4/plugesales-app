@@ -3,26 +3,25 @@ import {
     Activity, TrendingUp, DollarSign, 
     ArrowUpRight, ArrowDownRight, RefreshCw,
     PieChart, BarChart3, Calendar, Target,
-    Package, Users, CheckCircle2, AlertCircle
+    Package, Users, CheckCircle2, AlertCircle, Award
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 
 const FinanceDashboard = () => {
     const { user } = useAuth();
-    const [stats, setStats] = useState<any>(null);
+    const [sales, setSales] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [timeRange, setTimeRange] = useState('Este Mês');
 
     useEffect(() => {
-        fetchStats();
+        fetchSales();
     }, []);
 
-    const fetchStats = async () => {
+    const fetchSales = async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getFinanceStats(user?.id, user?.role);
-            setStats(data);
+            const data = await dbService.getFinanceSales();
+            setSales(data);
         } catch (err) {
             console.error(err);
         } finally {
@@ -30,55 +29,68 @@ const FinanceDashboard = () => {
         }
     };
 
+    // Cálculos
+    const totalRevenue = sales.reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+    const totalReceived = sales.filter(s => s.payment_status === 'RECEBIDO').reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+    const totalPending = sales.filter(s => s.payment_status === 'PENDENTE').reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+    const totalOverdue = sales.filter(s => s.payment_status === 'INADIMPLENTE').reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+    
+    const totalCommission = sales.reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
+    const netProfit = totalRevenue - totalCommission;
+
+    const efficiency = totalRevenue > 0 ? (totalReceived / totalRevenue) * 100 : 0;
+
+    // Top Clientes
+    const clientsRevenue = sales.reduce((acc: any, curr) => {
+        acc[curr.client_name] = (acc[curr.client_name] || 0) + parseFloat(curr.total_value || 0);
+        return acc;
+    }, {});
+    const topClients = Object.entries(clientsRevenue)
+        .sort((a: any, b: any) => b[1] - a[1])
+        .slice(0, 5);
+
+    // Receita por Pacote
+    const packageRevenue = sales.reduce((acc: any, curr) => {
+        const pkg = curr.package_hired || 'OUTRO';
+        acc[pkg] = (acc[pkg] || 0) + parseFloat(curr.total_value || 0);
+        return acc;
+    }, {});
+
     const metrics = [
         { 
             label: 'Faturamento Total', 
-            value: `R$ ${parseFloat(stats?.total_revenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, 
-            trend: '+12.5%', 
-            up: true, 
+            value: `R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+            subtitle: 'Receita bruta gerada',
             icon: <DollarSign size={24} />, 
             color: 'var(--primary-color)' 
         },
         { 
-            label: 'Total Recebido', 
-            value: `R$ ${parseFloat(stats?.total_received || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, 
-            trend: '+8.2%', 
-            up: true, 
-            icon: <CheckCircle2 size={24} />, 
+            label: 'Lucro Líquido', 
+            value: `R$ ${netProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+            subtitle: 'Faturamento - Comissões',
+            icon: <TrendingUp size={24} />, 
             color: '#10b981' 
         },
         { 
-            label: 'Pendências (Receber)', 
-            value: `R$ ${parseFloat(stats?.total_pending || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, 
-            trend: '-2.4%', 
-            up: false, 
-            icon: <AlertCircle size={24} />, 
-            color: '#f59e0b' 
+            label: 'Liquidez (Recebido)', 
+            value: `R$ ${totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+            subtitle: `${efficiency.toFixed(1)}% de eficiência`,
+            icon: <CheckCircle2 size={24} />, 
+            color: '#38bdf8' 
         },
         { 
-            label: 'Comissões Previstas', 
-            value: `R$ ${parseFloat(stats?.total_commission || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, 
-            trend: '+15%', 
-            up: true, 
-            icon: <Users size={24} />, 
-            color: '#3b82f6' 
+            label: 'Inadimplência', 
+            value: `R$ ${totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+            subtitle: 'Atrasos no pagamento',
+            icon: <AlertCircle size={24} />, 
+            color: '#ef4444' 
         },
     ];
-
-    const efficiency = stats?.total_revenue > 0 ? (stats.total_received / stats.total_revenue) * 100 : 0;
 
     return (
         <div className="animate-fade-in finance-page" style={{ padding: '40px', paddingBottom: '80px' }}>
             <style>{`
-                .finance-page h1 { 
-                    font-weight: 900 !important; 
-                    font-size: 2.5rem !important; 
-                    letter-spacing: -1.5px !important; 
-                    margin: 0 !important; 
-                    color: white !important;
-                    background: none !important;
-                    -webkit-text-fill-color: initial !important;
-                }
+                .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
                 .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
                 
                 .stats-grid-finance { 
@@ -98,117 +110,38 @@ const FinanceDashboard = () => {
                     transition: all 0.3s ease;
                 }
                 .glass-card-finance:hover {
-                    transform: translateY(-5px);
-                    border-color: rgba(172, 248, 0, 0.2);
-                    background: rgba(255, 255, 255, 0.05);
+                    border-color: rgba(255, 255, 255, 0.15);
+                    transform: translateY(-2px);
                 }
 
-                .stat-label-finance {
-                    font-size: 0.7rem;
-                    font-weight: 800;
-                    color: var(--text-muted);
-                    text-transform: uppercase;
-                    letter-spacing: 1.5px;
-                    margin-bottom: 12px;
-                    display: block;
-                }
-
-                .stat-value-finance {
-                    font-size: 1.8rem;
-                    font-weight: 900;
-                    color: white;
-                    letter-spacing: -1px;
-                }
-
-                .trend-badge {
-                    font-size: 0.7rem;
-                    font-weight: 900;
-                    padding: 4px 8px;
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                }
-
-                .premium-select-container {
-                    background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    border-radius: 14px;
-                    padding: 8px 16px;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    backdrop-filter: blur(10px);
-                }
-                .premium-select-container select {
-                    background: transparent;
-                    border: none;
-                    color: white;
-                    font-weight: 800;
-                    font-size: 0.8rem;
-                    outline: none;
-                    cursor: pointer;
-                    width: 100%;
-                }
-
-                .progress-track-finance {
-                    width: 100%;
-                    height: 6px;
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 10px;
-                    margin-top: 20px;
-                    overflow: hidden;
-                }
-                .progress-fill-finance {
+                .chart-container-finance {
+                    background: var(--card-bg-subtle, rgba(255, 255, 255, 0.03));
+                    border: 1px solid var(--surface-border-subtle, rgba(255, 255, 255, 0.08));
+                    border-radius: 24px;
+                    padding: 32px;
                     height: 100%;
-                    border-radius: 10px;
-                    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+                    backdrop-filter: blur(20px);
                 }
-
-                @media (max-width: 1024px) {
-                    .finance-page { padding: 20px; }
-                    .stats-grid-finance { 
-                        display: flex; 
-                        overflow-x: auto; 
-                        padding-bottom: 20px;
-                        margin-left: -20px;
-                        margin-right: -20px;
-                        padding-left: 20px;
-                        padding-right: 20px;
-                        scrollbar-width: none;
-                    }
-                    .stats-grid-finance::-webkit-scrollbar { display: none; }
-                    .glass-card-finance { flex: 0 0 280px; }
+                
+                .progress-track {
+                    width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden;
+                }
+                .progress-fill {
+                    height: 100%; background: var(--primary-color); border-radius: 10px;
                 }
             `}</style>
 
             <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
                 <div>
                     <h1>Dashboard Financeiro</h1>
-                    <p className="subtitle">Visão consolidada de faturamento e eficiência operacional</p>
+                    <p className="subtitle">Visão geral do caixa e performance de vendas</p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="premium-select-container">
-                        <Calendar size={14} color="var(--primary-color)" />
-                        <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
-                            <option value="Este Mês" style={{ background: '#0f172a' }}>Este Mês</option>
-                            <option value="Últimos 3 Meses" style={{ background: '#0f172a' }}>Últimos 3 Meses</option>
-                            <option value="Ano Atual" style={{ background: '#0f172a' }}>Ano Atual</option>
-                        </select>
-                    </div>
-                    
                     <button 
-                        onClick={fetchStats} 
+                        onClick={fetchSales} 
                         disabled={isLoading}
-                        style={{ 
-                            background: 'rgba(255, 255, 255, 0.03)', 
-                            border: '1px solid rgba(255, 255, 255, 0.08)', 
-                            borderRadius: '14px', 
-                            padding: '12px',
-                            color: 'white',
-                            cursor: 'pointer'
-                        }}
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px', color: 'white', cursor: 'pointer' }}
                     >
                         <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
@@ -219,84 +152,89 @@ const FinanceDashboard = () => {
                 {metrics.map((m, i) => (
                     <div key={i} className="glass-card-finance" style={{ borderLeft: `4px solid ${m.color}` }}>
                         <div className="flex justify-between items-start mb-4">
-                            <span className="stat-label-finance">{m.label}</span>
-                            <div style={{ color: m.color, opacity: 0.4 }}>{m.icon}</div>
-                        </div>
-                        <div className="flex items-end justify-between">
-                            <span className="stat-value-finance">{isLoading ? '...' : m.value}</span>
-                            <div className="trend-badge" style={{ background: m.up ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: m.up ? '#10b981' : '#ef4444' }}>
-                                {m.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                {m.trend}
+                            <div style={{ color: m.color, background: `${m.color}15`, padding: '12px', borderRadius: '16px' }}>
+                                {m.icon}
                             </div>
+                        </div>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>{m.label}</p>
+                        <h2 style={{ margin: '8px 0', fontSize: '1.8rem', fontWeight: 900, color: 'white' }}>{m.value}</h2>
+                        <div className="flex items-center gap-2 mt-4">
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{m.subtitle}</span>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 mt-4">
-                <div className="glass-card-finance">
-                    <div className="flex items-center gap-3 mb-10">
-                        <BarChart3 size={20} color="var(--primary-color)" />
-                        <h3 style={{ margin: 0, fontWeight: 900, color: 'white' }}>Performance por Categoria</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Receita por Status */}
+                <div className="chart-container-finance">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'white' }}>Top 5 Clientes</h3>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Maior volume de faturamento gerado</p>
+                        </div>
+                        <Award size={24} color="var(--primary-color)" />
                     </div>
 
-                    <div className="space-y-8">
-                        {[
-                            { name: 'WhatsApp Starter', value: 4500, total: 10000, color: '#10b981' },
-                            { name: 'WhatsApp Growth', value: 8200, total: 10000, color: 'var(--primary-color)' },
-                            { name: 'WhatsApp Enterprise', value: 3100, total: 10000, color: '#3b82f6' },
-                            { name: 'Consultoria', value: 1500, total: 10000, color: '#f59e0b' },
-                        ].map((item, i) => {
-                            const percentage = (item.value / item.total) * 100;
+                    <div className="space-y-6">
+                        {topClients.map(([clientName, val]: any, index) => {
+                            const pct = totalRevenue > 0 ? (val / totalRevenue) * 100 : 0;
                             return (
-                                <div key={i}>
+                                <div key={index}>
                                     <div className="flex justify-between items-center mb-2">
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{item.name}</span>
-                                        <div className="flex items-center gap-4">
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'white' }}>R$ {item.value.toLocaleString()}</span>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: item.color }}>{percentage.toFixed(0)}%</span>
+                                        <div className="flex items-center gap-3">
+                                            <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-muted)' }}>#{index + 1}</span>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'white' }}>{clientName}</span>
                                         </div>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {val.toLocaleString('pt-BR')}</span>
                                     </div>
-                                    <div className="progress-track-finance">
-                                        <div className="progress-fill-finance" style={{ width: `${percentage}%`, background: item.color, boxShadow: `0 0 10px ${item.color}44` }}></div>
+                                    <div className="progress-track">
+                                        <div className="progress-fill" style={{ width: `${pct}%`, background: index === 0 ? 'var(--primary-color)' : index === 1 ? '#10b981' : '#38bdf8' }}></div>
                                     </div>
                                 </div>
                             );
                         })}
+                        {topClients.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontWeight: 800 }}>Nenhum faturamento registrado</div>
+                        )}
                     </div>
                 </div>
 
-                <div className="glass-card-finance flex flex-col items-center justify-center p-10">
-                    <div className="text-center mb-10">
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '4px' }}>HEALTH SCORE</span>
-                        <h3 style={{ margin: '8px 0 0', fontWeight: 900, color: 'white', fontSize: '1.4rem' }}>Eficiência de Caixa</h3>
-                    </div>
-
-                    <div className="relative w-48 h-48 flex items-center justify-center mb-10">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="96" cy="96" r="88" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="12" />
-                            <circle 
-                                cx="96" cy="96" r="88" fill="transparent" stroke="var(--primary-color)" strokeWidth="12" 
-                                strokeDasharray={552.9} 
-                                strokeDashoffset={552.9 * (1 - efficiency / 100)} 
-                                strokeLinecap="round" 
-                                style={{ transition: 'stroke-dashoffset 1.5s ease' }}
-                            />
-                        </svg>
-                        <div className="absolute flex flex-col items-center">
-                            <span style={{ fontSize: '3rem', fontWeight: 900, color: 'white', letterSpacing: '-2px' }}>{efficiency.toFixed(0)}%</span>
-                            <span style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '2px', textTransform: 'uppercase' }}>Taxa Rec.</span>
+                {/* Resumo de Pacotes e Status */}
+                <div className="space-y-6">
+                    <div className="chart-container-finance" style={{ height: 'auto', padding: '24px' }}>
+                        <div className="flex items-center gap-3 mb-6">
+                            <Package size={20} color="var(--primary-color)" />
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>Distribuição de Pacotes</h3>
+                        </div>
+                        <div className="space-y-4">
+                            {Object.entries(packageRevenue).map(([pkg, val]: any) => (
+                                <div key={pkg} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'white' }}>{pkg}</span>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {val.toLocaleString('pt-BR')}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="w-full space-y-3">
-                        <div className="flex justify-between items-center p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Recebido</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'white' }}>R$ {parseFloat(stats?.total_received || 0).toLocaleString()}</span>
+                    <div className="chart-container-finance" style={{ height: 'auto', padding: '24px' }}>
+                        <div className="flex items-center gap-3 mb-6">
+                            <Activity size={20} color="#10b981" />
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>Resumo de Recebimentos</h3>
                         </div>
-                        <div className="flex justify-between items-center p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Pendente</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'white' }}>R$ {parseFloat(stats?.total_pending || 0).toLocaleString()}</span>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                            <div style={{ textAlign: 'center', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '16px', padding: '16px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+                                <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#10b981', marginBottom: '4px' }}>LIQUIDADO</span>
+                                <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>{sales.filter(s => s.payment_status === 'RECEBIDO').length}</span>
+                            </div>
+                            <div style={{ textAlign: 'center', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '16px', padding: '16px', border: '1px solid rgba(245, 158, 11, 0.1)' }}>
+                                <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#f59e0b', marginBottom: '4px' }}>PENDENTE</span>
+                                <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>{sales.filter(s => s.payment_status === 'PENDENTE').length}</span>
+                            </div>
+                            <div style={{ textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '16px', padding: '16px', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+                                <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#ef4444', marginBottom: '4px' }}>ATRASO</span>
+                                <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>{sales.filter(s => s.payment_status === 'INADIMPLENTE').length}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

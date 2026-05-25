@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
     BarChart3, PieChart, Download, 
     RefreshCw, Calendar, TrendingUp,
-    Package, DollarSign, Target, Activity
+    Package, DollarSign, Target, Activity, Users, AlertCircle
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,16 +37,17 @@ const FinanceReports = () => {
         XLSX.writeFile(wb, `bi_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
+    // Novas métricas financeiras relevantes
+    const totalRevenue = sales.reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+    const totalCommissions = sales.reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
+    const netProfit = totalRevenue - totalCommissions;
+    const totalOverdue = sales.filter(s => s.payment_status === 'INADIMPLENTE').reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
+
     const revenueByPackage = sales.reduce((acc: any, curr) => {
         const pkg = curr.package_hired || 'Outros';
-        acc[pkg] = (acc[pkg] || 0) + parseFloat(curr.total_value);
+        acc[pkg] = (acc[pkg] || 0) + parseFloat(curr.total_value || 0);
         return acc;
     }, {});
-
-    const totalRevenue = sales.reduce((acc, curr) => acc + parseFloat(curr.total_value), 0);
-    const totalDelivered = sales.reduce((acc, curr) => acc + (curr.quantity_delivered || 0), 0);
-    const totalInvestment = sales.reduce((acc, curr) => acc + parseFloat(curr.investment_used || 0), 0);
-    const cpa = totalDelivered > 0 ? totalInvestment / totalDelivered : 0;
 
     return (
         <div className="animate-fade-in finance-page" style={{ padding: '40px', paddingBottom: '80px' }}>
@@ -87,40 +88,30 @@ const FinanceReports = () => {
                     box-shadow: 0 0 15px var(--primary-color);
                     transition: width 1s ease;
                 }
-
-                .table-container-report {
-                    background: var(--card-bg-subtle, rgba(255, 255, 255, 0.03));
-                    border: 1px solid var(--surface-border-subtle, rgba(255, 255, 255, 0.08));
-                    border-radius: 24px;
-                    overflow: hidden;
-                    margin-top: 32px;
-                }
-                table { width: 100%; border-collapse: collapse; }
-                th { 
-                    padding: 18px 24px; 
-                    background: rgba(255,255,255,0.02); 
-                    color: var(--text-muted); 
-                    font-size: 0.75rem; 
-                    font-weight: 800; 
-                    text-transform: uppercase; 
-                    letter-spacing: 1px;
-                    text-align: left;
-                }
-                td { padding: 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
             `}</style>
 
-            <header className="flex flex-wrap items-center justify-between gap-6 mb-10">
+            <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
                 <div>
-                    <h1>Relatórios Consolidados</h1>
-                    <p className="subtitle">Business Intelligence e métricas de performance operacional</p>
+                    <h1>Relatórios Financeiros</h1>
+                    <p className="subtitle">Análise avançada de performance e rentabilidade</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-16 px-5 py-2">
-                        <Calendar size={14} color="var(--primary-color)" />
-                        <input type="date" className="bg-transparent border-none outline-none text-white font-bold text-xs" value={dateRange.start} onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
-                        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--text-muted)' }}>ATÉ</span>
-                        <input type="date" className="bg-transparent border-none outline-none text-white font-bold text-xs" value={dateRange.end} onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Calendar size={18} color="var(--primary-color)" />
+                        <input 
+                            type="date" 
+                            className="premium-input-finance"
+                            value={dateRange.start}
+                            onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                        />
+                        <span style={{ color: 'var(--text-muted)' }}>-</span>
+                        <input 
+                            type="date" 
+                            className="premium-input-finance"
+                            value={dateRange.end}
+                            onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                        />
                     </div>
                     
                     <button 
@@ -130,133 +121,113 @@ const FinanceReports = () => {
                     >
                         <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
-
+                    
                     <button 
                         onClick={exportFullReport}
-                        style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '12px 24px', fontWeight: 950, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '12px 24px', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                     >
-                        <Download size={18} /> EXPORTAR FULL
+                        <Download size={16} /> EXPORTAR BI
                     </button>
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                <div className="glass-card-report lg:col-span-2">
-                    <div className="flex items-center gap-3 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="glass-card-report">
+                    <div className="flex items-center justify-between mb-4">
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>FATURAMENTO BRUTO</span>
                         <DollarSign size={20} color="var(--primary-color)" />
-                        <h3 style={{ margin: 0, fontWeight: 900, color: 'white', fontSize: '1.4rem' }}>Receita por Pacote</h3>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                        <div className="space-y-6">
-                            {Object.entries(revenueByPackage).map(([pkg, value]: [string, any]) => {
-                                const percentage = (value / (totalRevenue || 1)) * 100;
-                                return (
-                                    <div key={pkg}>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{pkg}</span>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 950, color: 'white' }}>R$ {value.toLocaleString('pt-BR')}</span>
-                                        </div>
-                                        <div className="progress-track-report">
-                                            <div className="progress-fill-report" style={{ width: `${percentage}%` }}></div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        
-                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '40px', borderRadius: '40px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
-                            <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)', margin: '0 auto 24px' }}>
-                                <TrendingUp size={32} />
-                            </div>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '4px' }}>VOLUME BRUTO</span>
-                            <h2 style={{ margin: '8px 0 0', fontSize: '3.2rem', fontWeight: 950, color: 'white', letterSpacing: '-2px' }}>R$ {totalRevenue.toLocaleString('pt-BR')}</h2>
-                        </div>
-                    </div>
+                    <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'white', margin: 0 }}>
+                        R$ {totalRevenue.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </h2>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>Total faturado no período</p>
                 </div>
 
-                <div className="glass-card-report flex flex-col gap-8 bg-primary-color/[0.03]">
-                    <div className="flex items-center gap-3">
-                        <Target size={20} color="var(--primary-color)" />
-                        <h3 style={{ margin: 0, fontWeight: 900, color: 'white', fontSize: '1.4rem' }}>Performance KPIs</h3>
+                <div className="glass-card-report">
+                    <div className="flex items-center justify-between mb-4">
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>COMISSÕES DA EQUIPE</span>
+                        <Users size={20} color="#38bdf8" />
                     </div>
+                    <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'white', margin: 0 }}>
+                        R$ {totalCommissions.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </h2>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Custo com vendedores</p>
+                </div>
 
-                    <div className="space-y-6">
-                        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '24px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Unidades Entregues</span>
-                            <div className="flex justify-between items-end">
-                                <h4 style={{ margin: 0, fontSize: '2.4rem', fontWeight: 950, color: 'white' }}>{totalDelivered.toLocaleString()} <span style={{ fontSize: '0.8rem', opacity: 0.4 }}>UNID</span></h4>
-                                <Package size={24} color="var(--primary-color)" opacity={0.3} />
-                            </div>
-                        </div>
-
-                        <div style={{ background: 'var(--primary-color)', padding: '32px', borderRadius: '32px', color: 'black' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', display: 'block', marginBottom: '8px', opacity: 0.7 }}>ROI Operacional (CPA)</span>
-                            <h4 style={{ margin: 0, fontSize: '3rem', fontWeight: 950, letterSpacing: '-2px' }}>R$ {cpa.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</h4>
-                            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem', fontWeight: 900 }}>
-                                <Activity size={14} />
-                                <span>SINCRONIZADO EM TEMPO REAL</span>
-                            </div>
-                        </div>
+                <div className="glass-card-report" style={{ borderLeft: '4px solid #10b981' }}>
+                    <div className="flex items-center justify-between mb-4">
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>LUCRO LÍQUIDO</span>
+                        <TrendingUp size={20} color="#10b981" />
                     </div>
+                    <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981', margin: 0 }}>
+                        R$ {netProfit.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </h2>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Faturamento menos comissões</p>
+                </div>
+
+                <div className="glass-card-report" style={{ borderLeft: '4px solid #ef4444' }}>
+                    <div className="flex items-center justify-between mb-4">
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>INADIMPLÊNCIA</span>
+                        <AlertCircle size={20} color="#ef4444" />
+                    </div>
+                    <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#ef4444', margin: 0 }}>
+                        R$ {totalOverdue.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </h2>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Pagamentos em atraso</p>
                 </div>
             </div>
 
-            <div className="table-container-report">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>CONTRATO / CLIENTE</th>
-                            <th>META UNIDADES</th>
-                            <th>PROGRESSO (%)</th>
-                            <th style={{ textAlign: 'right' }}>ROI ESTIMADO</th>
-                            <th style={{ textAlign: 'center' }}>STATUS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sales.map(sale => {
-                            const progress = (sale.quantity_delivered / (sale.quantity_hired || 1)) * 100;
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="glass-card-report">
+                    <h3 style={{ margin: '0 0 24px 0', fontSize: '1.2rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Package size={20} color="var(--primary-color)" /> Faturamento por Pacote
+                    </h3>
+                    
+                    <div className="space-y-6">
+                        {Object.entries(revenueByPackage).map(([pkg, value]: any) => {
+                            const percent = totalRevenue > 0 ? (value / totalRevenue) * 100 : 0;
                             return (
-                                <tr key={sale.id}>
-                                    <td>
-                                        <div className="flex flex-col">
-                                            <span style={{ fontWeight: 900, color: 'white', fontSize: '0.95rem' }}>{sale.client_name}</span>
-                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>{sale.package_hired}</span>
+                                <div key={pkg}>
+                                    <div className="flex justify-between items-end mb-2">
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'white' }}>{pkg}</span>
+                                        <div className="text-right">
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {value.toLocaleString('pt-BR')}</span>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '8px' }}>{percent.toFixed(1)}%</span>
                                         </div>
-                                    </td>
-                                    <td><span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white' }}>{sale.quantity_hired?.toLocaleString()} UNID</span></td>
-                                    <td>
-                                        <div style={{ width: '200px' }}>
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--primary-color)' }}>{sale.quantity_delivered?.toLocaleString()}</span>
-                                                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)' }}>{progress.toFixed(0)}%</span>
-                                            </div>
-                                            <div className="progress-track-report" style={{ height: '4px', marginTop: 0 }}>
-                                                <div className="progress-fill-report" style={{ width: `${Math.min(progress, 100)}%` }}></div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style={{ textAlign: 'right', fontWeight: 900, color: 'white', fontSize: '1rem' }}>
-                                        {sale.investment_used > 0 ? ((parseFloat(sale.total_value) / parseFloat(sale.investment_used))).toFixed(2) + 'x' : '---'}
-                                    </td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <span style={{ 
-                                            fontSize: '0.65rem', 
-                                            fontWeight: 900, 
-                                            padding: '4px 10px', 
-                                            borderRadius: '20px', 
-                                            background: sale.campaign_status === 'ATIVA' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                                            color: sale.campaign_status === 'ATIVA' ? '#10b981' : 'var(--text-muted)',
-                                            border: `1px solid ${sale.campaign_status === 'ATIVA' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.1)'}`
-                                        }}>
-                                            {sale.campaign_status === 'ATIVA' ? 'EM EXECUÇÃO' : 'FINALIZADO'}
-                                        </span>
-                                    </td>
-                                </tr>
+                                    </div>
+                                    <div className="progress-track-report">
+                                        <div className="progress-fill-report" style={{ width: `${percent}%` }}></div>
+                                    </div>
+                                </div>
                             );
                         })}
-                    </tbody>
-                </table>
+                    </div>
+                </div>
+
+                <div className="glass-card-report">
+                    <h3 style={{ margin: '0 0 24px 0', fontSize: '1.2rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <BarChart3 size={20} color="var(--primary-color)" /> Resumo Operacional
+                    </h3>
+                    
+                    <div className="space-y-4">
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Total de Lançamentos Registrados</span>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>{sales.length}</span>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Ticket Médio (Faturamento / Lançamentos)</span>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-color)' }}>
+                                R$ {sales.length > 0 ? (totalRevenue / sales.length).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '0,00'}
+                            </span>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Lucratividade (%)</span>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#10b981' }}>
+                                {totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0'}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
