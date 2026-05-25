@@ -2798,6 +2798,46 @@ app.put('/api/client-submissions/:id', async (req, res) => {
         ];
 
         await pool.query(`UPDATE client_submissions SET ${setClause} WHERE id = $${values.length}`, values);
+        
+        // --- NOVIDADE: CRIAR VENDA QUANDO STATUS FOR GERADO ---
+        if (body.status === 'GERADO') {
+            const subRes = await pool.query("SELECT * FROM client_submissions WHERE id = $1", [id]);
+            if (subRes.rows.length > 0) {
+                const sub = subRes.rows[0];
+                if (sub.user_id) {
+                    const userRes = await pool.query("SELECT * FROM users WHERE id = $1", [sub.user_id]);
+                    if (userRes.rows.length > 0) {
+                        const user = userRes.rows[0];
+                        const checkFinance = await pool.query("SELECT * FROM finance_sales WHERE submission_id = $1", [id]);
+                        if (checkFinance.rows.length === 0) {
+                            let precoVendidoStr = String(user.preco_vendido || '0').replace(',', '.').trim();
+                            let precoVendido = parseFloat(precoVendidoStr) || 0;
+                            
+                            await pool.query(`
+                                INSERT INTO finance_sales (
+                                    client_name, client_cpf_cnpj, package_hired, quantity_hired, unit_value, total_value, 
+                                    salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor, salesperson_id
+                                ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10, $11)
+                            `, [
+                                user.name, 
+                                user.phone || '', 
+                                user.pacote || 'Avulso', 
+                                0, 
+                                precoVendido, 
+                                0, 
+                                user.seller_name || sub.assigned_to || '',
+                                id,
+                                new Date().toISOString().substring(0, 7),
+                                user.comissao_vendedor || '',
+                                null // we could set salesperson_id if known, but let's keep it null as report logic does
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+        // ------------------------------------------------------
+
         res.json({ success: true });
     } catch (err) {
         console.error('Error updating submission:', err);

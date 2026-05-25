@@ -21,6 +21,8 @@ const FinanceSales = () => {
     // Filtros
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('TODOS');
+    const [filterSalesperson, setFilterSalesperson] = useState('TODOS');
+    const [filterClient, setFilterClient] = useState('TODOS');
     
     const [editingSale, setEditingSale] = useState<any>(null);
     const [uploadingReceipt, setUploadingReceipt] = useState<number | null>(null);
@@ -187,8 +189,14 @@ const FinanceSales = () => {
             (s.salesperson_name || '').toLowerCase().includes(term);
         
         const matchesStatus = filterStatus === 'TODOS' || s.payment_status === filterStatus;
-        return matchesSearch && matchesStatus;
+        const matchesSalesperson = filterSalesperson === 'TODOS' || String(s.salesperson_id) === filterSalesperson;
+        const matchesClient = filterClient === 'TODOS' || s.client_name === filterClient;
+        
+        return matchesSearch && matchesStatus && matchesSalesperson && matchesClient;
     });
+
+    // Extract unique clients for filter dropdown
+    const uniqueClients = Array.from(new Set(sales.map(s => s.client_name).filter(Boolean))).sort();
 
     return (
         <div className="animate-fade-in finance-page" style={{ padding: '40px', paddingBottom: '80px' }}>
@@ -290,6 +298,29 @@ const FinanceSales = () => {
 
                     <select 
                         className="filter-select"
+                        value={filterSalesperson}
+                        onChange={(e) => setFilterSalesperson(e.target.value)}
+                    >
+                        <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Vendedores</option>
+                        {salespeople.map(sp => (
+                            <option key={sp.id} value={String(sp.id)} style={{ background: '#0a0f18' }}>{sp.name}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className="filter-select"
+                        value={filterClient}
+                        onChange={(e) => setFilterClient(e.target.value)}
+                        style={{ maxWidth: '200px' }}
+                    >
+                        <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Clientes</option>
+                        {uniqueClients.map(client => (
+                            <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        className="filter-select"
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                     >
@@ -377,7 +408,15 @@ const FinanceSales = () => {
                                         <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', fontWeight: 900 }}>{sale.quantity_hired} UNID.</span>
                                     </div>
                                 </td>
-                                <td><span style={{ fontWeight: 900, color: 'white', fontSize: '1rem' }}>R$ {parseFloat(sale.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></td>
+                                <td>
+                                    {parseFloat(sale.total_value) === 0 ? (
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 900, background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-muted)' }}>
+                                            AGUARDANDO RELATÓRIO
+                                        </span>
+                                    ) : (
+                                        <span style={{ fontWeight: 900, color: 'white', fontSize: '1rem' }}>R$ {parseFloat(sale.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                    )}
+                                </td>
                                 <td>
                                     <span className="badge-finance" style={{ 
                                         background: sale.payment_status === 'RECEBIDO' ? 'rgba(16, 185, 129, 0.1)' : sale.payment_status === 'PENDENTE' ? 'rgba(250, 204, 21, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
