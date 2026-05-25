@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Zap, Search, Plus, Edit2, Trash2,
     Download, Filter, ChevronLeft, ChevronRight,
@@ -18,6 +19,10 @@ const FinanceSales = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
 
     // Filtros
     const [searchTerm, setSearchTerm] = useState('');
@@ -218,6 +223,13 @@ const FinanceSales = () => {
 
         return matchesSearch && matchesStatus && matchesSalesperson && matchesClient && matchesDate;
     });
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterStatus, filterSalesperson, filterClient, filterStartDate, filterEndDate]);
+
+    const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
+    const paginatedSales = filteredSales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     // Extract unique clients for filter dropdown
     const uniqueClients = Array.from(new Set(sales.map(s => s.client_name).filter(Boolean))).sort();
@@ -623,9 +635,9 @@ const FinanceSales = () => {
                     <tbody>
                         {isLoading ? (
                             <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px' }}><RefreshCw className="animate-spin mx-auto text-primary-color" /></td></tr>
-                        ) : filteredSales.length === 0 ? (
+                        ) : paginatedSales.length === 0 ? (
                             <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUM REGISTRO ENCONTRADO</td></tr>
-                        ) : filteredSales.map((sale) => (
+                        ) : paginatedSales.map((sale) => (
                             <tr key={sale.id} style={{ transition: 'all 0.2s', background: selectedSales.includes(sale.id) ? 'rgba(56, 189, 248, 0.05)' : 'transparent' }}>
                                 <td style={{ textAlign: 'center' }}>
                                     <input type="checkbox" checked={selectedSales.includes(sale.id)} onChange={() => handleSelectSale(sale.id)} style={{ cursor: 'pointer' }} />
@@ -719,9 +731,31 @@ const FinanceSales = () => {
                         ))}
                     </tbody>
                 </table>
+
+                {totalPages > 1 && (
+                    <div style={{ padding: '20px 24px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 800 }}>Página {currentPage} de {totalPages}</span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 12px', color: currentPage === 1 ? 'var(--text-muted)' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 12px', color: currentPage === totalPages ? 'var(--text-muted)' : 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {isModalOpen && (
+            {isModalOpen && createPortal(
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '40px' }}>
                     <div className="modal-premium" style={{ margin: 'auto' }}>
                         <header style={{ padding: '32px 40px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -840,10 +874,11 @@ const FinanceSales = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {isMassActionModalOpen && (
+            {isMassActionModalOpen && createPortal(
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '40px' }}>
                     <div className="modal-premium" style={{ margin: 'auto', maxWidth: '500px' }}>
                         <header style={{ padding: '24px 32px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -890,10 +925,11 @@ const FinanceSales = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {isWhatsAppModalOpen && (
+            {isWhatsAppModalOpen && createPortal(
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '40px' }}>
                     <div className="modal-premium" style={{ margin: 'auto', maxWidth: '500px' }}>
                         <header style={{ padding: '24px 32px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -920,7 +956,8 @@ const FinanceSales = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

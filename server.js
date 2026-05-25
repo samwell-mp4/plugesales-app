@@ -2151,13 +2151,22 @@ app.post('/api/reports', async (req, res) => {
                 let precoVendido = parseFloat(precoVendidoStr) || 0;
                 const totalValue = delivered * precoVendido;
 
+                let salespersonName = user.seller_name || sub.assigned_to || '';
+                let salespersonId = null;
+                if (salespersonName) {
+                    const spRes = await pool.query("SELECT id FROM users WHERE name = $1 LIMIT 1", [salespersonName]);
+                    if (spRes.rows.length > 0) {
+                        salespersonId = spRes.rows[0].id;
+                    }
+                }
+
                 const checkFinance = await pool.query("SELECT * FROM finance_sales WHERE submission_id = $1", [submissionId]);
                 if (checkFinance.rows.length === 0) {
                     await pool.query(`
                         INSERT INTO finance_sales (
                             client_name, client_cpf_cnpj, package_hired, quantity_hired, unit_value, total_value, 
-                            salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10)
+                            salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor, salesperson_id
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10, $11)
                     `, [
                         user.name, 
                         user.phone || '', 
@@ -2165,10 +2174,11 @@ app.post('/api/reports', async (req, res) => {
                         delivered, 
                         precoVendido, 
                         totalValue, 
-                        user.seller_name || sub.assigned_to || '',
+                        salespersonName,
                         submissionId,
                         new Date().toISOString().substring(0, 7),
-                        user.comissao_vendedor || ''
+                        user.comissao_vendedor || '',
+                        salespersonId
                     ]);
                 } else {
                     await pool.query(`
@@ -2832,39 +2842,61 @@ app.put('/api/client-submissions/:id', async (req, res) => {
         await pool.query(`UPDATE client_submissions SET ${setClause} WHERE id = $${values.length}`, values);
         
         // --- NOVIDADE: CRIAR VENDA QUANDO STATUS FOR GERADO OU CONCLUIDO ---
+        // --- NOVIDADE: CRIAR VENDA QUANDO STATUS FOR GERADO OU CONCLUIDO ---
         if (body.status === 'GERADO' || body.status === 'CONCLUIDO') {
             const subRes = await pool.query("SELECT * FROM client_submissions WHERE id = $1", [id]);
             if (subRes.rows.length > 0) {
                 const sub = subRes.rows[0];
-                if (sub.user_id) {
-                    const userRes = await pool.query("SELECT * FROM users WHERE id = $1", [sub.user_id]);
-                    if (userRes.rows.length > 0) {
-                        const user = userRes.rows[0];
-                        const checkFinance = await pool.query("SELECT * FROM finance_sales WHERE submission_id = $1", [id]);
-                        if (checkFinance.rows.length === 0) {
-                            let precoVendidoStr = String(user.preco_vendido || '0').replace(',', '.').trim();
-                            let precoVendido = parseFloat(precoVendidoStr) || 0;
-                            
-                            await pool.query(`
-                                INSERT INTO finance_sales (
-                                    client_name, client_cpf_cnpj, package_hired, quantity_hired, unit_value, total_value, 
-                                    salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor, salesperson_id
-                                ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10, $11)
-                            `, [
-                                user.name, 
-                                user.phone || '', 
-                                user.pacote || 'Avulso', 
-                                0, 
-                                precoVendido, 
-                                0, 
-                                user.seller_name || sub.assigned_to || '',
-                                id,
-                                new Date().toISOString().substring(0, 7),
-                                user.comissao_vendedor || '',
-                                null // we could set salesperson_id if known, but let's keep it null as report logic does
-                            ]);
+                const checkFinance = await pool.query("SELECT * FROM finance_sales WHERE submission_id = $1", [id]);
+                
+                if (checkFinance.rows.length === 0) {
+                    let clientName = sub.profile_name || 'Desconhecido';
+                    let clientPhone = sub.ddd || '';
+                    let pacote = 'Avulso';
+                    let precoVendido = 0;
+                    let comissaoVendedor = '';
+                    let salespersonName = sub.assigned_to || '';
+
+                    if (sub.user_id) {
+                        const userRes = await pool.query("SELECT * FROM users WHERE id = $1", [sub.user_id]);
+                        if (userRes.rows.length > 0) {
+                            const user = userRes.rows[0];
+                            clientName = user.name || clientName;
+                            clientPhone = user.phone || clientPhone;
+                            pacote = user.pacote || 'Avulso';
+                            let precoStr = String(user.preco_vendido || '0').replace(',', '.').trim();
+                            precoVendido = parseFloat(precoStr) || 0;
+                            comissaoVendedor = user.comissao_vendedor || '';
+                            salespersonName = user.seller_name || salespersonName;
                         }
                     }
+
+                    let salespersonId = null;
+                    if (salespersonName) {
+                        const spRes = await pool.query("SELECT id FROM users WHERE name = $1 LIMIT 1", [salespersonName]);
+                        if (spRes.rows.length > 0) {
+                            salespersonId = spRes.rows[0].id;
+                        }
+                    }
+
+                    await pool.query(`
+                        INSERT INTO finance_sales (
+                            client_name, client_cpf_cnpj, package_hired, quantity_hired, unit_value, total_value, 
+                            salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor, salesperson_id
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10, $11)
+                    `, [
+                        clientName, 
+                        clientPhone, 
+                        pacote, 
+                        0, 
+                        precoVendido, 
+                        0, 
+                        salespersonName,
+                        id,
+                        new Date().toISOString().substring(0, 7),
+                        comissaoVendedor,
+                        salespersonId
+                    ]);
                 }
             }
         }
