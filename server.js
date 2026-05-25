@@ -1811,12 +1811,21 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ error: 'Convite inválido, já usado ou expirado.' });
         }
 
+        const invite = inviteCheck.rows[0];
+        let sellerName = null;
+        if (invite.created_by) {
+            const creator = await pool.query("SELECT name FROM users WHERE id = $1", [invite.created_by]);
+            if (creator.rows.length > 0) {
+                sellerName = creator.rows[0].name;
+            }
+        }
+
         const result = await pool.query(
-            'INSERT INTO users (name, email, phone, password, role, notification_number, document_type, document_number, fantasy_name, responsible_name, address, whatsapp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, name, email, role, notification_number, infobip_key, infobip_sender',
-            [name, email, phone, password, 'WAITING_APPROVAL', phone || null, document_type || null, document_number || null, fantasy_name || null, responsible_name || null, address || null, whatsapp || null]
+            'INSERT INTO users (name, email, phone, password, role, notification_number, document_type, document_number, fantasy_name, responsible_name, address, whatsapp, seller_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, name, email, role, notification_number, infobip_key, infobip_sender',
+            [name, email, phone, password, 'WAITING_APPROVAL', phone || null, document_type || null, document_number || null, fantasy_name || null, responsible_name || null, address || null, whatsapp || null, sellerName]
         );
 
-        await pool.query("UPDATE client_invites SET used = true WHERE id = $1", [inviteCheck.rows[0].id]);
+        await pool.query("UPDATE client_invites SET used = true WHERE id = $1", [invite.id]);
 
         res.json(result.rows[0]);
     } catch (err) {
@@ -1828,9 +1837,15 @@ app.post('/api/auth/register', async (req, res) => {
 // --- PENDING USERS MANAGEMENT ---
 app.get('/api/users/pending', async (req, res) => {
     try {
-        const result = await pool.query(
-            "SELECT id, name, email, phone, document_type, document_number, fantasy_name, responsible_name, address, whatsapp, created_at FROM users WHERE role = 'WAITING_APPROVAL' ORDER BY created_at DESC"
-        );
+        const { seller_name } = req.query;
+        let query = "SELECT id, name, email, phone, document_type, document_number, fantasy_name, responsible_name, address, whatsapp, created_at, seller_name FROM users WHERE role = 'WAITING_APPROVAL'";
+        const params = [];
+        if (seller_name) {
+            query += " AND seller_name = $1";
+            params.push(seller_name);
+        }
+        query += " ORDER BY created_at DESC";
+        const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1954,10 +1969,18 @@ app.get('/api/employees', async (req, res) => {
     }
 });
 
-// Admin: Get all users
+// Admin/Employee: Get users
 app.get('/api/admin/users', async (req, res) => {
     try {
-        const result = await pool.query("SELECT id, name, email, role FROM users WHERE role != 'INFLUENCER' ORDER BY name ASC");
+        const { seller_name } = req.query;
+        let query = "SELECT id, name, email, role, document_type, document_number, phone, whatsapp, pacote, preco_vendido, comissao_vendedor, seller_name FROM users WHERE role != 'INFLUENCER'";
+        const params = [];
+        if (seller_name) {
+            query += " AND seller_name = $1 AND role = 'CLIENT'";
+            params.push(seller_name);
+        }
+        query += " ORDER BY name ASC";
+        const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });

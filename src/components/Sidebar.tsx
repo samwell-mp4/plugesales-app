@@ -114,6 +114,7 @@ const Sidebar = () => {
                 { name: 'Dashboard Client', path: '/client-dashboard', icon: <LayoutDashboard />, role: 'CLIENT' },
                 { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
                 { name: 'Financeiro', path: '/finance/sales', icon: <DollarSign />, role: 'CLIENT' },
+                { name: 'Clientes', path: '/employee-clients', icon: <Users />, roles: ['EMPLOYEE'] },
             ]
         },
         {
@@ -131,9 +132,9 @@ const Sidebar = () => {
             items: [
                 { name: 'Painel Geral', path: '/finance/dashboard', icon: <LayoutDashboard />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
                 { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
-                { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN'] },
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
-                { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN'] },
             ]
         },
         {

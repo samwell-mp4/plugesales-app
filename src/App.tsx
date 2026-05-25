@@ -71,6 +71,7 @@ import ClientRegistration from './pages/ClientRegistration';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Control from './pages/Control';
+import EmployeeClients from './pages/EmployeeClients';
 
 function AppContent() {
   const { user, theme, isLoading } = useAuth();
@@ -266,6 +267,7 @@ function AppContent() {
           <Route path="/my-cards" element={<ProtectedRoute><MyPlugCards /></ProtectedRoute>} />
           <Route path="/my-wallet" element={<ProtectedRoute><MyWallet /></ProtectedRoute>} />
           <Route path="/admin/plug-cards" element={<ProtectedRoute adminOnly={true}><AdminPlugCards /></ProtectedRoute>} />
+          <Route path="/employee-clients" element={<ProtectedRoute><EmployeeClients /></ProtectedRoute>} />
           
           {/* Finance Module Routes */}
           <Route path="/finance/dashboard" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
