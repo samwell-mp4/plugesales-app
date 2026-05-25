@@ -1206,9 +1206,19 @@ const ClientSubmissions = () => {
                         {viewMode !== 'kanban' && filteredSubmissions.length > itemsPerPage && (
                             <div className="pagination-bar">
                                 <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}><ChevronLeft size={16} /> ANTERIOR</button>
-                                {Array.from({ length: Math.ceil(filteredSubmissions.length / itemsPerPage) }).map((_, i) => (
-                                    <button key={i} className={`page-btn ${currentPage === i+1 ? 'active' : ''}`} onClick={() => setCurrentPage(i+1)}>{i+1}</button>
-                                ))}
+                                {(() => {
+                                    const total = Math.ceil(filteredSubmissions.length / itemsPerPage);
+                                    let start = Math.max(1, currentPage - 2);
+                                    let end = Math.min(total, start + 4);
+                                    if (end - start < 4) start = Math.max(1, end - 4);
+                                    const pages = [];
+                                    if (start > 1) pages.push(<span key="start-ellipsis" style={{ color: 'var(--text-muted)' }}>...</span>);
+                                    for (let i = start; i <= end; i++) {
+                                        pages.push(<button key={i} className={`page-btn ${currentPage === i ? 'active' : ''}`} onClick={() => setCurrentPage(i)}>{i}</button>);
+                                    }
+                                    if (end < total) pages.push(<span key="end-ellipsis" style={{ color: 'var(--text-muted)' }}>...</span>);
+                                    return pages;
+                                })()}
                                 <button className="page-btn" disabled={currentPage === Math.ceil(filteredSubmissions.length / itemsPerPage)} onClick={() => setCurrentPage(p => p + 1)}>PRÓXIMO <ChevronRight size={16} /></button>
                             </div>
                         )}
