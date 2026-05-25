@@ -2808,8 +2808,8 @@ app.put('/api/client-submissions/:id', async (req, res) => {
 
         await pool.query(`UPDATE client_submissions SET ${setClause} WHERE id = $${values.length}`, values);
         
-        // --- NOVIDADE: CRIAR VENDA QUANDO STATUS FOR GERADO ---
-        if (body.status === 'GERADO') {
+        // --- NOVIDADE: CRIAR VENDA QUANDO STATUS FOR GERADO OU CONCLUIDO ---
+        if (body.status === 'GERADO' || body.status === 'CONCLUIDO') {
             const subRes = await pool.query("SELECT * FROM client_submissions WHERE id = $1", [id]);
             if (subRes.rows.length > 0) {
                 const sub = subRes.rows[0];

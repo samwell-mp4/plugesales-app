@@ -415,7 +415,7 @@ const FinanceSales = () => {
                                     </div>
                                 </td>
                                 <td>
-                                    {parseFloat(sale.total_value) === 0 ? (
+                                    {parseFloat(sale.quantity_hired) === 0 ? (
                                         <span style={{ fontSize: '0.65rem', fontWeight: 900, background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-muted)' }}>
                                             AGUARDANDO RELATÓRIO
                                         </span>
