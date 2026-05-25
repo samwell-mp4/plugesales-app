@@ -296,28 +296,32 @@ const FinanceSales = () => {
                         />
                     </div>
 
-                    <select 
-                        className="filter-select"
-                        value={filterSalesperson}
-                        onChange={(e) => setFilterSalesperson(e.target.value)}
-                    >
-                        <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Vendedores</option>
-                        {salespeople.map(sp => (
-                            <option key={sp.id} value={String(sp.id)} style={{ background: '#0a0f18' }}>{sp.name}</option>
-                        ))}
-                    </select>
+                    {user?.role !== 'CLIENT' && (
+                        <select 
+                            className="filter-select"
+                            value={filterSalesperson}
+                            onChange={(e) => setFilterSalesperson(e.target.value)}
+                        >
+                            <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Vendedores</option>
+                            {salespeople.map(sp => (
+                                <option key={sp.id} value={String(sp.id)} style={{ background: '#0a0f18' }}>{sp.name}</option>
+                            ))}
+                        </select>
+                    )}
 
-                    <select 
-                        className="filter-select"
-                        value={filterClient}
-                        onChange={(e) => setFilterClient(e.target.value)}
-                        style={{ maxWidth: '200px' }}
-                    >
-                        <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Clientes</option>
-                        {uniqueClients.map(client => (
-                            <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
-                        ))}
-                    </select>
+                    {user?.role !== 'CLIENT' && (
+                        <select 
+                            className="filter-select"
+                            value={filterClient}
+                            onChange={(e) => setFilterClient(e.target.value)}
+                            style={{ maxWidth: '200px' }}
+                        >
+                            <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Clientes</option>
+                            {uniqueClients.map(client => (
+                                <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
+                            ))}
+                        </select>
+                    )}
 
                     <select 
                         className="filter-select"
@@ -345,12 +349,14 @@ const FinanceSales = () => {
                         <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
 
-                    <button 
-                        onClick={() => { resetForm(); setEditingSale(null); setIsModalOpen(true); }}
-                        style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '12px 24px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
-                        <Plus size={18} /> NOVA VENDA
-                    </button>
+                    {user?.role !== 'CLIENT' && (
+                        <button 
+                            onClick={() => { resetForm(); setEditingSale(null); setIsModalOpen(true); }}
+                            style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '12px 24px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <Plus size={18} /> NOVA VENDA
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -447,8 +453,22 @@ const FinanceSales = () => {
                                                 {uploadingReceipt === sale.id ? '...' : 'ANEXAR PAG.'}
                                             </button>
                                         )}
-                                        <button className="btn-icon-only" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '6px', borderRadius: '8px', color: 'white', cursor: 'pointer' }} onClick={() => handleEdit(sale)}><Edit2 size={14} /></button>
-                                        <button className="btn-icon-only" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '6px', borderRadius: '8px', color: '#ef4444', cursor: 'pointer' }} onClick={() => handleDelete(sale.id)}><Trash2 size={14} /></button>
+                                        {user?.role === 'CLIENT' && sale.submission_id && (
+                                            <button 
+                                                className="btn-icon-only" 
+                                                title="Baixar Relatórios Filtrados"
+                                                onClick={() => window.open(`/client-submissions/${sale.submission_id}`, '_blank')}
+                                                style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '6px 12px', borderRadius: '8px', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', fontWeight: 900 }}
+                                            >
+                                                <Download size={14} /> RELATÓRIOS
+                                            </button>
+                                        )}
+                                        {user?.role !== 'CLIENT' && (
+                                            <>
+                                                <button className="btn-icon-only" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '6px', borderRadius: '8px', color: 'white', cursor: 'pointer' }} onClick={() => handleEdit(sale)}><Edit2 size={14} /></button>
+                                                <button className="btn-icon-only" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '6px', borderRadius: '8px', color: '#ef4444', cursor: 'pointer' }} onClick={() => handleDelete(sale.id)}><Trash2 size={14} /></button>
+                                            </>
+                                        )}
                                     </div>
                                 </td>
                             </tr>

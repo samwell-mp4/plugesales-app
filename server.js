@@ -1614,6 +1614,9 @@ app.get('/api/finance/sales', async (req, res) => {
         if (role === 'EMPLOYEE' || role === 'VENDEDOR') {
             params.push(userId);
             query += ` AND s.salesperson_id = $${params.length}`;
+        } else if (role === 'CLIENT') {
+            params.push(userId);
+            query += ` AND cs.user_id = $${params.length}`;
         } else if (salespersonId) {
             params.push(salespersonId);
             query += ` AND s.salesperson_id = $${params.length}`;
@@ -1731,22 +1734,28 @@ app.post('/api/finance/salespeople/config', async (req, res) => {
 app.get('/api/finance/stats', async (req, res) => {
     try {
         const { userId, role } = req.query;
-        let whereClause = '';
+        let whereClause = 'WHERE 1=1';
         const params = [];
+
+        let baseTable = 'finance_sales s';
 
         if (role === 'EMPLOYEE' || role === 'VENDEDOR') {
             params.push(userId);
-            whereClause = ' WHERE salesperson_id = $1';
+            whereClause += ` AND s.salesperson_id = $${params.length}`;
+        } else if (role === 'CLIENT') {
+            baseTable = 'finance_sales s LEFT JOIN client_submissions cs ON s.submission_id = cs.id';
+            params.push(userId);
+            whereClause += ` AND cs.user_id = $${params.length}`;
         }
 
         const statsQuery = `
             SELECT 
-                SUM(total_value) as total_revenue,
-                SUM(CASE WHEN payment_status = 'RECEBIDO' THEN total_value ELSE 0 END) as total_received,
-                SUM(CASE WHEN payment_status = 'PENDENTE' THEN total_value ELSE 0 END) as total_pending,
-                SUM(commission_value) as total_commission,
+                SUM(s.total_value) as total_revenue,
+                SUM(CASE WHEN s.payment_status = 'RECEBIDO' THEN s.total_value ELSE 0 END) as total_received,
+                SUM(CASE WHEN s.payment_status = 'PENDENTE' THEN s.total_value ELSE 0 END) as total_pending,
+                SUM(s.commission_value) as total_commission,
                 COUNT(*) as total_sales
-            FROM finance_sales
+            FROM ${baseTable}
             ${whereClause}
         `;
         const result = await pool.query(statsQuery, params);
@@ -2665,8 +2674,8 @@ app.post('/api/client-submissions', async (req, res) => {
                     finalStatus = 'AGUARDANDO_APROVACAO_PAI';
                     parentApproved = false;
                 }
-                if (!finalAssignedTo && userRes.rows[0].seller_name) {
-                    finalAssignedTo = userRes.rows[0].seller_name;
+                if (!finalAssignedTo) {
+                    finalAssignedTo = userRes.rows[0].seller_name || 'Admin';
                 }
             }
         }

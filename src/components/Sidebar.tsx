@@ -127,8 +127,8 @@ const Sidebar = () => {
             id: 'FINANCEIRO',
             label: 'MÓDULO FINANCEIRO',
             items: [
-                { name: 'Painel Geral', path: '/finance/dashboard', icon: <LayoutDashboard />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
-                { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
+                { name: 'Painel Geral', path: '/finance/dashboard', icon: <LayoutDashboard />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CLIENT'] },
+                { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CLIENT'] },
                 { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
                 { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN', 'EMPLOYEE'] },

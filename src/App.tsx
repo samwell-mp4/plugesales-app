@@ -166,6 +166,11 @@ function AppContent() {
         return false;
     }
 
+    // Special case for CLIENT: They can access specific finance routes
+    if (user?.role === 'CLIENT' && (location.pathname === '/finance/dashboard' || location.pathname === '/finance/sales')) {
+        return false;
+    }
+
     // Special case: Clients CAN access /client-submissions/:id but NOT /client-submissions (list) or /client-submissions/add
     // ASSINATURA_BASICA CAN access /client-submissions (list) and /accounts and /templates
     if (user?.role === 'ASSINATURA_BASICA') {
