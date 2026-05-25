@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    Zap, Search, Plus, Edit2, Trash2, 
+import {
+    Zap, Search, Plus, Edit2, Trash2,
     Download, Filter, ChevronLeft, ChevronRight,
     User, Smartphone, Package, DollarSign,
     Calendar as CalendarIcon, CheckCircle2, TrendingUp,
-    AlertCircle, RefreshCw, X, ArrowUpRight, Upload, ExternalLink
+    AlertCircle, RefreshCw, X, ArrowUpRight, Upload, ExternalLink,
+    CheckSquare, MessageCircle
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
-import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
 
 const FinanceSales = () => {
@@ -17,13 +17,25 @@ const FinanceSales = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     // Filtros
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('TODOS');
     const [filterSalesperson, setFilterSalesperson] = useState('TODOS');
     const [filterClient, setFilterClient] = useState('TODOS');
-    
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterEndDate, setFilterEndDate] = useState('');
+
+    const [selectedSales, setSelectedSales] = useState<number[]>([]);
+    const [isMassActionModalOpen, setIsMassActionModalOpen] = useState(false);
+    const [massActionType, setMassActionType] = useState('');
+    const [massActionValue, setMassActionValue] = useState('');
+
+    const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+    const [whatsAppSaleContext, setWhatsAppSaleContext] = useState<any>(null);
+    const [whatsAppMessage, setWhatsAppMessage] = useState('');
+    const [whatsAppTemplateType, setWhatsAppTemplateType] = useState('manual');
+
     const [editingSale, setEditingSale] = useState<any>(null);
     const [uploadingReceipt, setUploadingReceipt] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,7 +49,7 @@ const FinanceSales = () => {
         quantity_hired: 0,
         unit_value: 0,
         total_value: 0,
-        sale_date: new Date().toISOString().split('T')[0],
+        sale_date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
         salesperson_id: user?.id || '',
         payment_status: 'PENDENTE',
         payment_competence: new Date().toISOString().slice(0, 7),
@@ -109,7 +121,7 @@ const FinanceSales = () => {
             quantity_hired: sale.quantity_hired || 0,
             unit_value: sale.unit_value || 0,
             total_value: sale.total_value || 0,
-            sale_date: sale.sale_date?.split('T')[0] || '',
+            sale_date: sale.sale_date ? sale.sale_date.slice(0, 16) : '',
             salesperson_id: sale.salesperson_id || '',
             payment_status: sale.payment_status || 'PENDENTE',
             payment_competence: sale.payment_competence || '',
@@ -138,7 +150,7 @@ const FinanceSales = () => {
             quantity_hired: 0,
             unit_value: 0,
             total_value: 0,
-            sale_date: new Date().toISOString().split('T')[0],
+            sale_date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
             salesperson_id: user?.id || '',
             payment_status: 'PENDENTE',
             payment_competence: new Date().toISOString().slice(0, 7),
@@ -150,19 +162,19 @@ const FinanceSales = () => {
     const handleUploadReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !saleIdToUpload) return;
-        
+
         setUploadingReceipt(saleIdToUpload);
         try {
             const formData = new FormData();
             formData.append('file', file);
-            
+
             const uploadRes = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
             const uploadData = await uploadRes.json();
             const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
-            
+
             await dbService.saveFinanceSale({ id: saleIdToUpload, payment_receipt_url: hostedUrl, payment_status: 'RECEBIDO' });
             fetchData();
         } catch (err) {
@@ -183,58 +195,171 @@ const FinanceSales = () => {
 
     const filteredSales = sales.filter(s => {
         const term = searchTerm.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
             (s.client_name || '').toLowerCase().includes(term) ||
             (s.campaign_name || '').toLowerCase().includes(term) ||
             (s.salesperson_name || '').toLowerCase().includes(term);
-        
+
         const matchesStatus = filterStatus === 'TODOS' || s.payment_status === filterStatus;
         const matchesSalesperson = filterSalesperson === 'TODOS' || String(s.salesperson_id) === filterSalesperson;
         const matchesClient = filterClient === 'TODOS' || s.client_name === filterClient;
-        
-        return matchesSearch && matchesStatus && matchesSalesperson && matchesClient;
+
+        const saleDateObj = s.sale_date ? new Date(s.sale_date) : null;
+        let matchesDate = true;
+        if (saleDateObj) {
+            if (filterStartDate) {
+                matchesDate = matchesDate && saleDateObj >= new Date(filterStartDate);
+            }
+            if (filterEndDate) {
+                matchesDate = matchesDate && saleDateObj <= new Date(filterEndDate);
+            }
+        }
+
+        return matchesSearch && matchesStatus && matchesSalesperson && matchesClient && matchesDate;
     });
 
     // Extract unique clients for filter dropdown
     const uniqueClients = Array.from(new Set(sales.map(s => s.client_name).filter(Boolean))).sort();
 
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedSales(filteredSales.map(s => s.id));
+        } else {
+            setSelectedSales([]);
+        }
+    };
+
+    const handleSelectSale = (id: number) => {
+        setSelectedSales(prev => 
+            prev.includes(id) ? prev.filter(saleId => saleId !== id) : [...prev, id]
+        );
+    };
+
+    const executeMassAction = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (selectedSales.length === 0) return;
+        
+        setIsSaving(true);
+        try {
+            if (massActionType === 'delete') {
+                if (window.confirm(`Deseja realmente excluir ${selectedSales.length} registros?`)) {
+                    for (const id of selectedSales) {
+                        await dbService.deleteFinanceSale(id);
+                    }
+                }
+            } else {
+                for (const id of selectedSales) {
+                    const sale = sales.find(s => s.id === id);
+                    if (!sale) continue;
+                    
+                    const updateData: any = { id };
+                    
+                    if (massActionType === 'salesperson') {
+                        updateData.salesperson_id = massActionValue;
+                        const sp = salespeople.find(s => String(s.id) === String(massActionValue));
+                        if (sp) updateData.commission_value = ((sale.total_value || 0) * (sp.commission_percentage || 0)) / 100;
+                    } else if (massActionType === 'unit_value') {
+                        updateData.unit_value = parseFloat(massActionValue);
+                        updateData.total_value = updateData.unit_value * (sale.quantity_hired || 0);
+                        const sp = salespeople.find(s => String(s.id) === String(sale.salesperson_id));
+                        if (sp) updateData.commission_value = (updateData.total_value * (sp.commission_percentage || 0)) / 100;
+                    } else if (massActionType === 'payment_status') {
+                        updateData.payment_status = massActionValue;
+                    } else if (massActionType === 'client_name') {
+                        updateData.client_name = massActionValue;
+                    }
+
+                    await dbService.saveFinanceSale(updateData);
+                }
+            }
+            setSelectedSales([]);
+            setIsMassActionModalOpen(false);
+            fetchData();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const openWhatsAppModal = (sale: any) => {
+        setWhatsAppSaleContext(sale);
+        setWhatsAppTemplateType('manual');
+        setWhatsAppMessage('');
+        setIsWhatsAppModalOpen(true);
+    };
+
+    const handleWhatsAppTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const type = e.target.value;
+        setWhatsAppTemplateType(type);
+        if (!whatsAppSaleContext) return;
+        
+        const client = whatsAppSaleContext.client_name || 'Cliente';
+        const package_name = whatsAppSaleContext.package_hired || 'plano';
+        const value = parseFloat(whatsAppSaleContext.total_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        
+        if (type === 'pendente') {
+            setWhatsAppMessage(`Olá ${client}, sua comanda do pacote ${package_name} no valor de R$ ${value} está com pagamento pendente. Podemos te ajudar com algo?`);
+        } else if (type === 'recebido') {
+            setWhatsAppMessage(`Olá ${client}, confirmamos o recebimento do pagamento da comanda do pacote ${package_name} (R$ ${value}). Muito obrigado!`);
+        } else {
+            setWhatsAppMessage('');
+        }
+    };
+
+    const sendWhatsApp = () => {
+        if (!whatsAppSaleContext || !whatsAppSaleContext.client_contact) {
+            alert('Cliente não possui contato/WhatsApp cadastrado nesta venda.');
+            return;
+        }
+        
+        let phone = whatsAppSaleContext.client_contact.replace(/\D/g, '');
+        if (phone.length === 10 || phone.length === 11) {
+            phone = '55' + phone; 
+        }
+        
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(whatsAppMessage)}`;
+        window.open(url, '_blank');
+        setIsWhatsAppModalOpen(false);
+    };
+
     // Cálculos Financeiros (baseados na lista filtrada)
     const totalRevenue = filteredSales.reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
     const totalReceived = filteredSales.filter(s => s.payment_status === 'RECEBIDO').reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
     const totalOverdue = filteredSales.filter(s => s.payment_status === 'INADIMPLENTE').reduce((acc, curr) => acc + parseFloat(curr.total_value || 0), 0);
-    
+
     const totalCommission = filteredSales.reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
     const netProfit = totalRevenue - totalCommission;
     const efficiency = totalRevenue > 0 ? (totalReceived / totalRevenue) * 100 : 0;
 
     const metrics = [
-        { 
-            label: 'Faturamento Total', 
-            value: `R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+        {
+            label: 'Faturamento Total',
+            value: `R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
             subtitle: 'Receita bruta gerada',
-            icon: <DollarSign size={24} />, 
-            color: 'var(--primary-color)' 
+            icon: <DollarSign size={24} />,
+            color: 'var(--primary-color)'
         },
-        { 
-            label: 'Lucro Líquido', 
-            value: `R$ ${netProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+        {
+            label: 'Lucro Líquido',
+            value: `R$ ${netProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
             subtitle: 'Faturamento - Comissões',
-            icon: <TrendingUp size={24} />, 
-            color: '#10b981' 
+            icon: <TrendingUp size={24} />,
+            color: '#10b981'
         },
-        { 
-            label: 'Liquidez (Recebido)', 
-            value: `R$ ${totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+        {
+            label: 'Liquidez (Recebido)',
+            value: `R$ ${totalReceived.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
             subtitle: `${efficiency.toFixed(1)}% de eficiência`,
-            icon: <CheckCircle2 size={24} />, 
-            color: '#38bdf8' 
+            icon: <CheckCircle2 size={24} />,
+            color: '#38bdf8'
         },
-        { 
-            label: 'Inadimplência', 
-            value: `R$ ${totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 
+        {
+            label: 'Inadimplência',
+            value: `R$ ${totalOverdue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
             subtitle: 'Atrasos no pagamento',
-            icon: <AlertCircle size={24} />, 
-            color: '#ef4444' 
+            icon: <AlertCircle size={24} />,
+            color: '#ef4444'
         },
     ].filter(m => user?.role !== 'CLIENT' || m.label !== 'Lucro Líquido');
 
@@ -329,15 +454,34 @@ const FinanceSales = () => {
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="search-bar-finance">
                         <Search size={16} color="var(--primary-color)" style={{ marginRight: '12px' }} />
-                        <input 
-                            placeholder="Buscar cliente, card..." 
+                        <input
+                            placeholder="Buscar cliente, card..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
 
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Data Inicial</span>
+                        <input
+                            type="datetime-local"
+                            className="filter-select"
+                            value={filterStartDate}
+                            onChange={(e) => setFilterStartDate(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Data Final</span>
+                        <input
+                            type="datetime-local"
+                            className="filter-select"
+                            value={filterEndDate}
+                            onChange={(e) => setFilterEndDate(e.target.value)}
+                        />
+                    </div>
+
                     {user?.role !== 'CLIENT' && (
-                        <select 
+                        <select
                             className="filter-select"
                             value={filterSalesperson}
                             onChange={(e) => setFilterSalesperson(e.target.value)}
@@ -350,7 +494,7 @@ const FinanceSales = () => {
                     )}
 
                     {user?.role !== 'CLIENT' && (
-                        <select 
+                        <select
                             className="filter-select"
                             value={filterClient}
                             onChange={(e) => setFilterClient(e.target.value)}
@@ -363,7 +507,7 @@ const FinanceSales = () => {
                         </select>
                     )}
 
-                    <select 
+                    <select
                         className="filter-select"
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
@@ -373,16 +517,16 @@ const FinanceSales = () => {
                         <option value="RECEBIDO" style={{ background: '#0a0f18' }}>Recebidos</option>
                         <option value="INADIMPLENTE" style={{ background: '#0a0f18' }}>Inadimplentes</option>
                     </select>
-                    
-                    <button 
+
+                    <button
                         onClick={exportToExcel}
                         style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '12px 16px', color: 'white', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                         <Download size={16} /> EXPORTAR
                     </button>
 
-                    <button 
-                        onClick={fetchData} 
+                    <button
+                        onClick={fetchData}
                         disabled={isLoading}
                         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px', color: 'white', cursor: 'pointer' }}
                     >
@@ -390,7 +534,7 @@ const FinanceSales = () => {
                     </button>
 
                     {user?.role !== 'CLIENT' && (
-                        <button 
+                        <button
                             onClick={() => { resetForm(); setEditingSale(null); setIsModalOpen(true); }}
                             style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '12px 24px', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
@@ -414,18 +558,51 @@ const FinanceSales = () => {
                 ))}
             </div>
 
-            <input 
-                type="file" 
-                ref={fileInputRef} 
-                style={{ display: 'none' }} 
+            <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
                 onChange={handleUploadReceipt}
                 accept="image/*,.pdf"
             />
 
+            {selectedSales.length > 0 && user?.role !== 'CLIENT' && (
+                <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '16px', padding: '16px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backdropFilter: 'blur(10px)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <CheckSquare color="#38bdf8" />
+                        <span style={{ color: 'white', fontWeight: 900, fontSize: '1rem' }}>{selectedSales.length} registros selecionados</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <select className="filter-select" style={{ background: '#0a0f18', borderColor: 'rgba(56, 189, 248, 0.3)' }} onChange={(e) => {
+                            if (e.target.value) {
+                                setMassActionType(e.target.value);
+                                setMassActionValue('');
+                                if (e.target.value === 'delete') {
+                                    executeMassAction({ preventDefault: () => {} } as any);
+                                } else {
+                                    setIsMassActionModalOpen(true);
+                                }
+                                e.target.value = '';
+                            }
+                        }}>
+                            <option value="">AÇÕES EM MASSA...</option>
+                            <option value="salesperson">Alterar Vendedor</option>
+                            <option value="unit_value">Modificar Valor Unitário</option>
+                            <option value="payment_status">Alterar Status Pagamento</option>
+                            <option value="client_name">Alterar Cliente</option>
+                            <option value="delete">Apagar Selecionados</option>
+                        </select>
+                    </div>
+                </div>
+            )}
+            
             <div className="table-container-finance">
                 <table>
                     <thead>
                         <tr>
+                            <th style={{ width: 40, textAlign: 'center' }}>
+                                <input type="checkbox" checked={selectedSales.length > 0 && selectedSales.length === filteredSales.length} onChange={handleSelectAll} style={{ cursor: 'pointer' }} />
+                            </th>
                             <th>DATA / COMP.</th>
                             <th>CLIENTE & CAMPANHA (CARD)</th>
                             <th>PACOTE</th>
@@ -440,18 +617,21 @@ const FinanceSales = () => {
                         ) : filteredSales.length === 0 ? (
                             <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUM REGISTRO ENCONTRADO</td></tr>
                         ) : filteredSales.map((sale) => (
-                            <tr key={sale.id} style={{ transition: 'all 0.2s' }}>
+                            <tr key={sale.id} style={{ transition: 'all 0.2s', background: selectedSales.includes(sale.id) ? 'rgba(56, 189, 248, 0.05)' : 'transparent' }}>
+                                <td style={{ textAlign: 'center' }}>
+                                    <input type="checkbox" checked={selectedSales.includes(sale.id)} onChange={() => handleSelectSale(sale.id)} style={{ cursor: 'pointer' }} />
+                                </td>
                                 <td style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
                                     <span style={{ display: 'block', color: 'white', fontWeight: 800 }}>{sale.payment_competence}</span>
-                                    {new Date(sale.sale_date).toLocaleDateString('pt-BR')}
+                                    {sale.sale_date ? new Date(sale.sale_date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Sem data'}
                                 </td>
                                 <td>
                                     <div className="flex flex-col gap-1">
                                         <span style={{ fontWeight: 900, color: 'white', fontSize: '0.95rem' }}>{sale.client_name}</span>
                                         {sale.submission_id ? (
-                                            <a 
-                                                href={`/client-submissions/${sale.submission_id}`} 
-                                                target="_blank" 
+                                            <a
+                                                href={`/client-submissions/${sale.submission_id}`}
+                                                target="_blank"
                                                 rel="noopener noreferrer"
                                                 style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                             >
@@ -478,8 +658,8 @@ const FinanceSales = () => {
                                     )}
                                 </td>
                                 <td>
-                                    <span className="badge-finance" style={{ 
-                                        background: sale.payment_status === 'RECEBIDO' ? 'rgba(16, 185, 129, 0.1)' : sale.payment_status === 'PENDENTE' ? 'rgba(250, 204, 21, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+                                    <span className="badge-finance" style={{
+                                        background: sale.payment_status === 'RECEBIDO' ? 'rgba(16, 185, 129, 0.1)' : sale.payment_status === 'PENDENTE' ? 'rgba(250, 204, 21, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                                         color: sale.payment_status === 'RECEBIDO' ? '#10b981' : sale.payment_status === 'PENDENTE' ? '#facc15' : '#ef4444',
                                         border: `1px solid ${sale.payment_status === 'RECEBIDO' ? 'rgba(16, 185, 129, 0.2)' : sale.payment_status === 'PENDENTE' ? 'rgba(250, 204, 21, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
                                     }}>
@@ -489,7 +669,7 @@ const FinanceSales = () => {
                                 <td style={{ textAlign: 'right' }}>
                                     <div className="flex justify-end items-center gap-2">
                                         {sale.payment_receipt_url ? (
-                                            <button 
+                                            <button
                                                 onClick={() => window.open(sale.payment_receipt_url, '_blank')}
                                                 style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                                 title="Visualizar Comprovante do Cliente"
@@ -497,19 +677,19 @@ const FinanceSales = () => {
                                                 <ExternalLink size={14} /> RECIBO
                                             </button>
                                         ) : (
-                                            <button 
+                                            <button
                                                 onClick={() => { setSaleIdToUpload(sale.id); setTimeout(() => fileInputRef.current?.click(), 100); }}
                                                 disabled={uploadingReceipt === sale.id}
                                                 style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                                 title="Anexar Comprovante do Cliente"
                                             >
-                                                {uploadingReceipt === sale.id ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />} 
+                                                {uploadingReceipt === sale.id ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
                                                 {uploadingReceipt === sale.id ? '...' : 'ANEXAR PAG.'}
                                             </button>
                                         )}
                                         {user?.role === 'CLIENT' && sale.submission_id && (
-                                            <button 
-                                                className="btn-icon-only" 
+                                            <button
+                                                className="btn-icon-only"
                                                 title="Baixar Relatórios Filtrados"
                                                 onClick={() => window.open(`/client-submissions/${sale.submission_id}`, '_blank')}
                                                 style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '6px 12px', borderRadius: '8px', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', fontWeight: 900 }}
@@ -519,6 +699,7 @@ const FinanceSales = () => {
                                         )}
                                         {user?.role !== 'CLIENT' && (
                                             <>
+                                                <button className="btn-icon-only" style={{ background: 'rgba(37, 211, 102, 0.1)', border: '1px solid rgba(37, 211, 102, 0.2)', padding: '6px', borderRadius: '8px', color: '#25D366', cursor: 'pointer' }} onClick={() => openWhatsAppModal(sale)} title="Enviar Mensagem via WhatsApp"><MessageCircle size={14} /></button>
                                                 <button className="btn-icon-only" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '6px', borderRadius: '8px', color: 'white', cursor: 'pointer' }} onClick={() => handleEdit(sale)}><Edit2 size={14} /></button>
                                                 <button className="btn-icon-only" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '6px', borderRadius: '8px', color: '#ef4444', cursor: 'pointer' }} onClick={() => handleDelete(sale.id)}><Trash2 size={14} /></button>
                                             </>
@@ -571,7 +752,7 @@ const FinanceSales = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Data da Venda</label>
-                                                <input type="date" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="sale_date" value={formData.sale_date} onChange={handleInputChange} required />
+                                                <input type="datetime-local" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="sale_date" value={formData.sale_date} onChange={handleInputChange} required />
                                             </div>
                                             <div>
                                                 <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Vendedor</label>
@@ -649,6 +830,86 @@ const FinanceSales = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {isMassActionModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '40px' }}>
+                    <div className="modal-premium" style={{ margin: 'auto', maxWidth: '500px' }}>
+                        <header style={{ padding: '24px 32px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h2 style={{ margin: 0, fontWeight: 950, color: 'white', fontSize: '1.4rem' }}>Ação em Massa</h2>
+                            <button onClick={() => setIsMassActionModalOpen(false)} style={{ background: 'rgba(255,255,255,0.03)', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
+                        </header>
+                        <form onSubmit={executeMassAction} style={{ padding: '32px' }}>
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
+                                    {massActionType === 'salesperson' && 'Novo Vendedor'}
+                                    {massActionType === 'unit_value' && 'Novo Valor Unitário (R$)'}
+                                    {massActionType === 'payment_status' && 'Novo Status'}
+                                    {massActionType === 'client_name' && 'Novo Cliente'}
+                                </label>
+                                
+                                {massActionType === 'salesperson' && (
+                                    <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', padding: '12px', width: '100%' }} value={massActionValue} onChange={(e) => setMassActionValue(e.target.value)} required>
+                                        <option value="" style={{ background: '#0a0f18' }}>Selecione...</option>
+                                        {salespeople.map(sp => <option key={sp.id} value={sp.id} style={{ background: '#0a0f18' }}>{sp.name}</option>)}
+                                    </select>
+                                )}
+                                
+                                {massActionType === 'unit_value' && (
+                                    <input type="number" step="0.01" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', padding: '12px', width: '100%' }} value={massActionValue} onChange={(e) => setMassActionValue(e.target.value)} required />
+                                )}
+                                
+                                {massActionType === 'payment_status' && (
+                                    <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', padding: '12px', width: '100%' }} value={massActionValue} onChange={(e) => setMassActionValue(e.target.value)} required>
+                                        <option value="" style={{ background: '#0a0f18' }}>Selecione...</option>
+                                        <option value="PENDENTE" style={{ background: '#0a0f18' }}>Pendente</option>
+                                        <option value="RECEBIDO" style={{ background: '#0a0f18' }}>Recebido</option>
+                                        <option value="INADIMPLENTE" style={{ background: '#0a0f18' }}>Inadimplente</option>
+                                    </select>
+                                )}
+
+                                {massActionType === 'client_name' && (
+                                    <input type="text" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', padding: '12px', width: '100%' }} value={massActionValue} onChange={(e) => setMassActionValue(e.target.value)} required />
+                                )}
+                            </div>
+                            <div className="flex justify-end">
+                                <button type="submit" disabled={isSaving} style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '12px', padding: '12px 24px', fontWeight: 900, cursor: 'pointer' }}>
+                                    {isSaving ? 'PROCESSANDO...' : 'APLICAR A TODOS'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {isWhatsAppModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(15px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '40px' }}>
+                    <div className="modal-premium" style={{ margin: 'auto', maxWidth: '500px' }}>
+                        <header style={{ padding: '24px 32px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h2 style={{ margin: 0, fontWeight: 950, color: 'white', fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '8px' }}><MessageCircle color="#25D366" /> Enviar Mensagem</h2>
+                            <button onClick={() => setIsWhatsAppModalOpen(false)} style={{ background: 'rgba(255,255,255,0.03)', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
+                        </header>
+                        <div style={{ padding: '32px' }}>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Template Automático</label>
+                                <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', padding: '12px', width: '100%' }} value={whatsAppTemplateType} onChange={handleWhatsAppTemplateChange}>
+                                    <option value="manual" style={{ background: '#0a0f18' }}>Digitar Manualmente</option>
+                                    <option value="pendente" style={{ background: '#0a0f18' }}>Lembrete: Pagamento Pendente</option>
+                                    <option value="recebido" style={{ background: '#0a0f18' }}>Agradecimento: Pagamento Recebido</option>
+                                </select>
+                            </div>
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Mensagem</label>
+                                <textarea className="input-field" rows={5} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', padding: '12px', width: '100%', resize: 'none' }} value={whatsAppMessage} onChange={(e) => setWhatsAppMessage(e.target.value)} placeholder="Digite sua mensagem aqui..."></textarea>
+                            </div>
+                            <div className="flex justify-end">
+                                <button onClick={sendWhatsApp} style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: '12px', padding: '12px 24px', fontWeight: 900, cursor: 'pointer' }}>
+                                    ABRIR WHATSAPP
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

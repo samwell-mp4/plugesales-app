@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Infobip Report Automator",
+  "version": "1.0",
+  "description": "Automatiza a extração de relatórios no Infobip, ignorando campanhas de TESTE e com tráfego < 30.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://portal-ny2.infobip.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://portal-ny2.infobip.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
