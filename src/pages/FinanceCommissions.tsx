@@ -125,7 +125,7 @@ const FinanceCommissions = () => {
                 td { padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
                 .supreme-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px; }
-                .supreme-modal-content { background: #0f172a; border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 90%; max-width: 400px; padding: 30px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
+                .supreme-modal-content { background: #0f172a; border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 90%; max-width: 500px; padding: 40px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box; }
 
                 @media (max-width: 768px) {
                     .supreme-modal-content { padding: 24px; border-radius: 24px; }
@@ -275,7 +275,7 @@ const FinanceCommissions = () => {
                             accept="image/*,.pdf"
                         />
                         
-                        <div className="flex flex-col gap-3">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <button 
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={uploadingReceipt}

@@ -88,6 +88,23 @@ const FinanceReports = () => {
                     box-shadow: 0 0 15px var(--primary-color);
                     transition: width 1s ease;
                 }
+
+                .reports-grid-4 {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                    gap: 24px;
+                    margin-bottom: 32px;
+                }
+
+                .reports-grid-2 {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                    gap: 24px;
+                }
+                
+                @media (max-width: 768px) {
+                    .reports-grid-2 { grid-template-columns: 1fr; }
+                }
             `}</style>
 
             <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
@@ -131,7 +148,7 @@ const FinanceReports = () => {
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="reports-grid-4">
                 <div className="glass-card-report">
                     <div className="flex items-center justify-between mb-4">
                         <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>FATURAMENTO BRUTO</span>
@@ -177,7 +194,7 @@ const FinanceReports = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="reports-grid-2">
                 <div className="glass-card-report">
                     <h3 style={{ margin: '0 0 24px 0', fontSize: '1.2rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Package size={20} color="var(--primary-color)" /> Faturamento por Pacote
