@@ -853,6 +853,7 @@ app.get('/api/push/status/:userId', async (req, res) => {
 
 const sendPushToAgents = async (title, body, url) => {
     console.log(`[PUSH] Starting sendPushToAgents: ${title}`);
+    return; // PUSH DESATIVADO A PEDIDO DO USUARIO
     try {
         // Enviar para todos os Admins e Employees que possuem subscrição ativa
         const result = await pool.query(`
@@ -3665,7 +3666,28 @@ app.get('/l/:shortCode', async (req, res) => {
         if (result.rows.length === 0) {
             console.warn(`[LINK_REDIRECT] 404: Code "${shortCode}" not found.`);
             // Redirect to home/dashboard instead of showing 404
-            return res.redirect('/?error=link_not_found');
+            return res.status(404).send(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>404 - Não Encontrado</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #000; color: #fff; margin: 0; }
+        .container { text-align: center; padding: 20px; }
+        h1 { font-size: 80px; color: #acf800; margin: 0; }
+        p { font-size: 20px; color: #888; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>404</h1>
+        <p>Este link não existe ou foi removido.</p>
+    </div>
+</body>
+</html>
+`);
         }
 
         const link = result.rows[0];
@@ -3733,7 +3755,28 @@ app.get('/l/:shortCode', async (req, res) => {
 // Catch-all for /l/ paths that didn't match :shortCode (e.g. nested paths or empty)
 app.get('/l/*', (req, res) => {
     console.log(`[LINK_REDIRECT] Catch-all triggered for: ${req.url}`);
-    res.redirect('/?error=invalid_link_format');
+    res.status(404).send(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>404 - Não Encontrado</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #000; color: #fff; margin: 0; }
+        .container { text-align: center; padding: 20px; }
+        h1 { font-size: 80px; color: #acf800; margin: 0; }
+        p { font-size: 20px; color: #888; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>404</h1>
+        <p>Este link não é válido.</p>
+    </div>
+</body>
+</html>
+`);
 });
 
 // Servir frontend estático
