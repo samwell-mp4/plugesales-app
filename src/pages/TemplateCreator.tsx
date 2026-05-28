@@ -278,15 +278,19 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload_STRICT = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, variablesOverride?: string[]) => {
+    const buildInfobipPayload_STRICT = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, variablesOverride?: string[], overrideBodyText?: string) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
 
         // --- LEANDRO STANDARD ENFORCEMENT ---
-        const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
-        const varCount = isFiveVars ? 5 : 4;
-        const examples = variablesOverride && variablesOverride.length >= varCount
-            ? variablesOverride.slice(0, varCount)
-            : LEANDRO_EXAMPLES.slice(0, varCount);
+        let bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
+        let varCount = isFiveVars ? 5 : 4;
+        let examples = LEANDRO_EXAMPLES.slice(0, varCount);
+
+        if (variablesOverride && overrideBodyText) {
+            bodyValue = overrideBodyText;
+            varCount = (overrideBodyText.match(/\{\{(\d+)\}\}/g) || []).length;
+            examples = variablesOverride.slice(0, varCount);
+        }
 
         const effectiveHeaderType = overrideHeaderType || headerType;
 
@@ -400,15 +404,17 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, variablesOverride?: string[]) => {
+    const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, variablesOverride?: string[], overrideBodyText?: string) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
-        const bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
-        const varCount = isFiveVars ? 5 : 4;
+        let bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
+        let varCount = isFiveVars ? 5 : 4;
+        let examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
-        // Ensure examples array has the correct number of items
-        let examples = variablesOverride && variablesOverride.length >= varCount
-            ? variablesOverride.slice(0, varCount)
-            : LEANDRO_EXAMPLES.slice(0, varCount);
+        if (variablesOverride && overrideBodyText) {
+            bodyValue = overrideBodyText;
+            varCount = (overrideBodyText.match(/\{\{(\d+)\}\}/g) || []).length;
+            examples = variablesOverride.slice(0, varCount);
+        }
 
         const effectiveHeaderType = overrideHeaderType || headerType;
 
@@ -604,8 +610,8 @@ const TemplateCreator = () => {
                     setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
 
                     const payload = useMetaDirect
-                        ? buildMetaPayload(currentName, selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, enableCustomVariables ? variablesExample : undefined)
-                        : buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage, undefined, undefined, undefined, undefined, undefined, enableCustomVariables ? variablesExample : undefined);
+                        ? buildMetaPayload(currentName, selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, enableCustomVariables ? variablesExample : undefined, enableCustomVariables ? bodyText : undefined)
+                        : buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage, undefined, undefined, undefined, undefined, undefined, enableCustomVariables ? variablesExample : undefined, enableCustomVariables ? bodyText : undefined);
 
 
                     const res = useMetaDirect
@@ -744,8 +750,8 @@ const TemplateCreator = () => {
 
                     const rowVars = enableBulkCustomVariables && row.variables && row.variables.length > 0 ? row.variables : undefined;
                     const payload = useMetaDirect
-                        ? buildMetaPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, rowVars)
-                        : buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, rowVars);
+                        ? buildMetaPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, rowVars, enableBulkCustomVariables ? bodyText : undefined)
+                        : buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, rowVars, enableBulkCustomVariables ? bodyText : undefined);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumbers.split(/[\n,]/)[0]?.trim();
                     if (!rowSender && !useMetaDirect) {
