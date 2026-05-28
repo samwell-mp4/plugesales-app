@@ -1789,6 +1789,16 @@ const TemplateCreator = () => {
                                     </div>
                                 </div>
 
+                                {enableBulkCustomVariables && (
+                                    <div className="glass-card flex flex-col gap-4 animate-fade-in" style={{ marginBottom: '16px' }}>
+                                        <div className="flex items-center justify-between">
+                                            <label style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)' }}>CORPO DA MENSAGEM (GLOBAL)</label>
+                                            <span style={{ fontSize: '10px', opacity: 0.5 }}>Aplicado em todas as campanhas abaixo</span>
+                                        </div>
+                                        <textarea className="input-field" style={{ minHeight: '120px' }} placeholder="Ex: Olá {{1}}, Como solicitado..." value={bodyText} onChange={e => _setBodyText(e.target.value)} />
+                                    </div>
+                                )}
+
                                 {campaigns.map((camp, cIdx) => (
                                     <div key={camp.id} className="glass-card flex flex-col gap-8 animate-fade-in">
                                         <div className="campaign-header flex justify-between items-center">
