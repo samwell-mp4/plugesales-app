@@ -278,7 +278,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload_STRICT = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, variablesOverride?: string[], overrideBodyText?: string) => {
+    const buildInfobipPayload_STRICT = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, _variablesOverride?: string[], overrideBodyText?: string) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
 
         // --- LEANDRO STANDARD ENFORCEMENT ---
@@ -404,7 +404,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, variablesOverride?: string[], overrideBodyText?: string) => {
+    const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, _variablesOverride?: string[], overrideBodyText?: string) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
         let bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
         let varCount = isFiveVars ? 5 : 4;
