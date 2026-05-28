@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useMemo } from 'react';
+import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Smartphone, Layers, Plus, Activity, Image as ImageIcon, Video, Link, MessageSquareReply, Copy, Trash2, ChevronRight, ChevronDown, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -234,6 +234,7 @@ const TemplateCreator = () => {
     const [operationErrors, setOperationErrors] = useState<{ name: string, error: string, payload?: any, timestamp: string }[]>([]);
     const [currentPages, setCurrentPages] = useState<{ [campaignId: string]: number }>({});
     const rowsPerPage = 10;
+    const abortRef = useRef(false);
 
     // --- CUSTOM CONFIRM MODAL (replaces window.confirm which is blocked on mobile) ---
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
@@ -587,10 +588,13 @@ const TemplateCreator = () => {
         const totalOps = targetNumbers.length * copyCount;
         let currentOp = 0;
 
+        abortRef.current = false;
         setIsGenerating(true);
         try {
             for (const sender of targetNumbers) {
+                if (abortRef.current) break;
                 for (let i = 1; i <= copyCount; i++) {
+                    if (abortRef.current) break;
                     currentOp++;
                     const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
                     setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
@@ -707,6 +711,7 @@ const TemplateCreator = () => {
             return;
         }
 
+        abortRef.current = false;
         setIsGenerating(true);
         let successCount = 0;
         let errors = [];
@@ -717,8 +722,10 @@ const TemplateCreator = () => {
         let currentOpTotal = 0;
         try {
             for (let cIdx = 0; cIdx < campaigns.length; cIdx++) {
+                if (abortRef.current) break;
                 const campaign = campaigns[cIdx];
                 for (let i = 0; i < campaign.rows.length; i++) {
+                    if (abortRef.current) break;
                     currentOpTotal++;
                     const row = campaign.rows[i];
                     const name = `${campaign.prefix}${row.suffix}`.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').replace(/__+/g, '_');
@@ -1020,6 +1027,14 @@ const TemplateCreator = () => {
                         <div className="loading-subtext" style={{ fontSize: '0.9rem', opacity: 0.7, fontWeight: 500, color: 'white' }}>
                             {generatingProgress.total > 1 ? `${generatingProgress.current} de ${generatingProgress.total} - ${generatingProgress.msg}` : "Aguarde a validação da Meta..."}
                         </div>
+                        <button 
+                            onClick={() => { abortRef.current = true; }} 
+                            style={{ marginTop: '16px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}
+                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                            Cancelar Publicação
+                        </button>
                     </div>
                 </div>
             )}
