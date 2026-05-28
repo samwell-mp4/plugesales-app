@@ -1711,8 +1711,6 @@ const TemplateCreator = () => {
                                                     RECOLHER ✕
                                                 </button>
                                             </div>
-                                            <textarea className="input-field" style={{ minHeight: '120px' }} value={bodyText} onChange={e => _setBodyText(e.target.value)} />
-
                                             <div className="mt-2 flex flex-col gap-4">
                                                 <div className="flex items-center gap-2">
                                                     <div 
@@ -1723,6 +1721,9 @@ const TemplateCreator = () => {
                                                     </div>
                                                     <span style={{ fontSize: '12px', fontWeight: 900 }}>Enviar Texto Customizado na API</span>
                                                 </div>
+                                                {enableCustomVariables && (
+                                                    <textarea className="input-field animate-fade-in" style={{ minHeight: '120px' }} value={bodyText} onChange={e => _setBodyText(e.target.value)} />
+                                                )}
                                             </div>
                                             <div className="mt-2 flex flex-col gap-2"><label>Rodapé (Footer)</label><input className="input-field" value={footerText} onChange={e => _setFooterText(e.target.value)} /></div>
                                         </div>
