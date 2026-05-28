@@ -286,10 +286,10 @@ const TemplateCreator = () => {
         let varCount = isFiveVars ? 5 : 4;
         let examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
-        if (variablesOverride && overrideBodyText) {
+        if (overrideBodyText) {
             bodyValue = overrideBodyText;
             varCount = (overrideBodyText.match(/\{\{(\d+)\}\}/g) || []).length;
-            examples = variablesOverride.slice(0, varCount);
+            examples = LEANDRO_EXAMPLES.slice(0, varCount);
         }
 
         const effectiveHeaderType = overrideHeaderType || headerType;
@@ -410,10 +410,10 @@ const TemplateCreator = () => {
         let varCount = isFiveVars ? 5 : 4;
         let examples = LEANDRO_EXAMPLES.slice(0, varCount);
 
-        if (variablesOverride && overrideBodyText) {
+        if (overrideBodyText) {
             bodyValue = overrideBodyText;
             varCount = (overrideBodyText.match(/\{\{(\d+)\}\}/g) || []).length;
-            examples = variablesOverride.slice(0, varCount);
+            examples = LEANDRO_EXAMPLES.slice(0, varCount);
         }
 
         const effectiveHeaderType = overrideHeaderType || headerType;
@@ -610,8 +610,8 @@ const TemplateCreator = () => {
                     setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
 
                     const payload = useMetaDirect
-                        ? buildMetaPayload(currentName, selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, enableCustomVariables ? variablesExample : undefined, enableCustomVariables ? bodyText : undefined)
-                        : buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage, undefined, undefined, undefined, undefined, undefined, enableCustomVariables ? variablesExample : undefined, enableCustomVariables ? bodyText : undefined);
+                        ? buildMetaPayload(currentName, selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, undefined, enableCustomVariables ? bodyText : undefined)
+                        : buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage, undefined, undefined, undefined, undefined, undefined, undefined, enableCustomVariables ? bodyText : undefined);
 
 
                     const res = useMetaDirect
@@ -748,10 +748,9 @@ const TemplateCreator = () => {
                         row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
                     }
 
-                    const rowVars = enableBulkCustomVariables && row.variables && row.variables.length > 0 ? row.variables : undefined;
                     const payload = useMetaDirect
-                        ? buildMetaPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, rowVars, enableBulkCustomVariables ? bodyText : undefined)
-                        : buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, rowVars, enableBulkCustomVariables ? bodyText : undefined);
+                        ? buildMetaPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, undefined, enableBulkCustomVariables ? bodyText : undefined)
+                        : buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, undefined, enableBulkCustomVariables ? bodyText : undefined);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumbers.split(/[\n,]/)[0]?.trim();
                     if (!rowSender && !useMetaDirect) {
@@ -1722,33 +1721,8 @@ const TemplateCreator = () => {
                                                     >
                                                         <div style={{ position: 'absolute', top: '3px', left: enableCustomVariables ? '19px' : '3px', width: '18px', height: '18px', background: 'white', borderRadius: '50%', transition: 'all 0.3s' }} />
                                                     </div>
-                                                    <span style={{ fontSize: '12px', fontWeight: 900 }}>Alterar Variáveis Manualmente</span>
+                                                    <span style={{ fontSize: '12px', fontWeight: 900 }}>Enviar Texto Customizado na API</span>
                                                 </div>
-                                                {enableCustomVariables && (
-                                                    <div className="flex flex-col gap-4">
-                                                        <div className="flex items-center justify-between">
-                                                            <label>Configuração de Variáveis (Visualização no Card)</label>
-                                                            <span style={{ fontSize: '10px', opacity: 0.5, fontWeight: 700 }}>{variablesExample.length} ATIVAS</span>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                            {Array.from({ length: (bodyText.match(/\{\{(\d+)\}\}/g) || []).length }).map((_, i) => (
-                                                                <div key={i} className="flex flex-col gap-1">
-                                                                    <span style={{ fontSize: '9px', fontWeight: 900, color: 'var(--primary-color)', opacity: 0.6 }}>VAR {i + 1}</span>
-                                                                    <input
-                                                                        className="input-field"
-                                                                        value={variablesExample[i] || ''}
-                                                                        onChange={e => {
-                                                                            const newVars = [...variablesExample];
-                                                                            newVars[i] = e.target.value;
-                                                                            _setVariablesExample(newVars);
-                                                                        }}
-                                                                        placeholder={`Valor para {{${i + 1}}}`}
-                                                                    />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </div>
                                             <div className="mt-2 flex flex-col gap-2"><label>Rodapé (Footer)</label><input className="input-field" value={footerText} onChange={e => _setFooterText(e.target.value)} /></div>
                                         </div>
@@ -1804,7 +1778,7 @@ const TemplateCreator = () => {
                                             <div style={{ width: '30px', height: '16px', background: enableBulkCustomVariables ? 'var(--primary-color)' : 'var(--surface-border-subtle)', borderRadius: '8px', position: 'relative', transition: 'all 0.3s' }}>
                                                 <div style={{ position: 'absolute', top: '2px', left: enableBulkCustomVariables ? '16px' : '2px', width: '12px', height: '12px', background: 'white', borderRadius: '50%', transition: 'all 0.3s' }} />
                                             </div>
-                                            <span style={{ fontSize: '10px', fontWeight: 900 }}>VARS MANUAL</span>
+                                            <span style={{ fontSize: '10px', fontWeight: 900 }}>TEXTO CUSTOMIZADO</span>
                                         </div>
                                         <button className="global-tile-btn global-tile-btn-ghost" onClick={applySenderToAllCampaigns}>
                                             <Smartphone size={16} /> SENDER EM TODAS
@@ -1881,7 +1855,6 @@ const TemplateCreator = () => {
                                                                                 <th>LINK B{i + 1}</th>
                                                                             </Fragment>
                                                                         ))}
-                                                                        {enableBulkCustomVariables && <th>VARIÁVEIS</th>}
                                                                         <th>AÇÕES</th>
                                                                     </tr>
                                                                 </thead>
@@ -1915,20 +1888,6 @@ const TemplateCreator = () => {
                                                                                                     <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
                                                                                                 </Fragment>
                                                                                             ))}
-                                                                                            {enableBulkCustomVariables && (
-                                                                                                <td>
-                                                                                                    <input 
-                                                                                                        className="bulk-row-input" 
-                                                                                                        placeholder="v1, v2, v3..." 
-                                                                                                        value={(row.variables || []).join(', ')} 
-                                                                                                        onChange={e => { 
-                                                                                                            const n = [...camp.rows]; 
-                                                                                                            n[rIdx].variables = e.target.value.split(',').map(s => s.trim()); 
-                                                                                                            setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); 
-                                                                                                        }} 
-                                                                                                    />
-                                                                                                </td>
-                                                                                            )}
                                                                                             <td>
                                                                                                 <div className="flex gap-3" style={{ position: 'relative', zIndex: 100, justifyContent: 'center', width: '100%' }}>
                                                                                                     <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={24} color="#FFFFFF" /></button>
