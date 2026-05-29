@@ -8,7 +8,10 @@ import {
     Download,
     Settings2,
     CheckCircle,
-    UploadCloud
+    UploadCloud,
+    Send,
+    X,
+    Server
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { dbService } from '../services/dbService';
@@ -41,6 +44,121 @@ const UploadContacts = () => {
     const [filterDate, setFilterDate] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+
+    // Infobip Integration States
+    const [isInfobipModalOpen, setIsInfobipModalOpen] = useState(false);
+    const [infobipMapping, setInfobipMapping] = useState<{ [key: string]: string }>({});
+    const [isSendingToInfobip, setIsSendingToInfobip] = useState(false);
+    const [infobipProgress, setInfobipProgress] = useState({ current: 0, total: 0 });
+
+    const INFOBIP_FIELDS = [
+        { value: 'ignore', label: '-- Ignorar --' },
+        { value: 'Phone Number', label: 'Phone Number' },
+        { value: 'FirstName', label: 'Nome (First Name)' },
+        { value: 'LastName', label: 'Sobrenome (Last Name)' },
+        { value: 'Email', label: 'E-mail' },
+        { value: 'CPF', label: 'CPF (Custom)' },
+        { value: 'VALOR', label: 'VALOR (Custom)' }
+    ];
+
+    const openInfobipModal = () => {
+        if (processedData.length === 0) return;
+        
+        // Auto match fields based on first row
+        const firstRow = processedData[0];
+        const initialMapping: { [key: string]: string } = {};
+        
+        Object.keys(firstRow).forEach(key => {
+            const kLower = key.toLowerCase();
+            if (kLower.includes('phone') || kLower.includes('telefone') || kLower === 'número') {
+                initialMapping[key] = 'Phone Number';
+            } else if (kLower.includes('nome') || kLower === 'info_2') {
+                initialMapping[key] = 'FirstName';
+            } else if (kLower.includes('email') || kLower === 'e-mail') {
+                initialMapping[key] = 'Email';
+            } else if (kLower.includes('cpf') || kLower === 'info_3') {
+                initialMapping[key] = 'CPF';
+            } else if (kLower.includes('valor')) {
+                initialMapping[key] = 'VALOR';
+            } else {
+                initialMapping[key] = 'ignore';
+            }
+        });
+        
+        setInfobipMapping(initialMapping);
+        setIsInfobipModalOpen(true);
+    };
+
+    const sendToInfobip = async () => {
+        setIsSendingToInfobip(true);
+        setInfobipProgress({ current: 0, total: processedData.length });
+        
+        // Credenciais do Otávio conforme solicitado
+        const API_KEY = '0a52ec9aee6160c78dfbf0fd451bb143-0d152122-2244-4550-9689-e648d917a45d';
+        const BASE_URL = '4k3e4p.api-us.infobip.com';
+        
+        let successCount = 0;
+        
+        for (let i = 0; i < processedData.length; i++) {
+            const row = processedData[i];
+            
+            let firstName = '';
+            let lastName = '';
+            let phone = '';
+            let email = '';
+            let customAttributes: any = {};
+            
+            Object.keys(infobipMapping).forEach(key => {
+                const mappedTo = infobipMapping[key];
+                const val = row[key];
+                if (!val) return;
+                
+                if (mappedTo === 'FirstName') firstName = String(val);
+                else if (mappedTo === 'LastName') lastName = String(val);
+                else if (mappedTo === 'Phone Number') phone = String(val).replace(/\\D/g, '');
+                else if (mappedTo === 'Email') email = String(val);
+                else if (mappedTo !== 'ignore') {
+                    customAttributes[mappedTo] = String(val);
+                }
+            });
+            
+            const payload: any = {};
+            if (firstName) payload.firstName = firstName;
+            if (lastName) payload.lastName = lastName;
+            
+            payload.contactInformation = {};
+            if (phone) payload.contactInformation.phone = [{ number: phone }];
+            if (email) payload.contactInformation.email = [{ address: email }];
+            
+            if (Object.keys(customAttributes).length > 0) {
+                payload.customAttributes = customAttributes;
+            }
+            
+            try {
+                const res = await fetch(`https://${BASE_URL}/people/2/persons`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `App ${API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.ok || res.status === 201 || res.status === 200) {
+                    successCount++;
+                }
+            } catch (err) {
+                console.error('Error sending person', err);
+            }
+            
+            setInfobipProgress({ current: i + 1, total: processedData.length });
+        }
+        
+        setIsSendingToInfobip(false);
+        setIsInfobipModalOpen(false);
+        alert(`Envio concluído! Pessoas criadas/atualizadas no Infobip: ${successCount} de ${processedData.length}`);
+    };
 
     useEffect(() => {
         dbService.getUploadHistory().then(history => {
@@ -669,6 +787,13 @@ const UploadContacts = () => {
 
                             <div className="flex flex-col gap-3 mt-8">
                                 <button className="btn btn-secondary w-full btn-sm-custom" onClick={exportCSVs}>EXPORTAR CSV</button>
+                                <button 
+                                    className="btn btn-primary w-full btn-sm-custom" 
+                                    style={{ color: 'black', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                    onClick={openInfobipModal}
+                                >
+                                    <Server size={18} /> ENVIAR DIRETO PRA INFOBIP
+                                </button>
                             </div>
                         </div>
                     ) : (
@@ -773,6 +898,83 @@ const UploadContacts = () => {
                     </div>
                 )}
             </div>
+
+            {/* Infobip Mapping Modal */}
+            {isInfobipModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div className="glass-card animate-fade-in" style={{ width: '90%', maxWidth: '800px', background: 'var(--bg-primary)', borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--surface-border)' }}>
+                        <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                            <div className="flex flex-col">
+                                <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.4rem' }}>Importar perfis (Infobip)</h3>
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Mapeie as colunas da sua planilha para os campos do perfil do Infobip (People).</p>
+                            </div>
+                            <button className="btn-p-control" onClick={() => !isSendingToInfobip && setIsInfobipModalOpen(false)}>
+                                <X size={24} color="var(--text-muted)" />
+                            </button>
+                        </div>
+
+                        <div className="p-6" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ textAlign: 'left', padding: '12px', color: 'var(--text-secondary)', fontSize: '0.8rem', borderBottom: '1px solid var(--surface-border-subtle)' }}>Coluna do arquivo</th>
+                                        <th style={{ textAlign: 'left', padding: '12px', color: 'var(--text-secondary)', fontSize: '0.8rem', borderBottom: '1px solid var(--surface-border-subtle)' }}>Visualização do arquivo</th>
+                                        <th style={{ textAlign: 'left', padding: '12px', color: 'var(--text-secondary)', fontSize: '0.8rem', borderBottom: '1px solid var(--surface-border-subtle)' }}>Campo do perfil</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {processedData.length > 0 && Object.keys(processedData[0]).map((key, idx) => (
+                                        <tr key={idx}>
+                                            <td style={{ padding: '16px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontWeight: 700, fontSize: '0.9rem' }}>
+                                                {key}
+                                            </td>
+                                            <td style={{ padding: '16px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                                {String(processedData[0][key]).length > 40 ? String(processedData[0][key]).substring(0, 40) + '...' : String(processedData[0][key])}
+                                            </td>
+                                            <td style={{ padding: '16px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                <select 
+                                                    className="input-field" 
+                                                    style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', width: '100%', maxWidth: '240px' }}
+                                                    value={infobipMapping[key] || 'ignore'}
+                                                    onChange={(e) => setInfobipMapping({...infobipMapping, [key]: e.target.value})}
+                                                    disabled={isSendingToInfobip}
+                                                >
+                                                    {INFOBIP_FIELDS.map(field => (
+                                                        <option key={field.value} value={field.value}>{field.label}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="p-6 flex items-center justify-between" style={{ borderTop: '1px solid var(--surface-border-subtle)', background: 'rgba(0,0,0,0.2)' }}>
+                            <div className="flex flex-col">
+                                {isSendingToInfobip && (
+                                    <>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>
+                                            Enviando: {infobipProgress.current} / {infobipProgress.total}
+                                        </span>
+                                        <div style={{ width: '200px', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', marginTop: '6px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${(infobipProgress.current / (infobipProgress.total || 1)) * 100}%`, background: 'var(--primary-color)', transition: 'width 0.2s' }}></div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            
+                            <div className="flex gap-4">
+                                <button className="btn btn-secondary" onClick={() => setIsInfobipModalOpen(false)} disabled={isSendingToInfobip}>Cancelar</button>
+                                <button className="btn btn-primary" style={{ color: 'black', fontWeight: 800, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={sendToInfobip} disabled={isSendingToInfobip}>
+                                    {isSendingToInfobip ? <Activity className="animate-spin" size={18} /> : <Send size={18} />}
+                                    {isSendingToInfobip ? 'Enviando...' : 'ENVIAR IMPORTAÇÃO'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
