@@ -220,21 +220,43 @@ const UploadContacts = () => {
                         }
                     }
 
-                    extractedContacts = lines.map((line, idx) => {
-                        const separator = line.includes(';') ? ';' : ',';
-                        if (idx === 0 && isNaN(Number(line.split(separator)[0])) && lines.length > 1) return null;
+                    const separator = lines[0].includes(';') ? ';' : ',';
+                    const headerRow = (lines.length > 1 && isNaN(Number(lines[0].split(separator)[0]))) ? lines[0].split(separator).map(h => h.trim()) : null;
 
+                    extractedContacts = lines.map((line, idx) => {
+                        const rowSeparator = line.includes(';') ? ';' : ',';
+                        if (idx === 0 && headerRow) return null;
+
+                        let contact: any = null;
                         if (smartSplit) {
-                            const parsed = smartParseRow(line);
-                            return parsed;
+                            contact = smartParseRow(line);
                         } else {
-                            const parts = line.split(separator);
-                            return {
+                            const parts = line.split(rowSeparator);
+                            contact = {
                                 telefone: normalizePhone(parts[phoneColIndex] || ''),
                                 nome: (parts[phoneColIndex === 0 ? 1 : 0] || '').trim()
                             };
                         }
-                    }).filter(c => c && c.telefone && c.telefone.length >= 10 && c.telefone.length <= 15);
+                        
+                        if (contact && contact.telefone && contact.telefone.length >= 10 && contact.telefone.length <= 15) {
+                            const parts = line.split(rowSeparator);
+                            if (headerRow) {
+                                headerRow.forEach((h, colIdx) => {
+                                    if (h && contact[h] === undefined) {
+                                        contact[h] = parts[colIdx] !== undefined ? parts[colIdx] : '';
+                                    }
+                                });
+                            } else {
+                                parts.forEach((p, colIdx) => {
+                                    if (colIdx !== phoneColIndex && colIdx !== (phoneColIndex === 0 ? 1 : 0)) {
+                                        contact[`Coluna_${colIdx + 1}`] = p !== undefined ? p : '';
+                                    }
+                                });
+                            }
+                            return contact;
+                        }
+                        return null;
+                    }).filter(c => c);
 
                     setInvalidCount(lines.length - extractedContacts.length);
                 }
@@ -296,6 +318,21 @@ const UploadContacts = () => {
                             }
 
                             if (contact) {
+                                const headerRow = startIndex === 1 ? json[0] : null;
+                                if (headerRow) {
+                                    headerRow.forEach((h: any, colIdx: number) => {
+                                        const hStr = String(h || '').trim();
+                                        if (hStr && contact[hStr] === undefined) {
+                                            contact[hStr] = row[colIdx] !== undefined ? String(row[colIdx]) : '';
+                                        }
+                                    });
+                                } else {
+                                    row.forEach((val: any, colIdx: number) => {
+                                        if (colIdx !== phoneColIndex && colIdx !== (phoneColIndex === 0 ? 1 : 0)) {
+                                            contact[`Coluna_${colIdx + 1}`] = val !== undefined ? String(val) : '';
+                                        }
+                                    });
+                                }
                                 extractedContacts.push(contact);
                             }
                         }
@@ -331,6 +368,7 @@ const UploadContacts = () => {
                 const formattedList = filtered.map((item, index) => {
                     const batchNumber = Math.floor(index / batchSize) + 1;
                     return {
+                        ...item,
                         info_2: item.nome || '',
                         Número: item.telefone,
                         Etiquetas: `${baseTag}_${batchNumber}`,
