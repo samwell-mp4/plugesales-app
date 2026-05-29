@@ -424,7 +424,7 @@ const N8NWorkflow = () => {
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `monitor_n8n_${targetStatus.toLowerCase().replace(/ /g, '_')}.csv`);
+        link.setAttribute("download", `monitor_de_mensagem_${targetStatus.toLowerCase().replace(/ /g, '_')}.csv`);
         link.click();
     };
 
@@ -503,7 +503,7 @@ const N8NWorkflow = () => {
                     <div style={{ padding: '24px', background: 'var(--primary-gradient)', borderRadius: '25px', color: 'black', display: 'inline-flex', marginBottom: '32px', boxShadow: '0 15px 45px rgba(172, 248, 0, 0.3)' }}>
                         <Database size={48} />
                     </div>
-                    <h1 style={{ fontSize: '4rem', fontWeight: 950, letterSpacing: '-4px', marginBottom: '8px', background: 'linear-gradient(to right, #fff, var(--primary-color), #fff)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase', animation: 'shine 5s linear infinite' }}>MONITOR n8n</h1>
+                    <h1 style={{ fontSize: '4rem', fontWeight: 950, letterSpacing: '-4px', marginBottom: '8px', background: 'linear-gradient(to right, #fff, var(--primary-color), #fff)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase' }}>&gt; Monitor de Mensagem</h1>
                     <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 900, letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '48px' }}>Advanced Real-Time Intelligence</p>
                     
                     <div style={{ position: 'relative', marginBottom: '24px' }}>
