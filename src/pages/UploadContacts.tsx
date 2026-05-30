@@ -142,6 +142,12 @@ const UploadContacts = () => {
             if (Object.keys(customAttributes).length > 0) {
                 payload.customAttributes = customAttributes;
             }
+
+            if (row['Etiquetas']) {
+                payload.tags = [String(row['Etiquetas'])];
+            } else if (baseTag) {
+                payload.tags = [baseTag];
+            }
             
             try {
                 const res = await fetch(`https://${BASE_URL}/people/2/persons`, {
