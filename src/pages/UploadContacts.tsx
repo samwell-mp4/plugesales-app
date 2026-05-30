@@ -57,6 +57,9 @@ const UploadContacts = () => {
         { value: 'FirstName', label: 'Nome (First Name)' },
         { value: 'LastName', label: 'Sobrenome (Last Name)' },
         { value: 'Email', label: 'E-mail' },
+        { value: 'Info 2', label: 'Info 2 (Nome)' },
+        { value: 'Info3', label: 'Info3 (CPF/CNPJ)' },
+        { value: 'Info_empresa', label: 'Info_empresa' },
         { value: 'CPF', label: 'CPF (Custom)' },
         { value: 'VALOR', label: 'VALOR (Custom)' }
     ];
@@ -72,12 +75,18 @@ const UploadContacts = () => {
             const kLower = key.toLowerCase();
             if (kLower.includes('phone') || kLower.includes('telefone') || kLower === 'número') {
                 initialMapping[key] = 'Phone Number';
-            } else if (kLower.includes('nome') || kLower === 'info_2') {
+            } else if (kLower === 'info_2') {
+                initialMapping[key] = 'Info 2';
+            } else if (kLower.includes('nome')) {
                 initialMapping[key] = 'FirstName';
             } else if (kLower.includes('email') || kLower === 'e-mail') {
                 initialMapping[key] = 'Email';
-            } else if (kLower.includes('cpf') || kLower === 'info_3') {
+            } else if (kLower === 'info_3') {
+                initialMapping[key] = 'Info3';
+            } else if (kLower.includes('cpf') || kLower.includes('cnpj')) {
                 initialMapping[key] = 'CPF';
+            } else if (kLower.includes('empresa') || kLower === 'info_empresa') {
+                initialMapping[key] = 'Info_empresa';
             } else if (kLower.includes('valor')) {
                 initialMapping[key] = 'VALOR';
             } else {
