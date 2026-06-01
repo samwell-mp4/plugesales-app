@@ -176,7 +176,7 @@ const FinanceRequests = () => {
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Tipo</label>
                                     <select className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
-                                        {REQUEST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                        {REQUEST_TYPES.map(t => <option key={t} value={t} className="bg-[#111]">{t}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -193,7 +193,7 @@ const FinanceRequests = () => {
                             </form>
                         </div>
                         <div className="p-6 border-t border-white/10 bg-black/40 flex justify-end gap-3">
-                            <button onClick={() => setIsCreateOpen(false)} className="px-6 py-3 rounded-xl font-bold text-white/60 hover:text-white">Cancelar</button>
+                            <button onClick={() => setIsCreateOpen(false)} style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", transition: "all 0.2s" }} className="hover:bg-white/5">Cancelar</button>
                             <button type="submit" form="createReqForm" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className="" disabled={uploading}>Enviar Solicitação</button>
                         </div>
                     </div>

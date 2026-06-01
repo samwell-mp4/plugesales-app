@@ -158,21 +158,21 @@ const FinancePayables = () => {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
                             <Filter size={18} className="text-primary-color" />
-                            <select className="bg-transparent border-none outline-none text-white w-full text-sm font-bold appearance-none" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                            <select className="filter-select w-full" style={{ background: "transparent", border: "none", color: "white", outline: "none", width: "100%", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                                 <option value="" className="bg-black">Status: Todos</option>
                                 {STATUS_OPTIONS.map(s => <option key={s} value={s} className="bg-black">{s}</option>)}
                             </select>
                         </div>
                         <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
                             <Filter size={18} className="text-primary-color" />
-                            <select className="bg-transparent border-none outline-none text-white w-full text-sm font-bold appearance-none" value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
+                            <select className="filter-select w-full" style={{ background: "transparent", border: "none", color: "white", outline: "none", width: "100%", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
                                 <option value="" className="bg-black">Fornecedor: Todos</option>
                                 {suppliers.map(s => <option key={s.id} value={s.id} className="bg-black">{s.name}</option>)}
                             </select>
                         </div>
                         <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
                             <Filter size={18} className="text-primary-color" />
-                            <select className="bg-transparent border-none outline-none text-white w-full text-sm font-bold appearance-none" value={filterType} onChange={e => setFilterType(e.target.value)}>
+                            <select className="filter-select w-full" style={{ background: "transparent", border: "none", color: "white", outline: "none", width: "100%", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }} value={filterType} onChange={e => setFilterType(e.target.value)}>
                                 <option value="" className="bg-black">Tipo: Todos</option>
                                 {ACCOUNT_TYPES.map(t => <option key={t} value={t} className="bg-black">{t}</option>)}
                             </select>

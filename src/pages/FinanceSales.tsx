@@ -464,8 +464,8 @@ const FinanceSales = () => {
                     <p className="subtitle">Gestão de faturamento, anexos de pagamentos e relatórios</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4" style={{ flex: 1, justifyContent: 'flex-end' }}>
-                    <div className="search-bar-finance">
+                <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto xl:flex-nowrap mt-4 xl:mt-0" style={{ flex: 1, justifyContent: "flex-start" }}>
+                    <div className="search-bar-finance w-full md:w-auto">
                         <Search size={16} color="var(--primary-color)" style={{ marginRight: '12px' }} />
                         <input
                             placeholder="Buscar cliente, card..."
@@ -494,7 +494,7 @@ const FinanceSales = () => {
                     </div>
 
                     {user?.role === 'ADMIN' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignSelf: 'flex-end' }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                             <select
                                 className="filter-select"
                                 value={filterSalesperson}
@@ -509,7 +509,7 @@ const FinanceSales = () => {
                     )}
 
                     {user?.role !== 'CLIENT' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignSelf: 'flex-end' }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                             <select
                                 className="filter-select"
                                 value={filterClient}
@@ -524,7 +524,7 @@ const FinanceSales = () => {
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignSelf: 'flex-end' }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                         <select
                             className="filter-select"
                             value={filterStatus}

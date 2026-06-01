@@ -191,7 +191,7 @@ const FinanceRefunds = () => {
                             </form>
                         </div>
                         <div className="p-6 border-t border-white/10 bg-black/40 flex justify-end gap-3">
-                            <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-white/60 hover:text-white transition-colors">Cancelar</button>
+                            <button onClick={() => setIsModalOpen(false)} style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", transition: "all 0.2s" }} className="hover:bg-white/5">Cancelar</button>
                             <button type="submit" form="refundForm" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className=" disabled:opacity-50" disabled={uploading}>Confirmar Solicitação</button>
                         </div>
                     </div>
