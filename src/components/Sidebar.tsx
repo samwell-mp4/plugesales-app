@@ -130,11 +130,23 @@ const Sidebar = () => {
             id: 'FINANCEIRO',
             label: 'MÓDULO FINANCEIRO',
             items: [
-                { name: 'Painel Geral', path: '/finance/dashboard', icon: <LayoutDashboard />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
+                { name: 'Painel Geral', path: '/finance/dashboard', icon: <LayoutDashboard />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
+                { name: 'Fornecedores', path: '/finance/suppliers', icon: <Users />, roles: ['ADMIN', 'CONTABILIDADE'] },
+                { name: 'Contas a Pagar', path: '/finance/payables', icon: <FileSpreadsheet />, roles: ['ADMIN', 'CONTABILIDADE'] },
+                { name: 'Reembolsos', path: '/finance/refunds', icon: <DollarSign />, roles: ['ADMIN', 'CONTABILIDADE'] },
+                { name: 'Solicitações', path: '/finance/requests', icon: <MessageSquare /> },
                 { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
-                { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN'] },
+                { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
-                { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN'] },
+                { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN', 'CONTABILIDADE'] },
+            ]
+        },
+        {
+            id: 'COLABORADORES',
+            label: 'RH & COLABORADORES',
+            roles: ['ADMIN', 'CONTABILIDADE'],
+            items: [
+                { name: 'Cadastro', path: '/collaborators/register', icon: <User /> }
             ]
         },
         {
