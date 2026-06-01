@@ -135,45 +135,46 @@ const FinancePayables = () => {
                     <h1>Contas a Pagar</h1>
                     <p className="subtitle">Gestão de pagamentos e aprovações</p>
                 </div>
-                <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/10">
+                <div className="flex gap-2" style={{ background: "rgba(255, 255, 255, 0.05)", padding: "4px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.1)" }}>
                     <button 
                         onClick={() => setActiveTab('consulta')}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'consulta' ? 'bg-primary-color text-black shadow-lg shadow-primary-color/20' : 'text-white/60 hover:text-white'}`}
+                        style={activeTab === 'consulta' ? { background: 'var(--primary-color)', color: 'black', borderRadius: '12px', padding: '10px 24px', fontWeight: 800, fontSize: '0.85rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' } : { background: 'transparent', color: 'rgba(255,255,255,0.6)', borderRadius: '12px', padding: '10px 24px', fontWeight: 800, fontSize: '0.85rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
-                        <span className="flex items-center gap-2"><List size={16}/> Consultar Contas</span>
+                        <List size={16}/> Consultar Contas
                     </button>
                     <button 
                         onClick={() => setActiveTab('nova')}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'nova' ? 'bg-primary-color text-black shadow-lg shadow-primary-color/20' : 'text-white/60 hover:text-white'}`}
+                        style={activeTab === 'nova' ? { background: 'var(--primary-color)', color: 'black', borderRadius: '12px', padding: '10px 24px', fontWeight: 800, fontSize: '0.85rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' } : { background: 'transparent', color: 'rgba(255,255,255,0.6)', borderRadius: '12px', padding: '10px 24px', fontWeight: 800, fontSize: '0.85rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
-                        <span className="flex items-center gap-2"><Plus size={16}/> Nova Conta</span>
+                        <Plus size={16}/> Nova Conta
                     </button>
-                </div></header>
+                </div>
+            </header>
 
             {loading && <SupremeLoading />}
 
             {!loading && activeTab === 'consulta' && (
                 <div className="mt-8 space-y-6">
                     {/* Filtros */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
-                            <Filter size={18} className="text-primary-color" />
-                            <select className="filter-select w-full" style={{ background: "transparent", border: "none", color: "white", outline: "none", width: "100%", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                                <option value="" className="bg-black">Status: Todos</option>
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', paddingLeft: '4px' }}>Status</span>
+                            <select style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "14px", color: "white", fontWeight: 800, fontSize: "0.85rem", padding: "12px 16px", outline: "none", cursor: "pointer" }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                                <option value="" className="bg-black">Todos</option>
                                 {STATUS_OPTIONS.map(s => <option key={s} value={s} className="bg-black">{s}</option>)}
                             </select>
                         </div>
-                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
-                            <Filter size={18} className="text-primary-color" />
-                            <select className="filter-select w-full" style={{ background: "transparent", border: "none", color: "white", outline: "none", width: "100%", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
-                                <option value="" className="bg-black">Fornecedor: Todos</option>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', paddingLeft: '4px' }}>Fornecedor</span>
+                            <select style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "14px", color: "white", fontWeight: 800, fontSize: "0.85rem", padding: "12px 16px", outline: "none", cursor: "pointer" }} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
+                                <option value="" className="bg-black">Todos</option>
                                 {suppliers.map(s => <option key={s.id} value={s.id} className="bg-black">{s.name}</option>)}
                             </select>
                         </div>
-                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
-                            <Filter size={18} className="text-primary-color" />
-                            <select className="filter-select w-full" style={{ background: "transparent", border: "none", color: "white", outline: "none", width: "100%", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }} value={filterType} onChange={e => setFilterType(e.target.value)}>
-                                <option value="" className="bg-black">Tipo: Todos</option>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', paddingLeft: '4px' }}>Tipo</span>
+                            <select style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "14px", color: "white", fontWeight: 800, fontSize: "0.85rem", padding: "12px 16px", outline: "none", cursor: "pointer" }} value={filterType} onChange={e => setFilterType(e.target.value)}>
+                                <option value="" className="bg-black">Todos</option>
                                 {ACCOUNT_TYPES.map(t => <option key={t} value={t} className="bg-black">{t}</option>)}
                             </select>
                         </div>
