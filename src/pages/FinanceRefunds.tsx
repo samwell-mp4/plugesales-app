@@ -86,16 +86,20 @@ const FinanceRefunds = () => {
     };
 
     return (
-        <div className="crm-layout">
-            <div className="crm-header-container">
+        <div className="finance-page animate-fade-in" style={{ padding: "40px", paddingBottom: "80px" }}>
+            <style>{`
+                .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
+                .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
+            `}</style>
+            <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
                 <div>
-                    <h1 className="crm-page-title">Reembolsos</h1>
-                    <p className="crm-page-subtitle">Fluxo de solicitações e pagamentos</p>
+                    <h1>Reembolsos</h1>
+                    <p className="subtitle">Fluxo de solicitações e pagamentos</p>
                 </div>
-                <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2">
+                <button onClick={() => setIsModalOpen(true)} style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className=" flex items-center gap-2">
                     <Plus size={18} /> Nova Solicitação
                 </button>
-            </div>
+            </header>
 
             {loading && <SupremeLoading />}
 
@@ -109,7 +113,6 @@ const FinanceRefunds = () => {
                                     {refunds.filter(r => r.status === colStatus).length}
                                 </div>
                             </div>
-                            
                             <div className="flex flex-col gap-3 flex-1">
                                 {refunds.filter(r => r.status === colStatus).map(r => (
                                     <div key={r.id} className="bg-[#1a1a1a] p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-colors shadow-lg cursor-grab active:cursor-grabbing">
@@ -159,15 +162,15 @@ const FinanceRefunds = () => {
                             <form id="refundForm" onSubmit={handleSave} className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Data da Despesa *</label>
-                                    <input required type="date" className="crm-input w-full" value={formData.request_date || ''} onChange={e => setFormData({...formData, request_date: e.target.value})} />
+                                    <input required type="date" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.request_date || ''} onChange={e => setFormData({...formData, request_date: e.target.value})} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Valor Total (R$) *</label>
-                                    <input required type="number" step="0.01" className="crm-input w-full" placeholder="0.00" value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
+                                    <input required type="number" step="0.01" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} placeholder="0.00" value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Descrição *</label>
-                                    <textarea required className="crm-input w-full" rows={3} placeholder="Descreva o motivo..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+                                    <textarea required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} rows={3} placeholder="Descreva o motivo..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Comprovante</label>
@@ -189,7 +192,7 @@ const FinanceRefunds = () => {
                         </div>
                         <div className="p-6 border-t border-white/10 bg-black/40 flex justify-end gap-3">
                             <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-white/60 hover:text-white transition-colors">Cancelar</button>
-                            <button type="submit" form="refundForm" className="btn-primary disabled:opacity-50" disabled={uploading}>Confirmar Solicitação</button>
+                            <button type="submit" form="refundForm" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className=" disabled:opacity-50" disabled={uploading}>Confirmar Solicitação</button>
                         </div>
                     </div>
                 </div>

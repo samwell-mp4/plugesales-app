@@ -124,23 +124,27 @@ const FinanceRequests = () => {
     };
 
     return (
-        <div className="crm-layout">
-            <div className="crm-header-container">
+        <div className="finance-page animate-fade-in" style={{ padding: "40px", paddingBottom: "80px" }}>
+            <style>{`
+                .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
+                .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
+            `}</style>
+            <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
                 <div>
-                    <h1 className="crm-page-title">Central de Solicitações</h1>
-                    <p className="crm-page-subtitle">Acompanhe e gerencie requisições internas</p>
+                    <h1>Central de Solicitações</h1>
+                    <p className="subtitle">Acompanhe e gerencie requisições internas</p>
                 </div>
-                <button onClick={() => setIsCreateOpen(true)} className="btn-primary flex items-center gap-2">
+                <button onClick={() => setIsCreateOpen(true)} style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className=" flex items-center gap-2">
                     <Plus size={18} /> Nova Solicitação
                 </button>
-            </div>
+            </header>
 
             {loading && <SupremeLoading />}
 
             {!loading && (
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {requests.map(req => (
-                        <div key={req.id} onClick={() => handleOpenDetails(req)} className="crm-glass-panel p-6 cursor-pointer hover:border-primary-color transition-colors group">
+                        <div key={req.id} onClick={() => handleOpenDetails(req)} style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-6 cursor-pointer hover:border-primary-color transition-colors group">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center gap-2">
                                     <MessageSquare size={16} className="text-primary-color" />
@@ -171,13 +175,13 @@ const FinanceRequests = () => {
                             <form id="createReqForm" onSubmit={handleCreate} className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Tipo</label>
-                                    <select className="crm-input w-full" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
+                                    <select className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
                                         {REQUEST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Descreva sua solicitação</label>
-                                    <textarea required className="crm-input w-full min-h-[100px]" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
+                                    <textarea required className="input-field w-full min-h-[100px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Anexos (Opcional)</label>
@@ -190,7 +194,7 @@ const FinanceRequests = () => {
                         </div>
                         <div className="p-6 border-t border-white/10 bg-black/40 flex justify-end gap-3">
                             <button onClick={() => setIsCreateOpen(false)} className="px-6 py-3 rounded-xl font-bold text-white/60 hover:text-white">Cancelar</button>
-                            <button type="submit" form="createReqForm" className="btn-primary" disabled={uploading}>Enviar Solicitação</button>
+                            <button type="submit" form="createReqForm" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className="" disabled={uploading}>Enviar Solicitação</button>
                         </div>
                     </div>
                 </div>
@@ -236,7 +240,7 @@ const FinanceRequests = () => {
                                 <form onSubmit={handleSendResponse} className="flex gap-2">
                                     <input 
                                         type="text" 
-                                        className="crm-input flex-1 bg-white/5" 
+                                        className="input-field flex-1 bg-white/5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} 
                                         placeholder="Adicionar resposta..." 
                                         value={newMessage}
                                         onChange={e => setNewMessage(e.target.value)}

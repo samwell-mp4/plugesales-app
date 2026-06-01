@@ -125,11 +125,15 @@ const FinancePayables = () => {
     };
 
     return (
-        <div className="crm-layout">
-            <div className="crm-header-container">
+        <div className="finance-page animate-fade-in" style={{ padding: "40px", paddingBottom: "80px" }}>
+            <style>{`
+                .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
+                .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
+            `}</style>
+            <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
                 <div>
-                    <h1 className="crm-page-title">Contas a Pagar</h1>
-                    <p className="crm-page-subtitle">Gestão de pagamentos e aprovações</p>
+                    <h1>Contas a Pagar</h1>
+                    <p className="subtitle">Gestão de pagamentos e aprovações</p>
                 </div>
                 <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/10">
                     <button 
@@ -144,8 +148,7 @@ const FinancePayables = () => {
                     >
                         <span className="flex items-center gap-2"><Plus size={16}/> Nova Conta</span>
                     </button>
-                </div>
-            </div>
+                </div></header>
 
             {loading && <SupremeLoading />}
 
@@ -153,21 +156,21 @@ const FinancePayables = () => {
                 <div className="mt-8 space-y-6">
                     {/* Filtros */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="crm-glass-panel p-4 flex items-center gap-3">
+                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
                             <Filter size={18} className="text-primary-color" />
                             <select className="bg-transparent border-none outline-none text-white w-full text-sm font-bold appearance-none" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                                 <option value="" className="bg-black">Status: Todos</option>
                                 {STATUS_OPTIONS.map(s => <option key={s} value={s} className="bg-black">{s}</option>)}
                             </select>
                         </div>
-                        <div className="crm-glass-panel p-4 flex items-center gap-3">
+                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
                             <Filter size={18} className="text-primary-color" />
                             <select className="bg-transparent border-none outline-none text-white w-full text-sm font-bold appearance-none" value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
                                 <option value="" className="bg-black">Fornecedor: Todos</option>
                                 {suppliers.map(s => <option key={s.id} value={s.id} className="bg-black">{s.name}</option>)}
                             </select>
                         </div>
-                        <div className="crm-glass-panel p-4 flex items-center gap-3">
+                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-4 flex items-center gap-3">
                             <Filter size={18} className="text-primary-color" />
                             <select className="bg-transparent border-none outline-none text-white w-full text-sm font-bold appearance-none" value={filterType} onChange={e => setFilterType(e.target.value)}>
                                 <option value="" className="bg-black">Tipo: Todos</option>
@@ -177,7 +180,7 @@ const FinancePayables = () => {
                     </div>
 
                     {/* Lista */}
-                    <div className="crm-glass-panel overflow-hidden">
+                    <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" overflow-hidden">
                         <table className="w-full text-left text-sm text-white/80">
                             <thead>
                                 <tr className="border-b border-white/5 uppercase text-[10px] tracking-wider text-white/40 bg-white/5">
@@ -256,38 +259,38 @@ const FinancePayables = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-white/60 uppercase">Fornecedor / Prestador *</label>
-                                <select required className="crm-input w-full" value={formData.supplier_id || ''} onChange={e => setFormData({...formData, supplier_id: parseInt(e.target.value)})}>
+                                <select required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.supplier_id || ''} onChange={e => setFormData({...formData, supplier_id: parseInt(e.target.value)})}>
                                     <option value="">Selecione...</option>
                                     {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-white/60 uppercase">Tipo de Conta *</label>
-                                <select required className="crm-input w-full" value={formData.type || ''} onChange={e => setFormData({...formData, type: e.target.value})}>
+                                <select required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.type || ''} onChange={e => setFormData({...formData, type: e.target.value})}>
                                     {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-white/60 uppercase">Data de Lançamento *</label>
-                                <input required type="date" className="crm-input w-full" value={formData.launch_date || ''} onChange={e => setFormData({...formData, launch_date: e.target.value})} />
+                                <input required type="date" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.launch_date || ''} onChange={e => setFormData({...formData, launch_date: e.target.value})} />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-white/60 uppercase">Data de Vencimento *</label>
-                                <input required type="date" className="crm-input w-full" value={formData.due_date || ''} onChange={e => setFormData({...formData, due_date: e.target.value})} />
+                                <input required type="date" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.due_date || ''} onChange={e => setFormData({...formData, due_date: e.target.value})} />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-white/60 uppercase">Valor (R$) *</label>
-                                <input required type="number" step="0.01" className="crm-input w-full" placeholder="0.00" value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
+                                <input required type="number" step="0.01" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} placeholder="0.00" value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-white/60 uppercase">Responsável</label>
-                                <input type="text" className="crm-input w-full" value={formData.responsible || ''} disabled />
+                                <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.responsible || ''} disabled />
                             </div>
                         </div>
 
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-white/60 uppercase">Descrição</label>
-                            <textarea required className="crm-input w-full" rows={3} placeholder="Descreva o motivo do pagamento..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+                            <textarea required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} rows={3} placeholder="Descreva o motivo do pagamento..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
                         </div>
 
                         <div className="space-y-2">
@@ -309,7 +312,7 @@ const FinancePayables = () => {
                         </div>
 
                         <div className="flex justify-end pt-4">
-                            <button type="submit" className="btn-primary w-full md:w-auto px-12 py-4 text-sm disabled:opacity-50" disabled={uploading}>
+                            <button type="submit" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className=" w-full md:w-auto px-12 py-4 text-sm disabled:opacity-50" disabled={uploading}>
                                 Salvar Conta a Pagar
                             </button>
                         </div>

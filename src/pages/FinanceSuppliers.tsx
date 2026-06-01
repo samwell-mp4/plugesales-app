@@ -61,11 +61,15 @@ const FinanceSuppliers = () => {
     if (loading) return <SupremeLoading />;
 
     return (
-        <div className="crm-layout">
-            <div className="crm-header-container">
+        <div className="finance-page animate-fade-in" style={{ padding: "40px", paddingBottom: "80px" }}>
+            <style>{`
+                .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
+                .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
+            `}</style>
+            <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
                 <div>
-                    <h1 className="crm-page-title">Fornecedores & Prestadores</h1>
-                    <p className="crm-page-subtitle">Gestão de entidades cadastradas</p>
+                    <h1>Fornecedores & Prestadores</h1>
+                    <p className="subtitle">Gestão de entidades cadastradas</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="finance-search-box-premium">
@@ -77,13 +81,12 @@ const FinanceSuppliers = () => {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2">
+                    <button onClick={() => setIsModalOpen(true)} style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className=" flex items-center gap-2">
                         <Plus size={18} /> Novo Cadastro
                     </button>
-                </div>
-            </div>
+                </div></header>
 
-            <div className="crm-glass-panel mt-6">
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" mt-6">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-white/80">
                         <thead>
@@ -147,24 +150,24 @@ const FinanceSuppliers = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-white/60 uppercase">Nome / Razão Social *</label>
-                                        <input required type="text" className="crm-input w-full" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                        <input required type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-white/60 uppercase">CPF / CNPJ</label>
-                                        <input type="text" className="crm-input w-full" value={formData.document || ''} onChange={e => setFormData({...formData, document: e.target.value})} />
+                                        <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.document || ''} onChange={e => setFormData({...formData, document: e.target.value})} />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-white/60 uppercase">E-mail</label>
-                                        <input type="email" className="crm-input w-full" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                        <input type="email" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-white/60 uppercase">Telefone</label>
-                                        <input type="text" className="crm-input w-full" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                        <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase flex items-center gap-1"><MapPin size={14}/> Endereço Completo</label>
-                                    <input type="text" className="crm-input w-full" value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
+                                    <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
                                 </div>
                                 
                                 <div className="pt-4 border-t border-white/10">
@@ -172,26 +175,26 @@ const FinanceSuppliers = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-white/60 uppercase">Chave PIX</label>
-                                            <input type="text" className="crm-input w-full" value={formData.pix_key || ''} onChange={e => setFormData({...formData, pix_key: e.target.value})} />
+                                            <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.pix_key || ''} onChange={e => setFormData({...formData, pix_key: e.target.value})} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-white/60 uppercase">Banco</label>
-                                            <input type="text" className="crm-input w-full" value={formData.bank || ''} onChange={e => setFormData({...formData, bank: e.target.value})} />
+                                            <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.bank || ''} onChange={e => setFormData({...formData, bank: e.target.value})} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-white/60 uppercase">Agência</label>
-                                            <input type="text" className="crm-input w-full" value={formData.agency || ''} onChange={e => setFormData({...formData, agency: e.target.value})} />
+                                            <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.agency || ''} onChange={e => setFormData({...formData, agency: e.target.value})} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-white/60 uppercase">Conta</label>
-                                            <input type="text" className="crm-input w-full" value={formData.account || ''} onChange={e => setFormData({...formData, account: e.target.value})} />
+                                            <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.account || ''} onChange={e => setFormData({...formData, account: e.target.value})} />
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Observações</label>
-                                    <textarea className="crm-input w-full min-h-[80px]" value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
+                                    <textarea className="input-field w-full min-h-[80px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
                                 </div>
                             </form>
                         </div>
@@ -199,7 +202,7 @@ const FinanceSuppliers = () => {
                             <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-white/60 hover:text-white transition-colors bg-white/5 hover:bg-white/10">
                                 Cancelar
                             </button>
-                            <button type="submit" form="supplierForm" className="btn-primary">
+                            <button type="submit" form="supplierForm" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className="">
                                 Salvar Cadastro
                             </button>
                         </div>
