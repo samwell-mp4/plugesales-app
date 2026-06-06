@@ -306,9 +306,13 @@ const TemplateCreator = () => {
         if (effectiveHeaderType !== 'TEXT') {
             hasMedia = true;
             const format = effectiveHeaderType.toUpperCase();
+            let finalMediaUrl = (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : headerMediaUrl;
+            if (!finalMediaUrl || finalMediaUrl === 'https://i.imgur.com/gZLbY6p.jpeg' || finalMediaUrl.length <= 10) {
+                finalMediaUrl = format === 'VIDEO' ? 'https://res.cloudinary.com/sidao-santos/video/upload/vc_h264,ac_aac,f_mp4/wpp/uploads/aeizxh4m8bqcfdj5lrod.mp4' : 'https://i.imgur.com/gZLbY6p.jpeg';
+            }
             structure.header = {
                 format: format,
-                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : (format === 'VIDEO' ? 'https://res.cloudinary.com/sidao-santos/video/upload/vc_h264,ac_aac,f_mp4/wpp/uploads/aeizxh4m8bqcfdj5lrod.mp4' : 'https://i.imgur.com/gZLbY6p.jpeg'))
+                example: finalMediaUrl
             };
         }
 
@@ -431,7 +435,10 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
-            const mediaUrl = (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : (format === 'VIDEO' ? 'https://res.cloudinary.com/sidao-santos/video/upload/vc_h264,ac_aac,f_mp4/wpp/uploads/aeizxh4m8bqcfdj5lrod.mp4' : 'https://i.imgur.com/gZLbY6p.jpeg'));
+            let mediaUrl = (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : headerMediaUrl;
+            if (!mediaUrl || mediaUrl === 'https://i.imgur.com/gZLbY6p.jpeg' || mediaUrl.length <= 10) {
+                mediaUrl = format === 'VIDEO' ? 'https://res.cloudinary.com/sidao-santos/video/upload/vc_h264,ac_aac,f_mp4/wpp/uploads/aeizxh4m8bqcfdj5lrod.mp4' : 'https://i.imgur.com/gZLbY6p.jpeg';
+            }
             components.push({
                 type: 'HEADER',
                 format: format,
