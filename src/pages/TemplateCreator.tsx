@@ -308,7 +308,7 @@ const TemplateCreator = () => {
             const format = effectiveHeaderType.toUpperCase();
             structure.header = {
                 format: format,
-                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.imgur.com/gZLbY6p.jpeg')
+                example: (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : (format === 'VIDEO' ? 'https://res.cloudinary.com/sidao-santos/video/upload/vc_h264,ac_aac,f_mp4/wpp/uploads/aeizxh4m8bqcfdj5lrod.mp4' : 'https://i.imgur.com/gZLbY6p.jpeg'))
             };
         }
 
@@ -431,7 +431,7 @@ const TemplateCreator = () => {
 
         if (effectiveHeaderType !== 'TEXT') {
             const format = effectiveHeaderType.toUpperCase();
-            const mediaUrl = (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : 'https://i.imgur.com/gZLbY6p.jpeg');
+            const mediaUrl = (mediaUrlOverride && mediaUrlOverride.length > 10) ? mediaUrlOverride : (headerMediaUrl && headerMediaUrl.length > 10 ? headerMediaUrl : (format === 'VIDEO' ? 'https://res.cloudinary.com/sidao-santos/video/upload/vc_h264,ac_aac,f_mp4/wpp/uploads/aeizxh4m8bqcfdj5lrod.mp4' : 'https://i.imgur.com/gZLbY6p.jpeg'));
             components.push({
                 type: 'HEADER',
                 format: format,
@@ -792,7 +792,7 @@ const TemplateCreator = () => {
                             ad_name: name,
                             template_type: row.headerType,
                             message_mode: 'manual',
-                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || (row.headerType === 'VIDEO' ? "https://res.cloudinary.com/sidao-santos/video/upload/vc_h264,ac_aac,f_mp4/wpp/uploads/aeizxh4m8bqcfdj5lrod.mp4" : "https://i.imgur.com/gZLbY6p.jpeg")) : '',
+                            media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://i.imgur.com/gZLbY6p.jpeg") : '',
                             ad_copy: bodyText,
                             button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                             original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
