@@ -9,7 +9,7 @@ const Obrigado = () => {
     // Mapeamento oficial idêntico à Landing Page
     const agentMap: Record<string, string> = {
         '1': 'Ricardo Willer',
-        '2': 'Otávio Augusto',
+        '2': 'Luis Augusto',
         '3': 'Augusto Fagundes',
         '4': 'Luis Henrique',
         '5': 'Gabriel Martins',
@@ -31,7 +31,7 @@ const Obrigado = () => {
     };
 
     const agentName = id ? agentMap[id] : null;
-    const isExcluded = id === '2'; // Otávio Augusto não terá página personalizada
+    const isExcluded = id === '2'; // Luis Augusto não terá página personalizada
 
     return (
         <div style={{

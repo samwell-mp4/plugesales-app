@@ -43,7 +43,7 @@ const LeadStepForm = () => {
     // Mapeamento oficial idêntico à Landing Page
     const agentMap: Record<string, string> = {
         '1': 'Ricardo Willer',
-        '2': 'Otávio Augusto',
+        '2': 'Luis Augusto',
         '3': 'Augusto Fagundes',
         '4': 'Luis Henrique',
         '5': 'Gabriel Martins',
@@ -156,7 +156,7 @@ const LeadStepForm = () => {
                     const foundAgentEntry = Object.entries(agentMap).find(([_, name]) => name === formData.agent_name);
                     const agentId = routeId || (foundAgentEntry ? foundAgentEntry[0] : null);
 
-                    // Se for o ID 2 (Otávio) ou não tiver ID, vai para a página de obrigado geral
+                    // Se for o ID 2 (Luis) ou não tiver ID, vai para a página de obrigado geral
                     if (!agentId || agentId === '2') {
                         navigate('/obrigado');
                     } else {

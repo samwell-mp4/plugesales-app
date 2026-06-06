@@ -37,7 +37,7 @@ const LandingPage = () => {
     // Mapeamento oficial de IDs para Funcionários (Agents) - Nomes Reais
     const agentMap: Record<string, string> = {
         '1': 'Ricardo Willer',
-        '2': 'Otávio Augusto',
+        '2': 'Luis Augusto',
         '3': 'Augusto Fagundes',
         '4': 'Luis Henrique',
         '5': 'Gabriel Martins',

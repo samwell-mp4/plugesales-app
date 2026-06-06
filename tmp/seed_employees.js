@@ -6,7 +6,7 @@ const pool = new Pool({ connectionString: pgUrl });
 
 const employees = [
     { name: 'Ricardo Willer', email: 'ricardowiller@plugsales.com.br' },
-    { name: 'Otávio Augusto', email: 'otavioaugusto@plugsales.com.br' },
+    { name: 'Luis Augusto', email: 'luisaugusto@plugsales.com.br' },
     { name: 'Augusto Fagundes', email: 'augustofagundes@plugsales.com.br' },
     { name: 'Luis Henrique', email: 'luishenrique@plugsales.com.br' },
     { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br' },

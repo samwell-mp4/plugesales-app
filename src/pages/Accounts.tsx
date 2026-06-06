@@ -54,14 +54,14 @@ const Accounts = () => {
     const [senders, setSenders] = useState<any[]>([]);
     const [recentNumbers, setRecentNumbers] = useState<string[]>([]);
     const [isLoadingSenders, setIsLoadingSenders] = useState(false);
-    const [useOtavio, setUseOtavio] = useState(false);
+    const [useLuis, setUseLuis] = useState(false);
 
-    const OTAVIO_KEY = '0a52ec9aee6160c78dfbf0fd451bb143-0d152122-2244-4550-9689-e648d917a45d';
-    const OTAVIO_BASE = '4k3e4p.api-us.infobip.com';
+    const LUIS_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
+    const LUIS_BASE = '4k3e4p.api-us.infobip.com';
     const DEFAULT_BASE = '8k6xv1.api-us.infobip.com';
 
-    const effectiveApiKey = useOtavio ? OTAVIO_KEY : apiKey;
-    const effectiveBaseUrl = useOtavio ? OTAVIO_BASE : (infobipUrl || DEFAULT_BASE);
+    const effectiveApiKey = useLuis ? LUIS_KEY : apiKey;
+    const effectiveBaseUrl = useLuis ? LUIS_BASE : (infobipUrl || DEFAULT_BASE);
 
     // Load state from User on mount
     useEffect(() => {
@@ -446,24 +446,24 @@ const Accounts = () => {
             {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
                 <div className="flex items-center justify-between p-4 mb-6 glass-card" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
                     <div className="flex flex-col">
-                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Otávio?</span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Luis?</span>
                         <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Alternar para credenciais de monitoramento específicas</span>
                     </div>
                     <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '52px', height: '26px', margin: 0 }}>
                         <input
                             type="checkbox"
                             style={{ opacity: 0, width: 0, height: 0 }}
-                            checked={useOtavio}
-                            onChange={(e) => setUseOtavio(e.target.checked)}
+                            checked={useLuis}
+                            onChange={(e) => setUseLuis(e.target.checked)}
                         />
                         <span style={{
                             position: 'absolute', cursor: 'pointer', inset: 0,
-                            backgroundColor: useOtavio ? 'var(--primary-color)' : '#333',
+                            backgroundColor: useLuis ? 'var(--primary-color)' : '#333',
                             transition: '.4s', borderRadius: '34px'
                         }}>
                             <span style={{
-                                position: 'absolute', height: '20px', width: '20px', left: useOtavio ? '28px' : '4px', bottom: '3px',
-                                backgroundColor: useOtavio ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                                position: 'absolute', height: '20px', width: '20px', left: useLuis ? '28px' : '4px', bottom: '3px',
+                                backgroundColor: useLuis ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
                             }}></span>
                         </span>
                     </label>

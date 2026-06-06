@@ -521,7 +521,7 @@ async function runRecovery() {
         const employees = [
             { name: 'Admin', email: 'admin@plugsales.com.br', password: 'Admin@plugsales2026!', role: 'ADMIN' },
             { name: 'Ricardo Willer', email: 'ricardowiller@plugsales.com.br', role: 'EMPLOYEE' },
-            { name: 'Otávio Augusto', email: 'otavioaugusto@plugsales.com.br', role: 'EMPLOYEE' },
+            { name: 'Luis Augusto', email: 'luisaugusto@plugsales.com.br', role: 'EMPLOYEE' },
             { name: 'Augusto Fagundes', email: 'augustofagundes@plugsales.com.br', role: 'EMPLOYEE' },
             { name: 'Luis Henrique', email: 'luishenrique@plugsales.com.br', role: 'EMPLOYEE' },
             { name: 'Gabriel Martins', email: 'gabrielmartins@plugsales.com.br', role: 'EMPLOYEE' },

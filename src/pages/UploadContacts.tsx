@@ -102,8 +102,8 @@ const UploadContacts = () => {
         setIsSendingToInfobip(true);
         setInfobipProgress({ current: 0, total: processedData.length });
         
-        // Credenciais do Otávio conforme solicitado
-        const API_KEY = '0a52ec9aee6160c78dfbf0fd451bb143-0d152122-2244-4550-9689-e648d917a45d';
+        // Credenciais do Luis conforme solicitado
+        const API_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
         const BASE_URL = '4k3e4p.api-us.infobip.com';
         
         let successCount = 0;
