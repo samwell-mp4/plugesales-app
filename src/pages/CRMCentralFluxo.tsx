@@ -340,7 +340,21 @@ const CRMCentralFluxo = () => {
             {/* Lead Detail Modal */}
             {selectedLead && (
                 <div className="supreme-modal-overlay" onClick={() => setSelectedLead(null)}>
-                    <div className="supreme-modal-content max-w-[700px]" onClick={e => e.stopPropagation()} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        background: 'linear-gradient(135deg, rgba(30, 41, 59, 1), rgba(15, 23, 42, 1))',
+                        width: '700px',
+                        maxWidth: '95vw',
+                        height: 'auto',
+                        maxHeight: '85vh',
+                        borderRadius: '40px',
+                        border: '1px solid rgba(172, 248, 0, 0.2)',
+                        boxShadow: '0 50px 100px rgba(0,0,0,0.9), 0 0 40px rgba(172,248,0,0.1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        animation: 'modalSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+                        position: 'relative'
+                    }}>
                         <div className="flex justify-between items-center p-8 pb-0">
                             <div className="flex items-center gap-4">
                                 <div className="w-16 h-16 rounded-2xl bg-primary-color flex items-center justify-center text-black text-2xl font-black shadow-2xl shadow-primary-color/30">
@@ -350,8 +364,8 @@ const CRMCentralFluxo = () => {
                                     <h2 className="text-xl font-black text-white">{selectedLead.nome}</h2>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>{selectedLead.status}</span>
-                                        <div className="flex items-center gap-1 text-xs font-bold" style={{ color: selectedLead.visualizado ? 'var(--primary-color)' : 'var(--text-muted)' }}>
-                                            <Eye size={14} />
+                                        <div className="flex items-center gap-1 text-sm font-bold" style={{ color: selectedLead.visualizado ? 'var(--primary-color)' : 'var(--text-muted)' }}>
+                                            <Eye size={16} strokeWidth={2.5} />
                                             {selectedLead.visualizado ? 'Visualizado' : 'Não Visualizado'}
                                         </div>
                                     </div>
@@ -362,7 +376,7 @@ const CRMCentralFluxo = () => {
                             </button>
                         </div>
 
-                        <div className="p-8">
+                        <div style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                 {selectedLead.numero && (
                                     <div className="supreme-info-card">
