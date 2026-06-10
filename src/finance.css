@@ -76,9 +76,7 @@
 .bg-purple-500 { background: #a855f7 !important; }
 .bg-red-500\/10 { background: rgba(239,68,68,0.1) !important; }
 .bg-yellow-400\/10 { background: rgba(250,204,21,0.1) !important; }
-.bg-\[#111\] { background: #111 !important; }
-.bg-\[#111111\] { background: #111111 !important; }
-.bg-\[#1a1a1a\] { background: #1a1a1a !important; }
+
 
 /* Text opacity */
 .text-white { color: #fff !important; }
@@ -113,7 +111,7 @@
 .hover\:text-white:hover { color: #fff !important; }
 .hover\:bg-red-500\/20:hover { background: rgba(239,68,68,0.2) !important; }
 .hover\:underline:hover { text-decoration: underline !important; }
-.hover\:translate-y-\[0\] { }
+
 
 /* Group hover (used on table rows) */
 .group:hover .group-hover\:opacity-100 { opacity: 1 !important; }
@@ -124,7 +122,7 @@
 .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
 .text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
 .text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
-.text-\[10px\] { font-size: 10px !important; }
+/* text-[10px] not supported by lightningcss - use inline styles instead */
 .font-bold { font-weight: 700 !important; }
 .font-medium { font-weight: 500 !important; }
 .uppercase { text-transform: uppercase !important; }
@@ -187,7 +185,7 @@
 .rounded-xl { border-radius: 0.75rem !important; }
 .rounded-2xl { border-radius: 1rem !important; }
 .rounded-3xl { border-radius: 1.5rem !important; }
-.rounded-\[24px\] { border-radius: 24px !important; }
+/* rounded-[24px] not supported by lightningcss */
 
 /* Width/Height */
 .w-full { width: 100% !important; }
@@ -200,9 +198,7 @@
 .max-w-3xl { max-width: 48rem !important; }
 .max-w-4xl { max-width: 56rem !important; }
 .min-h-screen { min-height: 100vh !important; }
-.min-h-\[100px\] { min-height: 100px !important; }
-.min-w-\[280px\] { min-width: 280px !important; }
-.max-h-\[90vh\] { max-height: 90vh !important; }
+/* min-h-[100px], min-w-[280px], max-h-[90vh] not supported by lightningcss */
 
 /* Position */
 .absolute { position: absolute !important; }
@@ -231,7 +227,6 @@
 .cursor-pointer { cursor: pointer !important; }
 .cursor-grab { cursor: grab !important; }
 .outline-none { outline: none !important; }
-.z-\[100\] { z-index: 100 !important; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .disabled\:opacity-50:disabled { opacity: 0.5 !important; }
 
