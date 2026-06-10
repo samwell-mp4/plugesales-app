@@ -1,6 +1,7 @@
 import SEO from '../components/SEO';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Zap, ShieldCheck, TrendingUp, MessageCircle, Check } from 'lucide-react';
+import './LandingPage.css';
 
 const serviceSchema = {
     "@context": "https://schema.org",
@@ -75,7 +76,7 @@ const faqSchema = {
 
 const DisparoMassaPage = () => {
     return (
-        <div className="public-page-wrapper animate-fade-in">
+        <div>
             <SEO
                 title="Disparo em Massa no WhatsApp | API Oficial Meta | Plug & Sales"
                 description="Serviço de disparo em massa no WhatsApp via API Oficial da Meta. Envio de milhares de mensagens por dia sem bloqueio, com templates personalizados e relatórios em tempo real."
@@ -84,22 +85,18 @@ const DisparoMassaPage = () => {
                 keywords="disparo em massa whatsapp, envio em massa whatsapp, mensagem em massa whatsapp, disparo whatsapp api oficial"
             />
 
-            <div className="breadcrumb-wrapper container">
-                <nav className="breadcrumbs">
-                    <Link to="/">Início</Link>
-                    <ChevronRight size={14} />
-                    <span>Disparo em Massa WhatsApp</span>
-                </nav>
-            </div>
-
-            <section className="page-hero">
-                <div className="container">
-                    <span className="section-tag">SERVIÇO PREMIUM</span>
-                    <h1 className="hero-title">Disparo em Massa no <span className="text-gradient">WhatsApp</span></h1>
-                    <p className="hero-subtitle">
+            <section className="lp-section" style={{ padding: 'clamp(140px, 20vh, 220px) 8% 80px', textAlign: 'center' }}>
+                <div style={{ maxWidth: 720, margin: '0 auto' }}>
+                    <div className="lp-hero-tag animate-supreme-pulse" style={{ display: 'inline-flex' }}>
+                        <Zap size={14} /> PLUG & SALES
+                    </div>
+                    <h1 className="lp-hero-title" style={{ textAlign: 'center' }}>
+                        Disparo em Massa no <span className="text-gradient">WhatsApp</span>
+                    </h1>
+                    <p className="lp-hero-subtitle" style={{ maxWidth: 640, margin: '0 auto 32px', textAlign: 'center' }}>
                         Envie milhares de mensagens por dia via API Oficial da Meta, com templates personalizados, foto, vídeo, áudio e botões. Sem bloqueio, sem burocracia, sem risco.
                     </p>
-                    <div className="lp-cta-group" style={{ marginTop: 40 }}>
+                    <div className="lp-cta-group" style={{ justifyContent: 'center' }}>
                         <Link to="/lead-flow" className="lp-btn lp-btn-primary ripple lp-btn-glow">
                             QUERO COMEÇAR AGORA 👉
                         </Link>
@@ -112,13 +109,13 @@ const DisparoMassaPage = () => {
                     <span className="lp-section-tag">RECURSOS</span>
                     <h2 className="lp-section-title">O que você pode enviar</h2>
                 </div>
-                <div className="lp-content-types container" style={{ display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
-                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}>📝 Texto</div>
-                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}>🖼️ Imagens</div>
-                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}>🎬 Vídeos</div>
-                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}>🔘 Botões com Link</div>
-                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}>🎯 Personalização</div>
-                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}>📎 Arquivos</div>
+                <div className="lp-content-types container">
+                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}><span style={{ fontSize: 24, marginRight: 8 }}>📝</span>Texto</div>
+                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}><span style={{ fontSize: 24, marginRight: 8 }}>🖼️</span>Imagens</div>
+                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}><span style={{ fontSize: 24, marginRight: 8 }}>🎬</span>Vídeos</div>
+                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}><span style={{ fontSize: 24, marginRight: 8 }}>🔘</span>Botões com Link</div>
+                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}><span style={{ fontSize: 24, marginRight: 8 }}>🎯</span>Personalização</div>
+                    <div className="lp-type-card" style={{ background: 'rgba(172,248,0,0.05)', border: '1px solid rgba(172,248,0,0.15)' }}><span style={{ fontSize: 24, marginRight: 8 }}>📎</span>Arquivos</div>
                 </div>
             </section>
 
@@ -202,26 +199,6 @@ const DisparoMassaPage = () => {
                 <MessageCircle size={28} />
                 <span className="wa-tooltip">Fale conosco</span>
             </a>
-
-            <style>{`
-                .page-hero { padding: 80px 0; text-align: center; }
-                .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-                .breadcrumb-wrapper { padding-top: 120px; margin-bottom: -100px; position: relative; z-index: 10; }
-                .breadcrumbs { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.4); font-size: 0.85rem; font-weight: 500; justify-content: center; }
-                .breadcrumbs a { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.3s; }
-                .breadcrumbs a:hover { color: var(--primary-color); }
-                .breadcrumbs span { color: var(--primary-color); font-weight: 700; }
-                .section-tag { color: var(--primary-color); font-weight: 800; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; display: block; }
-                .hero-title { font-size: clamp(2.5rem, 5vw, 4rem); margin-bottom: 24px; line-height: 1.1; }
-                .hero-subtitle { font-size: 1.25rem; color: var(--text-secondary); max-width: 800px; margin: 0 auto; line-height: 1.6; }
-                .text-gradient { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-                @media (max-width: 768px) {
-                    .breadcrumb-wrapper { padding-top: 100px; margin-bottom: -60px; }
-                    .page-hero { padding: 60px 0 40px; }
-                    .hero-title { font-size: 2.2rem; }
-                    .hero-subtitle { font-size: 1.1rem; }
-                }
-            `}</style>
         </div>
     );
 };

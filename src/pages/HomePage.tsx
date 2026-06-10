@@ -19,7 +19,8 @@ import {
     Users,
     Check,
     Minus,
-    MessageCircle
+    MessageCircle,
+    Star
 } from 'lucide-react';
 import './LandingPage.css';
 
@@ -95,6 +96,12 @@ const HomePage = () => {
         }
     ];
 
+    const testimonials = [
+        { name: 'Lucas Mendes', role: 'E-commerce | Moda', text: 'Recuperei 14% dos carrinhos abandonados em apenas 2 semanas. O ROI foi imediato.', rating: 5 },
+        { name: 'Carla Oliveira', role: 'Imobiliária | MG', text: 'A estrutura que a Plug & Sales fornece mudou nosso jogo. Agendamento de visitas automático.', rating: 5 },
+        { name: 'Rafael Torres', role: 'Educação | EAD', text: 'Matrículas aumentaram 40% com as campanhas sazonais. Melhor custo-benefício do mercado.', rating: 5 },
+    ];
+
     const schemas = [
         {
             "@context": "https://schema.org",
@@ -134,6 +141,25 @@ const HomePage = () => {
                     "text": f.a
                 }
             }))
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Plug & Sales — Disparo em Massa WhatsApp",
+            "brand": { "@type": "Brand", "name": "Plug & Sales" },
+            "review": testimonials.map(t => ({
+                "@type": "Review",
+                "author": { "@type": "Person", "name": t.name },
+                "reviewBody": t.text,
+                "reviewRating": { "@type": "Rating", "ratingValue": t.rating.toString(), "bestRating": "5" }
+            })),
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "5",
+                "bestRating": "5",
+                "ratingCount": testimonials.length.toString(),
+                "reviewCount": testimonials.length.toString()
+            }
         }
     ];
 
@@ -399,6 +425,36 @@ const HomePage = () => {
                     >
                         ATIVAR MINHA ESTRUTURA AGORA 👉
                     </Link>
+                </div>
+            </section>
+
+            {/* ── TESTIMONIALS ── */}
+            <section className="lp-section lp-alt-section">
+                <div className="lp-section-header">
+                    <span className="lp-section-tag">DEPOIMENTOS</span>
+                    <h2 className="lp-section-title">O que nossos clientes dizem</h2>
+                </div>
+
+                <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+                    {testimonials.map((t, i) => (
+                        <div key={i} style={{
+                            padding: 32, borderRadius: 20,
+                            background: 'rgba(172,248,0,0.03)', border: '1px solid rgba(172,248,0,0.1)'
+                        }}>
+                            <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+                                {Array.from({ length: t.rating }).map((_, j) => (
+                                    <Star key={j} size={16} color="#acf800" fill="#acf800" />
+                                ))}
+                            </div>
+                            <p style={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, fontSize: '0.95rem', marginBottom: 20, fontStyle: 'italic' }}>
+                                "{t.text}"
+                            </p>
+                            <div>
+                                <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem' }}>{t.name}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>{t.role}</div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </section>
 

@@ -74,7 +74,21 @@ import ForumProfilePage from './pages/ForumProfilePage';
 import ClientRegistration from './pages/ClientRegistration';
 import DisparoMassaPage from './pages/DisparoMassaPage';
 import ApiOficialPage from './pages/ApiOficialPage';
-
+import ChatbotPage from './pages/ChatbotPage';
+import GuiaDisparoMassa from './pages/guias/DisparoMassaGuia';
+import ComoEscolherBSP from './pages/guias/ComoEscolherBSP';
+import EstrategiasConversao from './pages/guias/EstrategiasConversao';
+import ComoEnviarMensagemEmMassa from './pages/guias/ComoEnviarMensagemEmMassa';
+import DisparoAutomaticoWhatsApp from './pages/guias/DisparoAutomaticoWhatsApp';
+import PrecosPage from './pages/PrecosPage';
+import ComparacaoApiOficialVsDisparadorWeb from './pages/comparacao/ComparacaoApiOficialVsDisparadorWeb';
+import DisparoGratuitoVsApiOficial from './pages/comparacao/DisparoGratuitoVsApiOficial';
+import ParaEcommerce from './pages/para/ParaEcommerce';
+import ParaImobiliarias from './pages/para/ParaImobiliarias';
+import ParaEducacao from './pages/para/ParaEducacao';
+import BuscaPage from './pages/BuscaPage';
+import EstadoPage from './pages/EstadoPage';
+import CidadePage from './pages/CidadePage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Control from './pages/Control';
@@ -122,7 +136,13 @@ function AppContent() {
     location.pathname === '/perfil/editar' ||
     location.pathname.startsWith('/news-clients') ||
     location.pathname === '/login' ||
-    location.pathname.startsWith('/servicos/');
+    location.pathname.startsWith('/servicos/') ||
+    location.pathname.match(/^\/servicos\/disparo-em-massa-whatsapp\/[a-z]{2}\/[a-z0-9-]+$/) ||
+    location.pathname.startsWith('/guia/') ||
+    location.pathname.startsWith('/comparacao/') ||
+    location.pathname.startsWith('/para/') ||
+    location.pathname === '/precos' ||
+    location.pathname === '/busca';
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -224,8 +244,23 @@ function AppContent() {
             <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/perfil/comentarios" element={<ForumProfilePage />} />
             <Route path="/perfil/editar" element={<ForumProfilePage />} />
+            <Route path="/servicos/disparo-em-massa-whatsapp/:uf/:cidade" element={<CidadePage />} />
+            <Route path="/servicos/disparo-em-massa-whatsapp/:uf" element={<EstadoPage />} />
             <Route path="/servicos/disparo-em-massa-whatsapp" element={<DisparoMassaPage />} />
             <Route path="/servicos/api-oficial-whatsapp" element={<ApiOficialPage />} />
+            <Route path="/servicos/chatbot-whatsapp" element={<ChatbotPage />} />
+            <Route path="/guia/disparo-em-massa-whatsapp" element={<GuiaDisparoMassa />} />
+            <Route path="/guia/como-escolher-bsp-whatsapp" element={<ComoEscolherBSP />} />
+            <Route path="/guia/estrategias-conversao-whatsapp" element={<EstrategiasConversao />} />
+            <Route path="/guia/como-enviar-mensagem-em-massa-whatsapp" element={<ComoEnviarMensagemEmMassa />} />
+            <Route path="/guia/disparo-automatico-whatsapp" element={<DisparoAutomaticoWhatsApp />} />
+            <Route path="/precos" element={<PrecosPage />} />
+            <Route path="/comparacao/api-oficial-vs-disparador-web" element={<ComparacaoApiOficialVsDisparadorWeb />} />
+            <Route path="/comparacao/disparo-gratuito-vs-api-oficial" element={<DisparoGratuitoVsApiOficial />} />
+            <Route path="/para/ecommerce" element={<ParaEcommerce />} />
+            <Route path="/para/imobiliarias" element={<ParaImobiliarias />} />
+            <Route path="/para/educacao" element={<ParaEducacao />} />
+            <Route path="/busca" element={<BuscaPage />} />
           </Route>
 
           {/* Legacy/Specific Public Routes */}

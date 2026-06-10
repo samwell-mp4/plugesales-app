@@ -1,6 +1,7 @@
 import SEO from '../components/SEO';
 import { Link } from 'react-router-dom';
-import { ChevronRight, ShieldCheck, Zap, Layers, Check, MessageCircle } from 'lucide-react';
+import { ShieldCheck, Zap, Layers, MessageCircle } from 'lucide-react';
+import './LandingPage.css';
 
 const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -54,7 +55,7 @@ const differences = [
 
 const ApiOficialPage = () => {
     return (
-        <div className="public-page-wrapper animate-fade-in">
+        <div>
             <SEO
                 title="API Oficial do WhatsApp para Empresas (WABA) | Plug & Sales"
                 description="Solução completa de API Oficial do WhatsApp (WABA) para empresas. Disparo em massa com segurança, templates multimídia, botões e relatórios. Sem bloqueio, sem BM própria."
@@ -63,22 +64,18 @@ const ApiOficialPage = () => {
                 keywords="api oficial whatsapp, waba, whatsapp business api, api whatsapp empresarial, bsp whatsapp"
             />
 
-            <div className="breadcrumb-wrapper container">
-                <nav className="breadcrumbs">
-                    <Link to="/">Início</Link>
-                    <ChevronRight size={14} />
-                    <span>API Oficial do WhatsApp</span>
-                </nav>
-            </div>
-
-            <section className="page-hero">
-                <div className="container">
-                    <span className="section-tag">TECNOLOGIA WABA</span>
-                    <h1 className="hero-title">API Oficial do WhatsApp <span className="text-gradient">para Empresas</span></h1>
-                    <p className="hero-subtitle">
+            <section className="lp-section" style={{ padding: 'clamp(140px, 20vh, 220px) 8% 80px', textAlign: 'center' }}>
+                <div style={{ maxWidth: 720, margin: '0 auto' }}>
+                    <div className="lp-hero-tag animate-supreme-pulse" style={{ display: 'inline-flex' }}>
+                        <Zap size={14} /> TECNOLOGIA WABA
+                    </div>
+                    <h1 className="lp-hero-title" style={{ textAlign: 'center' }}>
+                        API Oficial do WhatsApp <span className="text-gradient">para Empresas</span>
+                    </h1>
+                    <p className="lp-hero-subtitle" style={{ maxWidth: 640, margin: '0 auto 32px', textAlign: 'center' }}>
                         A WhatsApp Business API (WABA) é a única solução homologada pela Meta para disparos em massa. Conecte sua operação diretamente aos servidores oficiais do WhatsApp com segurança total.
                     </p>
-                    <div className="lp-cta-group" style={{ marginTop: 40 }}>
+                    <div className="lp-cta-group" style={{ justifyContent: 'center' }}>
                         <Link to="/lead-flow" className="lp-btn lp-btn-primary ripple lp-btn-glow">
                             ATIVAR API OFICIAL 👉
                         </Link>
@@ -92,15 +89,19 @@ const ApiOficialPage = () => {
                     <h2 className="lp-section-title">API Oficial vs Não-Oficial</h2>
                 </div>
                 <div className="container" style={{ maxWidth: 800, margin: '0 auto' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8, padding: '16px 24px', borderBottom: '2px solid rgba(172,248,0,0.3)', fontWeight: 800, color: '#fff', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: 1 }}>
+                        <span>Característica</span>
+                        <span style={{ textAlign: 'center', color: '#22c55e' }}>API Oficial</span>
+                        <span style={{ textAlign: 'center', color: '#ef4444' }}>Não-Oficial</span>
+                    </div>
                     {differences.map((d, i) => (
                         <div key={i} style={{
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)',
-                            gap: 16
+                            display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8, alignItems: 'center',
+                            padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)'
                         }}>
-                            <span style={{ flex: 1, fontWeight: 700, color: '#fff' }}>{d.feature}</span>
-                            <span style={{ flex: 1, textAlign: 'center', color: '#22c55e', fontWeight: 700 }}>{d.official}</span>
-                            <span style={{ flex: 1, textAlign: 'center', color: '#ef4444', fontWeight: 600 }}>{d.unofficial}</span>
+                            <span style={{ fontWeight: 600, color: '#fff' }}>{d.feature}</span>
+                            <span style={{ textAlign: 'center', color: '#22c55e', fontWeight: 700 }}>{d.official}</span>
+                            <span style={{ textAlign: 'center', color: '#ef4444', fontWeight: 600 }}>{d.unofficial}</span>
                         </div>
                     ))}
                 </div>
@@ -150,26 +151,6 @@ const ApiOficialPage = () => {
                 <MessageCircle size={28} />
                 <span className="wa-tooltip">Fale conosco</span>
             </a>
-
-            <style>{`
-                .page-hero { padding: 80px 0; text-align: center; }
-                .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-                .breadcrumb-wrapper { padding-top: 120px; margin-bottom: -100px; position: relative; z-index: 10; }
-                .breadcrumbs { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.4); font-size: 0.85rem; font-weight: 500; justify-content: center; }
-                .breadcrumbs a { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.3s; }
-                .breadcrumbs a:hover { color: var(--primary-color); }
-                .breadcrumbs span { color: var(--primary-color); font-weight: 700; }
-                .section-tag { color: var(--primary-color); font-weight: 800; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; display: block; }
-                .hero-title { font-size: clamp(2.5rem, 5vw, 4rem); margin-bottom: 24px; line-height: 1.1; }
-                .hero-subtitle { font-size: 1.25rem; color: var(--text-secondary); max-width: 800px; margin: 0 auto; line-height: 1.6; }
-                .text-gradient { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-                @media (max-width: 768px) {
-                    .breadcrumb-wrapper { padding-top: 100px; margin-bottom: -60px; }
-                    .page-hero { padding: 60px 0 40px; }
-                    .hero-title { font-size: 2.2rem; }
-                    .hero-subtitle { font-size: 1.1rem; }
-                }
-            `}</style>
         </div>
     );
 };

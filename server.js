@@ -3808,6 +3808,32 @@ app.use((req, res, next) => {
                 return;
             }
         }
+
+        // Dynamic state/city SSR
+        const stateCityMatch = pathname.match(/^\/servicos\/disparo-em-massa-whatsapp\/([a-z]{2})\/([a-z0-9-]+)$/);
+        if (stateCityMatch) {
+            const uf = stateCityMatch[1];
+            const cidadeSlug = stateCityMatch[2];
+            const cityHtml = renderers.cityRenderer(uf, cidadeSlug);
+            if (cityHtml) {
+                res.setHeader('Cache-Control', 'public, max-age=86400');
+                res.setHeader('X-SSR', 'plug-sales-crawler-city');
+                res.send(cityHtml);
+                return;
+            }
+        }
+
+        const stateMatch = pathname.match(/^\/servicos\/disparo-em-massa-whatsapp\/([a-z]{2})$/);
+        if (stateMatch) {
+            const uf = stateMatch[1];
+            const stateHtml = renderers.stateRenderer(uf);
+            if (stateHtml) {
+                res.setHeader('Cache-Control', 'public, max-age=86400');
+                res.setHeader('X-SSR', 'plug-sales-crawler-state');
+                res.send(stateHtml);
+                return;
+            }
+        }
     }
     next();
 });
