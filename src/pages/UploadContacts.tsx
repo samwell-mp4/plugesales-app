@@ -500,13 +500,23 @@ const UploadContacts = () => {
 
                 const formattedList = filtered.map((item, index) => {
                     const batchNumber = Math.floor(index / batchSize) + 1;
+                    const { telefone, nome, cpf, email, ...rest } = item;
+                    
+                    const cleanRest: any = {};
+                    Object.keys(rest).forEach(k => {
+                        const kl = k.toLowerCase().trim();
+                        if (!['telefone', 'nome', 'cpf', 'email', 'numero', 'e-mail', 'celular', 'whatsapp'].includes(kl)) {
+                            cleanRest[k] = rest[k];
+                        }
+                    });
+
                     return {
-                        ...item,
-                        info_2: item.nome || '',
-                        Número: item.telefone,
+                        Número: telefone,
+                        info_2: nome || '',
+                        info_3: cpf || '',
+                        'E-mail': email || '',
                         Etiquetas: `${baseTag}_${batchNumber}`,
-                        info_3: item.cpf || '',
-                        'E-mail': item.email || ''
+                        ...cleanRest
                     };
                 });
 
