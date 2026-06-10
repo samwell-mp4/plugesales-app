@@ -989,17 +989,33 @@ const TemplateCreator = () => {
     const [isShorteningUtility, setIsShorteningUtility] = useState(false);
 
     const handleUtilityShorten = async () => {
-        if (!utilityLinkOriginal || (!utilityLinkOriginal.startsWith('http') && !utilityLinkOriginal.includes('.'))) return alert("Insira um link válido.");
+        let cleanLink = utilityLinkOriginal.trim();
+        const urlRegex = /(https?:\/\/[^\s]+)/i;
+        const match = cleanLink.match(urlRegex);
+        if (match) {
+            cleanLink = match[1];
+        } else {
+            cleanLink = cleanLink.replace(/^Link\s*:\s*/i, '').trim();
+            if (cleanLink && !cleanLink.startsWith('http://') && !cleanLink.startsWith('https://')) {
+                cleanLink = 'https://' + cleanLink;
+            }
+        }
+
+        if (!cleanLink || !cleanLink.includes('.')) return alert("Insira um link válido.");
         if (!selectedClientId && user?.role !== 'ASSINATURA_BASICA') return alert("Selecione um cliente.");
+        
         setIsShorteningUtility(true);
         try {
             const res = await dbService.createShortLink({
                 user_id: user?.id,
                 client_id: Number(selectedClientId),
-                original_url: utilityLinkOriginal,
+                original_url: cleanLink,
                 title: `Utility: ${campaigns[0]?.prefix || 'Bulk'}`
             });
-            if (res.shortUrl) setUtilityLinkShort(res.shortUrl);
+            if (res.shortUrl) {
+                setUtilityLinkShort(res.shortUrl);
+                setUtilityLinkOriginal(cleanLink);
+            }
         } catch (err) { alert("Erro ao encurtar link."); } finally { setIsShorteningUtility(false); }
     };
 
