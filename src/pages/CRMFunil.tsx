@@ -29,7 +29,7 @@ const LeadCard = memo(({
                 <div className="lead-name-group">
                     <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
                     {!lead.visualizado && (
-                        <span className="text-[8px] font-black text-black bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
+                        <span className="text-[8px] font-black text-white bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
                     )}
                     <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
                 </div>
@@ -652,7 +652,7 @@ const CRMFunil = () => {
                                                     <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
                                                     <span className="font-bold text-white text-[14px]">{lead.nome || 'Sem Nome'}</span>
                                                     {!lead.visualizado && (
-                                                        <span className="text-[8px] font-black text-black bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none ml-2">Novo</span>
+                                                        <span className="text-[8px] font-black text-white bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none ml-2">Novo</span>
                                                     )}
                                                 </div>
                                             </td>

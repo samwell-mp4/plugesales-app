@@ -71,11 +71,12 @@ const CRMCentralFluxo = () => {
     });
 
     const totalLeads = filteredLeads.length;
+    const getDateOrFallback = (l: any) => l.updated_at || l.created_at;
     const leadsByIdle = {
-        critico: filteredLeads.filter(l => calculateIdleDays(l.updated_at) >= 7).length,
-        atraso: filteredLeads.filter(l => { const d = calculateIdleDays(l.updated_at); return d >= 5 && d < 7; }).length,
-        atencao: filteredLeads.filter(l => { const d = calculateIdleDays(l.updated_at); return d >= 3 && d < 5; }).length,
-        emDia: filteredLeads.filter(l => calculateIdleDays(l.updated_at) < 3).length,
+        critico: filteredLeads.filter(l => calculateIdleDays(getDateOrFallback(l)) >= 7).length,
+        atraso: filteredLeads.filter(l => { const d = calculateIdleDays(getDateOrFallback(l)); return d >= 5 && d < 7; }).length,
+        atencao: filteredLeads.filter(l => { const d = calculateIdleDays(getDateOrFallback(l)); return d >= 3 && d < 5; }).length,
+        emDia: filteredLeads.filter(l => calculateIdleDays(getDateOrFallback(l)) < 3).length,
     };
 
     const funcionariosAtivos = Array.from(new Set(leads.map(l => l.responsavel).filter(Boolean)));
@@ -218,7 +219,7 @@ const CRMCentralFluxo = () => {
                                     </thead>
                                     <tbody>
                                                 {filteredLeads.map(l => {
-                                            const idle = calculateIdleDays(l.updated_at);
+                                            const idle = calculateIdleDays(getDateOrFallback(l));
                                             const alert = getIdleAlertInfo(idle);
                                             return (
                                                 <tr key={l.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)', cursor: 'pointer' }} className="hover-row" onClick={() => handleOpenLead(l)}>
@@ -226,10 +227,10 @@ const CRMCentralFluxo = () => {
                                                         <div className="flex items-center gap-2">
                                                             {l.nome || 'Sem Nome'}
                                                             {!l.visualizado && (
-                                                                <span className="text-[8px] font-black text-black bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
+                                                                <span className="text-[8px] font-black text-white bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
                                                             )}
                                                             {l.visualizado && (
-                                                                <Eye size={12} color="var(--primary-color)" opacity={0.5} />
+                                                                <Eye size={16} color="var(--primary-color)" strokeWidth={2.5} style={{ opacity: 0.6 }} />
                                                             )}
                                                         </div>
                                                     </td>
@@ -250,7 +251,7 @@ const CRMCentralFluxo = () => {
                         ) : (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                                 {filteredLeads.map(l => {
-                                    const idle = calculateIdleDays(l.updated_at);
+                                    const idle = calculateIdleDays(getDateOrFallback(l));
                                     const alert = getIdleAlertInfo(idle);
                                     return (
                                         <div key={l.id} className="glass-card hover-lift" style={{ padding: '20px', borderRadius: '20px', borderLeft: `4px solid ${alert.color}`, cursor: 'pointer' }} onClick={() => handleOpenLead(l)}>
@@ -258,10 +259,10 @@ const CRMCentralFluxo = () => {
                                                 <h4 style={{ margin: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     {l.nome || 'Lead'}
                                                     {!l.visualizado && (
-                                                        <span className="text-[8px] font-black text-black bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
+                                                        <span className="text-[8px] font-black text-white bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
                                                     )}
                                                     {l.visualizado && (
-                                                        <Eye size={12} color="var(--primary-color)" opacity={0.5} />
+                                                        <Eye size={16} color="var(--primary-color)" strokeWidth={2.5} style={{ opacity: 0.6 }} />
                                                     )}
                                                 </h4>
                                                 <div className="flex items-center gap-1" style={{ color: alert.color, fontSize: '0.75rem', fontWeight: 800, background: `${alert.color}15`, padding: '4px 8px', borderRadius: '8px' }}>
