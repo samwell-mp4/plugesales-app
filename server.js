@@ -14,6 +14,8 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { pool, pgUrl } from './backend/database/db.js';
 import chatRoutes from './backend/routes/chatRoutes.js';
 import webpush from 'web-push';
+import { isCrawler, SEO_PATHS } from './server/ssr/crawler.js';
+import renderers from './server/ssr/renderers.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -3777,6 +3779,37 @@ app.get('/l/*', (req, res) => {
 </body>
 </html>
 `);
+});
+
+// ============================================================
+// SSR para Crawlers (Googlebot, Bing, Facebook, etc.)
+// ============================================================
+app.use((req, res, next) => {
+    const ua = req.headers['user-agent'] || '';
+    if (isCrawler(ua)) {
+        const pathname = req.path;
+        const matched = SEO_PATHS.find(p => p.path === pathname);
+        if (matched && renderers[matched.renderer]) {
+            const html = renderers[matched.renderer]();
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            res.setHeader('X-SSR', 'plug-sales-crawler');
+            res.send(html);
+            return;
+        }
+
+        // Dynamic blog posts SSR
+        if (pathname.startsWith('/blog/') && pathname !== '/blog') {
+            const slug = pathname.replace('/blog/', '');
+            if (slug) {
+                const blogHtml = renderers.blogRenderer();
+                res.setHeader('Cache-Control', 'public, max-age=3600');
+                res.setHeader('X-SSR', 'plug-sales-crawler-blog');
+                res.send(blogHtml);
+                return;
+            }
+        }
+    }
+    next();
 });
 
 // Servir frontend estático

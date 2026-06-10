@@ -72,6 +72,8 @@ import BlogPostPage from './pages/BlogPostPage';
 import HomePage from './pages/HomePage';
 import ForumProfilePage from './pages/ForumProfilePage';
 import ClientRegistration from './pages/ClientRegistration';
+import DisparoMassaPage from './pages/DisparoMassaPage';
+import ApiOficialPage from './pages/ApiOficialPage';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
@@ -119,7 +121,8 @@ function AppContent() {
     location.pathname === '/perfil/comentarios' ||
     location.pathname === '/perfil/editar' ||
     location.pathname.startsWith('/news-clients') ||
-    location.pathname === '/login';
+    location.pathname === '/login' ||
+    location.pathname.startsWith('/servicos/');
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -221,6 +224,8 @@ function AppContent() {
             <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/perfil/comentarios" element={<ForumProfilePage />} />
             <Route path="/perfil/editar" element={<ForumProfilePage />} />
+            <Route path="/servicos/disparo-em-massa-whatsapp" element={<DisparoMassaPage />} />
+            <Route path="/servicos/api-oficial-whatsapp" element={<ApiOficialPage />} />
           </Route>
 
           {/* Legacy/Specific Public Routes */}

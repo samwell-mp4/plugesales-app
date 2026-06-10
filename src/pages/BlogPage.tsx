@@ -75,9 +75,11 @@ const BlogPage = () => {
     return (
         <div className="blog-page animate-fade-in">
             <SEO 
-                title="Blog Corporativo" 
-                description="Acompanhe as últimas tendências em automação, API do WhatsApp e estratégias de vendas digitais."
+                title="Blog — Disparo em Massa WhatsApp | API Oficial | Plug & Sales" 
+                description="Acompanhe as últimas tendências em disparo em massa no WhatsApp, API Oficial da Meta, WABA, chatbots e estratégias de vendas digitais."
+                canonical="https://plugesales.com/blog"
                 schema={breadcrumbSchema}
+                keywords="blog disparo whatsapp, api whatsapp, waba, chatbot whatsapp, marketing whatsapp"
             />
 
             {/* Background Blobs for Visual Depth */}

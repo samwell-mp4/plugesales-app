@@ -3,10 +3,17 @@ Allow: /
 Allow: /sobre
 Allow: /apresentacoes
 Allow: /blog
+Allow: /blog/
+Allow: /servicos/
 Disallow: /dashboard
 Disallow: /accounts
 Disallow: /admin
 Disallow: /control
 Disallow: /crm
+Disallow: /client-dashboard
+Disallow: /engine
+Disallow: /dispatch
+Disallow: /campaigns
+Disallow: /finance
 
-Sitemap: https://plugesales.com.br/sitemap.xml
+Sitemap: https://plugesales.com/sitemap.xml

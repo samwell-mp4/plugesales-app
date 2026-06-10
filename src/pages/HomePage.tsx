@@ -99,12 +99,28 @@ const HomePage = () => {
         {
             "@context": "https://schema.org",
             "@type": "WebSite",
-            "url": "https://plugesales.com.br",
+            "url": "https://plugesales.com",
             "name": "Plug & Sales",
             "potentialAction": {
                 "@type": "SearchAction",
-                "target": "https://plugesales.com.br/?s={search_term}",
+                "target": "https://plugesales.com/?s={search_term}",
                 "query-input": "required name=search_term"
+            }
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Plug & Sales",
+            "operatingSystem": "Web",
+            "applicationCategory": "BusinessApplication",
+            "description": "Plataforma de disparo em massa no WhatsApp via API Oficial da Meta",
+            "url": "https://plugesales.com",
+            "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "BRL",
+                "lowPrice": "97",
+                "highPrice": "3497",
+                "offerCount": cards.length.toString()
             }
         },
         {
@@ -124,9 +140,11 @@ const HomePage = () => {
     return (
         <div className="public-page-wrapper">
             <SEO 
-                title="Plug & Sales | Infraestrutura Profissional para WhatsApp" 
-                description="A estrutura invisível por trás das operações mais lucrativas do Brasil. Disparos em massa via API Oficial com escala real."
+                title="Plug & Sales — Disparo em Massa no WhatsApp | API Oficial Meta" 
+                description="A estrutura invisível por trás das operações mais lucrativas do Brasil. Disparos em massa via API Oficial da Meta com escala real, sem bloqueio. Ative em 24h."
+                canonical="https://plugesales.com/"
                 schema={schemas}
+                keywords="disparo em massa whatsapp, api oficial whatsapp, whatsapp business api, disparo whatsapp, waba, mensagem em massa whatsapp"
             />
 
             {/* ── HERO ── */}

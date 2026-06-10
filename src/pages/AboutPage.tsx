@@ -59,9 +59,11 @@ const AboutPage = () => {
     return (
         <div className="about-page animate-fade-in">
             <SEO 
-                title="Líder em Escala e Automação de WhatsApp API | Plug & Sales" 
+                title="Sobre a Plug & Sales — Líder em API Oficial WhatsApp | Disparo em Massa" 
                 description="Conheça a infraestrutura por trás da Plug & Sales. Especialistas em API Oficial da Meta para disparos em massa, chatbots e escala de vendas sem bloqueios."
+                canonical="https://plugesales.com/sobre"
                 schema={[orgSchema, breadcrumbSchema, faqSchema]}
+                keywords="sobre plug sales, empresa disparo whatsapp, infraestrutura waba"
             />
 
             <div className="breadcrumb-wrapper container">

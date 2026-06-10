@@ -1,8 +1,8 @@
 {
-  "name": "Plug & Sales",
+  "name": "Plug & Sales — Disparo em Massa WhatsApp",
   "short_name": "PlugSales",
-  "description": "Gestão e Performance para Negócios Premium",
-  "start_url": "/",
+  "description": "Infraestrutura de disparo em massa no WhatsApp via API Oficial da Meta. Escale sua operação sem bloqueio.",
+  "start_url": "/?utm_source=pwa",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
