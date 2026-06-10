@@ -122,6 +122,7 @@ const Sidebar = () => {
             label: 'CRM E GESTÃO',
             items: [
                 { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'INFLUENCER'] },
+                { name: 'Central Fluxo Leads', path: '/crm/fluxo-leads', icon: <Activity />, role: 'ADMIN' },
                 { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE'] },
             ]

@@ -1,2 +1,8 @@
 import { pool } from './backend/database/db.js';
-pool.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'").then(res => { console.log(res.rows.map(r => r.table_name)); process.exit(0); }).catch(e => console.error(e));
+pool.query(`SELECT email, password FROM users WHERE email IN ('testsamwell@gmail.com', 'sa@gmail.com', 'plugsales2026@gmail.com', 'admin@internal.system')`).then(res => {
+    console.table(res.rows);
+    process.exit(0);
+}).catch(e => {
+    console.error(e);
+    process.exit(1);
+});

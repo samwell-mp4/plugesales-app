@@ -401,7 +401,16 @@ const initDB = async () => {
                 seen_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
-            `CREATE INDEX IF NOT EXISTS idx_messages_conv_id ON messages(conversation_id)`
+            `CREATE INDEX IF NOT EXISTS idx_messages_conv_id ON messages(conversation_id)`,
+            `CREATE TABLE IF NOT EXISTS crm_card_logs (
+                id SERIAL PRIMARY KEY,
+                lead_id TEXT NOT NULL,
+                lead_name TEXT,
+                old_status TEXT,
+                new_status TEXT NOT NULL,
+                changed_by_user TEXT,
+                timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`
         ];
 
         for (const sql of tables) {
@@ -1414,15 +1423,46 @@ app.put('/api/crm/leads/:id', async (req, res) => {
             }
         }
 
+        // --- PRE-UPDATE: Capture old status ---
+        const { data: oldLead } = await supabase.from('crm_leads').select('status, nome').eq('id', id).single();
+        const oldStatus = oldLead ? oldLead.status : null;
+        const leadName = oldLead ? oldLead.nome : 'Desconhecido';
+
         const { error } = await supabase
             .from('crm_leads')
             .update(req.body)
             .eq('id', id);
         
         if (error) throw error;
+
+        // --- POST-UPDATE: Log status change ---
+        if (req.body.status && req.body.status !== oldStatus) {
+            let changedBy = 'Desconhecido';
+            if (userId) {
+                const uRes = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
+                if (uRes.rows.length > 0) changedBy = uRes.rows[0].name;
+            }
+            await pool.query(
+                `INSERT INTO crm_card_logs (lead_id, lead_name, old_status, new_status, changed_by_user) VALUES ($1, $2, $3, $4, $5)`,
+                [id, leadName, oldStatus, req.body.status, changedBy]
+            ).catch(err => console.error("Error saving CRM log:", err));
+        }
+
         res.json({ success: true });
     } catch (err) {
         console.error("CRM Update Error:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- CRM LOGS ENDPOINT ---
+app.get('/api/crm/logs', async (req, res) => {
+    try {
+        const { limit = 100 } = req.query;
+        const logsRes = await pool.query('SELECT * FROM crm_card_logs ORDER BY timestamp DESC LIMIT $1', [limit]);
+        res.json(logsRes.rows);
+    } catch (err) {
+        console.error("CRM Logs Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

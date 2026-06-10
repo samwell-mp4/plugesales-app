@@ -17,6 +17,12 @@ interface Supplier {
     notes: string;
 }
 
+const rowStyle = { borderBottom: '1px solid rgba(255,255,255,0.05)' };
+const cellStyle = { padding: '16px 24px' };
+const labelStyle: React.CSSProperties = { fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' };
+const inputStyle: React.CSSProperties = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%', outline: 'none' };
+const btnPrimary: React.CSSProperties = { background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '16px 24px', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' };
+
 const FinanceSuppliers = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [loading, setLoading] = useState(true);
@@ -66,12 +72,12 @@ const FinanceSuppliers = () => {
                 .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
                 .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
             `}</style>
-            <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
-                <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px' }}>
                     <h1>Fornecedores & Prestadores</h1>
                     <p className="subtitle">Gestão de entidades cadastradas</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' as const }}>
                     <div className="finance-search-box-premium">
                         <Search size={16} className="text-white/40" />
                         <input 
@@ -81,128 +87,131 @@ const FinanceSuppliers = () => {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <button onClick={() => setIsModalOpen(true)} style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className=" flex items-center gap-2">
+                    <button onClick={() => setIsModalOpen(true)} style={btnPrimary}>
                         <Plus size={18} /> Novo Cadastro
                     </button>
-                </div></header>
-
-            <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" mt-6">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-white/80">
-                        <thead>
-                            <tr className="border-b border-white/5 uppercase text-[10px] tracking-wider text-white/40">
-                                <th className="px-6 py-4 font-medium">Nome / Razão Social</th>
-                                <th className="px-6 py-4 font-medium">Documento</th>
-                                <th className="px-6 py-4 font-medium">Contato</th>
-                                <th className="px-6 py-4 font-medium text-right">Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredSuppliers.map(s => (
-                                <tr key={s.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-primary-color">
-                                                <Building size={18} />
-                                            </div>
-                                            <span className="font-bold text-white text-[14px]">{s.name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">{s.document || '-'}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col gap-1">
-                                            {s.phone && <span className="flex items-center gap-1 text-xs"><Phone size={12}/> {s.phone}</span>}
-                                            {s.email && <span className="flex items-center gap-1 text-xs text-white/50"><Mail size={12}/> {s.email}</span>}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button className="p-2 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10">
-                                            <ChevronRight size={16} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredSuppliers.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-white/40">
-                                        Nenhum fornecedor encontrado.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
                 </div>
             </div>
 
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)", overflowX: 'auto' as const, marginTop: '24px' }}>
+                <table style={{ width: '100%', textAlign: 'left' as const, fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)', borderCollapse: 'collapse' as const }}>
+                    <thead>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', textTransform: 'uppercase' as const, fontSize: '10px', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.4)' }}>
+                            <th style={{ padding: '16px 24px', fontWeight: 500 }}>Nome / Razão Social</th>
+                            <th style={{ padding: '16px 24px', fontWeight: 500 }}>Documento</th>
+                            <th style={{ padding: '16px 24px', fontWeight: 500 }}>Contato</th>
+                            <th style={{ padding: '16px 24px', fontWeight: 500, textAlign: 'right' as const }}>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredSuppliers.map(s => (
+                            <tr key={s.id} style={{ ...rowStyle, transition: 'background 0.2s' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                <td style={cellStyle}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                                            <Building size={18} />
+                                        </div>
+                                        <span style={{ fontWeight: 700, color: 'white', fontSize: '14px' }}>{s.name}</span>
+                                    </div>
+                                </td>
+                                <td style={cellStyle}>{s.document || '-'}</td>
+                                <td style={cellStyle}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px' }}>
+                                        {s.phone && <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}><Phone size={12}/> {s.phone}</span>}
+                                        {s.email && <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}><Mail size={12}/> {s.email}</span>}
+                                    </div>
+                                </td>
+                                <td style={{ ...cellStyle, textAlign: 'right' as const }}>
+                                    <button style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', opacity: 0, transition: 'opacity 0.2s' }}
+                                        onMouseEnter={e => { e.currentTarget.style.opacity = '1'; if (e.currentTarget.parentElement) { const tr = e.currentTarget.parentElement.parentElement; if (tr) tr.style.background = 'rgba(255,255,255,0.05)'; } }}
+                                        onMouseLeave={e => { e.currentTarget.style.opacity = '0'; }}>
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        {filteredSuppliers.length === 0 && (
+                            <tr>
+                                <td colSpan={4} style={{ padding: '48px 24px', textAlign: 'center' as const, color: 'rgba(255,255,255,0.4)' }}>
+                                    Nenhum fornecedor encontrado.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                <Users className="text-primary-color" /> Novo Fornecedor / Prestador
+                <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+                    <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', width: '100%', maxWidth: '720px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' as const, maxHeight: '90vh' }}>
+                        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Users style={{ color: 'var(--primary-color)' }} /> Novo Fornecedor / Prestador
                             </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-white/50 hover:text-white transition-colors">
+                            <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'white'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}>
                                 <X size={24} />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-                            <form id="supplierForm" onSubmit={handleSave} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase">Nome / Razão Social *</label>
-                                        <input required type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+                        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+                            <form id="supplierForm" onSubmit={handleSave}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                        <label style={labelStyle}>Nome / Razão Social *</label>
+                                        <input required type="text" style={inputStyle} value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase">CPF / CNPJ</label>
-                                        <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.document || ''} onChange={e => setFormData({...formData, document: e.target.value})} />
+                                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                        <label style={labelStyle}>CPF / CNPJ</label>
+                                        <input type="text" style={inputStyle} value={formData.document || ''} onChange={e => setFormData({...formData, document: e.target.value})} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase">E-mail</label>
-                                        <input type="email" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                        <label style={labelStyle}>E-mail</label>
+                                        <input type="email" style={inputStyle} value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase">Telefone</label>
-                                        <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                        <label style={labelStyle}>Telefone</label>
+                                        <input type="text" style={inputStyle} value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase flex items-center gap-1"><MapPin size={14}/> Endereço Completo</label>
-                                    <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
+                                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px', marginBottom: '24px' }}>
+                                    <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={14}/> Endereço Completo</label>
+                                    <input type="text" style={inputStyle} value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
                                 </div>
                                 
-                                <div className="pt-4 border-t border-white/10">
-                                    <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><Landmark size={16} className="text-primary-color"/> Dados Bancários</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-white/60 uppercase">Chave PIX</label>
-                                            <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.pix_key || ''} onChange={e => setFormData({...formData, pix_key: e.target.value})} />
+                                <div style={{ paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', marginBottom: '24px' }}>
+                                    <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'white', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><Landmark size={16} style={{ color: 'var(--primary-color)' }}/> Dados Bancários</h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                            <label style={labelStyle}>Chave PIX</label>
+                                            <input type="text" style={inputStyle} value={formData.pix_key || ''} onChange={e => setFormData({...formData, pix_key: e.target.value})} />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-white/60 uppercase">Banco</label>
-                                            <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.bank || ''} onChange={e => setFormData({...formData, bank: e.target.value})} />
+                                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                            <label style={labelStyle}>Banco</label>
+                                            <input type="text" style={inputStyle} value={formData.bank || ''} onChange={e => setFormData({...formData, bank: e.target.value})} />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-white/60 uppercase">Agência</label>
-                                            <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.agency || ''} onChange={e => setFormData({...formData, agency: e.target.value})} />
+                                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                            <label style={labelStyle}>Agência</label>
+                                            <input type="text" style={inputStyle} value={formData.agency || ''} onChange={e => setFormData({...formData, agency: e.target.value})} />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-white/60 uppercase">Conta</label>
-                                            <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.account || ''} onChange={e => setFormData({...formData, account: e.target.value})} />
+                                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                            <label style={labelStyle}>Conta</label>
+                                            <input type="text" style={inputStyle} value={formData.account || ''} onChange={e => setFormData({...formData, account: e.target.value})} />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase">Observações</label>
-                                    <textarea className="input-field w-full min-h-[80px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
+                                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                    <label style={labelStyle}>Observações</label>
+                                    <textarea style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' as const }} value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
                                 </div>
                             </form>
                         </div>
-                        <div className="p-6 border-t border-white/10 bg-black/40 flex justify-end gap-3">
-                            <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-white/60 hover:text-white transition-colors bg-white/5 hover:bg-white/10">
+                        <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <button onClick={() => setIsModalOpen(false)} style={{ padding: '12px 24px', borderRadius: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                                onMouseEnter={e => { e.currentTarget.style.color = 'white'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}>
                                 Cancelar
                             </button>
-                            <button type="submit" form="supplierForm" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className="">
+                            <button type="submit" form="supplierForm" style={btnPrimary}>
                                 Salvar Cadastro
                             </button>
                         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Plus, List, Filter, Upload, FileText, CheckCircle2, Clock, XCircle, CreditCard, ChevronDown } from 'lucide-react';
+import { Search, Plus, List, Upload, FileText, CheckCircle2, Clock, CreditCard } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -26,6 +26,24 @@ interface Payable {
 const ACCOUNT_TYPES = ['Aluguel', 'Telefone', 'Internet', 'Energia', 'Água', 'Impostos', 'Marketing', 'Outros'];
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Paga'];
 
+const labelBase: React.CSSProperties = { fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' };
+const inputBase: React.CSSProperties = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%', outline: 'none' };
+const selectBase: React.CSSProperties = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'white', fontWeight: 800, fontSize: '0.85rem', padding: '12px 16px', outline: 'none', cursor: 'pointer' };
+const tabBase = (active: boolean): React.CSSProperties => ({
+    background: active ? 'var(--primary-color)' : 'transparent',
+    color: active ? 'black' : 'rgba(255,255,255,0.6)',
+    borderRadius: '12px',
+    padding: '10px 24px',
+    fontWeight: 800,
+    fontSize: '0.85rem',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    transition: 'all 0.2s'
+});
+
 const FinancePayables = () => {
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'nova' | 'consulta'>('consulta');
@@ -33,12 +51,10 @@ const FinancePayables = () => {
     const [payables, setPayables] = useState<Payable[]>([]);
     const [loading, setLoading] = useState(false);
     
-    // Filters
     const [filterStatus, setFilterStatus] = useState('');
     const [filterSupplier, setFilterSupplier] = useState('');
     const [filterType, setFilterType] = useState('');
 
-    // Form Data
     const [formData, setFormData] = useState<Partial<Payable>>({
         type: 'Outros',
         status: 'Pendente',
@@ -50,11 +66,9 @@ const FinancePayables = () => {
 
     const fetchData = async () => {
         setLoading(true);
-        // Fetch suppliers
         const { data: sData } = await supabase.from('finance_suppliers').select('id, name');
         if (sData) setSuppliers(sData as Supplier[]);
 
-        // Fetch payables
         let query = supabase.from('finance_payables').select(`
             *,
             finance_suppliers ( id, name )
@@ -119,10 +133,16 @@ const FinancePayables = () => {
     };
 
     const getStatusIcon = (status: string) => {
-        if (status === 'Paga') return <CheckCircle2 size={16} className="text-primary-color" />;
-        if (status === 'Aprovada') return <CheckCircle2 size={16} className="text-blue-400" />;
-        return <Clock size={16} className="text-yellow-400" />;
+        if (status === 'Paga') return <CheckCircle2 size={16} style={{ color: 'var(--primary-color)' }} />;
+        if (status === 'Aprovada') return <CheckCircle2 size={16} style={{ color: '#60a5fa' }} />;
+        return <Clock size={16} style={{ color: '#facc15' }} />;
     };
+
+    const rowBgHover = (e: React.MouseEvent<HTMLTableRowElement>, enter: boolean) => {
+        e.currentTarget.style.background = enter ? 'rgba(255,255,255,0.05)' : 'transparent';
+    };
+
+    const cellPad = { padding: '16px 24px' };
 
     return (
         <div className="finance-page animate-fade-in" style={{ padding: "40px", paddingBottom: "80px" }}>
@@ -130,113 +150,110 @@ const FinancePayables = () => {
                 .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
                 .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
             `}</style>
-            <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '24px', marginBottom: '32px' }}>
                 <div>
                     <h1>Contas a Pagar</h1>
                     <p className="subtitle">Gestão de pagamentos e aprovações</p>
                 </div>
-                <div className="flex gap-2" style={{ background: "rgba(255, 255, 255, 0.05)", padding: "4px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    <button 
-                        onClick={() => setActiveTab('consulta')}
-                        style={activeTab === 'consulta' ? { background: 'var(--primary-color)', color: 'black', borderRadius: '12px', padding: '10px 24px', fontWeight: 800, fontSize: '0.85rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' } : { background: 'transparent', color: 'rgba(255,255,255,0.6)', borderRadius: '12px', padding: '10px 24px', fontWeight: 800, fontSize: '0.85rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
+                <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', alignSelf: 'flex-start' as const }}>
+                    <button onClick={() => setActiveTab('consulta')} style={tabBase(activeTab === 'consulta')}>
                         <List size={16}/> Consultar Contas
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('nova')}
-                        style={activeTab === 'nova' ? { background: 'var(--primary-color)', color: 'black', borderRadius: '12px', padding: '10px 24px', fontWeight: 800, fontSize: '0.85rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' } : { background: 'transparent', color: 'rgba(255,255,255,0.6)', borderRadius: '12px', padding: '10px 24px', fontWeight: 800, fontSize: '0.85rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
+                    <button onClick={() => setActiveTab('nova')} style={tabBase(activeTab === 'nova')}>
                         <Plus size={16}/> Nova Conta
                     </button>
                 </div>
-            </header>
+            </div>
 
             {loading && <SupremeLoading />}
 
             {!loading && activeTab === 'consulta' && (
-                <div className="mt-8 space-y-6">
-                    {/* Filtros */}
-                    <div className="flex flex-wrap items-center gap-4">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', paddingLeft: '4px' }}>Status</span>
-                            <select style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "14px", color: "white", fontWeight: 800, fontSize: "0.85rem", padding: "12px 16px", outline: "none", cursor: "pointer" }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                                <option value="" className="bg-black">Todos</option>
-                                {STATUS_OPTIONS.map(s => <option key={s} value={s} className="bg-black">{s}</option>)}
+                <div style={{ marginTop: '32px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap' as const, alignItems: 'flex-end' as const, gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px' }}>
+                            <span style={labelBase}>Status</span>
+                            <select style={selectBase} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                                <option value="" style={{ background: '#000' }}>Todos</option>
+                                {STATUS_OPTIONS.map(s => <option key={s} value={s} style={{ background: '#000' }}>{s}</option>)}
                             </select>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', paddingLeft: '4px' }}>Fornecedor</span>
-                            <select style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "14px", color: "white", fontWeight: 800, fontSize: "0.85rem", padding: "12px 16px", outline: "none", cursor: "pointer" }} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
-                                <option value="" className="bg-black">Todos</option>
-                                {suppliers.map(s => <option key={s.id} value={s.id} className="bg-black">{s.name}</option>)}
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px' }}>
+                            <span style={labelBase}>Fornecedor</span>
+                            <select style={selectBase} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
+                                <option value="" style={{ background: '#000' }}>Todos</option>
+                                {suppliers.map(s => <option key={s.id} value={s.id} style={{ background: '#000' }}>{s.name}</option>)}
                             </select>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', paddingLeft: '4px' }}>Tipo</span>
-                            <select style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "14px", color: "white", fontWeight: 800, fontSize: "0.85rem", padding: "12px 16px", outline: "none", cursor: "pointer" }} value={filterType} onChange={e => setFilterType(e.target.value)}>
-                                <option value="" className="bg-black">Todos</option>
-                                {ACCOUNT_TYPES.map(t => <option key={t} value={t} className="bg-black">{t}</option>)}
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px' }}>
+                            <span style={labelBase}>Tipo</span>
+                            <select style={selectBase} value={filterType} onChange={e => setFilterType(e.target.value)}>
+                                <option value="" style={{ background: '#000' }}>Todos</option>
+                                {ACCOUNT_TYPES.map(t => <option key={t} value={t} style={{ background: '#000' }}>{t}</option>)}
                             </select>
                         </div>
                     </div>
 
-                    {/* Lista */}
-                    <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" overflow-hidden">
-                        <table className="w-full text-left text-sm text-white/80">
+                    <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)", overflowX: 'auto' as const }}>
+                        <table style={{ width: '100%', textAlign: 'left' as const, fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)', borderCollapse: 'collapse' as const }}>
                             <thead>
-                                <tr className="border-b border-white/5 uppercase text-[10px] tracking-wider text-white/40 bg-white/5">
-                                    <th className="px-6 py-4 font-medium">Conta / Fornecedor</th>
-                                    <th className="px-6 py-4 font-medium">Tipo</th>
-                                    <th className="px-6 py-4 font-medium">Vencimento</th>
-                                    <th className="px-6 py-4 font-medium">Valor</th>
-                                    <th className="px-6 py-4 font-medium">Status</th>
-                                    <th className="px-6 py-4 font-medium text-right">Ações</th>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', textTransform: 'uppercase' as const, fontSize: '10px', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)' }}>
+                                    <th style={{ padding: '16px 24px', fontWeight: 500 }}>Conta / Fornecedor</th>
+                                    <th style={{ padding: '16px 24px', fontWeight: 500 }}>Tipo</th>
+                                    <th style={{ padding: '16px 24px', fontWeight: 500 }}>Vencimento</th>
+                                    <th style={{ padding: '16px 24px', fontWeight: 500 }}>Valor</th>
+                                    <th style={{ padding: '16px 24px', fontWeight: 500 }}>Status</th>
+                                    <th style={{ padding: '16px 24px', fontWeight: 500, textAlign: 'right' as const }}>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {payables.map(p => (
-                                    <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-white">{p.finance_suppliers?.name || 'Sem Fornecedor'}</span>
-                                                <span className="text-xs text-white/50 truncate max-w-[200px]">{p.description || '-'}</span>
+                                    <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s' }}
+                                        onMouseEnter={e => rowBgHover(e, true)}
+                                        onMouseLeave={e => rowBgHover(e, false)}>
+                                        <td style={cellPad}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, color: 'white' }}>{p.finance_suppliers?.name || 'Sem Fornecedor'}</span>
+                                                <br />
+                                                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', maxWidth: '200px', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{p.description || '-'}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4"><span className="px-3 py-1 bg-white/5 rounded-lg text-xs font-bold">{p.type}</span></td>
-                                        <td className="px-6 py-4">
-                                            <span className={`font-bold ${new Date(p.due_date) < new Date() && p.status !== 'Paga' ? 'text-red-400' : 'text-white'}`}>
+                                        <td style={cellPad}><span style={{ padding: '4px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700 }}>{p.type}</span></td>
+                                        <td style={cellPad}>
+                                            <span style={{ fontWeight: 700, color: new Date(p.due_date) < new Date() && p.status !== 'Paga' ? '#f87171' : 'white' }}>
                                                 {new Date(p.due_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-[15px]">{formatCurrency(p.value)}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
+                                        <td style={{ ...cellPad, fontWeight: 700, fontSize: '15px' }}>{formatCurrency(p.value)}</td>
+                                        <td style={cellPad}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 {getStatusIcon(p.status)}
-                                                <span className={`text-xs font-bold uppercase tracking-wider
-                                                    ${p.status === 'Paga' ? 'text-primary-color' : p.status === 'Aprovada' ? 'text-blue-400' : 'text-yellow-400'}
-                                                `}>{p.status}</span>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em',
+                                                    color: p.status === 'Paga' ? 'var(--primary-color)' : p.status === 'Aprovada' ? '#60a5fa' : '#facc15' }}>{p.status}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
+                                        <td style={{ ...cellPad, textAlign: 'right' as const }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                                                 {p.attachment_url && (
-                                                    <a href={p.attachment_url} target="_blank" rel="noreferrer" className="p-2 bg-white/5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white" title="Ver Anexo">
+                                                    <a href={p.attachment_url} target="_blank" rel="noreferrer" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none', transition: 'all 0.2s' }}
+                                                        onMouseEnter={e => { e.currentTarget.style.color = 'white'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                                        title="Ver Anexo">
                                                         <FileText size={16} />
                                                     </a>
                                                 )}
                                                 <select 
-                                                    className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary-color"
+                                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.75rem', outline: 'none', color: 'white', cursor: 'pointer' }}
                                                     value={p.status}
                                                     onChange={e => updateStatus(p.id, e.target.value)}
                                                 >
-                                                    {STATUS_OPTIONS.map(s => <option key={s} value={s} className="bg-black">{s}</option>)}
+                                                    {STATUS_OPTIONS.map(s => <option key={s} value={s} style={{ background: '#000' }}>{s}</option>)}
                                                 </select>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                                 {payables.length === 0 && (
-                                    <tr><td colSpan={6} className="px-6 py-12 text-center text-white/40">Nenhuma conta encontrada.</td></tr>
+                                    <tr><td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center' as const, color: 'rgba(255,255,255,0.4)' }}>Nenhuma conta encontrada.</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -245,75 +262,77 @@ const FinancePayables = () => {
             )}
 
             {!loading && activeTab === 'nova' && (
-                <div className="mt-8 max-w-3xl mx-auto crm-glass-panel p-8">
-                    <form onSubmit={handleSave} className="space-y-8">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 rounded-2xl bg-primary-gradient flex items-center justify-center text-black">
+                <div style={{ marginTop: '32px', maxWidth: '720px', marginLeft: 'auto', marginRight: 'auto', padding: '32px', background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px' }}>
+                    <form onSubmit={handleSave}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: 'var(--primary-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black' }}>
                                 <CreditCard size={24} />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">Lançar Nova Conta</h2>
-                                <p className="text-sm text-white/60">Preencha os dados do pagamento</p>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white' }}>Lançar Nova Conta</h2>
+                                <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)' }}>Preencha os dados do pagamento</p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase">Fornecedor / Prestador *</label>
-                                <select required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.supplier_id || ''} onChange={e => setFormData({...formData, supplier_id: parseInt(e.target.value)})}>
-                                    <option value="">Selecione...</option>
-                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                <label style={labelBase}>Fornecedor / Prestador *</label>
+                                <select required style={inputBase} value={formData.supplier_id || ''} onChange={e => setFormData({...formData, supplier_id: parseInt(e.target.value)})}>
+                                    <option value="" style={{ background: '#000' }}>Selecione...</option>
+                                    {suppliers.map(s => <option key={s.id} value={s.id} style={{ background: '#000' }}>{s.name}</option>)}
                                 </select>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase">Tipo de Conta *</label>
-                                <select required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.type || ''} onChange={e => setFormData({...formData, type: e.target.value})}>
-                                    {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                <label style={labelBase}>Tipo de Conta *</label>
+                                <select required style={inputBase} value={formData.type || ''} onChange={e => setFormData({...formData, type: e.target.value})}>
+                                    {ACCOUNT_TYPES.map(t => <option key={t} value={t} style={{ background: '#000' }}>{t}</option>)}
                                 </select>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase">Data de Lançamento *</label>
-                                <input required type="date" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.launch_date || ''} onChange={e => setFormData({...formData, launch_date: e.target.value})} />
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                <label style={labelBase}>Data de Lançamento *</label>
+                                <input required type="date" style={inputBase} value={formData.launch_date || ''} onChange={e => setFormData({...formData, launch_date: e.target.value})} />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase">Data de Vencimento *</label>
-                                <input required type="date" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.due_date || ''} onChange={e => setFormData({...formData, due_date: e.target.value})} />
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                <label style={labelBase}>Data de Vencimento *</label>
+                                <input required type="date" style={inputBase} value={formData.due_date || ''} onChange={e => setFormData({...formData, due_date: e.target.value})} />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase">Valor (R$) *</label>
-                                <input required type="number" step="0.01" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} placeholder="0.00" value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                <label style={labelBase}>Valor (R$) *</label>
+                                <input required type="number" step="0.01" style={inputBase} placeholder="0.00" value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase">Responsável</label>
-                                <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.responsible || ''} disabled />
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                <label style={labelBase}>Responsável</label>
+                                <input type="text" style={{ ...inputBase, opacity: 0.6 }} value={formData.responsible || ''} disabled />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-white/60 uppercase">Descrição</label>
-                            <textarea required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} rows={3} placeholder="Descreva o motivo do pagamento..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px', marginTop: '24px' }}>
+                            <label style={labelBase}>Descrição</label>
+                            <textarea required style={{ ...inputBase, minHeight: '80px', resize: 'vertical' as const }} rows={3} placeholder="Descreva o motivo do pagamento..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-white/60 uppercase">Anexo (Boleto, Nota Fiscal, etc)</label>
-                            <div className="border-2 border-dashed border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center relative hover:border-primary-color transition-colors">
-                                <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileUpload} disabled={uploading} />
-                                <Upload size={24} className="text-primary-color mb-2" />
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px', marginTop: '24px' }}>
+                            <label style={labelBase}>Anexo (Boleto, Nota Fiscal, etc)</label>
+                            <div style={{ border: '2px dashed rgba(255,255,255,0.1)', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', textAlign: 'center' as const, position: 'relative' as const, transition: 'border-color 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+                                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}>
+                                <input type="file" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} onChange={handleFileUpload} disabled={uploading} />
+                                <Upload size={24} style={{ color: 'var(--primary-color)', marginBottom: '8px' }} />
                                 {uploading ? (
-                                    <span className="text-sm font-bold text-primary-color">Enviando...</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-color)' }}>Enviando...</span>
                                 ) : fileUrl ? (
-                                    <span className="text-sm font-bold text-green-400">Arquivo anexado com sucesso!</span>
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#4ade80' }}>Arquivo anexado com sucesso!</span>
                                 ) : (
                                     <>
-                                        <span className="text-sm font-bold text-white">Clique ou arraste um arquivo aqui</span>
-                                        <span className="text-xs text-white/40 mt-1">PDF, JPG, PNG (Máx 5MB)</span>
+                                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'white' }}>Clique ou arraste um arquivo aqui</span>
+                                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>PDF, JPG, PNG (Máx 5MB)</span>
                                     </>
                                 )}
                             </div>
                         </div>
 
-                        <div className="flex justify-end pt-4">
-                            <button type="submit" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "16px 24px", fontWeight: 900, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }} className=" w-full md:w-auto px-12 py-4 text-sm disabled:opacity-50" disabled={uploading}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '16px', marginTop: '24px' }}>
+                            <button type="submit" style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '16px 48px', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: uploading ? 0.5 : 1, transition: 'opacity 0.2s' }} disabled={uploading}>
                                 Salvar Conta a Pagar
                             </button>
                         </div>

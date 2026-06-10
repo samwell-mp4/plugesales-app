@@ -443,62 +443,9 @@ const Accounts = () => {
                 </div>
             </div>
 
-            {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
-                <div className="flex items-center justify-between p-4 mb-6 glass-card" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid var(--surface-border-subtle)' }}>
-                    <div className="flex flex-col">
-                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Luis?</span>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Alternar para credenciais de monitoramento específicas</span>
-                    </div>
-                    <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '52px', height: '26px', margin: 0 }}>
-                        <input
-                            type="checkbox"
-                            style={{ opacity: 0, width: 0, height: 0 }}
-                            checked={useLuis}
-                            onChange={(e) => setUseLuis(e.target.checked)}
-                        />
-                        <span style={{
-                            position: 'absolute', cursor: 'pointer', inset: 0,
-                            backgroundColor: useLuis ? 'var(--primary-color)' : '#333',
-                            transition: '.4s', borderRadius: '34px'
-                        }}>
-                            <span style={{
-                                position: 'absolute', height: '20px', width: '20px', left: useLuis ? '28px' : '4px', bottom: '3px',
-                                backgroundColor: useLuis ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
-                            }}></span>
-                        </span>
-                    </label>
-                </div>
-            )}
-
             <section className="config-command-center mt-8">
                 <div className="flex flex-col gap-6">
                     <div className="flex items-center gap-8 config-row">
-                        <div className="flex-1 flex flex-col gap-2">
-                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
-                                <ShieldCheck size={14} /> INFOBIP API KEY
-                            </label>
-                            <input
-                                className="input-field"
-                                value={apiKey}
-                                onChange={e => setApiKey(e.target.value)}
-                                placeholder="App 35a1621fff9a9..."
-                                style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
-                            />
-                        </div>
-
-                        <div className="flex-1 flex flex-col gap-2">
-                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
-                                <ExternalLink size={14} /> INFOBIP BASE URL
-                            </label>
-                            <input
-                                className="input-field"
-                                value={infobipUrl}
-                                onChange={e => setInfobipUrl(e.target.value)}
-                                placeholder="8k6xv1.api-us.infobip.com"
-                                style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
-                            />
-                        </div>
-
                         <div className="flex-1 flex flex-col gap-2">
                             <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
                                 <Smartphone size={14} /> REMETENTE PADRÃO (WABA)

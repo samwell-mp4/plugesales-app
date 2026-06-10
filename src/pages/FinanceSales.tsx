@@ -458,101 +458,109 @@ const FinanceSales = () => {
                 }
             `}</style>
 
-            <header className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-8">
+            <header className="flex flex-col mb-4">
                 <div>
                     <h1>Cadastro de Vendas</h1>
                     <p className="subtitle">Gestão de faturamento, anexos de pagamentos e relatórios</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto xl:flex-nowrap mt-4 xl:mt-0" style={{ flex: 1, justifyContent: "flex-start" }}>
-                    <div className="search-bar-finance w-full md:w-auto">
-                        <Search size={16} color="var(--primary-color)" style={{ marginRight: '12px' }} />
-                        <input
-                            placeholder="Buscar cliente, card..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', width: '100%' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '8px', alignItems: 'flex-end' as const }}>
+                        <div className="search-bar-finance" style={{ flex: '1 1 200px', minWidth: '180px' }}>
+                            <Search size={16} color="var(--primary-color)" style={{ marginRight: '12px' }} />
+                            <input
+                                placeholder="Buscar cliente, card..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '0 1 auto' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Data Inicial</span>
+                            <input
+                                type="datetime-local"
+                                className="filter-select"
+                                value={filterStartDate}
+                                onChange={(e) => setFilterStartDate(e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '0 1 auto' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Data Final</span>
+                            <input
+                                type="datetime-local"
+                                className="filter-select"
+                                value={filterEndDate}
+                                onChange={(e) => setFilterEndDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' as const, marginLeft: 'auto' as const }}>
+                            <button
+                                onClick={exportToExcel}
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '12px 16px', color: 'white', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' as const }}
+                            >
+                                <Download size={16} /> EXPORTAR
+                            </button>
+
+                            <button
+                                onClick={fetchData}
+                                disabled={isLoading}
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px 12px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                            </button>
+                        </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', paddingLeft: '4px' }}>Data Inicial</span>
-                        <input
-                            type="datetime-local"
-                            className="filter-select"
-                            value={filterStartDate}
-                            onChange={(e) => setFilterStartDate(e.target.value)}
-                        />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', paddingLeft: '4px' }}>Data Final</span>
-                        <input
-                            type="datetime-local"
-                            className="filter-select"
-                            value={filterEndDate}
-                            onChange={(e) => setFilterEndDate(e.target.value)}
-                        />
-                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '8px', alignItems: 'flex-end' as const }}>
+                        {user?.role === 'ADMIN' && (
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '0 1 180px' }}>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Vendedor</span>
+                                <select
+                                    className="filter-select"
+                                    value={filterSalesperson}
+                                    onChange={(e) => setFilterSalesperson(e.target.value)}
+                                >
+                                    <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Vendedores</option>
+                                    {salespeople.map(sp => (
+                                        <option key={sp.id} value={String(sp.id)} style={{ background: '#0a0f18' }}>{sp.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
-                    {user?.role === 'ADMIN' && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {user?.role !== 'CLIENT' && (
+                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '1 1 200px', minWidth: '150px' }}>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Cliente</span>
+                                <select
+                                    className="filter-select"
+                                    value={filterClient}
+                                    onChange={(e) => setFilterClient(e.target.value)}
+                                >
+                                    <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Clientes</option>
+                                    {uniqueClients.map(client => (
+                                        <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '0 1 160px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Status</span>
                             <select
                                 className="filter-select"
-                                value={filterSalesperson}
-                                onChange={(e) => setFilterSalesperson(e.target.value)}
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
                             >
-                                <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Vendedores</option>
-                                {salespeople.map(sp => (
-                                    <option key={sp.id} value={String(sp.id)} style={{ background: '#0a0f18' }}>{sp.name}</option>
-                                ))}
+                                <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Status</option>
+                                <option value="PENDENTE" style={{ background: '#0a0f18' }}>Pendentes</option>
+                                <option value="RECEBIDO" style={{ background: '#0a0f18' }}>Recebidos</option>
+                                <option value="INADIMPLENTE" style={{ background: '#0a0f18' }}>Inadimplentes</option>
                             </select>
                         </div>
-                    )}
-
-                    {user?.role !== 'CLIENT' && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            <select
-                                className="filter-select"
-                                value={filterClient}
-                                onChange={(e) => setFilterClient(e.target.value)}
-                                style={{ maxWidth: '200px' }}
-                            >
-                                <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Clientes</option>
-                                {uniqueClients.map(client => (
-                                    <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <select
-                            className="filter-select"
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                        >
-                            <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Status</option>
-                            <option value="PENDENTE" style={{ background: '#0a0f18' }}>Pendentes</option>
-                            <option value="RECEBIDO" style={{ background: '#0a0f18' }}>Recebidos</option>
-                            <option value="INADIMPLENTE" style={{ background: '#0a0f18' }}>Inadimplentes</option>
-                        </select>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px', alignSelf: 'flex-end' }}>
-                        <button
-                            onClick={exportToExcel}
-                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '12px 16px', color: 'white', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                        >
-                            <Download size={16} /> EXPORTAR
-                        </button>
-
-                        <button
-                            onClick={fetchData}
-                            disabled={isLoading}
-                            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px 16px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                            <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
-                        </button>
-
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' as const, justifyContent: 'flex-end' as const }}>
                         {user?.role !== 'CLIENT' && (
                             <button
                                 onClick={() => { resetForm(); setEditingSale(null); setIsModalOpen(true); }}

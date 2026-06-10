@@ -830,6 +830,16 @@ export const dbService = {
             throw err;
         }
     },
+    getCRMLogs: async (limit: number = 100) => {
+        try {
+            const res = await fetch(`${API_BASE}/crm/logs?limit=${limit}`);
+            if (!res.ok) throw new Error('Erro ao buscar logs.');
+            return await res.json();
+        } catch (err: any) {
+            console.error("CRM Logs Error:", err);
+            return [];
+        }
+    },
 
     // --- Notifications ---
     getNotifications: async (userId: number) => {

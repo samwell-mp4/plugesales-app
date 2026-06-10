@@ -31,6 +31,7 @@ import LeadAdminView from './pages/LeadAdminView';
 import ClientForClientForm from './pages/ClientForClientForm';
 import CRMAnalise from './pages/CRMAnalise';
 import CRMFunil from './pages/CRMFunil';
+import CRMCentralFluxo from './pages/CRMCentralFluxo';
 import GestaoConsultiva from './pages/GestaoConsultiva';
 import CronReport from './pages/CronReport';
 import PlugCardsExchange from './pages/PlugCardsExchange';
@@ -306,6 +307,7 @@ function AppContent() {
           <Route path="/admin/step-leads" element={<ProtectedRoute adminOnly={true}><LeadAdminView /></ProtectedRoute>} />
           <Route path="/crm/analise" element={<ProtectedRoute><CRMAnalise /></ProtectedRoute>} />
           <Route path="/crm/funil" element={<ProtectedRoute><CRMFunil /></ProtectedRoute>} />
+          <Route path="/crm/fluxo-leads" element={<ProtectedRoute adminOnly={true}><CRMCentralFluxo /></ProtectedRoute>} />
           <Route path="/crm/consultiva" element={<ProtectedRoute><GestaoConsultiva /></ProtectedRoute>} />
           <Route path="/cron-report" element={<ProtectedRoute><CronReport /></ProtectedRoute>} />
           <Route path="/plug-cards" element={<ProtectedRoute><PlugCardsExchange /></ProtectedRoute>} />
