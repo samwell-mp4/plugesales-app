@@ -1394,7 +1394,8 @@ app.post('/api/crm/migrate', async (req, res) => {
             responsavel: row[6] || '',
             value_client: row[7] || '0',
             metodo: row[8] || '',
-            volume: row[9] || ''
+            volume: row[9] || '',
+            visualizado: false
         })).filter(l => l.nome || l.numero || l.email);
 
         const { error } = await supabase.from('crm_leads').insert(leads);
@@ -4950,7 +4951,8 @@ app.post('/api/step-leads', async (req, res) => {
                     responsavel: actualAgentName || 'Sem Atribuição',
                     value_client: 0,
                     metodo: method || 'N/A',
-                    volume: volume || 'N/A'
+                    volume: volume || 'N/A',
+                    visualizado: false
                 }]);
 
             if (supabaseError) {

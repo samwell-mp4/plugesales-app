@@ -6,7 +6,7 @@ import {
     Save, Plus, Trash2, Edit3, X, DollarSign,
     Phone, Mail, Calendar, MapPin, TrendingUp, Target, PieChart, Zap,
     ChevronRight, Briefcase, Globe, Info, Clock, CheckCircle,
-    AlertTriangle, ChevronDown, ChevronUp, ArrowRightLeft, Check, Copy
+    AlertTriangle, ChevronDown, ChevronUp, ArrowRightLeft, Check, Copy, Eye
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { googleCalendarService } from '../services/googleCalendarService';
@@ -28,6 +28,9 @@ const LeadCard = memo(({
             <div className="lead-card-header">
                 <div className="lead-name-group">
                     <span className="lead-tag-pill">{lead.tag || 'Direto'}</span>
+                    {!lead.visualizado && (
+                        <span className="text-[8px] font-black text-black bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
+                    )}
                     <span className="lead-name group-hover:text-primary-color transition-colors">{lead.nome || 'Lead'}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -185,7 +188,8 @@ const CRMFunil = () => {
         responsavel: user?.name || '',
         metodo: '',
         volume: '',
-        nicho: ''
+        nicho: '',
+        visualizado: false
     });
 
     useEffect(() => {
@@ -292,7 +296,8 @@ const CRMFunil = () => {
                 responsavel: user?.name || '',
                 metodo: '',
                 volume: '',
-                nicho: ''
+                nicho: '',
+                visualizado: false
             });
         } catch (err: any) {
             alert("Erro ao adicionar: " + err.message);
@@ -367,6 +372,16 @@ const CRMFunil = () => {
             alert("Erro ao salvar: " + err.message);
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    const handleOpenLead = (lead: any) => {
+        setSelectedLead(lead);
+        if (!lead.visualizado) {
+            const updated = { ...lead, visualizado: true };
+            setLeads(leads.map(l => l.id === lead.id ? updated : l));
+            dbService.updateCRMLead(lead.id, { visualizado: true }, user?.id)
+                .catch(err => console.error("Error marking visualizado:", err));
         }
     };
 
@@ -632,10 +647,13 @@ const CRMFunil = () => {
                                                     <Star size={16} fill={lead.is_favorite ? 'currentColor' : 'none'} />
                                                 </button>
                                             </td>
-                                            <td onClick={() => setSelectedLead(lead)} className="cursor-pointer">
+                                            <td onClick={() => handleOpenLead(lead)} className="cursor-pointer">
                                                 <div className="flex items-center gap-4">
                                                     <div className="lead-initials-avatar">{getInitials(lead.nome)}</div>
                                                     <span className="font-bold text-white text-[14px]">{lead.nome || 'Sem Nome'}</span>
+                                                    {!lead.visualizado && (
+                                                        <span className="text-[8px] font-black text-black bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none ml-2">Novo</span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td><span className="text-[11px] font-bold text-primary-color bg-primary-color/5 px-2 py-1 rounded-md">{lead.metodo || '-'}</span></td>
@@ -653,7 +671,7 @@ const CRMFunil = () => {
                                                     >
                                                         <MessageSquare size={16} />
                                                     </button>
-                                                    <button onClick={() => setSelectedLead(lead)} className="p-2 bg-white/5 hover:bg-primary-color/20 text-white hover:text-primary-color rounded-lg transition-all"><Edit3 size={16} /></button>
+                                                    <button onClick={() => handleOpenLead(lead)} className="p-2 bg-white/5 hover:bg-primary-color/20 text-white hover:text-primary-color rounded-lg transition-all"><Edit3 size={16} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -697,7 +715,7 @@ const CRMFunil = () => {
                                                 onSetLeadToMove={setLeadToMove}
                                                 statusList={statusList}
                                                 onMove={handleMoveLead}
-                                                onEdit={setSelectedLead}
+                                                onEdit={handleOpenLead}
                                                 onFavorite={toggleFavorite}
                                                 onWhatsApp={handleWhatsApp}
                                                 onSchedule={setIsScheduling}
@@ -823,6 +841,12 @@ const CRMFunil = () => {
                                     <div className="flex items-center gap-3 text-xs text-white/50 font-bold">
                                         <UserIcon size={14} className="text-primary-color" />
                                         Resp: {selectedLead.responsavel}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs font-bold">
+                                        <Eye size={14} className={selectedLead.visualizado ? 'text-primary-color' : 'text-gray-600'} />
+                                        <span className={selectedLead.visualizado ? 'text-primary-color' : 'text-gray-500'}>
+                                            {selectedLead.visualizado ? 'Visualizado' : 'Não Visualizado'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

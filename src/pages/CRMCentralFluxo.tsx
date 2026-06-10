@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Clock, Users, Search, Filter, AlertTriangle, AlertCircle, AlertOctagon, RefreshCw, BarChart2, List as ListIcon, Columns } from 'lucide-react';
+import { Activity, Clock, Users, Search, Filter, AlertTriangle, AlertCircle, AlertOctagon, RefreshCw, BarChart2, List as ListIcon, Columns, Eye, X, User as UserIcon, Mail, Phone, MessageSquare } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 const CRMCentralFluxo = () => {
@@ -8,6 +8,7 @@ const CRMCentralFluxo = () => {
     const [leads, setLeads] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedLead, setSelectedLead] = useState<any | null>(null);
 
     // Filters
     const [filterFuncionario, setFilterFuncionario] = useState('');
@@ -31,6 +32,21 @@ const CRMCentralFluxo = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleOpenLead = (lead: any) => {
+        setSelectedLead(lead);
+        if (!lead.visualizado) {
+            const updated = { ...lead, visualizado: true };
+            setLeads(leads.map(l => l.id === lead.id ? updated : l));
+            dbService.updateCRMLead(lead.id, { visualizado: true })
+                .catch(err => console.error("Error marking visualizado:", err));
+        }
+    };
+
+    const getInitials = (name: string) => {
+        if (!name) return '?';
+        return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
     };
 
     const calculateIdleDays = (dateStr: string) => {
@@ -201,12 +217,22 @@ const CRMCentralFluxo = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredLeads.map(l => {
+                                                {filteredLeads.map(l => {
                                             const idle = calculateIdleDays(l.updated_at);
                                             const alert = getIdleAlertInfo(idle);
                                             return (
-                                                <tr key={l.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }} className="hover-row">
-                                                    <td style={{ padding: '16px', fontWeight: 700 }}>{l.nome || 'Sem Nome'}</td>
+                                                <tr key={l.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)', cursor: 'pointer' }} className="hover-row" onClick={() => handleOpenLead(l)}>
+                                                    <td style={{ padding: '16px', fontWeight: 700 }}>
+                                                        <div className="flex items-center gap-2">
+                                                            {l.nome || 'Sem Nome'}
+                                                            {!l.visualizado && (
+                                                                <span className="text-[8px] font-black text-black bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
+                                                            )}
+                                                            {l.visualizado && (
+                                                                <Eye size={12} color="var(--primary-color)" opacity={0.5} />
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td style={{ padding: '16px', color: 'var(--text-secondary)' }}>{l.responsavel || '-'}</td>
                                                     <td style={{ padding: '16px' }}><span style={{ padding: '4px 8px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>{l.status}</span></td>
                                                     <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(l.updated_at || l.created_at).toLocaleDateString()}</td>
@@ -227,9 +253,17 @@ const CRMCentralFluxo = () => {
                                     const idle = calculateIdleDays(l.updated_at);
                                     const alert = getIdleAlertInfo(idle);
                                     return (
-                                        <div key={l.id} className="glass-card hover-lift" style={{ padding: '20px', borderRadius: '20px', borderLeft: `4px solid ${alert.color}` }}>
+                                        <div key={l.id} className="glass-card hover-lift" style={{ padding: '20px', borderRadius: '20px', borderLeft: `4px solid ${alert.color}`, cursor: 'pointer' }} onClick={() => handleOpenLead(l)}>
                                             <div className="flex justify-between items-start mb-3">
-                                                <h4 style={{ margin: 0, fontWeight: 800 }}>{l.nome || 'Lead'}</h4>
+                                                <h4 style={{ margin: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {l.nome || 'Lead'}
+                                                    {!l.visualizado && (
+                                                        <span className="text-[8px] font-black text-black bg-primary-color px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">Novo</span>
+                                                    )}
+                                                    {l.visualizado && (
+                                                        <Eye size={12} color="var(--primary-color)" opacity={0.5} />
+                                                    )}
+                                                </h4>
                                                 <div className="flex items-center gap-1" style={{ color: alert.color, fontSize: '0.75rem', fontWeight: 800, background: `${alert.color}15`, padding: '4px 8px', borderRadius: '8px' }}>
                                                     {alert.icon} {idle}d
                                                 </div>
@@ -299,6 +333,96 @@ const CRMCentralFluxo = () => {
                             </table>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Lead Detail Modal */}
+            {selectedLead && (
+                <div className="supreme-modal-overlay" onClick={() => setSelectedLead(null)}>
+                    <div className="supreme-modal-content max-w-[700px]" onClick={e => e.stopPropagation()} style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                        <div className="flex justify-between items-center p-8 pb-0">
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 rounded-2xl bg-primary-color flex items-center justify-center text-black text-2xl font-black shadow-2xl shadow-primary-color/30">
+                                    {getInitials(selectedLead.nome)}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black text-white">{selectedLead.nome}</h2>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800 }}>{selectedLead.status}</span>
+                                        <div className="flex items-center gap-1 text-xs font-bold" style={{ color: selectedLead.visualizado ? 'var(--primary-color)' : 'var(--text-muted)' }}>
+                                            <Eye size={14} />
+                                            {selectedLead.visualizado ? 'Visualizado' : 'Não Visualizado'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all" onClick={() => setSelectedLead(null)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-8">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                {selectedLead.numero && (
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label"><Phone size={12} /> WhatsApp / Telefone</span>
+                                        <p className="text-white font-bold text-sm mt-1">{selectedLead.numero}</p>
+                                    </div>
+                                )}
+                                {selectedLead.email && (
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label"><Mail size={12} /> E-mail</span>
+                                        <p className="text-white font-bold text-sm mt-1">{selectedLead.email}</p>
+                                    </div>
+                                )}
+                                {selectedLead.responsavel && (
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label"><UserIcon size={12} /> Responsável</span>
+                                        <p className="text-white font-bold text-sm mt-1">{selectedLead.responsavel}</p>
+                                    </div>
+                                )}
+                                {selectedLead.tag && (
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Origem / Tag</span>
+                                        <p className="text-white font-bold text-sm mt-1">{selectedLead.tag}</p>
+                                    </div>
+                                )}
+                                {selectedLead.metodo && (
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Método</span>
+                                        <p className="text-white font-bold text-sm mt-1">{selectedLead.metodo}</p>
+                                    </div>
+                                )}
+                                {selectedLead.volume && (
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Volume</span>
+                                        <p className="text-white font-bold text-sm mt-1">{selectedLead.volume}</p>
+                                    </div>
+                                )}
+                                {selectedLead.nicho && (
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Nicho</span>
+                                        <p className="text-white font-bold text-sm mt-1">{selectedLead.nicho}</p>
+                                    </div>
+                                )}
+                                {selectedLead.created_at && (
+                                    <div className="supreme-info-card">
+                                        <span className="supreme-info-label">Criado em</span>
+                                        <p className="text-white font-bold text-sm mt-1">{new Date(selectedLead.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3 mt-8">
+                                <button
+                                    className="btn-supreme py-3 px-6 text-xs flex-1 justify-center"
+                                    onClick={() => window.open(`https://wa.me/${(selectedLead.numero || '').replace(/\D/g,'')}`, '_blank')}
+                                >
+                                    <MessageSquare size={16} /> ABRIR WHATSAPP
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
