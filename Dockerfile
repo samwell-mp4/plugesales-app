@@ -17,6 +17,7 @@ RUN npm install --production --network-timeout=1000000
 # Copy build and server files
 COPY --from=build /app/dist ./dist
 COPY server.js ./
+COPY server ./server/
 COPY backend ./backend/
 
 # Create uploads directory and define as volume
