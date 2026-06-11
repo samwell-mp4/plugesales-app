@@ -445,6 +445,68 @@ const Accounts = () => {
 
             <section className="config-command-center mt-8">
                 <div className="flex flex-col gap-6">
+                    {/* Infobip do Luis? Toggle */}
+                    <div className="flex items-center gap-4 config-row" style={{ paddingBottom: '12px', borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                        <div className="flex items-center gap-3" style={{ flex: 1 }}>
+                            <div
+                                onClick={() => setUseLuis(!useLuis)}
+                                style={{
+                                    width: '48px', height: '26px', borderRadius: '13px',
+                                    background: useLuis ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
+                                    cursor: 'pointer', position: 'relative', transition: 'background 0.3s',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <div style={{
+                                    width: '20px', height: '20px', borderRadius: '50%',
+                                    background: '#fff', position: 'absolute', top: '3px',
+                                    left: useLuis ? '25px' : '3px', transition: 'left 0.3s',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                                }} />
+                            </div>
+                            <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', cursor: 'pointer' }}>
+                                Infobip do Luis?
+                            </label>
+                            {useLuis && (
+                                <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', fontWeight: 700, background: 'rgba(172,248,0,0.1)', padding: '4px 10px', borderRadius: '8px' }}>
+                                    Usando chave do Luis
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* API Key & Base URL (sempre visíveis; quando usar Luis, preenche e oculta a key) */}
+                    <div className="flex flex-col gap-4 config-row">
+                        <div className="flex-1 flex flex-col gap-2">
+                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                INFOBIP API KEY
+                            </label>
+                            <input
+                                className="input-field"
+                                type={useLuis ? 'password' : 'text'}
+                                value={useLuis ? LUIS_KEY : apiKey}
+                                onChange={e => setApiKey(e.target.value)}
+                                placeholder="Sua Infobip API Key"
+                                readOnly={useLuis}
+                                style={{ fontFamily: 'monospace', fontSize: '0.8rem', opacity: useLuis ? 0.6 : 1 }}
+                            />
+                        </div>
+                        <div className="flex-1 flex flex-col gap-2">
+                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                INFOBIP BASE URL
+                            </label>
+                            <input
+                                className="input-field"
+                                type="text"
+                                value={useLuis ? LUIS_BASE : infobipUrl}
+                                onChange={e => setInfobipUrl(e.target.value)}
+                                placeholder={DEFAULT_BASE}
+                                readOnly={useLuis}
+                                style={{ fontFamily: 'monospace', fontSize: '0.8rem', opacity: useLuis ? 0.6 : 1 }}
+                            />
+                        </div>
+                    </div>
+
                     <div className="flex items-center gap-8 config-row">
                         <div className="flex-1 flex flex-col gap-2">
                             <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
