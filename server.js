@@ -3825,7 +3825,7 @@ app.get('/l/*', (req, res) => {
 // ============================================================
 // SSR para Crawlers (Googlebot, Bing, Facebook, etc.)
 // ============================================================
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     const ua = req.headers['user-agent'] || '';
     if (isCrawler(ua)) {
         const pathname = req.path;
@@ -3842,7 +3842,21 @@ app.use((req, res, next) => {
         if (pathname.startsWith('/blog/') && pathname !== '/blog') {
             const slug = pathname.replace('/blog/', '');
             if (slug) {
-                const blogHtml = renderers.blogRenderer();
+                try {
+                    const postRes = await pool.query('SELECT * FROM blog_posts WHERE slug = $1', [slug]);
+                    if (postRes.rows.length > 0) {
+                        const post = postRes.rows[0];
+                        const blogHtml = renderers.blogPost(post);
+                        res.setHeader('Cache-Control', 'public, max-age=86400');
+                        res.setHeader('X-SSR', 'plug-sales-crawler-blog-post');
+                        res.send(blogHtml);
+                        return;
+                    }
+                } catch (dbErr) {
+                    console.error("Blog SSR DB error:", dbErr.message);
+                }
+                // Fallback: serve blog listing
+                const blogHtml = renderers.blog();
                 res.setHeader('Cache-Control', 'public, max-age=3600');
                 res.setHeader('X-SSR', 'plug-sales-crawler-blog');
                 res.send(blogHtml);
@@ -3877,6 +3891,114 @@ app.use((req, res, next) => {
         }
     }
     next();
+});
+
+// ============================================================
+// Sitemap.xml
+// ============================================================
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const SITE_URL = 'https://plugesales.com';
+        const staticPages = [
+            { url: SITE_URL + '/', priority: '1.0', changefreq: 'weekly' },
+            { url: SITE_URL + '/sobre', priority: '0.9', changefreq: 'monthly' },
+            { url: SITE_URL + '/blog', priority: '0.9', changefreq: 'weekly' },
+            { url: SITE_URL + '/precos', priority: '0.9', changefreq: 'monthly' },
+            { url: SITE_URL + '/apresentacoes', priority: '0.8', changefreq: 'monthly' },
+            { url: SITE_URL + '/busca', priority: '0.5', changefreq: 'monthly' },
+            { url: SITE_URL + '/servicos/disparo-em-massa-whatsapp', priority: '0.9', changefreq: 'monthly' },
+            { url: SITE_URL + '/servicos/api-oficial-whatsapp', priority: '0.8', changefreq: 'monthly' },
+            { url: SITE_URL + '/servicos/chatbot-whatsapp', priority: '0.8', changefreq: 'monthly' },
+            { url: SITE_URL + '/guia/disparo-em-massa-whatsapp', priority: '0.8', changefreq: 'monthly' },
+            { url: SITE_URL + '/guia/como-escolher-bsp-whatsapp', priority: '0.7', changefreq: 'monthly' },
+            { url: SITE_URL + '/guia/estrategias-conversao-whatsapp', priority: '0.7', changefreq: 'monthly' },
+            { url: SITE_URL + '/guia/como-enviar-mensagem-em-massa-whatsapp', priority: '0.7', changefreq: 'monthly' },
+            { url: SITE_URL + '/guia/disparo-automatico-whatsapp', priority: '0.7', changefreq: 'monthly' },
+            { url: SITE_URL + '/comparacao/api-oficial-vs-disparador-web', priority: '0.7', changefreq: 'monthly' },
+            { url: SITE_URL + '/comparacao/disparo-gratuito-vs-api-oficial', priority: '0.7', changefreq: 'monthly' },
+            { url: SITE_URL + '/para/ecommerce', priority: '0.8', changefreq: 'monthly' },
+            { url: SITE_URL + '/para/imobiliarias', priority: '0.8', changefreq: 'monthly' },
+            { url: SITE_URL + '/para/educacao', priority: '0.8', changefreq: 'monthly' },
+        ];
+
+        // Blog posts from DB
+        let blogPosts = [];
+        try {
+            const postsRes = await pool.query('SELECT slug, updated_at, created_at FROM blog_posts ORDER BY created_at DESC');
+            blogPosts = postsRes.rows.map(p => ({
+                url: SITE_URL + '/blog/' + p.slug,
+                priority: '0.8',
+                changefreq: 'monthly',
+                lastmod: p.updated_at || p.created_at
+            }));
+        } catch (dbErr) {
+            console.error("Sitemap blog query error:", dbErr.message);
+        }
+
+        // State pages
+        const stateSlugs = ['ac','al','ap','am','ba','ce','df','es','go','ma','mt','ms','mg','pa','pb','pr','pe','pi','rj','rn','rs','ro','rr','sc','sp','se','to'];
+        const statePages = stateSlugs.map(s => ({
+            url: SITE_URL + '/servicos/disparo-em-massa-whatsapp/' + s,
+            priority: '0.6',
+            changefreq: 'monthly'
+        }));
+
+        // City pages
+        const cities = [
+            { uf: 'sp', slug: 'sao-paulo' }, { uf: 'sp', slug: 'campinas' }, { uf: 'sp', slug: 'ribeirao-preto' },
+            { uf: 'rj', slug: 'rio-de-janeiro' }, { uf: 'mg', slug: 'belo-horizonte' }, { uf: 'mg', slug: 'uberlandia' },
+            { uf: 'pr', slug: 'curitiba' }, { uf: 'rs', slug: 'porto-alegre' }, { uf: 'ba', slug: 'salvador' },
+            { uf: 'df', slug: 'brasilia' }, { uf: 'ce', slug: 'fortaleza' }, { uf: 'pe', slug: 'recife' },
+            { uf: 'sc', slug: 'florianopolis' }, { uf: 'go', slug: 'goiania' }, { uf: 'es', slug: 'vitoria' },
+            { uf: 'am', slug: 'manaus' }, { uf: 'pa', slug: 'belem' }, { uf: 'ma', slug: 'sao-luis' },
+            { uf: 'pb', slug: 'joao-pessoa' }, { uf: 'rn', slug: 'natal' }, { uf: 'se', slug: 'aracaju' },
+            { uf: 'al', slug: 'maceio' }, { uf: 'pi', slug: 'teresina' }, { uf: 'mt', slug: 'cuiaba' },
+            { uf: 'ms', slug: 'campo-grande' }, { uf: 'ro', slug: 'porto-velho' }, { uf: 'ac', slug: 'rio-branco' },
+            { uf: 'ap', slug: 'macapa' }, { uf: 'rr', slug: 'boa-vista' }, { uf: 'to', slug: 'palmas' },
+            { uf: 'sp', slug: 'santos' }, { uf: 'sp', slug: 'sao-jose-dos-campos' }, { uf: 'sp', slug: 'sorocaba' },
+            { uf: 'rj', slug: 'niteroi' }, { uf: 'rj', slug: 'nova-iguacu' }, { uf: 'mg', slug: 'contagem' },
+            { uf: 'mg', slug: 'juiz-de-fora' }, { uf: 'pr', slug: 'londrina' }, { uf: 'pr', slug: 'maringa' },
+            { uf: 'rs', slug: 'caxias-do-sul' }, { uf: 'sc', slug: 'blumenau' }, { uf: 'sc', slug: 'joinville' },
+            { uf: 'pe', slug: 'olinda' }, { uf: 'ce', slug: 'caucaia' }, { uf: 'ba', slug: 'feira-de-santana' },
+            { uf: 'go', slug: 'anapolis' }, { uf: 'es', slug: 'vila-velha' }, { uf: 'pa', slug: 'anadindeua' },
+        ];
+        const cityPages = cities.map(c => ({
+            url: SITE_URL + '/servicos/disparo-em-massa-whatsapp/' + c.uf + '/' + c.slug,
+            priority: '0.7',
+            changefreq: 'monthly'
+        }));
+
+        const allUrls = [...staticPages, ...blogPosts, ...statePages, ...cityPages];
+
+        let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+        for (const page of allUrls) {
+            sitemap += '  <url>\n';
+            sitemap += '    <loc>' + page.url + '</loc>\n';
+            sitemap += '    <changefreq>' + (page.changefreq || 'monthly') + '</changefreq>\n';
+            sitemap += '    <priority>' + (page.priority || '0.5') + '</priority>\n';
+            if (page.lastmod) {
+                const d = new Date(page.lastmod);
+                sitemap += '    <lastmod>' + d.toISOString().split('T')[0] + '</lastmod>\n';
+            }
+            sitemap += '  </url>\n';
+        }
+        sitemap += '</urlset>';
+
+        res.header('Content-Type', 'application/xml');
+        res.send(sitemap);
+    } catch (err) {
+        console.error("Sitemap error:", err.message);
+        res.status(500).send('Error generating sitemap');
+    }
+});
+
+// ============================================================
+// Robots.txt
+// ============================================================
+app.get('/robots.txt', (req, res) => {
+    res.type('text/plain');
+    res.send('User-agent: *\nAllow: /\n\nSitemap: https://plugesales.com/sitemap.xml\n');
 });
 
 // Servir frontend estático

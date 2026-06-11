@@ -1,4 +1,4 @@
-export const renderHtml = ({ title, description, canonical, ogImage, keywords, schema, content, bodyClass = '' }) => {
+export const renderHtml = ({ title, description, canonical, ogImage, keywords, schema, content, bodyClass = '', ogType = 'website' }) => {
     const schemaHtml = Array.isArray(schema)
         ? schema.map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n')
         : schema ? `<script type="application/ld+json">${JSON.stringify(schema)}</script>` : '';
@@ -13,9 +13,11 @@ export const renderHtml = ({ title, description, canonical, ogImage, keywords, s
     <meta name="description" content="${description}" />
     ${keywords ? `<meta name="keywords" content="${keywords}" />` : ''}
     <link rel="canonical" href="${canonical}" />
+    <link rel="alternate" hreflang="pt-BR" href="${canonical}" />
+    <link rel="alternate" hreflang="x-default" href="${canonical}" />
     <link rel="icon" type="image/png" href="/logo-supreme.png" />
 
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content="${ogType}" />
     <meta property="og:title" content="${title}" />
     <meta property="og:description" content="${description}" />
     <meta property="og:url" content="${canonical}" />

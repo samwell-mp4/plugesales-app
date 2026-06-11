@@ -272,6 +272,67 @@ export const blogRenderer = () => {
     });
 };
 
+export const blogPostRenderer = (post) => {
+    const postUrl = SITE_URL + '/blog/' + post.slug;
+    const datePublished = post.created_at ? new Date(post.created_at).toISOString() : new Date().toISOString();
+    const dateModified = post.updated_at ? new Date(post.updated_at).toISOString() : datePublished;
+    const ogImage = post.image || SITE_URL + '/og-image.png';
+    const cleanContent = (post.content || post.excerpt || '').replace(/<[^>]*>/g, '').substring(0, 300);
+
+    return renderHtml({
+        title: post.title + ' | Blog Plug & Sales',
+        description: post.excerpt || cleanContent.substring(0, 160),
+        canonical: postUrl,
+        ogImage: ogImage,
+        ogType: 'article',
+        keywords: 'blog disparo whatsapp, ' + (post.category || '').toLowerCase() + ', ' + post.title.toLowerCase(),
+        schema: [
+            {
+                "@context": "https://schema.org", "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "Início", "item": SITE_URL },
+                    { "@type": "ListItem", "position": 2, "name": "Blog", "item": SITE_URL + "/blog" },
+                    { "@type": "ListItem", "position": 3, "name": post.title, "item": postUrl }
+                ]
+            },
+            {
+                "@context": "https://schema.org", "@type": "BlogPosting",
+                "headline": post.title,
+                "description": post.excerpt || cleanContent.substring(0, 160),
+                "image": ogImage,
+                "author": {
+                    "@type": "Person",
+                    "name": post.author || "Plug & Sales"
+                },
+                "publisher": {
+                    "@type": "Organization",
+                    "name": "Plug & Sales",
+                    "logo": { "@type": "ImageObject", "url": SITE_URL + "/logo-supreme.png" }
+                },
+                "datePublished": datePublished,
+                "dateModified": dateModified,
+                "mainEntityOfPage": { "@type": "WebPage", "@id": postUrl }
+            }
+        ],
+        content: `
+            <div class="ssr-badge">${post.category || 'ARTIGO'}</div>
+            <h1 class="ssr-title">${post.title}</h1>
+            <p class="ssr-subtitle">${post.excerpt || cleanContent.substring(0, 160)}</p>
+            <div style="color:#999;font-size:0.85rem;margin-bottom:32px;display:flex;gap:16px;flex-wrap:wrap;">
+                ${post.author ? `<span>✍️ ${post.author}</span>` : ''}
+                <span>📅 ${new Date(datePublished).toLocaleDateString('pt-BR')}</span>
+                ${post.read_time ? `<span>⏱ ${post.read_time}</span>` : ''}
+            </div>
+            <div class="ssr-section">
+                ${post.content ? post.content.substring(0, 5000) : `<p>${cleanContent.substring(0, 500)}</p>`}
+            </div>
+            <div style="text-align:center;margin-top:48px;padding-top:32px;border-top:1px solid rgba(255,255,255,0.05);">
+                <a href="/blog" class="ssr-cta">← VER TODOS OS ARTIGOS</a>
+            </div>
+        `
+    });
+};
+
 export const servicoDisparoRenderer = () => {
     return renderHtml({
         title: 'Disparo em Massa no WhatsApp | API Oficial Meta | Plug & Sales',
@@ -1229,6 +1290,7 @@ const renderers = {
     home: homeRenderer,
     about: aboutRenderer,
     blog: blogRenderer,
+    blogPost: blogPostRenderer,
     servicoDisparo: servicoDisparoRenderer,
     stateRenderer: stateRenderer,
     cityRenderer: cityRenderer,

@@ -33,6 +33,8 @@ const SEO = ({
             <meta name="description" content={description} />
             {keywords && <meta name="keywords" content={keywords} />}
             {canonical && <link rel="canonical" href={canonical} />}
+            {canonical && <link rel="alternate" hreflang="pt-BR" href={canonical} />}
+            {canonical && <link rel="alternate" hreflang="x-default" href={canonical} />}
             {noindex && <meta name="robots" content="noindex, follow" />}
 
             {/* Open Graph / Facebook */}
