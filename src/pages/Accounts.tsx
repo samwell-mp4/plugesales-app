@@ -475,37 +475,7 @@ const Accounts = () => {
                         </div>
                     </div>
 
-                    {/* API Key & Base URL (sempre visíveis; quando usar Luis, preenche e oculta a key) */}
-                    <div className="flex flex-col gap-4 config-row">
-                        <div className="flex-1 flex flex-col gap-2">
-                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
-                                INFOBIP API KEY
-                            </label>
-                            <input
-                                className="input-field"
-                                type={useLuis ? 'password' : 'text'}
-                                value={useLuis ? LUIS_KEY : apiKey}
-                                onChange={e => setApiKey(e.target.value)}
-                                placeholder="Sua Infobip API Key"
-                                readOnly={useLuis}
-                                style={{ fontFamily: 'monospace', fontSize: '0.8rem', opacity: useLuis ? 0.6 : 1 }}
-                            />
-                        </div>
-                        <div className="flex-1 flex flex-col gap-2">
-                            <label className="flex items-center gap-2" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
-                                INFOBIP BASE URL
-                            </label>
-                            <input
-                                className="input-field"
-                                type="text"
-                                value={useLuis ? LUIS_BASE : infobipUrl}
-                                onChange={e => setInfobipUrl(e.target.value)}
-                                placeholder={DEFAULT_BASE}
-                                readOnly={useLuis}
-                                style={{ fontFamily: 'monospace', fontSize: '0.8rem', opacity: useLuis ? 0.6 : 1 }}
-                            />
-                        </div>
-                    </div>
+
 
                     <div className="flex items-center gap-8 config-row">
                         <div className="flex-1 flex flex-col gap-2">
