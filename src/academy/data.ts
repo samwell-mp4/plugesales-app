@@ -7,36 +7,148 @@ const articleBlocks: Record<string, ArticleData> = {
     description: 'Aprenda a gerar um link de convite para o cliente se cadastrar na plataforma de forma rápida e segura.',
     categoryId: 'operacional',
     blocks: [
-      { id: 'block_1781203190068_7o1g', type: 'image', content: { src: 'https://i.imgur.com/1jTcfLJ.png', caption: 'Descrição da imagem' } },
-      { id: 'b1', type: 'paragraph', content: { html: '<p>O <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/accounts"><strong>Monitor de WhatsApp</strong></a> é o ponto de partida para qualquer operação no Plug &amp; Sales. Nesta página, você configura a conexão com a Meta (através da Infobip) e monitora o status de aprovação dos seus templates em tempo real.</p>' } },
-      { id: 'b2', type: 'heading', content: { text: 'Principais Funcionalidades' } },
-      { id: 'b3', type: 'heading', content: { text: '1. Configuração de Conexão' } },
-      { id: 'b4', type: 'paragraph', content: { html: 'Para que o sistema consiga enviar mensagens e ler seus templates, você precisa configurar os dados da sua conta <strong>Infobip</strong>:' } },
-      { id: 'b5', type: 'list', content: { items: [
-        '<strong>API Key</strong>: Chave de autenticação fornecida pelo portal Infobip.(NA PLUG & SALES JÁ ESTÁ INCLUDO NÃO É NECESSÁRIO COLOCAR.)',
-        '<strong>Remetente Selecionado (WABA)</strong>: O número oficial do WhatsApp que enviará as mensagens.',
-      ], heading: '' } },
-      { id: 'block_1781203409882_bxw4', type: 'image', content: { src: 'https://i.imgur.com/C8tdQUQ.png', caption: 'Descrição da imagem' } },
-      { id: 'b6', type: 'heading', content: { text: '2. Sincronização em Tempo Real' } },
-      { id: 'b7', type: 'paragraph', content: { html: 'O sistema possui o <strong>LIVE SYNC ACTIVE</strong>, que sincroniza automaticamente com a Meta Cloud a cada <strong>45 segundos</strong> ou sempre que você altera o número do remetente.' } },
-      { id: 'b8', type: 'heading', content: { text: '3. Gerenciamento de Templates' } },
-      { id: 'b9', type: 'paragraph', content: { html: 'A tabela central exibe todos os templates vinculados ao número selecionado, com os seguintes dados:' } },
-      { id: 'b10', type: 'list', content: { items: [
-        '<strong>Identificador</strong>: O nome técnico do template.',
-        '<strong>Categoria</strong>: Marketing ou Utilidade (Utility).',
-        '<strong>Status Meta</strong>: <code>APROVADO</code> (pronto para uso), <code>PENDENTE</code> (em análise) ou <code>REJEITADO</code> (motivo exibido abaixo do badge).',
-      ], heading: '' } },
-      { id: 'block_1781203627703_kw0t', type: 'image', content: { src: 'https://i.imgur.com/mn8vAgy.png', caption: 'Descrição da imagem' } },
-      { id: 'b11', type: 'divider', content: {} },
-      { id: 'b12', type: 'heading', content: { text: 'Passo a Passo' } },
-      { id: 'b13', type: 'steps', content: { items: [
-        '<p>Acesse a aba <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/accounts"><strong>Contas &amp; Monitor</strong></a> no sidebar.</p>',
-        'No campo <strong>Remetente Selecionado</strong>, insira o número do WhatsApp (ex: <code>5511999999999</code>).',
-        'O sistema carregará automaticamente a lista de templates abaixo.',
-        'Se o template aparecer como <strong>APROVADO</strong>, clique no ícone de avião (Send) para ir para a tela de disparo ou use-o no <strong>Template Creator</strong>.',
-      ] } },
-      { id: 'b14', type: 'image', content: { src: 'https://i.imgur.com/Vc6sNL1.png', caption: 'Print: Tela Contas & Monitor com tabela de templates' } },
-      { id: 'b15', type: 'alert', content: { variant: 'info', title: 'Dicas de Especialista', text: '<ul class="list-disc list-inside space-y-1 mt-2"><li><strong>Favoritos Recentes</strong>: O sistema lembra dos últimos 5 números usados para facilitar a troca rápida entre contas.</li><li><strong>Ver Estrutura</strong>: Clique no ícone de "olho" para ver o JSON da mensagem antes de enviar.</li><li><strong>Links Externos</strong>: O ícone de link externo leva direto ao portal da Infobip para ajustes manuais.</li></ul>' } },
+      {
+              id: 'b1',
+              type: 'paragraph',
+              content: {
+                html: `<p>Para que um cliente possa acessar a plataforma e criar suas campanhas, primeiro ele precisa ser cadastrado. O processo é simples: o colaborador gera um <strong>link de convite</strong> com validade de 24 horas e envia para o cliente via WhatsApp, e-mail ou qualquer outro canal.</p>`
+              }
+            },
+      {
+              id: 'b2',
+              type: 'heading',
+              content: { text: 'Passo a Passo' }
+            },
+      {
+              id: 'b3',
+              type: 'steps',
+              content: {
+                items: [
+                  `<p>Acesse o menu <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/client-submissions"><strong>Upload Clientes</strong></a> no painel lateral esquerdo.</p>`,
+                  `<p>Clique no botão <strong>GERAR NOVO CLIENTE</strong> no topo da página.</p>`,
+                  `<p>O sistema gera um <strong>link único (</strong><code>https://plugesales.com/news-clients/{codigo}</code><strong>)</strong> e <strong>copia automaticamente</strong> para a <strong>área de transferência. (CRTL + V)</strong></p>`,
+                  `<p>Cole o <strong>LINK </strong>no <strong>WhatsApp, E-mail </strong>ou outro <strong>canal </strong>e envie para o cliente.</p>`,
+                  `<p>O cliente abre o <strong>LINK </strong>e preenche o cadastro em <strong>2 etapas</strong>: dados pessoais e contato.</p>`,
+                  `Após enviar, o cadastro fica <strong>Em Análise</strong> — um administrador precisa aprovar manualmente.`
+                ]
+              }
+            },
+      {
+              id: 'b4',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/2Tdnanz.jpeg', caption: 'Print: Botão GERAR NOVO CLIENTE no topo da página' }
+            },
+      {
+              id: 'b5',
+              type: 'alert',
+              content: {
+                variant: 'info',
+                title: 'Validade do Link',
+                text: `O link gerado tem validade de <strong>24 horas</strong>. Se expirar antes do cliente se cadastrar, basta gerar um novo clicando novamente em "GERAR NOVO CLIENTE".`
+              }
+            },
+      {
+              id: 'b6',
+              type: 'divider',
+              content: {}
+            },
+      {
+              id: 'b7',
+              type: 'heading',
+              content: { text: 'Após a Aprovação' }
+            },
+      {
+              id: 'block_1781201626611_2xom',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/dAfprhs.jpeg', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b8',
+              type: 'paragraph',
+              content: {
+                html: `<p>Depois que o administrador aprova o cadastro, o cliente recebe acesso à plataforma. Ele pode fazer login e acessar o <strong>Client Dashboard</strong> em <code>/client-dashboard</code>, onde pode criar campanhas via <strong>Nova Campanha</strong> e acompanhar os resultados dos disparos.</p>`
+              }
+            },
+      {
+              id: 'block_1781202363343_skyw',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/qr2iFn9.jpeg', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b9',
+              type: 'alert',
+              content: {
+                variant: 'warning',
+                title: 'Conta Bloqueada',
+                text: `A conta do cliente fica com status <code>AGUARDANDO APROVAÇÃO</code> (bloqueada) até que um administrador aprove manualmente. Enquanto isso, o cliente não consegue fazer login.`
+              }
+            },
+      {
+              id: 'block_1781203190068_7o1g',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/1jTcfLJ.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'block_1781203409882_bxw4',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/C8tdQUQ.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b10',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>Identificador</strong>: O nome técnico do template.`,
+                  `<strong>Categoria</strong>: Marketing ou Utilidade (Utility).`,
+                  `<strong>Status Meta</strong>: <code>APROVADO</code> (pronto para uso), <code>PENDENTE</code> (em análise) ou <code>REJEITADO</code> (motivo exibido abaixo do badge).`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'block_1781203627703_kw0t',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/mn8vAgy.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b11',
+              type: 'divider',
+              content: {}
+            },
+      {
+              id: 'b12',
+              type: 'heading',
+              content: { text: 'Passo a Passo' }
+            },
+      {
+              id: 'b13',
+              type: 'steps',
+              content: {
+                items: [
+                  `<p>Acesse a aba <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/accounts"><strong>Contas &amp; Monitor</strong></a> no sidebar.</p>`,
+                  `No campo <strong>Remetente Selecionado</strong>, insira o número do WhatsApp (ex: <code>5511999999999</code>).`,
+                  'O sistema carregará automaticamente a lista de templates abaixo.',
+                  `Se o template aparecer como <strong>APROVADO</strong>, clique no ícone de avião (Send) para ir para a tela de disparo ou use-o no <strong>Template Creator</strong>.`
+                ]
+              }
+            },
+      {
+              id: 'b14',
+              type: 'image',
+              content: {
+                src: 'https://i.imgur.com/Vc6sNL1.png',
+                caption: `Print: Tela Contas & Monitor com tabela de templates`
+              }
+            },
+      {
+              id: 'b15',
+              type: 'alert',
+              content: {
+                variant: 'info',
+                title: 'Dicas de Especialista',
+                text: `<ul class="list-disc list-inside space-y-1 mt-2"><li><strong>Favoritos Recentes</strong>: O sistema lembra dos últimos 5 números usados para facilitar a troca rápida entre contas.</li><li><strong>Ver Estrutura</strong>: Clique no ícone de "olho" para ver o JSON da mensagem antes de enviar.</li><li><strong>Links Externos</strong>: O ícone de link externo leva direto ao portal da Infobip para ajustes manuais.</li></ul>`
+              }
+            }
     ],
   },
   'op-contas-monitor': {
@@ -45,36 +157,131 @@ const articleBlocks: Record<string, ArticleData> = {
     description: 'Configure a conexão com a Meta (Infobip) e monitore o status de aprovação dos seus templates em tempo real.',
     categoryId: 'operacional',
     blocks: [
-      { id: 'block_1781203190068_7o1g', type: 'image', content: { src: 'https://i.imgur.com/1jTcfLJ.png', caption: 'Descrição da imagem' } },
-      { id: 'b1', type: 'paragraph', content: { html: '<p>O <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/accounts"><strong>Monitor de WhatsApp</strong></a> é o ponto de partida para qualquer operação no Plug &amp; Sales. Nesta página, você configura a conexão com a Meta (através da Infobip) e monitora o status de aprovação dos seus templates em tempo real.</p>' } },
-      { id: 'b2', type: 'heading', content: { text: 'Principais Funcionalidades' } },
-      { id: 'b3', type: 'heading', content: { text: '1. Configuração de Conexão' } },
-      { id: 'b4', type: 'paragraph', content: { html: 'Para que o sistema consiga enviar mensagens e ler seus templates, você precisa configurar os dados da sua conta <strong>Infobip</strong>:' } },
-      { id: 'b5', type: 'list', content: { items: [
-        '<strong>API Key</strong>: Chave de autenticação fornecida pelo portal Infobip.(NA PLUG & SALES JÁ ESTÁ INCLUDO NÃO É NECESSÁRIO COLOCAR.)',
-        '<strong>Remetente Selecionado (WABA)</strong>: O número oficial do WhatsApp que enviará as mensagens.',
-      ], heading: '' } },
-      { id: 'block_1781203409882_bxw4', type: 'image', content: { src: 'https://i.imgur.com/C8tdQUQ.png', caption: 'Descrição da imagem' } },
-      { id: 'b6', type: 'heading', content: { text: '2. Sincronização em Tempo Real' } },
-      { id: 'b7', type: 'paragraph', content: { html: 'O sistema possui o <strong>LIVE SYNC ACTIVE</strong>, que sincroniza automaticamente com a Meta Cloud a cada <strong>45 segundos</strong> ou sempre que você altera o número do remetente.' } },
-      { id: 'b8', type: 'heading', content: { text: '3. Gerenciamento de Templates' } },
-      { id: 'b9', type: 'paragraph', content: { html: 'A tabela central exibe todos os templates vinculados ao número selecionado, com os seguintes dados:' } },
-      { id: 'b10', type: 'list', content: { items: [
-        '<strong>Identificador</strong>: O nome técnico do template.',
-        '<strong>Categoria</strong>: Marketing ou Utilidade (Utility).',
-        '<strong>Status Meta</strong>: <code>APROVADO</code> (pronto para uso), <code>PENDENTE</code> (em análise) ou <code>REJEITADO</code> (motivo exibido abaixo do badge).',
-      ], heading: '' } },
-      { id: 'block_1781203627703_kw0t', type: 'image', content: { src: 'https://i.imgur.com/mn8vAgy.png', caption: 'Descrição da imagem' } },
-      { id: 'b11', type: 'divider', content: {} },
-      { id: 'b12', type: 'heading', content: { text: 'Passo a Passo' } },
-      { id: 'b13', type: 'steps', content: { items: [
-        '<p>Acesse a aba <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/accounts"><strong>Contas &amp; Monitor</strong></a> no sidebar.</p>',
-        'No campo <strong>Remetente Selecionado</strong>, insira o número do WhatsApp (ex: <code>5511999999999</code>).',
-        'O sistema carregará automaticamente a lista de templates abaixo.',
-        'Se o template aparecer como <strong>APROVADO</strong>, clique no ícone de avião (Send) para ir para a tela de disparo ou use-o no <strong>Template Creator</strong>.',
-      ] } },
-      { id: 'b14', type: 'image', content: { src: 'https://i.imgur.com/Vc6sNL1.png', caption: 'Print: Tela Contas & Monitor com tabela de templates' } },
-      { id: 'b15', type: 'alert', content: { variant: 'info', title: 'Dicas de Especialista', text: '<ul class="list-disc list-inside space-y-1 mt-2"><li><strong>Favoritos Recentes</strong>: O sistema lembra dos últimos 5 números usados para facilitar a troca rápida entre contas.</li><li><strong>Ver Estrutura</strong>: Clique no ícone de "olho" para ver o JSON da mensagem antes de enviar.</li><li><strong>Links Externos</strong>: O ícone de link externo leva direto ao portal da Infobip para ajustes manuais.</li></ul>' } },
+      {
+              id: 'block_1781203190068_7o1g',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/1jTcfLJ.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b1',
+              type: 'paragraph',
+              content: {
+                html: `<p>O <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/accounts"><strong>Monitor de WhatsApp</strong></a> é o ponto de partida para qualquer operação no Plug &amp; Sales. Nesta página, você configura a conexão com a Meta (através da Infobip) e monitora o status de aprovação dos seus templates em tempo real.</p>`
+              }
+            },
+      {
+              id: 'b2',
+              type: 'heading',
+              content: { text: 'Principais Funcionalidades' }
+            },
+      {
+              id: 'b3',
+              type: 'heading',
+              content: { text: '1. Configuração de Conexão' }
+            },
+      {
+              id: 'b4',
+              type: 'paragraph',
+              content: {
+                html: `Para que o sistema consiga enviar mensagens e ler seus templates, você precisa configurar os dados da sua conta <strong>Infobip</strong>:`
+              }
+            },
+      {
+              id: 'b5',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>API Key</strong>: Chave de autenticação fornecida pelo portal Infobip.(NA PLUG & SALES JÁ ESTÁ INCLUDO NÃO É NECESSÁRIO COLOCAR.)`,
+                  `<strong>Remetente Selecionado (WABA)</strong>: O número oficial do WhatsApp que enviará as mensagens.`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'block_1781203409882_bxw4',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/C8tdQUQ.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b6',
+              type: 'heading',
+              content: { text: '2. Sincronização em Tempo Real' }
+            },
+      {
+              id: 'b7',
+              type: 'paragraph',
+              content: {
+                html: `O sistema possui o <strong>LIVE SYNC ACTIVE</strong>, que sincroniza automaticamente com a Meta Cloud a cada <strong>45 segundos</strong> ou sempre que você altera o número do remetente.`
+              }
+            },
+      {
+              id: 'b8',
+              type: 'heading',
+              content: { text: '3. Gerenciamento de Templates' }
+            },
+      {
+              id: 'b9',
+              type: 'paragraph',
+              content: {
+                html: 'A tabela central exibe todos os templates vinculados ao número selecionado, com os seguintes dados:'
+              }
+            },
+      {
+              id: 'b10',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>Identificador</strong>: O nome técnico do template.`,
+                  `<strong>Categoria</strong>: Marketing ou Utilidade (Utility).`,
+                  `<strong>Status Meta</strong>: <code>APROVADO</code> (pronto para uso), <code>PENDENTE</code> (em análise) ou <code>REJEITADO</code> (motivo exibido abaixo do badge).`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'block_1781203627703_kw0t',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/mn8vAgy.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b11',
+              type: 'divider',
+              content: {}
+            },
+      {
+              id: 'b12',
+              type: 'heading',
+              content: { text: 'Passo a Passo' }
+            },
+      {
+              id: 'b13',
+              type: 'steps',
+              content: {
+                items: [
+                  `<p>Acesse a aba <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/accounts"><strong>Contas &amp; Monitor</strong></a> no sidebar.</p>`,
+                  `No campo <strong>Remetente Selecionado</strong>, insira o número do WhatsApp (ex: <code>5511999999999</code>).`,
+                  'O sistema carregará automaticamente a lista de templates abaixo.',
+                  `Se o template aparecer como <strong>APROVADO</strong>, clique no ícone de avião (Send) para ir para a tela de disparo ou use-o no <strong>Template Creator</strong>.`
+                ]
+              }
+            },
+      {
+              id: 'b14',
+              type: 'image',
+              content: {
+                src: 'https://i.imgur.com/Vc6sNL1.png',
+                caption: `Print: Tela Contas & Monitor com tabela de templates`
+              }
+            },
+      {
+              id: 'b15',
+              type: 'alert',
+              content: {
+                variant: 'info',
+                title: 'Dicas de Especialista',
+                text: `<ul class="list-disc list-inside space-y-1 mt-2"><li><strong>Favoritos Recentes</strong>: O sistema lembra dos últimos 5 números usados para facilitar a troca rápida entre contas.</li><li><strong>Ver Estrutura</strong>: Clique no ícone de "olho" para ver o JSON da mensagem antes de enviar.</li><li><strong>Links Externos</strong>: O ícone de link externo leva direto ao portal da Infobip para ajustes manuais.</li></ul>`
+              }
+            }
     ],
   },
   'op-templates': {
@@ -83,121 +290,604 @@ const articleBlocks: Record<string, ArticleData> = {
     description: 'Aprenda a criar templates de WhatsApp no padrão Leandro, com cabeçalho, botões e variáveis dinâmicas — individualmente ou em massa.',
     categoryId: 'operacional',
     blocks: [
-      { id: 'b1', type: 'paragraph', content: { html: 'A <strong>API Oficial do WhatsApp</strong> exige que a primeira mensagem enviada para abrir a janela de 24h seja um <strong>template</strong> previamente aprovado pela Meta. O <strong>Template Creator</strong> do Plug & Sales é a ferramenta mais poderosa da plataforma: permite criar templates no <strong>Padrão Leandro (Leandro Standard)</strong>, garantindo que suas mensagens sejam aprovadas com máxima eficiência.' } },
-      { id: 'b2', type: 'alert', content: { variant: 'warning', title: 'Regras de Boas Práticas (Meta)', text: '<ul class="list-disc list-inside space-y-1 mt-2"><li>Proibido linguagem abusiva, promessas irreais de ganhos financeiros ou venda de produtos ilícitos.</li><li>Textos devem ser cordiais. Evite CAIXA ALTA excessiva.</li><li>É recomendado o uso do Opt-Out (ex: "Digite SAIR para não receber mais nossas mensagens").</li></ul>' } },
-      { id: 'b3', type: 'heading', content: { text: 'Modos de Criação' } },
-      { id: 'b4', type: 'card', content: { items: [
-        { title: 'MODEL — Geração Individual', text: 'Ideal para criar o primeiro template de uma campanha ou um modelo fixo para um cliente. Configure cabeçalho, corpo, botões e publique diretamente na Infobip com um clique.', icon: 'FileText' },
-        { title: 'BULK — Geração em Massa', text: 'O diferencial estratégico. Crie centenas de variações de templates para testes A/B com apenas alguns cliques. Defina um prefixo e a quantidade — o sistema gera tudo automaticamente.', icon: 'Copy' },
-      ] } },
-      { id: 'b5', type: 'heading', content: { text: 'Componentes do Template' } },
-      { id: 'b6', type: 'list', content: { items: [
-        '<strong>Cabeçalho (Header)</strong>: Pode ser Texto, Imagem ou Vídeo. O tipo é escolhido no início da criação.',
-        '<strong>Corpo (Body)</strong>: Texto principal da mensagem. Suporta variáveis dinâmicas <code>{{1}}</code>, <code>{{2}}</code> etc.',
-        '<strong>Rodapé (Footer)</strong>: Texto opcional exibido abaixo do corpo, geralmente usado para informações complementares.',
-        '<strong>Botões</strong>: Até 3 botões por template. Podem ser links (URL) ou respostas rápidas (Quick Reply).',
-        '<strong>Variáveis</strong>: Placeholders como <code>{{1}}</code> que são substituídos por dados reais no momento do disparo.',
-      ], heading: 'Cada template é composto por:' } },
-      { id: 'b7', type: 'heading', content: { text: 'Tipos de Cabeçalho' } },
-      { id: 'b8', type: 'paragraph', content: { html: 'O cabeçalho é a primeira coisa que o contato vê. Três opções disponíveis:' } },
-      { id: 'b9', type: 'list', content: { items: [
-        '<strong>TEXT</strong>: Apenas texto simples. Ideal para mensagens diretas sem necessidade de mídia.',
-        '<strong>IMAGE</strong>: Exibe uma imagem no topo da mensagem. Requer uma URL pública da imagem. Dimensão recomendada: 1024×512 px.',
-        '<strong>VIDEO</strong>: Exibe um vídeo reproduzível. Requer uma URL pública. Máximo de 30 segundos.',
-      ], heading: '' } },
-      { id: 'b10', type: 'heading', content: { text: 'Botões e Interatividade' } },
-      { id: 'b11', type: 'paragraph', content: { html: 'Botões aumentam drasticamente a taxa de conversão. Você pode adicionar até <strong>3 botões</strong> por template, de dois tipos:' } },
-      { id: 'b12', type: 'list', content: { items: [
-        '<strong>Call to Action (URL)</strong>: Redireciona o contato para um link externo. Use o <strong>Encurtador Utilitário</strong> integrado para gerar links rastreáveis.',
-        '<strong>Quick Reply</strong>: Envia uma resposta pré-definida de volta para a empresa. Ideal para confirmar interesse ou agendar ações.',
-      ], heading: '' } },
-      { id: 'b13', type: 'heading', content: { text: 'Variáveis e Personalização' } },
-      { id: 'b14', type: 'paragraph', content: { html: 'Para que cada mensagem pareça pessoal e única, o sistema usa <strong>variáveis dinâmicas</strong>. No corpo do template, você insere <code>{{1}}</code>, <code>{{2}}</code>, <code>{{3}}</code> etc. — e no momento do disparo, cada variável é substituída pelo dado real do contato (nome, oferta, data).<br><br>O sistema também injeta <strong>exemplos automáticos</strong> para a Meta validar o template. O <strong>Padrão Leandro</strong> força uma estrutura de variáveis que a Meta costuma aprovar mais rápido, mesmo que você mude o texto no preview.' } },
-      { id: 'b15', type: 'divider', content: {} },
-      { id: 'b16', type: 'heading', content: { text: 'Passo a Passo' } },
-      { id: 'b17', type: 'steps', content: { items: [
-        'Acesse o menu <strong>Criar Template</strong> no painel lateral. Escolha entre <strong>MODEL</strong> (individual) ou <strong>BULK</strong> (em massa).',
-        'Vincule o template a um <strong>cliente</strong> já cadastrado no CRM. Se for BULK, defina o <strong>Prefixo da Campanha</strong> e a quantidade de variações.',
-        'Configure o cabeçalho (<strong>Texto</strong>, <strong>Imagem</strong> ou <strong>Vídeo</strong>) e escreva o corpo da mensagem com as variáveis desejadas.',
-        'Adicione até <strong>3 botões</strong> do tipo URL ou Quick Reply. Se usar URL, utilize o encurtador para links rastreáveis.',
-        'Revise o <strong>preview do WhatsApp</strong> no painel lateral e confira o JSON que será enviado à API.',
-        'Clique em <strong>Publicar na Infobip</strong>. O status fica <code>PENDING</code> → em até 24h a Meta muda para <code>APPROVED</code> ou <code>REJECTED</code>. O monitoramento começa automaticamente.',
-      ] } },
-      { id: 'b18', type: 'image', content: { caption: 'Print: Template Creator com preview do WhatsApp e payload JSON' } },
-      { id: 'b19', type: 'alert', content: { variant: 'info', title: 'Padrão Leandro (Standard Enforcement)', text: 'Para garantir aprovação rápida, o sistema força (por padrão) uma estrutura de variáveis que a Meta costuma aprovar mais rápido. Mesmo que você altere o texto no preview, o payload enviado à API segue a regra de ouro do sistema para evitar rejeições.' } },
-      { id: 'b20', type: 'alert', content: { variant: 'success', title: 'Dica: Template Aprovado', text: 'Templates aprovados ficam disponíveis imediatamente para uso em campanhas. Você pode ter múltiplos templates ativos ao mesmo tempo e usar o modo BULK para criar variações de teste A/B.' } },
-      { id: 'b21', type: 'divider', content: {} },
-      { id: 'b22', type: 'heading', content: { text: 'Modo MODEL — Geração Individual (Passo a Passo)' } },
-      { id: 'b23', type: 'paragraph', content: { html: 'O modo <strong>MODEL</strong> é ideal para criar o primeiro template de uma campanha ou um modelo fixo para um cliente. O fluxo é dividido em <strong>5 etapas</strong> dentro da aba MODEL do Template Creator.' } },
-      { id: 'b24', type: 'heading', content: { text: '1. Estrutura Básica' } },
-      { id: 'b25', type: 'paragraph', content: { html: 'Antes de escrever a mensagem, configure os parâmetros fundamentais do template:' } },
-      { id: 'b26', type: 'list', content: { items: [
-        '<strong>Cliente</strong>: Selecione o cliente vinculado no CRM. O template será associado a ele automaticamente.',
-        '<strong>Idioma</strong>: Escolha entre Português ou Inglês para o corpo padrão da mensagem.',
-        '<strong>Modo 4 ou 5 Variáveis</strong>: Toggle que alterna entre <code>{{1}}–{{4}}</code> ou <code>{{1}}–{{5}}</code>. Mais variáveis = mais personalização.',
-        '<strong>Credencial</strong>: Alterna entre API da Infobip ou sistema legado Luis.',
-        '<strong>URL de Tracking</strong>: Ative para adicionar parâmetros de rastreamento nos links dos botões.',
-        '<strong>Meta Direct API</strong>: Opção de enviar o template diretamente pela API da Meta em vez da Infobip.',
-      ], heading: '' } },
-      { id: 'b27', type: 'heading', content: { text: '2. Estrutura do Modelo' } },
-      { id: 'b28', type: 'paragraph', content: { html: 'Defina os dados técnicos do template:' } },
-      { id: 'b29', type: 'list', content: { items: [
-        '<strong>Números de Remetente</strong>: Área de texto onde você cola um ou mais números de WhatsApp que farão o disparo. Se colocar múltiplos, o sistema cria uma cópia do template para cada número.',
-        '<strong>Nome Técnico</strong>: Nome identificador do template na Meta. O sistema sanitiza automaticamente (remove acentos, caracteres especiais, converte para minúsculas).',
-      ], heading: '' } },
-      { id: 'b30', type: 'heading', content: { text: '3. Cabeçalho e Corpo da Mensagem' } },
-      { id: 'b31', type: 'paragraph', content: { html: 'A categoria do template é fixa como <strong>UTILITY</strong> (Utilidade). O cabeçalho pode ser:' } },
-      { id: 'b32', type: 'list', content: { items: [
-        '<strong>TEXT</strong>: Apenas corpo da mensagem, sem mídia (padrão).',
-        '<strong>IMAGE</strong>: Exibe uma imagem no topo. Requer URL pública.',
-        '<strong>VIDEO</strong>: Exibe um vídeo curto. Requer URL pública.',
-      ], heading: '' } },
-      { id: 'b33', type: 'paragraph', content: { html: 'O <strong>corpo</strong> usa o <strong>Padrão Leandro</strong> com variáveis <code>{{1}}</code>, <code>{{2}}</code> etc. pré-inseridas. Você pode ativar o modo <strong>"Custom Body"</strong> para escrever um texto livre mantendo as variáveis. O <strong>rodapé</strong> é opcional, geralmente usado para informações como horário de funcionamento.' } },
-      { id: 'b34', type: 'heading', content: { text: '4. Botões Interativos' } },
-      { id: 'b35', type: 'paragraph', content: { html: 'Adicione até <strong>3 botões</strong> para aumentar a taxa de conversão:' } },
-      { id: 'b36', type: 'list', content: { items: [
-        '<strong>Call to Action (URL)</strong>: Redireciona para um link. Use o <strong>Encurtador Utilitário</strong> integrado para gerar links rastreáveis com estatísticas.',
-        '<strong>Quick Reply</strong>: Envia uma resposta pré-definida de volta. Ideal para confirmar interesse, agendar ou acionar um fluxo no n8n.',
-      ], heading: '' } },
-      { id: 'b37', type: 'heading', content: { text: '5. Preview e Publicação' } },
-      { id: 'b38', type: 'paragraph', content: { html: 'No painel lateral direito, você vê o <strong>preview do WhatsApp</strong> em tempo real — exatamente como o cliente final verá a mensagem. Abaixo, o <strong>JSON completo</strong> que será enviado à API.<br><br>Revise tudo e clique em <strong>Publicar na Infobip</strong>. O sistema envia o template para aprovação da Meta. O status fica como <code>PENDING</code> e em até <strong>24 horas</strong> a Meta muda para <code>APPROVED</code> ou <code>REJECTED</code>. O monitoramento começa automaticamente.' } },
-      { id: 'b39', type: 'divider', content: {} },
-      { id: 'b40', type: 'heading', content: { text: 'Modo BULK — Geração em Massa' } },
-      { id: 'b41', type: 'paragraph', content: { html: 'O <strong>BULK</strong> é o diferencial estratégico do Plug & Sales. Com ele, você cria <strong>centenas de variações</strong> do mesmo template em segundos — perfeito para testes A/B em grande escala.' } },
-      { id: 'b42', type: 'heading', content: { text: 'Passo a Passo BULK' } },
-      { id: 'b43', type: 'steps', content: { items: [
-        'Acesse a aba <strong>BULK (GERAR EM MASSA)</strong> no Template Creator.',
-        'Clique em <strong>Nova Campanha</strong> e defina um <strong>Prefixo</strong> (ex: <code>venda_relogio_</code>). O prefixo será usado no nome de cada template gerado.',
-        'Defina a <strong>quantidade de variações</strong>. O sistema gera automaticamente as linhas com sufixos numéricos (<code>venda_relogio_001</code>, <code>venda_relogio_002</code>…).',
-        'Configure os <strong>overrides por linha</strong>: para cada variação, você pode alterar o botão, a mídia do cabeçalho, o remetente e o texto personalizado.',
-        'Use o <strong>Painel de Configuração Rápida</strong> para aplicar um remetente, tipo de mídia ou botão global a todas as linhas da campanha de uma só vez.',
-        'Clique em <strong>Gerar em Massa</strong>. O sistema faz as chamadas de API sequencialmente e vincula todos os templates ao CRM. Um webhook notifica a equipe automaticamente.',
-      ] } },
-      { id: 'b44', type: 'image', content: { caption: 'Print: Tela BULK com campanhas e linhas de variação' } },
-      { id: 'b45', type: 'alert', content: { variant: 'info', title: 'Variações de Sufixo', text: 'No modo BULK, use sufixos diferentes para testar qual imagem ou qual CTA converte mais. Ex: <code>promo_img01</code>, <code>promo_img02</code>, <code>promo_cta01</code>.' } },
-      { id: 'b46', type: 'heading', content: { text: 'Erros Comuns na Criação de Templates' } },
-      { id: 'b47', type: 'paragraph', content: { html: 'Ao criar templates via API da Infobip, podem ocorrer erros de validação tanto da plataforma quanto da Meta. Conheça os códigos mais frequentes e saiba como resolvê-los rapidamente.' } },
-      { id: 'b48', type: 'troubleshooting', content: { items: [
-        { title: '409 Conflict — Nome duplicado', text: 'Já existe um template com o mesmo nome técnico na Infobip ou na Meta. <strong>Solução:</strong> Altere o nome técnico ou adicione um sufixo como <code>_v2</code>, <code>_teste</code> etc.', type: 'error' },
-        { title: '400 — Invalid Header Format', text: 'O tipo de cabeçalho não corresponde ao conteúdo enviado. Ex: marcou IMAGE mas não enviou URL, ou enviou HEADER_TEXT sem corpo. <strong>Solução:</strong> Confira se o cabeçalho corresponde ao tipo selecionado e se a URL da mídia é válida.', type: 'error' },
-      ] } },
-      { id: 'b49', type: 'troubleshooting', content: { items: [
-        { title: '400 — Character Limit Exceeded', text: 'O texto do corpo, cabeçalho ou rodapé ultrapassou o limite. <strong>Limites:</strong> Body 1024 caracteres, Header TEXT 60, Footer 60, Button text 20. <strong>Solução:</strong> Reduza o texto até os limites permitidos.', type: 'error' },
-        { title: '132001 — Template Does Not Exist', text: 'O template referenciado não existe no idioma solicitado ou ainda não foi aprovado. <strong>Solução:</strong> Verifique o nome exato no WhatsApp Manager, confira o código de idioma (ex: <code>pt_BR</code>) e aguarde a aprovação.', type: 'error' },
-      ] } },
-      { id: 'b50', type: 'troubleshooting', content: { items: [
-        { title: '132012 — Parameter Format Mismatch', text: 'As variáveis <code>{{1}}</code>, <code>{{2}}</code> no corpo não correspondem aos parâmetros enviados na requisição. <strong>Solução:</strong> Certifique-se de que a quantidade e a ordem das variáveis no texto batem com os parâmetros do payload.', type: 'error' },
-        { title: 'Template Rejected by Meta — Policy Violation', text: 'A Meta identificou conteúdo promocional ou linguagem proibida em um template da categoria UTILITY, ou termos que violam as políticas de comércio. <strong>Solução:</strong> Revise a categoria (use MARKETING se for oferta), remova CAIXA ALTA excessiva, promessas de dinheiro e termos proibidos.', type: 'error' },
-      ] } },
-      { id: 'b51', type: 'troubleshooting', content: { items: [
-        { title: 'Invalid Media URL — Media Download Failed', text: 'A URL da imagem ou vídeo não pôde ser acessada pela Infobip/Meta. <strong>Solução:</strong> Use uma URL pública e direta (sem redirecionamentos), formato JPEG/PNG para imagens e MP4 para vídeos, hospedada em servidor acessível.', type: 'error' },
-        { title: 'Invalid Button URL — URL Not Allowed', text: 'O link do botão CTA não segue as políticas da Meta — encurtadores suspeitos, URLs internas ou domínios não verificados. <strong>Solução:</strong> Use o <strong>Encurtador Utilitário</strong> do sistema ou uma URL direta de um domínio confiável e verificado.', type: 'error' },
-      ] } },
-      { id: 'b52', type: 'troubleshooting', content: { items: [
-        { title: 'Template Stuck on PENDING (mais de 24h)', text: 'O template não sai do status PENDING após 24 horas. Pode ser um problema de sincronia com a Meta ou alta demanda de análise. <strong>Solução:</strong> Crie uma nova versão com pequenos ajustes no texto e reenvie. Se persistir, contate o suporte da Infobip.', type: 'warning' },
-        { title: '401 Unauthorized — Invalid API Key', text: 'A credencial da API Infobip está expirada, inválida ou sem permissão para criar templates. <strong>Solução:</strong> Verifique no painel da Infobip se a chave de API está ativa e com permissão de <code>TEMPLATE_MANAGEMENT</code>.', type: 'error' },
-      ] } },
-      { id: 'b53', type: 'alert', content: { variant: 'info', title: 'Sempre valide o JSON Preview', text: 'Antes de publicar, confira o payload JSON no painel de preview do sistema. Lá você vê exatamente o que será enviado para a API — headers, corpo, botões e variáveis. Erros de estrutura são detectados antes da requisição.' } },
+      {
+              id: 'b1',
+              type: 'paragraph',
+              content: {
+                html: `A <strong>API Oficial do WhatsApp</strong> exige que a primeira mensagem enviada para abrir a janela de 24h seja um <strong>template</strong> previamente aprovado pela Meta. O <strong>Template Creator</strong> do Plug & Sales é a ferramenta mais poderosa da plataforma: permite criar templates no <strong>Padrão Leandro (Leandro Standard)</strong>, garantindo que suas mensagens sejam aprovadas com máxima eficiência.`
+              }
+            },
+      {
+              id: 'b2',
+              type: 'alert',
+              content: {
+                variant: 'warning',
+                title: 'Regras de Boas Práticas (Meta)',
+                text: `<ul class="list-disc list-inside space-y-1 mt-2"><li>Proibido linguagem abusiva, promessas irreais de ganhos financeiros ou venda de produtos ilícitos.</li><li>Textos devem ser cordiais. Evite CAIXA ALTA excessiva.</li><li>É recomendado o uso do Opt-Out (ex: "Digite SAIR para não receber mais nossas mensagens").</li></ul>`
+              }
+            },
+      {
+              id: 'b3',
+              type: 'heading',
+              content: { text: 'Modos de Criação' }
+            },
+      {
+              id: 'b4',
+              type: 'card',
+              content: {
+                items: [
+                  {
+                    title: 'MODEL — Geração Individual',
+                    text: 'Ideal para criar o primeiro template de uma campanha ou um modelo fixo para um cliente. Configure cabeçalho, corpo, botões e publique diretamente na Infobip com um clique.',
+                    icon: 'FileText'
+                  },
+                  {
+                    title: 'BULK — Geração em Massa',
+                    text: 'O diferencial estratégico. Crie centenas de variações de templates para testes A/B com apenas alguns cliques. Defina um prefixo e a quantidade — o sistema gera tudo automaticamente.',
+                    icon: 'Copy'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b5',
+              type: 'heading',
+              content: { text: 'Componentes do Template (Já automático em nosso sistema)' }
+            },
+      {
+              id: 'b6',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>Cabeçalho (Header)</strong>: Pode ser Texto, Imagem ou Vídeo. O tipo é escolhido no início da criação.`,
+                  `<strong>Corpo (Body)</strong>: Texto principal da mensagem. Suporta variáveis dinâmicas <code>{{1}}</code>, <code>{{2}}</code> etc.`,
+                  `<strong>Rodapé (Footer)</strong>: Texto opcional exibido abaixo do corpo, geralmente usado para informações complementares.`,
+                  `<strong>Botões</strong>: Até 3 botões por template. Podem ser links (URL) ou respostas rápidas (Quick Reply).`,
+                  `<strong>Variáveis</strong>: Placeholders como <code>{{1}}</code> que são substituídos por dados reais no momento do disparo.`
+                ],
+                heading: 'Cada template é composto por:'
+              }
+            },
+      {
+              id: 'block_1781205049581_due4',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/ntGV10C.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b7',
+              type: 'heading',
+              content: { text: 'Tipos de Cabeçalho' }
+            },
+      {
+              id: 'b8',
+              type: 'paragraph',
+              content: {
+                html: 'O cabeçalho é a primeira coisa que o contato vê. Três opções disponíveis:'
+              }
+            },
+      {
+              id: 'block_1781205261682_8w8c',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/VqQm1hU.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b9',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>TEXT</strong>: Apenas texto simples. Ideal para mensagens diretas sem necessidade de mídia.`,
+                  `<strong>IMAGE</strong>: Exibe uma imagem no topo da mensagem. Requer uma URL pública da imagem. Dimensão recomendada: 1024×512 px.`,
+                  `<strong>VIDEO</strong>: Exibe um vídeo reproduzível. Requer uma URL pública. Máximo de 30 segundos.`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'block_1781205718022_nfyx',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/n4Dk5cq.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b10',
+              type: 'heading',
+              content: { text: 'Botões e Interatividade' }
+            },
+      {
+              id: 'b11',
+              type: 'paragraph',
+              content: {
+                html: `Botões aumentam drasticamente a taxa de conversão. Você pode adicionar até <strong>3 botões</strong> por template, de dois tipos:`
+              }
+            },
+      {
+              id: 'b12',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>Call to Action (URL)</strong>: Redireciona o contato para um link externo. Use o <strong>Encurtador Utilitário</strong> integrado para gerar links rastreáveis.`,
+                  `<strong>Quick Reply</strong>: Envia uma resposta pré-definida de volta para a empresa. Ideal para confirmar interesse ou agendar ações.`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'block_1781206629406_uivt',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/aXTAq0V.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b15',
+              type: 'divider',
+              content: {}
+            },
+      {
+              id: 'b16',
+              type: 'heading',
+              content: { text: 'Passo a Passo - GERAR INDIVIDUALMENTE' }
+            },
+      {
+              id: 'b17',
+              type: 'steps',
+              content: {
+                items: [
+                  {
+                    html: `<p>Abra o <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/templates">Criar Template</a>, primeiro selecione se é 5 variavéis, ative somente se o template exigir 5. <strong>( POR PADRÃO JÁ É HABILITADO 4 VARIÁVEIS)</strong></p>`,
+                    image: { src: 'https://i.imgur.com/OcXpIPJ.png', caption: '' }
+                  },
+                  {
+                    html: `<p>Vincule o template a um <strong>cliente</strong> já cadastrado em nossa <strong>PLATAFORMA</strong> ou <strong>PLUGSALES CLIENTES</strong> para clientes que não estiverem cadastrados.</p>`,
+                    image: { src: 'https://i.imgur.com/Tmk2xs3.png', caption: '' }
+                  },
+                  {
+                    html: `<p>Selecione a "INFOBIP DO LUÍS" caso o número da WABA esteja na infobip dele, por padrão se não estiver selecionado ele vai para a INFOBIP do SIDÃO.</p>`,
+                    image: { src: 'https://i.imgur.com/iKRPRJ5.png', caption: '' }
+                  },
+                  {
+                    html: `<p>Escolha <strong>"Gerar Individualmente"</strong></p>`,
+                    image: { src: 'https://i.imgur.com/TKmfNqF.png', caption: '' }
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b27',
+              type: 'heading',
+              content: { text: '2. Estrutura do Modelo' }
+            },
+      {
+              id: 'b29',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>Números de Remetente</strong>: Área de texto onde você cola um ou mais números de WhatsApp que farão o disparo. Se colocar múltiplos, o sistema cria uma cópia do template para cada número, para colocar multipllos número basta adicionar uma vírgula: (Ex: 5531982262365,559999999... .`,
+                  `<strong>Nome Técnico</strong>: Nome identificador do template na Meta. O sistema sanitiza automaticamente (remove acentos, caracteres especiais, converte para minúsculas).`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'b18',
+              type: 'image',
+              content: {
+                src: 'https://i.imgur.com/eQTnikb.png',
+                caption: 'Print: Template Creator com preview do WhatsApp e payload JSON'
+              }
+            },
+      {
+              id: 'b19',
+              type: 'alert',
+              content: {
+                variant: 'info',
+                title: 'Padrão Leandro (Standard Enforcement)',
+                text: 'Para garantir aprovação rápida, o sistema força (por padrão) uma estrutura de variáveis que a Meta costuma aprovar mais rápido. Mesmo que você altere o texto no preview, o payload enviado à API segue a regra de ouro do sistema para evitar rejeições.'
+              }
+            },
+      {
+              id: 'b30',
+              type: 'heading',
+              content: { text: '3. Cabeçalho e Corpo da Mensagem' }
+            },
+      {
+              id: 'b31',
+              type: 'paragraph',
+              content: {
+                html: `A categoria do template é fixa como <strong>UTILITY</strong> (Utilidade). O cabeçalho pode ser:`
+              }
+            },
+      {
+              id: 'b32',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>TEXT</strong>: Apenas corpo da mensagem, sem mídia (padrão).`,
+                  `<strong>IMAGE</strong>: Exibe uma imagem no topo. Requer URL pública.`,
+                  `<strong>VIDEO</strong>: Exibe um vídeo curto. Requer URL pública.`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'block_1781209856161_vz6i',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/VqQm1hU.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b33',
+              type: 'paragraph',
+              content: {
+                html: `O <strong>corpo</strong> usa o <strong>Padrão Leandro</strong> com variáveis <code>{{1}}</code>, <code>{{2}}</code> etc. pré-inseridas. Você pode ativar o modo <strong>"Custom Body"</strong> para escrever um texto livre mantendo as variáveis. O <strong>rodapé</strong> é opcional, geralmente usado para informações como horário de funcionamento.`
+              }
+            },
+      {
+              id: 'b21',
+              type: 'divider',
+              content: {}
+            },
+      {
+              id: 'b34',
+              type: 'heading',
+              content: { text: '4. Botões Interativos' }
+            },
+      {
+              id: 'b35',
+              type: 'paragraph',
+              content: {
+                html: `<p>Adicione até <strong>2 botões </strong>para aumentar a taxa de conversão:</p>`
+              }
+            },
+      {
+              id: 'b36',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>Call to Action (URL)</strong>: Redireciona para um link. Use o <strong>Encurtador Utilitário</strong> integrado para gerar links rastreáveis com estatísticas.`,
+                  `<strong>Quick Reply</strong>: Envia uma resposta pré-definida de volta. Ideal para confirmar interesse, agendar ou acionar um fluxo no n8n.`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'block_1781209960756_v9rv',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/6HBvm82.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b37',
+              type: 'heading',
+              content: { text: '5. Preview e Publicação' }
+            },
+      {
+              id: 'b38',
+              type: 'paragraph',
+              content: {
+                html: `No painel lateral direito, você vê o <strong>preview do WhatsApp</strong> em tempo real — exatamente como o cliente final verá a mensagem. Abaixo, o <strong>JSON completo</strong> que será enviado à API.<br><br>Revise tudo e clique em <strong>Publicar na Infobip</strong>. O sistema envia o template para aprovação da Meta. O status fica como <code>PENDING</code> e em até <strong>24 horas</strong> a Meta muda para <code>APPROVED</code> ou <code>REJECTED</code>. O monitoramento começa automaticamente.`
+              }
+            },
+      {
+              id: 'block_1781210074648_xghp',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/ntGV10C.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b39',
+              type: 'divider',
+              content: {}
+            },
+      {
+              id: 'b40',
+              type: 'heading',
+              content: { text: 'Modo BULK — Geração em Massa' }
+            },
+      {
+              id: 'b41',
+              type: 'paragraph',
+              content: {
+                html: `O <strong>BULK</strong> é o diferencial estratégico do Plug & Sales. Com ele, você cria <strong>centenas de variações</strong> do mesmo template em segundos — perfeito para testes A/B em grande escala.`
+              }
+            },
+      {
+              id: 'b42',
+              type: 'heading',
+              content: { text: 'Passo a Passo BULK' }
+            },
+      {
+              id: 'b43',
+              type: 'steps',
+              content: {
+                items: [
+                  {
+                    html: `<p>Acesse a aba <strong>GERAR EM MASSA</strong> no <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/templates"><strong>Template Creator</strong></a>.</p>`,
+                    image: { src: 'https://i.imgur.com/LEABynN.png', caption: '' }
+                  },
+                  {
+                    html: `<p>Preenche nosso <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://i.imgur.com/aXTAq0V.png"><strong>ENCURTADOR DE LINK</strong></a> caso o link do cliente precisa ser encurtado.</p>`,
+                    image: { src: 'https://i.imgur.com/aXTAq0V.png', caption: '' }
+                  }
+                ]
+              }
+            },
+      {
+              id: 'block_1781210650887_je0j',
+              type: 'heading',
+              content: { text: 'Campanhas Multi-Gerador' }
+            },
+      {
+              id: 'b44',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/nMfBzL0.png', caption: 'Print: Tela BULK com campanhas e linhas de variação' }
+            },
+      {
+              id: 'block_1781210800891_qz2r',
+              type: 'list',
+              content: {
+                items: [
+                  'Texto Customizado: Envie texto/variáveis personalizado caso aja alguma instabilidade no criador de template.',
+                  'Sender Em Todas: Coloca o mesmo número padrão em todas as linhas da campanha.',
+                  'Limpar: Remove informações de todas as linhas das campanhas.',
+                  'Nova Campanha: Cria uma nova campanha.',
+                  'Nome Campanha: Nome relacionado ao CARD/CAMPANHA na infobip.',
+                  'Adicionar Anúncios: São o número de templates que serão criados.'
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'b13',
+              type: 'heading',
+              content: { text: 'Campanhas/Gerar Linhas' }
+            },
+      {
+              id: 'b14',
+              type: 'paragraph',
+              content: {
+                html: `<p>Após definir o número de linhas e nome da campanha e clicar em <strong>"GERAR LINHAS"</strong> abrirá um novo MODEL para preencher as informações de cada <strong>TEMPLATE.</strong></p>`
+              }
+            },
+      {
+              id: 'block_1781211330496_hwa8',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/6JCEgne.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'block_1781211521037_alja',
+              type: 'heading',
+              content: { text: 'Painel de Configurações Rápidas.' }
+            },
+      {
+              id: 'block_1781211627096_0uig',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/gd1oAN9.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'block_1781211657321_7dp5',
+              type: 'list',
+              content: {
+                items: [
+                  'Remetente Global: Defina em todas as linhas da campanha o remetente.',
+                  'Mídia Global: TEXT, IMAGE e Vídeo, defina o tipo de TEMPLATE em todas as linhas da campanha.',
+                  'Botões Globais: Ligar/Desligar, defina se vai ter ou não um botão no TEMPLATE.'
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'block_1781211957305_rpt6',
+              type: 'heading',
+              content: { text: 'Configuração de Templates em Massa' }
+            },
+      {
+              id: 'block_1781211894983_v4ce',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/wz2ywUW.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'block_1781213740737_npe3',
+              type: 'list',
+              content: {
+                heading: '',
+                items: [
+                  `<p><strong>1. SUFIXO: </strong>Defina um identificador único para a campanha ou sender (Ex: nome_campanha_(001), nome_campanha_(002).</p>`,
+                  `<p><strong>2. SENDER: </strong>Informe o número que fará o envio no formato internacional (Ex: 5511952137668).</p>`,
+                  `<p><strong>3. TIPO:</strong> Escolha o tipo do conteúdo que será enviado. Exemplo: TEXTO, IMAGEM, VÍDEO ou DOCUMENTO.</p>`,
+                  `<p><strong>4. BOTÃO:</strong> Selecione se a mensagem terá botão de ação. Escolha COM ou SEM.</p>`,
+                  `<p><strong>5. NOME B1: </strong>Informe o texto que aparecerá no botão. Exemplo: 'Clique Aqui', 'Falar Agora', 'Solicitar Crédito'.</p>`,
+                  `<p><strong>6. LINK B1: </strong>Informe a URL que será aberta quando o usuário clicar no botão.</p>`,
+                  `<p><strong>7. AÇÕES: </strong>Utilize o ícone de edição para alterar os dados da linha ou o ícone de lixeira para removê-la.</p>`,
+                  '8. Após preencher todos os campos, salve as configurações antes de iniciar os envios.',
+                  '9. Repita o processo para cada sufixo que desejar cadastrar.'
+                ]
+              }
+            },
+      {
+              id: 'block_1781214400649_nt1a',
+              type: 'heading',
+              content: { text: 'Concluindo a criação do template.' }
+            },
+      {
+              id: 'block_1781214458691_mjxc',
+              type: 'paragraph',
+              content: {
+                html: `<p>Após conferir todas as linhas da campanha, clique em "GERAR TODAS AS CAMPANHAS AGORA".</p>`
+              }
+            },
+      {
+              id: 'block_1781214443498_9l6m',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/PpMTsVx.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b20',
+              type: 'alert',
+              content: {
+                variant: 'success',
+                title: 'Dica: Template Aprovado',
+                text: 'Templates aprovados ficam disponíveis imediatamente para uso em campanhas. Você pode ter múltiplos templates ativos ao mesmo tempo e usar o modo BULK para criar variações de teste A/B.'
+              }
+            },
+      {
+              id: 'b46',
+              type: 'heading',
+              content: { text: 'Erros Comuns na Criação de Templates' }
+            },
+      {
+              id: 'b47',
+              type: 'paragraph',
+              content: {
+                html: 'Ao criar templates via API da Infobip, podem ocorrer erros de validação tanto da plataforma quanto da Meta. Conheça os códigos mais frequentes e saiba como resolvê-los rapidamente.'
+              }
+            },
+      {
+              id: 'b48',
+              type: 'troubleshooting',
+              content: {
+                items: [
+                  {
+                    title: '409 Conflict — Nome duplicado',
+                    text: `Já existe um template com o mesmo nome técnico na Infobip ou na Meta. <strong>Solução:</strong> Altere o nome técnico ou adicione um sufixo como <code>_v2</code>, <code>_teste</code> etc.`,
+                    type: 'error'
+                  },
+                  {
+                    title: '400 — Invalid Header Format',
+                    text: `O tipo de cabeçalho não corresponde ao conteúdo enviado. Ex: marcou IMAGE mas não enviou URL, ou enviou HEADER_TEXT sem corpo. <strong>Solução:</strong> Confira se o cabeçalho corresponde ao tipo selecionado e se a URL da mídia é válida.`,
+                    type: 'error'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b49',
+              type: 'troubleshooting',
+              content: {
+                items: [
+                  {
+                    title: '400 — Character Limit Exceeded',
+                    text: `O texto do corpo, cabeçalho ou rodapé ultrapassou o limite. <strong>Limites:</strong> Body 1024 caracteres, Header TEXT 60, Footer 60, Button text 20. <strong>Solução:</strong> Reduza o texto até os limites permitidos.`,
+                    type: 'error'
+                  },
+                  {
+                    title: '132001 — Template Does Not Exist',
+                    text: `O template referenciado não existe no idioma solicitado ou ainda não foi aprovado. <strong>Solução:</strong> Verifique o nome exato no WhatsApp Manager, confira o código de idioma (ex: <code>pt_BR</code>) e aguarde a aprovação.`,
+                    type: 'error'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b50',
+              type: 'troubleshooting',
+              content: {
+                items: [
+                  {
+                    title: '132012 — Parameter Format Mismatch',
+                    text: `As variáveis <code>{{1}}</code>, <code>{{2}}</code> no corpo não correspondem aos parâmetros enviados na requisição. <strong>Solução:</strong> Certifique-se de que a quantidade e a ordem das variáveis no texto batem com os parâmetros do payload.`,
+                    type: 'error'
+                  },
+                  {
+                    title: 'Template Rejected by Meta — Policy Violation',
+                    text: `A Meta identificou conteúdo promocional ou linguagem proibida em um template da categoria UTILITY, ou termos que violam as políticas de comércio. <strong>Solução:</strong> Revise a categoria (use MARKETING se for oferta), remova CAIXA ALTA excessiva, promessas de dinheiro e termos proibidos.`,
+                    type: 'error'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b51',
+              type: 'troubleshooting',
+              content: {
+                items: [
+                  {
+                    title: 'Invalid Media URL — Media Download Failed',
+                    text: `A URL da imagem ou vídeo não pôde ser acessada pela Infobip/Meta. <strong>Solução:</strong> Use uma URL pública e direta (sem redirecionamentos), formato JPEG/PNG para imagens e MP4 para vídeos, hospedada em servidor acessível.`,
+                    type: 'error'
+                  },
+                  {
+                    title: 'Invalid Button URL — URL Not Allowed',
+                    text: `O link do botão CTA não segue as políticas da Meta — encurtadores suspeitos, URLs internas ou domínios não verificados. <strong>Solução:</strong> Use o <strong>Encurtador Utilitário</strong> do sistema ou uma URL direta de um domínio confiável e verificado.`,
+                    type: 'error'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b52',
+              type: 'troubleshooting',
+              content: {
+                items: [
+                  {
+                    title: 'Template Stuck on PENDING (mais de 24h)',
+                    text: `O template não sai do status PENDING após 24 horas. Pode ser um problema de sincronia com a Meta ou alta demanda de análise. <strong>Solução:</strong> Crie uma nova versão com pequenos ajustes no texto e reenvie. Se persistir, contate o suporte da Infobip.`,
+                    type: 'warning'
+                  },
+                  {
+                    title: '401 Unauthorized — Invalid API Key',
+                    text: `A credencial da API Infobip está expirada, inválida ou sem permissão para criar templates. <strong>Solução:</strong> Verifique no painel da Infobip se a chave de API está ativa e com permissão de <code>TEMPLATE_MANAGEMENT</code>.`,
+                    type: 'error'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b53',
+              type: 'alert',
+              content: {
+                variant: 'info',
+                title: 'Sempre valide o JSON Preview',
+                text: 'Antes de publicar, confira o payload JSON no painel de preview do sistema. Lá você vê exatamente o que será enviado para a API — headers, corpo, botões e variáveis. Erros de estrutura são detectados antes da requisição.'
+              }
+            },
+      {
+              id: 'b22',
+              type: 'heading',
+              content: { text: 'Modo MODEL — Geração Individual (Passo a Passo)' }
+            },
+      {
+              id: 'b23',
+              type: 'paragraph',
+              content: {
+                html: `O modo <strong>MODEL</strong> é ideal para criar o primeiro template de uma campanha ou um modelo fixo para um cliente. O fluxo é dividido em <strong>5 etapas</strong> dentro da aba MODEL do Template Creator.`
+              }
+            },
+      {
+              id: 'b24',
+              type: 'heading',
+              content: { text: '1. Estrutura Básica' }
+            },
+      {
+              id: 'b25',
+              type: 'paragraph',
+              content: {
+                html: 'Antes de escrever a mensagem, configure os parâmetros fundamentais do template:'
+              }
+            },
+      {
+              id: 'b26',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>Cliente</strong>: Selecione o cliente vinculado no CRM. O template será associado a ele automaticamente.`,
+                  `<strong>Idioma</strong>: Escolha entre Português ou Inglês para o corpo padrão da mensagem.`,
+                  `<strong>Modo 4 ou 5 Variáveis</strong>: Toggle que alterna entre <code>{{1}}–{{4}}</code> ou <code>{{1}}–{{5}}</code>. Mais variáveis = mais personalização.`,
+                  `<strong>Credencial</strong>: Alterna entre API da Infobip ou sistema legado Luis.`,
+                  `<strong>URL de Tracking</strong>: Ative para adicionar parâmetros de rastreamento nos links dos botões.`,
+                  `<strong>Meta Direct API</strong>: Opção de enviar o template diretamente pela API da Meta em vez da Infobip.`
+                ],
+                heading: ''
+              }
+            },
+      {
+              id: 'b28',
+              type: 'paragraph',
+              content: { html: 'Defina os dados técnicos do template:' }
+            },
+      {
+              id: 'b45',
+              type: 'alert',
+              content: {
+                variant: 'info',
+                title: 'Variações de Sufixo',
+                text: `No modo BULK, use sufixos diferentes para testar qual imagem ou qual CTA converte mais. Ex: <code>promo_img01</code>, <code>promo_img02</code>, <code>promo_cta01</code>.`
+              }
+            }
     ],
   },
   'op-upload-clientes': {
@@ -206,58 +896,266 @@ const articleBlocks: Record<string, ArticleData> = {
     description: 'Gerencie cards de submissão de campanhas: dashboard visual com grade, lista e kanban. Cada template criado vira um card automaticamente.',
     categoryId: 'operacional',
     blocks: [
-      { id: 'b1', type: 'heading', content: { text: 'Upload Clientes — Gestão de Submissões' } },
-      { id: 'b2', type: 'paragraph', content: { html: 'O <strong>Upload Clientes</strong> é o dashboard central onde toda solicitação de campanha se transforma em um <strong>card visual</strong>. Cada card representa uma submissão com dados completos: perfil do cliente, DDD, dados da campanha (copy, mídia, link), tipo de template, status, responsável e timestamps. É o hub de acompanhamento — do pedido ao disparo.' } },
-      { id: 'b3', type: 'heading', content: { text: 'Modos de Visualização' } },
-      { id: 'b4', type: 'card', content: { items: [
-        { title: 'Grade (Grid)', text: 'Exibe os cards em formato de grid com miniaturas de imagem, status colorido e botões de ação. Ideal para uma visão geral com detalhes visuais de cada submissão.', icon: 'Layout' },
-        { title: 'Lista (List)', text: 'Visualização tabular com colunas: nome, DDD, responsável, status e data. Melhor para gerenciar muitos cards rapidamente com foco em texto.', icon: 'FileText' },
-        { title: 'Kanban', text: 'Organiza os cards por colunas de status: PENDENTE → EM MAOS → GERADO → CONCLUIDO. Arraste e solte para mover cards entre estágios. Perfeito para enxergar o fluxo de trabalho.', icon: 'GitBranch' },
-      ] } },
-      { id: 'b5', type: 'heading', content: { text: 'O Card de Submissão' } },
-      { id: 'b6', type: 'paragraph', content: { html: 'Cada card é um registro completo de uma solicitação de campanha. Ele carrega tudo que você precisa para executar e acompanhar. Veja os campos que compõem cada card:' } },
-      { id: 'b7', type: 'card', content: { items: [
-        { title: '1. Cabeçalho do Card', text: 'Foto de perfil do cliente, nome do perfil (profile_name), DDD de destino, tipo de template (MARKETING / UTILITY) e um badge de status colorido que muda conforme o andamento.', icon: 'UserPlus' },
-        { title: '2. Dados da Campanha', text: 'Texto do anúncio (ad_copy), URL da mídia (imagem ou vídeo), link do botão (button_link) e URL da planilha de contatos. Tudo centralizado no card.', icon: 'FileText' },
-        { title: '3. Status e Progresso', text: 'PENDENTE (cinza), EM MAOS / EM_ANDAMENTO (azul), GERADO (roxo), CONCLUIDO (verde), CANCELADO (vermelho). Cada transição fica registrada nos logs do card.', icon: 'Activity' },
-        { title: '4. Atribuição e Métricas', text: 'Quem criou (submitted_by), quem está trabalhando (assigned_to), quem aprovou (accepted_by). Quando CONCLUIDO: total de mensagens entregues e custo do cliente.', icon: 'BarChart' },
-      ] } },
-      { id: 'b8', type: 'heading', content: { text: 'Como os Cards São Criados' } },
-      { id: 'b9', type: 'paragraph', content: { html: 'Existem <strong>dois caminhos</strong> que geram cards no Upload Clientes. Entender ambos é essencial para dominar o fluxo operacional.' } },
-      { id: 'b10', type: 'card', content: { items: [
-        { title: 'Caminho 1: CLIENT — Formulário Externo', text: 'O cliente final acessa o link de formulário público, preenche os dados da campanha (copy, mídia, planilha de contatos) e envia. O sistema cria automaticamente um card com status <strong>PENDENTE</strong>. Esse card fica visível no dashboard para um funcionário pegar e executar.', icon: 'UserPlus' },
-        { title: 'Caminho 2: EMPLOYEE — Template Creator', text: 'Quando um funcionário gera templates diretamente pelo <strong>Criar Template</strong> (MODEL ou BULK), o sistema cria <strong>automaticamente</strong> um card de submissão com status <strong>GERADO</strong>. O card já nasce com o cliente vinculado, a copy usada e os dados da campanha. Isso significa que <strong>todo template criado gera um card</strong> — nada se perde.', icon: 'FileText' },
-        { title: 'Fluxo Misto: Card → Creator', text: 'Você também pode clicar em <strong>Preencher no Creator</strong> em um card PENDENTE ou EM MAOS. O sistema abre o Template Creator já preenchido com os dados do card. Após gerar os templates, o card é atualizado para <strong>GERADO</strong> automaticamente.', icon: 'RefreshCw' },
-      ] } },
-      { id: 'b11', type: 'alert', content: { variant: 'info', title: 'Todo template vira um card', text: 'Sempre que você cria templates no Template Creator (seja pelo MODEL individual ou pelo BULK em massa), o sistema registra automaticamente uma submissão no Upload Clientes. Isso garante rastreabilidade total: cada campanha tem seu card com histórico, logs e métricas.' } },
-      { id: 'b12', type: 'heading', content: { text: 'Ciclo de Vida do Card' } },
-      { id: 'b13', type: 'steps', content: { items: [
-        '<strong>PENDENTE</strong>: O cliente enviou os dados ou o card foi criado. Ninguém começou a trabalhar. Fica visível no dashboard aguardando atribuição.',
-        '<strong>EM MAOS (EM_ANDAMENTO)</strong>: Um funcionário atribuiu o card a si mesmo ou recebeu a tarefa. O nome do responsável aparece no topo do card.',
-        '<strong>GERADO</strong>: Os templates foram criados no Template Creator (manualmente ou via Preencher no Creator). O status muda automaticamente. O card agora contém os links dos templates gerados.',
-        '<strong>CONCLUIDO</strong>: O disparo foi realizado com sucesso. As métricas finais (total entregue, custo do cliente) são exibidas diretamente no card.',
-        '<strong>CANCELADO</strong>: A campanha foi cancelada. Motivo e data ficam registrados nos logs.',
-      ] } },
-      { id: 'b14', type: 'heading', content: { text: 'Ações em Cada Card' } },
-      { id: 'b15', type: 'list', content: { items: [
-        '<strong>Preencher no Creator</strong>: Abre o Template Creator com todos os dados do card pré-preenchidos — cliente, copy, mídia, botão. Gera templates em segundos.',
-        '<strong>Abrir Painel</strong>: Navega para a tela de detalhes da submissão, com logs completos, histórico de status e upload de relatórios.',
-        '<strong>Duplicar</strong>: Cria uma cópia do card mantendo a estrutura (foto, DDD, cliente) e limpando os links antigos. Perfeito para campanhas recorrentes.',
-        '<strong>Excluir</strong>: Remove o card permanentemente.',
-        '<strong>Pedir Alteração (Alerta)</strong>: Envia uma notificação para o cliente solicitando ajustes na campanha.',
-        '<strong>Atribuir</strong>: Define qual funcionário está responsável por executar a campanha.',
-        '<strong>Mudar Cliente</strong>: Reassocia o card a outro cliente do CRM.',
-        '<strong>Anexar Relatórios</strong>: Faz upload de arquivos XLSX com métricas pós-disparo.',
-      ], heading: 'Cada card oferece estas ações:' } },
-      { id: 'b16', type: 'heading', content: { text: 'Ações em Massa' } },
-      { id: 'b17', type: 'paragraph', content: { html: 'Use os checkboxes no canto superior esquerdo de cada card para selecionar múltiplos cards e executar ações em lote: <strong>atribuir</strong> todos a um funcionário, <strong>alterar status</strong> em bloco, <strong>redirecionar</strong> todos ao Template Creator para geração em massa (BULK), ou <strong>excluir</strong> em lote. Essencial para campanhas recorrentes ou grandes volumes.' } },
-      { id: 'b18', type: 'heading', content: { text: 'Métricas nos Cards CONCLUÍDOS' } },
-      { id: 'b19', type: 'card', content: { items: [
-        { title: 'Total Entregue', text: 'Número de mensagens que chegaram com sucesso ao destinatário. Atualizado automaticamente após o disparo.', icon: 'CheckCheck' },
-        { title: 'Custo do Cliente', text: 'Valor faturado para o cliente com base no preço por mensagem definido e no total de mensagens entregues.', icon: 'DollarSign' },
-      ] } },
-      { id: 'b20', type: 'alert', content: { variant: 'success', title: 'Dica: Duplicar para Campanhas Recorrentes', text: 'Use o botão de <strong>Duplicar</strong> para criar uma nova submissão idêntica a uma anterior. A estrutura (foto, DDD, template type) é mantida, mas os links são limpos — basta atualizar a copy e a mídia. Ideal para clientes que enviam campanhas toda semana com o mesmo formato.' } },
-      { id: 'b21', type: 'image', content: { caption: 'Print: Upload Clientes — Dashboard com cards em grade, filtros e ações' } },
+      {
+              id: 'block_1781216117397_3xbw',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/NtCtA4s.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b1',
+              type: 'heading',
+              content: { text: 'Upload Clientes — Gestão de Submissões' }
+            },
+      {
+              id: 'b2',
+              type: 'paragraph',
+              content: {
+                html: `O <strong>Upload Clientes</strong> é o dashboard central onde toda solicitação de campanha se transforma em um <strong>card visual</strong>. Cada card representa uma submissão com dados completos: perfil do cliente, DDD, dados da campanha (copy, mídia, link), tipo de template, status, responsável e timestamps. É o hub de acompanhamento — do pedido ao disparo.`
+              }
+            },
+      {
+              id: 'block_1781216382308_2mmn',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/HQnMpPl.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b3',
+              type: 'heading',
+              content: { text: 'Modos de Visualização' }
+            },
+      {
+              id: 'b4',
+              type: 'card',
+              content: {
+                items: [
+                  {
+                    title: 'Grade (Grid)',
+                    text: 'Exibe os cards em formato de grid com miniaturas de imagem, status colorido e botões de ação. Ideal para uma visão geral com detalhes visuais de cada submissão.',
+                    icon: 'Layout'
+                  },
+                  {
+                    title: 'Lista (List)',
+                    text: 'Visualização tabular com colunas: nome, DDD, responsável, status e data. Melhor para gerenciar muitos cards rapidamente com foco em texto.',
+                    icon: 'FileText'
+                  },
+                  {
+                    title: 'Kanban',
+                    text: 'Organiza os cards por colunas de status: PENDENTE → EM MAOS → GERADO → CONCLUIDO. Arraste e solte para mover cards entre estágios. Perfeito para enxergar o fluxo de trabalho.',
+                    icon: 'GitBranch'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'block_1781216771991_wbwi',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/6bdxUxm.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b5',
+              type: 'heading',
+              content: { text: 'O Card de Submissão' }
+            },
+      {
+              id: 'b6',
+              type: 'paragraph',
+              content: {
+                html: 'Cada card é um registro completo de uma solicitação de campanha. Ele carrega tudo que você precisa para executar e acompanhar. Veja os campos que compõem cada card:'
+              }
+            },
+      {
+              id: 'b7',
+              type: 'card',
+              content: {
+                items: [
+                  {
+                    title: '1. Cabeçalho do Card',
+                    text: 'Foto de perfil do cliente, nome do perfil (profile_name), DDD de destino, tipo de template (MARKETING / UTILITY) e um badge de status colorido que muda conforme o andamento.',
+                    icon: 'UserPlus'
+                  },
+                  {
+                    title: '2. Dados da Campanha',
+                    text: 'Texto do anúncio (ad_copy), URL da mídia (imagem ou vídeo), link do botão (button_link) e URL da planilha de contatos. Tudo centralizado no card.',
+                    icon: 'FileText'
+                  },
+                  {
+                    title: '3. Status e Progresso',
+                    text: 'PENDENTE (cinza), EM MAOS / EM_ANDAMENTO (azul), GERADO (roxo), CONCLUIDO (verde), CANCELADO (vermelho). Cada transição fica registrada nos logs do card.',
+                    icon: 'Activity'
+                  },
+                  {
+                    title: '4. Atribuição e Métricas',
+                    text: 'Quem criou (submitted_by), quem está trabalhando (assigned_to), quem aprovou (accepted_by). Quando CONCLUIDO: total de mensagens entregues e custo do cliente.',
+                    icon: 'BarChart'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'block_1781216946803_wkdm',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/Rala2cV.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b8',
+              type: 'heading',
+              content: { text: 'Como os Cards São Criados' }
+            },
+      {
+              id: 'b9',
+              type: 'paragraph',
+              content: {
+                html: `Existem <strong>dois caminhos</strong> que geram cards no Upload Clientes. Entender ambos é essencial para dominar o fluxo operacional.`
+              }
+            },
+      {
+              id: 'b10',
+              type: 'card',
+              content: {
+                items: [
+                  {
+                    title: 'Caminho 1: CLIENT — Formulário Externo',
+                    text: `O cliente final acessa o link de formulário público, preenche os dados da campanha (copy, mídia, planilha de contatos) e envia. O sistema cria automaticamente um card com status <strong>PENDENTE</strong>. Esse card fica visível no dashboard para um funcionário pegar e executar.`,
+                    icon: 'UserPlus'
+                  },
+                  {
+                    title: 'Caminho 2: EMPLOYEE — Template Creator',
+                    text: `Quando um funcionário gera templates diretamente pelo <strong>Criar Template</strong> (MODEL ou BULK), o sistema cria <strong>automaticamente</strong> um card de submissão com status <strong>GERADO</strong>. O card já nasce com o cliente vinculado, a copy usada e os dados da campanha. Isso significa que <strong>todo template criado gera um card</strong> — nada se perde.`,
+                    icon: 'FileText'
+                  },
+                  {
+                    title: 'Fluxo Misto: Card → Creator',
+                    text: `Você também pode clicar em <strong>Preencher no Creator</strong> em um card PENDENTE ou EM MAOS. O sistema abre o Template Creator já preenchido com os dados do card. Após gerar os templates, o card é atualizado para <strong>GERADO</strong> automaticamente.`,
+                    icon: 'RefreshCw'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b11',
+              type: 'alert',
+              content: {
+                variant: 'info',
+                title: 'Todo template vira um card',
+                text: 'Sempre que você cria templates no Template Creator (seja pelo MODEL individual ou pelo BULK em massa), o sistema registra automaticamente uma submissão no Upload Clientes. Isso garante rastreabilidade total: cada campanha tem seu card com histórico, logs e métricas.'
+              }
+            },
+      {
+              id: 'b12',
+              type: 'heading',
+              content: { text: 'Ciclo de Vida do Card' }
+            },
+      {
+              id: 'b13',
+              type: 'steps',
+              content: {
+                items: [
+                  {
+                    html: `<strong>PENDENTE</strong>: O cliente enviou os dados ou o card foi criado. Ninguém começou a trabalhar. Fica visível no dashboard aguardando atribuição.`,
+                    image: { src: 'https://i.imgur.com/7ueLUZa.png', caption: '' }
+                  },
+                  {
+                    html: `<strong>EM MAOS (EM_ANDAMENTO)</strong>: Um funcionário atribuiu o card a si mesmo ou recebeu a tarefa. O nome do responsável aparece no topo do card.`,
+                    image: { src: 'https://i.imgur.com/hLx2llD.png', caption: '' }
+                  },
+                  {
+                    html: `<p><strong>GERADO</strong>: Os templates foram criados no Template Creator (manualmente ou via Preencher no Creator). O status muda automaticamente. Agora é  hora de "ANEXAR O COMPROVANTE", caso o cliente não for pagar por CARD não precisa anexar.</p>`,
+                    image: { src: 'https://i.imgur.com/2LRTFfz.png', caption: '' }
+                  },
+                  {
+                    html: `<p><strong>CONCLUIDO</strong>: O disparo foi realizado com sucesso. Após o relatório ficar pronto é obrigatório anexar para o calculo automático do nosso "SISTEMA FINANCEIRO".</p>`,
+                    image: { src: 'https://i.imgur.com/tadDSck.png', caption: '' }
+                  },
+                  {
+                    html: `<strong>CANCELADO</strong>: A campanha foi cancelada. Motivo e data ficam registrados nos logs.`,
+                    image: { src: 'https://i.imgur.com/XHoqYgT.png', caption: '' }
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b14',
+              type: 'heading',
+              content: { text: 'Ações em Cada Card' }
+            },
+      {
+              id: 'b15',
+              type: 'list',
+              content: {
+                heading: 'Cada card oferece estas ações:',
+                items: [
+                  {
+                    html: `<strong>Preencher no Creator</strong>: Abre o Template Creator com todos os dados do card pré-preenchidos — cliente, copy, mídia, botão. Gera templates em segundos.`,
+                    image: { src: 'https://i.imgur.com/j8ri4nn.png', caption: '' }
+                  },
+                  {
+                    html: `<strong>Abrir Painel</strong>: Navega para a tela de detalhes da submissão, com logs completos, histórico de status e upload de relatórios.`,
+                    image: { src: 'https://i.imgur.com/mG2mtAT.png', caption: '' }
+                  },
+                  `<strong>Duplicar</strong>: Cria uma cópia do card mantendo a estrutura (foto, DDD, cliente) e limpando os links antigos. Perfeito para campanhas recorrentes.`,
+                  `<strong>Excluir</strong>: Remove o card permanentemente.`,
+                  {
+                    html: `<strong>Pedir Alteração (Alerta)</strong>: Envia uma notificação para o cliente solicitando ajustes na campanha.`,
+                    image: { src: 'https://i.imgur.com/ICNvRDv.png', caption: '' }
+                  },
+                  `<strong>Atribuir</strong>: Define qual funcionário está responsável por executar a campanha.`,
+                  `<strong>Mudar Cliente</strong>: Reassocia o card a outro cliente do CRM.`,
+                  {
+                    html: `<strong>Anexar Relatórios</strong>: Faz upload de arquivos XLSX com métricas pós-disparo.`,
+                    image: { src: 'https://i.imgur.com/dJJnRFw.png', caption: '' }
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b16',
+              type: 'heading',
+              content: { text: 'Ações em Massa' }
+            },
+      {
+              id: 'b17',
+              type: 'paragraph',
+              content: {
+                html: `Use os checkboxes no canto superior esquerdo de cada card para selecionar múltiplos cards e executar ações em lote: <strong>atribuir</strong> todos a um funcionário, <strong>alterar status</strong> em bloco, <strong>redirecionar</strong> todos ao Template Creator para geração em massa (BULK), ou <strong>excluir</strong> em lote. Essencial para campanhas recorrentes ou grandes volumes.`
+              }
+            },
+      {
+              id: 'block_1781218967192_1o3n',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/lfqTDWa.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b18',
+              type: 'heading',
+              content: { text: 'Métricas nos Cards CONCLUÍDOS' }
+            },
+      {
+              id: 'b19',
+              type: 'card',
+              content: {
+                items: [
+                  {
+                    title: 'Total Entregue',
+                    text: 'Número de mensagens que chegaram com sucesso ao destinatário. Atualizado automaticamente após o disparo.',
+                    icon: 'CheckCheck'
+                  },
+                  {
+                    title: 'Custo do Cliente',
+                    text: 'Valor faturado para o cliente com base no preço por mensagem definido e no total de mensagens entregues.',
+                    icon: 'DollarSign'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b20',
+              type: 'alert',
+              content: {
+                variant: 'success',
+                title: 'Dica: Duplicar para Campanhas Recorrentes',
+                text: `Use o botão de <strong>Duplicar</strong> para criar uma nova submissão idêntica a uma anterior. A estrutura (foto, DDD, template type) é mantida, mas os links são limpos — basta atualizar a copy e a mídia. Ideal para clientes que enviam campanhas toda semana com o mesmo formato.`
+              }
+            }
     ],
   },
   'op-tratamento-planilhas': {
@@ -266,62 +1164,275 @@ const articleBlocks: Record<string, ArticleData> = {
     description: 'Aprenda a preparar, validar e importar planilhas de contatos. Etapa mais crítica da operação — uma lista limpa garante disparos sem falhas.',
     categoryId: 'operacional',
     blocks: [
-      { id: 'b1', type: 'heading', content: { text: 'Tratamento de Planilhas' } },
-      { id: 'b2', type: 'paragraph', content: { html: 'O <strong>Tratamento de Planilhas</strong> é a etapa mais crítica de toda a operação de disparo. Uma lista de contatos mal formatada significa mensagens não entregues, dinheiro desperdiçado e métricas incorretas. É aqui que o sistema prepara, limpa e organiza os dados dos seus clientes para que as campanhas funcionem perfeitamente.' } },
-      { id: 'b3', type: 'heading', content: { text: 'Por que o Tratamento é Essencial?' } },
-      { id: 'b4', type: 'card', content: { items: [
-        { title: 'Telefones Inválidos', text: 'A API do WhatsApp exige números no formato internacional com DDI. Um número sem 55 ou com caracteres especiais é rejeitado silenciosamente — a mensagem nunca chega. O sistema corrige isso automaticamente.', icon: 'XCircle' },
-        { title: 'Duplicatas', text: 'Cada mensagem duplicada custa dinheiro. Se o mesmo número aparece 3 vezes na lista, você paga 3 vezes pelo mesmo disparo. O sistema remove duplicatas por telefone.', icon: 'Copy' },
-        { title: 'Segmentação por Etiquetas', text: 'Sem etiquetas (tags), você não consegue selecionar qual grupo de contatos disparar. Cada lote importado recebe uma etiqueta única que é usada no Campaign Planner.', icon: 'Tags' },
-        { title: 'Personalização', text: 'As variáveis dinâmicas <code>{{1}}</code> (nome), <code>{{2}}</code> (oferta) etc. dependem de dados limpos na planilha. Um nome truncado ou com caracteres estranhos estraga a mensagem.', icon: 'MessageSquare' },
-      ] } },
-      { id: 'b5', type: 'heading', content: { text: 'Formatos de Arquivo Aceitos' } },
-      { id: 'b6', type: 'paragraph', content: { html: 'O sistema aceita três formatos de arquivo:<br><br><strong>.xlsx / .xls (Excel)</strong> — formato mais comum, suporta múltiplas colunas e abas. O sistema lê a primeira aba automaticamente.<br><br><strong>.csv</strong> — formato de texto com valores separados por vírgula ou ponto e vírgula. Leve e universal.<br><br><strong>.txt</strong> — arquivo de texto simples com delimitadores. O sistema detecta automaticamente se o separador é <code>;</code> (ponto e vírgula), <code>,</code> (vírgula) ou <code>|</code> (pipe) usando o parser inteligente.' } },
-      { id: 'b7', type: 'heading', content: { text: 'Etapa 1 — Preparar a Planilha' } },
-      { id: 'b8', type: 'list', content: { heading: 'Antes de fazer o upload, confira sua planilha:', items: [
-        '<strong>Coluna de telefone obrigatória:</strong> O sistema detecta automaticamente qual coluna contém números de WhatsApp. Se não encontrar, o processamento para.',
-        '<strong>DDI incluso (55 para Brasil):</strong> O sistema completa automaticamente se o número tiver 10 ou 11 dígitos (adiciona 55 na frente). Ex: <code>11999998888</code> → <code>5511999998888</code>.',
-        '<strong>Nomes sem caracteres especiais:</strong> Evite símbolos como <code>@</code>, <code>#</code>, <code>$</code> nos nomes. Eles podem quebrar a personalização das variáveis.',
-        '<strong>Evite linhas em branco:</strong> Linhas vazias no meio da planilha confundem o parser e podem gerar contatos inválidos.',
-        '<strong>Cabeçalhos claros:</strong> Use nomes simples como "Nome", "Telefone", "Email", "CPF". O sistema reconhece esses padrões automaticamente.',
-      ] } },
-      { id: 'b9', type: 'paragraph', content: { html: '<strong>Por que preparar a planilha?</strong> O sistema faz a limpeza automática (remove caracteres especiais, normaliza telefones, tira duplicatas), mas <strong>não adivinha dados</strong>. Uma planilha bem estruturada garante 100% de acerto no parse.' } },
-      { id: 'b10', type: 'heading', content: { text: 'Etapa 2 — Acessar a Página e Enviar o Arquivo' } },
-      { id: 'b11', type: 'paragraph', content: { html: 'No menu lateral esquerdo, clique em <strong>Planilhas</strong> (ícone de planilha). Você será levado para a página de upload.<br><br>Você pode arrastar o arquivo diretamente para a <strong>área pontilhada</strong> (drag-and-drop) ou clicar na área para abrir o seletor de arquivos do seu computador.<br><br><strong>Por que drag-and-drop?</strong> Em operações com dezenas de clientes por dia, arrastar o arquivo é mais rápido do que navegar por pastas. Cada segundo importa quando você está processando múltiplas listas.' } },
-      { id: 'b12', type: 'heading', content: { text: 'Etapa 3 — Definir a Etiqueta Base (Tag)' } },
-      { id: 'b13', type: 'paragraph', content: { html: 'A <strong>etiqueta base</strong> é o identificador único do seu lote de contatos. Exemplos:<br><br><code>clientes_maio_2026</code><br><code>promo_relogios_junho</code><br><code>leads_sudeste</code><br><br>O sistema usa esta etiqueta para nomear os lotes automaticamente: se você tem 12.000 contatos com batch size 5.000, o sistema cria <code>clientes_maio_2026_1</code> (5.000), <code>clientes_maio_2026_2</code> (5.000) e <code>clientes_maio_2026_3</code> (2.000).<br><br><strong>Por que a etiqueta é tão importante?</strong> Mais tarde, no <strong>Campaign Planner</strong>, você seleciona qual etiqueta usar no disparo. Sem uma etiqueta bem nomeada, você não consegue segmentar suas campanhas — e pode acabar enviando a mensagem errada para o público errado.' } },
-      { id: 'b14', type: 'heading', content: { text: 'Etapa 4 — Ajustar o Tamanho do Lote' } },
-      { id: 'b15', type: 'paragraph', content: { html: 'O <strong>batch size</strong> define quantos contatos vão em cada lote. O valor padrão é <strong>5.000</strong>.<br><br>Se você tem 12.000 contatos e usa batch size 5.000, o sistema divide em 3 lotes: 5.000 + 5.000 + 2.000. Cada lote vira uma etiqueta separada (<code>tag_1</code>, <code>tag_2</code>, <code>tag_3</code>).<br><br><strong>Por que dividir em lotes?</strong> Lotes menores são mais fáceis de gerenciar, reimportar em caso de erro e testar antes de disparar para a lista inteira. Se 1 lote falhar, você não perde a campanha toda.' } },
-      { id: 'b16', type: 'heading', content: { text: 'Etapa 5 — Processamento Automático (O Coração do Sistema)' } },
-      { id: 'b17', type: 'paragraph', content: { html: 'Ao clicar em <strong>Processar</strong>, o sistema executa uma sequência de etapas em segundos. Veja o que acontece nos bastidores:' } },
-      { id: 'b18', type: 'steps', content: { items: [
-        '<strong>Leitura do arquivo:</strong> O sistema detecta automaticamente se é Excel (.xlsx/.xls) ou texto (.csv/.txt) e lê o conteúdo.',
-        '<strong>Detecção de colunas:</strong> O sistema varre as primeiras linhas para encontrar qual coluna contém telefone. Ele normaliza cada valor e verifica se o resultado tem 13 dígitos (padrão brasileiro com DDI).',
-        '<strong>Normalização dos números:</strong> Remove parênteses, traços, espaços. Adiciona 55 se o número tiver 10 ou 11 dígitos. Insere o 9º dígito se faltar. Ex: <code>(11) 9999-8888</code> → <code>5511999998888</code>.',
-        '<strong>Parse inteligente:</strong> Se ativado (Smart Split), o sistema analisa cada linha e identifica automaticamente telefone, nome, email e CPF usando heurísticas de pontuação — mesmo que todos os dados estejam em uma única coluna.',
-        '<strong>Remoção de duplicatas:</strong> O sistema compara todos os telefones normalizados e mantém apenas a primeira ocorrência de cada número. Isso evita disparos duplicados e desperdício de créditos.',
-        '<strong>Divisão em lotes:</strong> Os contatos válidos são divididos conforme o batch size. Cada lote recebe uma etiqueta única pronta para uso no Campaign Planner.',
-      ] } },
-      { id: 'b19', type: 'heading', content: { text: 'Entendendo a Normalização de Telefones' } },
-      { id: 'b20', type: 'paragraph', content: { html: 'A normalização é a etapa mais importante do processamento. A API do WhatsApp exige números no formato internacional completo. Veja como diferentes formatos são tratados:' } },
-      { id: 'b21', type: 'list', content: { heading: 'Tabela de Normalização:', items: [
-        '<code>(11) 99999-8888</code> → Remove <code>( ) -</code> → <code>11999998888</code> (11 dígitos) → Adiciona 55 → <code>5511999998888</code> ✅',
-        '<code>11 99999 8888</code> → Remove espaço → <code>11999998888</code> (11 dígitos) → Adiciona 55 → <code>5511999998888</code> ✅',
-        '<code>11999998888</code> (sem DDI) → 11 dígitos → Adiciona 55 → <code>5511999998888</code> ✅',
-        '<code>5511999998888</code> → Já está no formato correto → mantido ✅',
-        '<code>551199999888</code> (12 dígitos, sem 9) → Insere 9 após DDD → <code>5511999998888</code> ✅',
-        '<code>02111999998888</code> → Remove 0 inicial → <code>5511999998888</code> ✅',
-        '<code>999998888</code> (8 dígitos, sem DDD) → <strong>Rejeitado</strong> — menos de 10 dígitos após limpeza ❌',
-      ] } },
-      { id: 'b22', type: 'alert', content: { variant: 'info', title: 'Smart Split — Detecção Inteligente', text: 'Ative o Smart Split para planilhas bagunçadas onde todos os dados estão em uma única coluna. O sistema usa um algoritmo de pontuação para identificar automaticamente qual parte é telefone, qual é nome, qual é email e qual é CPF. Ele penaliza padrões como ":", "/", números longos (IDs), e bonifica palavras em formato Proper Case (ex: "João Silva"). Isso permite processar até planilhas de fontes inconsistentes sem mapeamento manual.' } },
-      { id: 'b23', type: 'heading', content: { text: 'Etapa 6 — Revisar os Resultados' } },
-      { id: 'b24', type: 'paragraph', content: { html: 'Após o processamento, o sistema exibe um card de resultados com:<br><br><strong>Total processado:</strong> Quantidade total de contatos lidos do arquivo.<br><strong>Duplicatas removidas:</strong> Quantos números repetidos foram eliminados (exibido em vermelho se > 0).<br><strong>Inválidos descartados:</strong> Contatos sem telefone válido (exibido em cinza se > 0).<br><strong>Distribuição por lote:</strong> Lista paginada com cada etiqueta gerada e sua quantidade.<br><br><strong>Por que revisar?</strong> Você precisa confirmar se o volume de contatos bate com o esperado. Se a planilha tinha 10.000 linhas e o sistema processou apenas 5.000, algo está errado — talvez a coluna de telefone não foi detectada corretamente.' } },
-      { id: 'b25', type: 'heading', content: { text: 'Etapa 7 — Exportar ou Enviar para Infobip' } },
-      { id: 'b26', type: 'paragraph', content: { html: 'Com os resultados em mãos, você tem duas opções:<br><br><strong>Exportar CSV:</strong> Baixa um arquivo CSV unificado com todos os contatos tratados — telefone normalizado, nome, email, CPF e etiquetas. Ideal para backup ou uso externo.<br><br><strong>Enviar para Infobip:</strong> Abre um modal com mapeamento automático de colunas. Você confere se cada campo da planilha está associado ao campo correto no Infobip People e envia diretamente. Uma barra de progresso mostra o avanço. Ao final, o sistema exibe quantas pessoas foram criadas/atualizadas.<br><br><strong>Por que duas opções?</strong> O CSV é universal e pode ser usado em qualquer ferramenta. O envio direto para Infobip elimina uma etapa manual se você usa o Infobip People como CRM de contatos.' } },
-      { id: 'b27', type: 'heading', content: { text: 'Histórico de Uploads' } },
-      { id: 'b28', type: 'paragraph', content: { html: 'Abaixo da área de upload, uma tabela completa mostra todos os uploads já realizados:<br><br><strong>Data/Hora:</strong> Quando o arquivo foi processado.<br><strong>Etiqueta Base:</strong> Nome do lote, destacado na cor primária.<br><strong>Volume:</strong> Quantidade de contatos processados.<br><strong>Status:</strong> Sempre "CONCLUÍDO" para uploads bem-sucedidos.<br><strong>Ações:</strong> Botão para baixar o CSV novamente e botão para excluir o lote.<br><br>Você também pode <strong>filtrar</strong> por etiqueta (campo de busca) e por data (seletor de data). A tabela é paginada (5 itens por página).<br><br><strong>Por que o histórico importa?</strong> Rastreabilidade total. Você sabe exatamente quando cada lista foi importada, qual etiqueta foi usada e quantos contatos tinha. Se precisar reimportar ou auditar, o histórico está ali.' } },
-      { id: 'b29', type: 'alert', content: { variant: 'success', title: 'Dica de Especialista: Faça um Upload de Teste', text: 'Sempre faça um upload de teste com 10 a 20 contatos primeiro. Confira se o sistema detectou a coluna de telefone correta, se os nomes foram parseados certo e se a contagem de duplicatas faz sentido. Depois que confirmar que o parse está 100%, processe a planilha completa. Isso evita surpresas e retrabalho.' } },
-      { id: 'b30', type: 'image', content: { caption: 'Print: Tela de Upload de Planilhas com zona de drag-and-drop, configurações e resultados' } },
+      {
+              id: 'block_1781219926249_zq8m',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/RAms2Sw.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b1',
+              type: 'heading',
+              content: { text: 'Tratamento de Planilhas' }
+            },
+      {
+              id: 'b2',
+              type: 'paragraph',
+              content: {
+                html: `O <strong>Tratamento de Planilhas</strong> é a etapa mais crítica de toda a operação de disparo. Uma lista de contatos mal formatada significa mensagens não entregues, dinheiro desperdiçado e métricas incorretas. É aqui que o sistema prepara, limpa e organiza os dados dos seus clientes para que as campanhas funcionem perfeitamente.`
+              }
+            },
+      {
+              id: 'b3',
+              type: 'heading',
+              content: { text: 'Por que o Tratamento é Essencial?' }
+            },
+      {
+              id: 'b4',
+              type: 'card',
+              content: {
+                items: [
+                  {
+                    title: 'Telefones Inválidos',
+                    text: 'A API do WhatsApp exige números no formato internacional com DDI. Um número sem 55 ou com caracteres especiais é rejeitado silenciosamente — a mensagem nunca chega. O sistema corrige isso automaticamente.',
+                    icon: 'XCircle'
+                  },
+                  {
+                    title: 'Duplicatas',
+                    text: 'Cada mensagem duplicada custa dinheiro. Se o mesmo número aparece 3 vezes na lista, você paga 3 vezes pelo mesmo disparo. O sistema remove duplicatas por telefone.',
+                    icon: 'Copy'
+                  },
+                  {
+                    title: 'Segmentação por Etiquetas',
+                    text: 'Sem etiquetas (tags), você não consegue selecionar qual grupo de contatos disparar. Cada lote importado recebe uma etiqueta única que é usada no Campaign Planner.',
+                    icon: 'Tags'
+                  },
+                  {
+                    title: 'Personalização',
+                    text: `As variáveis dinâmicas <code>{{1}}</code> (nome), <code>{{2}}</code> (oferta) etc. dependem de dados limpos na planilha. Um nome truncado ou com caracteres estranhos estraga a mensagem.`,
+                    icon: 'MessageSquare'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b5',
+              type: 'heading',
+              content: { text: 'Formatos de Arquivo Aceitos' }
+            },
+      {
+              id: 'b6',
+              type: 'paragraph',
+              content: {
+                html: `O sistema aceita três formatos de arquivo:<br><br><strong>.xlsx / .xls (Excel)</strong> — formato mais comum, suporta múltiplas colunas e abas. O sistema lê a primeira aba automaticamente.<br><br><strong>.csv</strong> — formato de texto com valores separados por vírgula ou ponto e vírgula. Leve e universal.<br><br><strong>.txt</strong> — arquivo de texto simples com delimitadores. O sistema detecta automaticamente se o separador é <code>;</code> (ponto e vírgula), <code>,</code> (vírgula) ou <code>|</code> (pipe) usando o parser inteligente.`
+              }
+            },
+      {
+              id: 'b7',
+              type: 'heading',
+              content: { text: 'Etapa 1 — Preparar a Planilha' }
+            },
+      {
+              id: 'b8',
+              type: 'list',
+              content: {
+                heading: 'Antes de fazer o upload, confira sua planilha:',
+                items: [
+                  `<strong>Coluna de telefone obrigatória:</strong> O sistema detecta automaticamente qual coluna contém números de WhatsApp. Se não encontrar, o processamento para.`,
+                  `<strong>DDI incluso (55 para Brasil):</strong> O sistema completa automaticamente se o número tiver 10 ou 11 dígitos (adiciona 55 na frente). Ex: <code>11999998888</code> → <code>5511999998888</code>.`,
+                  `<strong>Nomes sem caracteres especiais:</strong> Evite símbolos como <code>@</code>, <code>#</code>, <code>$</code> nos nomes. Eles podem quebrar a personalização das variáveis.`,
+                  `<strong>Evite linhas em branco:</strong> Linhas vazias no meio da planilha confundem o parser e podem gerar contatos inválidos.`,
+                  `<strong>Cabeçalhos claros:</strong> Use nomes simples como "Nome", "Telefone", "Email", "CPF". O sistema reconhece esses padrões automaticamente.`
+                ]
+              }
+            },
+      {
+              id: 'block_1781220293075_kdln',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/ClTWptu.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b9',
+              type: 'paragraph',
+              content: {
+                html: `<strong>Por que preparar a planilha?</strong> O sistema faz a limpeza automática (remove caracteres especiais, normaliza telefones, tira duplicatas), mas <strong>não adivinha dados</strong>. Uma planilha bem estruturada garante 100% de acerto no parse.`
+              }
+            },
+      {
+              id: 'b10',
+              type: 'heading',
+              content: { text: 'Etapa 2 — Acessar a Página e Enviar o Arquivo' }
+            },
+      {
+              id: 'b11',
+              type: 'paragraph',
+              content: {
+                html: `No menu lateral esquerdo, clique em <strong>Planilhas</strong> (ícone de planilha). Você será levado para a página de upload.<br><br>Você pode arrastar o arquivo diretamente para a <strong>área pontilhada</strong> (drag-and-drop) ou clicar na área para abrir o seletor de arquivos do seu computador.<br><br><strong>Por que drag-and-drop?</strong> Em operações com dezenas de clientes por dia, arrastar o arquivo é mais rápido do que navegar por pastas. Cada segundo importa quando você está processando múltiplas listas.`
+              }
+            },
+      {
+              id: 'block_1781220374684_k1yt',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/CUFvBkr.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b12',
+              type: 'heading',
+              content: { text: 'Etapa 3 — Definir a Etiqueta Base (Tag)' }
+            },
+      {
+              id: 'block_1781220600306_iwks',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/AE4am2N.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b13',
+              type: 'paragraph',
+              content: {
+                html: `A <strong>etiqueta base</strong> é o identificador único do seu lote de contatos. Exemplos:<br><br><code>clientes_maio_2026</code><br><code>promo_relogios_junho</code><br><code>leads_sudeste</code><br><br>O sistema usa esta etiqueta para nomear os lotes automaticamente: se você tem 12.000 contatos com batch size 5.000, o sistema cria <code>clientes_maio_2026_1</code> (5.000), <code>clientes_maio_2026_2</code> (5.000) e <code>clientes_maio_2026_3</code> (2.000).<br><br><strong>Por que a etiqueta é tão importante?</strong> Mais tarde, no <strong>Campaign Planner</strong>, você seleciona qual etiqueta usar no disparo. Sem uma etiqueta bem nomeada, você não consegue segmentar suas campanhas — e pode acabar enviando a mensagem errada para o público errado.`
+              }
+            },
+      {
+              id: 'b14',
+              type: 'heading',
+              content: { text: 'Etapa 4 — Ajustar o Tamanho do Lote' }
+            },
+      {
+              id: 'block_1781220668852_ctnk',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/T8q0GhW.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b15',
+              type: 'paragraph',
+              content: {
+                html: `O <strong>batch size</strong> define quantos contatos vão em cada lote. O valor padrão é <strong>5.000</strong>.<br><br>Se você tem 12.000 contatos e usa batch size 5.000, o sistema divide em 3 lotes: 5.000 + 5.000 + 2.000. Cada lote vira uma etiqueta separada (<code>tag_1</code>, <code>tag_2</code>, <code>tag_3</code>).<br><br><strong>Por que dividir em lotes?</strong> Lotes menores são mais fáceis de gerenciar, reimportar em caso de erro e testar antes de disparar para a lista inteira. Se 1 lote falhar, você não perde a campanha toda.`
+              }
+            },
+      {
+              id: 'b16',
+              type: 'heading',
+              content: { text: 'Etapa 5 — Processamento Automático (O Coração do Sistema)' }
+            },
+      {
+              id: 'block_1781220751254_73hy',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/adfn3CL.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b17',
+              type: 'paragraph',
+              content: {
+                html: `Ao clicar em <strong>Processar</strong>, o sistema executa uma sequência de etapas em segundos. Veja o que acontece nos bastidores:`
+              }
+            },
+      {
+              id: 'b18',
+              type: 'steps',
+              content: {
+                items: [
+                  `<strong>Leitura do arquivo:</strong> O sistema detecta automaticamente se é Excel (.xlsx/.xls) ou texto (.csv/.txt) e lê o conteúdo.`,
+                  `<strong>Detecção de colunas:</strong> O sistema varre as primeiras linhas para encontrar qual coluna contém telefone. Ele normaliza cada valor e verifica se o resultado tem 13 dígitos (padrão brasileiro com DDI).`,
+                  `<strong>Normalização dos números:</strong> Remove parênteses, traços, espaços. Adiciona 55 se o número tiver 10 ou 11 dígitos. Insere o 9º dígito se faltar. Ex: <code>(11) 9999-8888</code> → <code>5511999998888</code>.`,
+                  `<strong>Parse inteligente:</strong> Se ativado (Smart Split), o sistema analisa cada linha e identifica automaticamente telefone, nome, email e CPF usando heurísticas de pontuação — mesmo que todos os dados estejam em uma única coluna.`,
+                  `<strong>Remoção de duplicatas:</strong> O sistema compara todos os telefones normalizados e mantém apenas a primeira ocorrência de cada número. Isso evita disparos duplicados e desperdício de créditos.`,
+                  `<strong>Divisão em lotes:</strong> Os contatos válidos são divididos conforme o batch size. Cada lote recebe uma etiqueta única pronta para uso no Campaign Planner.`
+                ]
+              }
+            },
+      {
+              id: 'b19',
+              type: 'heading',
+              content: { text: 'Entendendo a Normalização de Telefones' }
+            },
+      {
+              id: 'b20',
+              type: 'paragraph',
+              content: {
+                html: 'A normalização é a etapa mais importante do processamento. A API do WhatsApp exige números no formato internacional completo. Veja como diferentes formatos são tratados:'
+              }
+            },
+      {
+              id: 'b21',
+              type: 'list',
+              content: {
+                heading: 'Tabela de Normalização:',
+                items: [
+                  `<code>(11) 99999-8888</code> → Remove <code>( ) -</code> → <code>11999998888</code> (11 dígitos) → Adiciona 55 → <code>5511999998888</code> ✅`,
+                  `<code>11 99999 8888</code> → Remove espaço → <code>11999998888</code> (11 dígitos) → Adiciona 55 → <code>5511999998888</code> ✅`,
+                  `<code>11999998888</code> (sem DDI) → 11 dígitos → Adiciona 55 → <code>5511999998888</code> ✅`,
+                  `<code>5511999998888</code> → Já está no formato correto → mantido ✅`,
+                  `<code>551199999888</code> (12 dígitos, sem 9) → Insere 9 após DDD → <code>5511999998888</code> ✅`,
+                  `<code>02111999998888</code> → Remove 0 inicial → <code>5511999998888</code> ✅`,
+                  `<code>999998888</code> (8 dígitos, sem DDD) → <strong>Rejeitado</strong> — menos de 10 dígitos após limpeza ❌`
+                ]
+              }
+            },
+      {
+              id: 'b22',
+              type: 'alert',
+              content: {
+                variant: 'info',
+                title: 'Smart Split — Detecção Inteligente',
+                text: `Ative o Smart Split para planilhas bagunçadas onde todos os dados estão em uma única coluna. O sistema usa um algoritmo de pontuação para identificar automaticamente qual parte é telefone, qual é nome, qual é email e qual é CPF. Ele penaliza padrões como ":", "/", números longos (IDs), e bonifica palavras em formato Proper Case (ex: "João Silva"). Isso permite processar até planilhas de fontes inconsistentes sem mapeamento manual.`
+              }
+            },
+      {
+              id: 'b23',
+              type: 'heading',
+              content: { text: 'Etapa 6 — Revisar os Resultados' }
+            },
+      {
+              id: 'b24',
+              type: 'paragraph',
+              content: {
+                html: `Após o processamento, o sistema exibe um card de resultados com:<br><br><strong>Total processado:</strong> Quantidade total de contatos lidos do arquivo.<br><strong>Duplicatas removidas:</strong> Quantos números repetidos foram eliminados (exibido em vermelho se > 0).<br><strong>Inválidos descartados:</strong> Contatos sem telefone válido (exibido em cinza se > 0).<br><strong>Distribuição por lote:</strong> Lista paginada com cada etiqueta gerada e sua quantidade.<br><br><strong>Por que revisar?</strong> Você precisa confirmar se o volume de contatos bate com o esperado. Se a planilha tinha 10.000 linhas e o sistema processou apenas 5.000, algo está errado — talvez a coluna de telefone não foi detectada corretamente.`
+              }
+            },
+      {
+              id: 'b25',
+              type: 'heading',
+              content: { text: 'Etapa 7 — Exportar ou Enviar para Infobip' }
+            },
+      {
+              id: 'b26',
+              type: 'paragraph',
+              content: {
+                html: `Com os resultados em mãos, você tem duas opções:<br><br><strong>Exportar CSV:</strong> Baixa um arquivo CSV unificado com todos os contatos tratados — telefone normalizado, nome, email, CPF e etiquetas. Ideal para backup ou uso externo.<br><br><strong>Enviar para Infobip:</strong> Abre um modal com mapeamento automático de colunas. Você confere se cada campo da planilha está associado ao campo correto no Infobip People e envia diretamente. Uma barra de progresso mostra o avanço. Ao final, o sistema exibe quantas pessoas foram criadas/atualizadas.<br><br><strong>Por que duas opções?</strong> O CSV é universal e pode ser usado em qualquer ferramenta. O envio direto para Infobip elimina uma etapa manual se você usa o Infobip People como CRM de contatos.`
+              }
+            },
+      {
+              id: 'b27',
+              type: 'heading',
+              content: { text: 'Histórico de Uploads' }
+            },
+      {
+              id: 'block_1781220869265_gc3a',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/kbZWEXp.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b28',
+              type: 'paragraph',
+              content: {
+                html: `Abaixo da área de upload, uma tabela completa mostra todos os uploads já realizados:<br><br><strong>Data/Hora:</strong> Quando o arquivo foi processado.<br><strong>Etiqueta Base:</strong> Nome do lote, destacado na cor primária.<br><strong>Volume:</strong> Quantidade de contatos processados.<br><strong>Status:</strong> Sempre "CONCLUÍDO" para uploads bem-sucedidos.<br><strong>Ações:</strong> Botão para baixar o CSV novamente e botão para excluir o lote.<br><br>Você também pode <strong>filtrar</strong> por etiqueta (campo de busca) e por data (seletor de data). A tabela é paginada (5 itens por página).<br><br><strong>Por que o histórico importa?</strong> Rastreabilidade total. Você sabe exatamente quando cada lista foi importada, qual etiqueta foi usada e quantos contatos tinha. Se precisar reimportar ou auditar, o histórico está ali.`
+              }
+            },
+      {
+              id: 'b29',
+              type: 'alert',
+              content: {
+                variant: 'success',
+                title: 'Dica de Especialista: Faça um Upload de Teste',
+                text: 'Sempre faça um upload de teste com 10 a 20 contatos primeiro. Confira se o sistema detectou a coluna de telefone correta, se os nomes foram parseados certo e se a contagem de duplicatas faz sentido. Depois que confirmar que o parse está 100%, processe a planilha completa. Isso evita surpresas e retrabalho.'
+              }
+            },
+      {
+              id: 'b30',
+              type: 'image',
+              content: {
+                caption: 'Print: Tela de Upload de Planilhas com zona de drag-and-drop, configurações e resultados'
+              }
+            }
     ],
   },
   'op-infobip-import': {
@@ -330,36 +1441,193 @@ const articleBlocks: Record<string, ArticleData> = {
     description: 'Guia completo para importar contatos tratados no Infobip People: mapeamento de colunas, resolução de duplicatas e atribuição de etiquetas.',
     categoryId: 'operacional',
     blocks: [
-      { id: 'b1', type: 'heading', content: { text: 'Importar Planilha no Infobip People' } },
-      { id: 'b2', type: 'paragraph', content: { html: 'Após tratar a planilha de contatos no Plug & Sales (artigo 1.5), o próximo passo é importar os dados limpos para o <strong>Infobip People</strong> — o CRM de contatos da Infobip. É dentro do Infobip People que os números ficam armazenados e disponíveis para vincular às campanhas de disparo.' } },
-      { id: 'b3', type: 'heading', content: { text: 'Acessando a Área de Pessoas' } },
-      { id: 'b4', type: 'steps', content: { items: ['No menu lateral esquerdo da Infobip, clique em <strong>Pessoas</strong>.', 'Em seguida, clique em <strong>Pessoas</strong> novamente (submenu).', 'Você verá a lista completa de todos os contatos já cadastrados na plataforma.'] } },
-      { id: 'b5', type: 'heading', content: { text: 'Iniciar a Importação' } },
-      { id: 'b6', type: 'steps', content: { items: ['Clique no botão <strong>Importar</strong> localizado no topo da página.', 'Na tela seguinte, clique em <strong>Iniciar importação de arquivo</strong>.', 'Uma nova aba será aberta automaticamente com a tela de upload.'] } },
-      { id: 'b7', type: 'heading', content: { text: 'Carregar o Arquivo' } },
-      { id: 'b8', type: 'paragraph', content: { html: 'Na tela <strong>"Importação de Upload de Arquivo"</strong>, arraste o arquivo CSV ou XLSX tratado para a <strong>área pontilhada</strong> (drag-and-drop) ou clique para selecionar o arquivo no computador. O Infobip aceita os mesmos formatos: .csv, .xlsx, .xls, .txt.<br><br><strong>Importante:</strong> Use o arquivo exportado do Tratamento de Planilhas — ele já vem com os telefones normalizados, duplicatas removidas e colunas organizadas (Nome, número, Etiqueta, info_3, Email, CPF).' } },
-      { id: 'b9', type: 'heading', content: { text: 'Mapear as Colunas (Mapeie seus dados)' } },
-      { id: 'b10', type: 'paragraph', content: { html: 'Após o upload, o sistema exibe a tela <strong>"Importar Perfis"</strong>. A seção <strong>"Mapeie seus dados"</strong> mostra uma tabela com 3 colunas:<br><br><strong>Coluna do Arquivo</strong> — nome da coluna no seu CSV (ex: "Nome", "número", "Etiqueta").<br><strong>Visualização do Arquivo</strong> — exemplo do primeiro valor daquela coluna.<br><strong>Campo do Perfil</strong> — select onde você escolhe a qual campo do Infobip People aquela coluna corresponde.' } },
-      { id: 'b11', type: 'list', content: { heading: 'Mapeamento recomendado:', items: [
-        '<strong>Coluna "Nome"</strong> → Campo do perfil: <strong>Nome</strong>. O nome do contato que aparecerá no CRM.',
-        '<strong>Coluna "número"</strong> → Campo do perfil: <strong>Phone Number</strong>. Obrigatório — é o telefone que o WhatsApp usará para enviar as mensagens.',
-        '<strong>Coluna "Etiqueta"</strong> → Campo do perfil: <strong>Etiquetas</strong>. Essencial para segmentar os contatos nas campanhas.',
-        '<strong>Coluna "info_3"</strong> → Campo do perfil: <strong>info_empresa</strong>. Campo personalizado onde o sistema armazena dados extras do contato.',
-        '<strong>Coluna "Email" (se existir)</strong> → Campo do perfil: <strong>Email</strong>. E-mail do contato.',
-        '<strong>Coluna "CPF" (se existir)</strong> → Campo do perfil: <strong>info_3</strong>. O CPF é armazenado como texto livre no campo info_3.',
-      ] } },
-      { id: 'b12', type: 'heading', content: { text: 'Analisar o Arquivo' } },
-      { id: 'b13', type: 'paragraph', content: { html: 'Após mapear todas as colunas corretamente, clique no botão <strong>Analisar</strong>. O Infobip processa o arquivo, valida os dados e exibe a tela <strong>"Análise de Arquivo Concluída"</strong> com as configurações finais de importação.' } },
-      { id: 'b14', type: 'heading', content: { text: 'Resolver Duplicatas' } },
-      { id: 'b15', type: 'paragraph', content: { html: 'O Infobip pergunta: <strong>"Em caso de duplicidade, como você deseja resolvê-la?"</strong> Você tem 3 opções:' } },
-      { id: 'b16', type: 'list', content: { items: [
-        '<strong>Combinar (recomendado):</strong> Mescla os dados do novo registro com o existente. Se o contato já existir, os campos vazios são preenchidos com os novos valores. Ideal para atualizações.',
-        '<strong>Descartar:</strong> Ignora o novo registro se o telefone já existir na base. Mantém os dados originais intactos. Bom quando você quer evitar qualquer alteração.',
-        '<strong>Nenhum:</strong> Importa todos os registros mesmo se houver duplicatas. Pode gerar contatos repetidos no CRM. Não recomendado.',
-      ] } },
-      { id: 'b17', type: 'heading', content: { text: 'Atribuir Etiquetas e Importar' } },
-      { id: 'b18', type: 'paragraph', content: { html: 'Marque a opção <strong>"Atribuir etiquetas"</strong>. O Infobip sugere automaticamente uma etiqueta com o timestamp atual, como:<br><br><code>Importar_2026-06-11_20:41:29</code><br><br>Você pode <strong>manter o padrão</strong> (recomendado para rastreabilidade) ou digitar uma etiqueta personalizada. Esta etiqueta será adicionada a todos os contatos importados.<br><br>Após configurar, clique em <strong>Importar</strong>. O sistema processa o arquivo e os contatos ficam imediatamente disponíveis no Infobip People para uso nas campanhas de disparo.<br><br><strong>Pronto!</strong> Seus contatos agora estão no Infobip People com os telefones normalizados, etiquetas atribuídas e prontos para serem selecionados no Campaign Planner.' } },
-      { id: 'b19', type: 'alert', content: { variant: 'warning', title: 'Atenção: Mapeamento do Telefone', text: 'O erro mais comum nesta etapa é mapear a coluna de telefone para o campo errado. A coluna "número" deve SEMPRE ser mapeada como <strong>Phone Number</strong>. Se você mapear como texto genérico, o WhatsApp não reconhecerá o contato e a mensagem não será enviada. Confira duas vezes antes de clicar em Analisar.' } },
+      {
+              id: 'b1',
+              type: 'heading',
+              content: { text: 'Importar Planilha no Infobip People' }
+            },
+      {
+              id: 'block_1781221823970_c2p0',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/LdnIwjV.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b2',
+              type: 'paragraph',
+              content: {
+                html: `Após tratar a planilha de contatos no Plug & Sales (artigo 1.5), o próximo passo é importar os dados limpos para o <strong>Infobip People</strong> — o CRM de contatos da Infobip. É dentro do Infobip People que os números ficam armazenados e disponíveis para vincular às campanhas de disparo.`
+              }
+            },
+      {
+              id: 'b3',
+              type: 'heading',
+              content: { text: 'Acessando a Área de Pessoas' }
+            },
+      {
+              id: 'b4',
+              type: 'steps',
+              content: {
+                items: [
+                  `<p>No menu lateral esquerdo da Infobip, clique em <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://portal-ny2.infobip.com/people/persons"><strong>Pessoas</strong>.</a></p>`,
+                  `<p>Em seguida, clique em <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://portal-ny2.infobip.com/people/persons"><strong>Pessoas</strong> </a>novamente (submenu).</p>`,
+                  'Você verá a lista completa de todos os contatos já cadastrados na plataforma.'
+                ]
+              }
+            },
+      {
+              id: 'block_1781221902085_bjt5',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/LdnIwjV.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b5',
+              type: 'heading',
+              content: { text: 'Iniciar a Importação' }
+            },
+      {
+              id: 'b6',
+              type: 'steps',
+              content: {
+                items: [
+                  `Clique no botão <strong>Importar</strong> localizado no topo da página.`,
+                  {
+                    html: `Na tela seguinte, clique em <strong>Iniciar importação de arquivo</strong>.`,
+                    image: { src: 'https://i.imgur.com/2JFoj3q.png', caption: '' }
+                  },
+                  'Uma nova aba será aberta automaticamente com a tela de upload.'
+                ]
+              }
+            },
+      {
+              id: 'b7',
+              type: 'heading',
+              content: { text: 'Carregar o Arquivo' }
+            },
+      {
+              id: 'block_1781222121010_0c70',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/ZqvWMqJ.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b8',
+              type: 'paragraph',
+              content: {
+                html: `Na tela <strong>"Importação de Upload de Arquivo"</strong>, arraste o arquivo CSV ou XLSX tratado para a <strong>área pontilhada</strong> (drag-and-drop) ou clique para selecionar o arquivo no computador. O Infobip aceita os mesmos formatos: .csv, .xlsx, .xls, .txt.<br><br><strong>Importante:</strong> Use o arquivo exportado do Tratamento de Planilhas — ele já vem com os telefones normalizados, duplicatas removidas e colunas organizadas (Nome, número, Etiqueta, info_3, Email, CPF).`
+              }
+            },
+      {
+              id: 'b9',
+              type: 'heading',
+              content: { text: 'Mapear as Colunas (Mapeie seus dados)' }
+            },
+      {
+              id: 'block_1781222336751_hzbj',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/wMf8AFi.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b10',
+              type: 'paragraph',
+              content: {
+                html: `Após o upload, o sistema exibe a tela <strong>"Importar Perfis"</strong>. A seção <strong>"Mapeie seus dados"</strong> mostra uma tabela com 3 colunas:<br><br><strong>Coluna do Arquivo</strong> — nome da coluna no seu CSV (ex: "Nome", "número", "Etiqueta").<br><strong>Visualização do Arquivo</strong> — exemplo do primeiro valor daquela coluna.<br><strong>Campo do Perfil</strong> — select onde você escolhe a qual campo do Infobip People aquela coluna corresponde.`
+              }
+            },
+      {
+              id: 'b11',
+              type: 'list',
+              content: {
+                heading: 'Mapeamento recomendado:',
+                items: [
+                  `<strong>Coluna "Nome"</strong> → Campo do perfil: <strong>Nome</strong>. O nome do contato que aparecerá no CRM.`,
+                  `<strong>Coluna "número"</strong> → Campo do perfil: <strong>Phone Number</strong>. Obrigatório — é o telefone que o WhatsApp usará para enviar as mensagens.`,
+                  `<strong>Coluna "Etiqueta"</strong> → Campo do perfil: <strong>Etiquetas</strong>. Essencial para segmentar os contatos nas campanhas.`,
+                  `<strong>Coluna "info_3"</strong> → Campo do perfil: <strong>info_empresa</strong>. Campo personalizado onde o sistema armazena dados extras do contato.`,
+                  `<strong>Coluna "Email" (se existir)</strong> → Campo do perfil: <strong>Email</strong>. E-mail do contato.`,
+                  `<strong>Coluna "CPF" (se existir)</strong> → Campo do perfil: <strong>info_3</strong>. O CPF é armazenado como texto livre no campo info_3.`
+                ]
+              }
+            },
+      {
+              id: 'block_1781222434218_0t0k',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/3aHnFdu.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b12',
+              type: 'heading',
+              content: { text: 'Analisar o Arquivo' }
+            },
+      {
+              id: 'block_1781222572637_g9zx',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/JgzgToH.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b13',
+              type: 'paragraph',
+              content: {
+                html: `Após mapear todas as colunas corretamente, clique no botão <strong>Analisar</strong>. O Infobip processa o arquivo, valida os dados e exibe a tela <strong>"Análise de Arquivo Concluída"</strong> com as configurações finais de importação.`
+              }
+            },
+      {
+              id: 'b14',
+              type: 'heading',
+              content: { text: 'Resolver Duplicatas' }
+            },
+      {
+              id: 'b15',
+              type: 'paragraph',
+              content: {
+                html: `O Infobip pergunta: <strong>"Em caso de duplicidade, como você deseja resolvê-la?"</strong> Você tem 3 opções:`
+              }
+            },
+      {
+              id: 'block_1781222759106_1cf0',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/tsYmMiO.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b16',
+              type: 'list',
+              content: {
+                items: [
+                  `<strong>Combinar (recomendado):</strong> Mescla os dados do novo registro com o existente. Se o contato já existir, os campos vazios são preenchidos com os novos valores. Ideal para atualizações.`,
+                  `<strong>Descartar:</strong> Ignora o novo registro se o telefone já existir na base. Mantém os dados originais intactos. Bom quando você quer evitar qualquer alteração.`,
+                  `<strong>Nenhum:</strong> Importa todos os registros mesmo se houver duplicatas. Pode gerar contatos repetidos no CRM. Não recomendado.`
+                ]
+              }
+            },
+      {
+              id: 'b17',
+              type: 'heading',
+              content: { text: 'Atribuir Etiquetas e Importar' }
+            },
+      {
+              id: 'block_1781222819003_kgtf',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/0RxNrvl.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b18',
+              type: 'paragraph',
+              content: {
+                html: `Marque a opção <strong>"Atribuir etiquetas"</strong>. O Infobip sugere automaticamente uma etiqueta com o timestamp atual, como:<br><br><code>Importar_2026-06-11_20:41:29</code><br><br>Você pode <strong>manter o padrão</strong> (recomendado para rastreabilidade) ou digitar uma etiqueta personalizada. Esta etiqueta será adicionada a todos os contatos importados.<br><br>Após configurar, clique em <strong>Importar</strong>. O sistema processa o arquivo e os contatos ficam imediatamente disponíveis no Infobip People para uso nas campanhas de disparo.<br><br><strong>Pronto!</strong> Seus contatos agora estão no Infobip People com os telefones normalizados, etiquetas atribuídas e prontos para serem selecionados no Campaign Planner.`
+              }
+            },
+      {
+              id: 'block_1781222894109_s0pf',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/LdnIwjV.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b19',
+              type: 'alert',
+              content: {
+                variant: 'warning',
+                title: 'Atenção: Mapeamento do Telefone',
+                text: `O erro mais comum nesta etapa é mapear a coluna de telefone para o campo errado. A coluna "número" deve SEMPRE ser mapeada como <strong>Phone Number</strong>. Se você mapear como texto genérico, o WhatsApp não reconhecerá o contato e a mensagem não será enviada. Confira duas vezes antes de clicar em Analisar.`
+              }
+            }
     ],
   },
   'op-infobip-broadcast': {
@@ -368,43 +1636,224 @@ const articleBlocks: Record<string, ArticleData> = {
     description: 'Guia completo para criar uma transmissão (broadcast) no portal Infobip: destinatários, remetente, template, variáveis e lançamento.',
     categoryId: 'operacional',
     blocks: [
-      { id: 'b1', type: 'heading', content: { text: 'Criando Transmissão na Infobip' } },
-      { id: 'b2', type: 'paragraph', content: { html: 'Após tratar a planilha, importar os contatos para o Infobip People e criar/aprovar os templates, o passo final é criar a <strong>transmissão (broadcast)</strong>. É aqui que você une destinatários + remetente + template e dispara as mensagens. Todo o processo é feito dentro do portal Infobip.' } },
-      { id: 'b3', type: 'heading', content: { text: 'Acessando a Área de Transmissões' } },
-      { id: 'b4', type: 'steps', content: { items: [
-        'No menu lateral esquerdo da Infobip, clique em <strong>Transmissão</strong>.',
-        'Depois clique em <strong>Transmissões</strong>. A página lista todas as transmissões já criadas.',
-        'Clique no botão <strong>Criar transmissão</strong> no topo da página.',
-      ] } },
-      { id: 'b5', type: 'heading', content: { text: '1. Destinatários' } },
-      { id: 'b6', type: 'paragraph', content: { html: 'No campo <strong>"Destinatários"</strong>, clique em <strong>"Adicionar destinatários"</strong>. Uma janela de seleção será exibida.<br><br>Selecione a <strong>etiqueta (tag)</strong> que você criou ao importar a planilha no Infobip People (ex: <code>Importar_2026-06-11</code> ou a etiqueta personalizada que você definiu). Cada etiqueta representa um grupo de contatos — e cada grupo deve receber um template específico.<br><br><strong>Importante:</strong> A lista de destinatários só aparece se a etiqueta foi atribuída corretamente durante a importação da planilha. Se não encontrar a etiqueta, volte ao artigo 1.6 e confira o passo de atribuição de etiquetas.' } },
-      { id: 'b7', type: 'heading', content: { text: '2. Remetente' } },
-      { id: 'b8', type: 'paragraph', content: { html: 'No campo <strong>"Remetente"</strong>, digite ou selecione o número de WhatsApp que fará o disparo. Este número é o mesmo que foi definido no Template Creator na hora de criar o template (a credencial associada ao cliente).<br><br>O remetente precisa estar registrado, verificado e aprovado na Infobip. Se o número não aparecer, confira se ele está ativo no painel da Infobip em <strong>Canais > WhatsApp > Remetentes</strong>.' } },
-      { id: 'b9', type: 'heading', content: { text: '3. Conteúdo — Selecionar o Template' } },
-      { id: 'b10', type: 'paragraph', content: { html: 'Após preencher destinatários e remetente, o botão <strong>"Selecione para criar o conteúdo"</strong> ficará disponível. Clique nele.<br><br>Uma janela <strong>pop-up</strong> será exibida com todos os templates do WhatsApp vinculados àquele remetente. Os templates são organizados por categoria: <strong>Utilidade</strong>, <strong>Marketing</strong>, <strong>Autenticação</strong>. Você pode filtrar por nome ou categoria.<br><br>Localize o template pelo <strong>nome técnico</strong> — confira se ele corresponde à campanha que você está disparando. O nome do template geralmente reflete a etiqueta ou o cliente. Clique em <strong>"Usar"</strong> ao lado do template desejado.' } },
-      { id: 'b11', type: 'heading', content: { text: '4. Preenchendo as Variáveis (Parâmetros)' } },
-      { id: 'b12', type: 'paragraph', content: { html: 'Após selecionar o template, um novo pop-up exibe todos os <strong>parâmetros dinâmicos</strong> do template: <code>{{1}}</code>, <code>{{2}}</code>, <code>{{3}}</code>, <code>{{4}}</code>.<br><br>Cada parâmetro corresponde a uma <strong>coluna/campo do perfil</strong> que foi importado na planilha. Por exemplo:<br><br><code>{{1}}</code> → Nome do contato (coluna "Nome")<br><code>{{2}}</code> → Oferta ou informação variável<br><code>{{3}}</code> → Data ou valor<br><code>{{4}}</code> → Link ou texto adicional<br><br>Você pode digitar um valor fixo ou deixar que o sistema substitua automaticamente pelos dados de cada contato. Se o template tiver <strong>cabeçalho de mídia</strong> (imagem ou vídeo), insira a URL pública no campo indicado. Formatos aceitos: .mp4, .3gpp (até 16 MB) para vídeo.<br><br><strong>Dica:</strong> Os parâmetros são exatamente as colunas que você mapeou na importação da planilha. Quanto mais organizada a planilha, mais fácil é preencher esta etapa.' } },
-      { id: 'b13', type: 'heading', content: { text: '5. Configurações Adicionais (Visão Geral)' } },
-      { id: 'b14', type: 'list', content: { heading: 'Estas opções não serão utilizadas por enquanto, mas é importante conhecê-las:', items: [
-        '<strong>Failover para SMS:</strong> Envia a mensagem por SMS se o WhatsApp falhar. Mantenha <strong>desativado</strong> para evitar custos extras de SMS.',
-        '<strong>Programação de Mensagens:</strong> Permite agendar data/hora e janela de entrega. Mantenha como <strong>imediato</strong> por enquanto. Fuso horário: <strong>Brazil / Brasilia (BRT)</strong>.',
-        '<strong>Rastreamento e Relatórios:</strong> URLs encurtadas, clique tracking, relatórios via API pull e webhook. Podem ser ativados futuramente quando precisar de métricas detalhadas.',
-      ] } },
-      { id: 'b15', type: 'heading', content: { text: '6. Configurações Avançadas — Período de Validade' } },
-      { id: 'b16', type: 'paragraph', content: { html: 'Role até <strong>"Configurações Avançadas"</strong>. Localize o campo <strong>"Período de validade"</strong>.<br><br>O valor padrão é <strong>48 horas</strong>. <strong>Altere para 1 hora.</strong><br><br><strong>Por que 1 hora?</strong> Se o contato não estiver disponível no WhatsApp no momento do disparo, a plataforma tentará por até 1 hora. Depois disso, desiste. Isso evita que mensagens sejam enviadas muito depois do previsto — um contato receber uma oferta promocional 2 dias depois do prazo gera uma experiência negativa. 1 hora é o suficiente para a maioria dos casos.' } },
-      { id: 'b17', type: 'heading', content: { text: '7. Nome da Transmissão' } },
-      { id: 'b18', type: 'paragraph', content: { html: 'O nome padrão é <strong>"Transmissão_WhatsApp"</strong>. Altere para um nome descritivo, como o nome da campanha ou a etiqueta utilizada (ex: <code>Promo_Relogios_Junho</code>). Isso facilita a identificação na lista de transmissões futuras.' } },
-      { id: 'b19', type: 'heading', content: { text: '8. Finalizar Design e Visualizar' } },
-      { id: 'b20', type: 'steps', content: { items: [
-        'Clique em <strong>"Finalizar Design"</strong> para fechar o pop-up de template.',
-        'Clique em <strong>"Continue para Visualizar"</strong>. A tela de preview será exibida.',
-        'Confira o <strong>Resumo da Transmissão</strong>: lista de destinatários (etiqueta + quantidade), remetente, total de destinos, custo estimado.',
-        'Verifique as <strong>configurações</strong>: rastreio (desativado), agendamento (imediato), período de validade (1 hora).',
-        'Confira se o <strong>custo estimado</strong> está dentro do esperado.',
-      ] } },
-      { id: 'b21', type: 'heading', content: { text: '9. Lançar Transmissão' } },
-      { id: 'b22', type: 'paragraph', content: { html: 'Com tudo conferido, clique no botão <strong>"Lançamento"</strong>. A transmissão será iniciada imediatamente e o sistema começará a enviar as mensagens em lote para todos os contatos da etiqueta selecionada.<br><br>Você pode acompanhar o progresso na tela de transmissões: status, mensagens enviadas, entregues, com falha e o custo acumulado.' } },
-      { id: 'b23', type: 'alert', content: { variant: 'warning', title: 'Checklist Antes de Lançar', text: 'Antes de clicar em Lançamento, confira: <br><br>✅ A etiqueta de destinatários está correta? (não vai enviar para o grupo errado)<br>✅ O remetente é o número certo do cliente?<br>✅ O template selecionado tem as variáveis certas?<br>✅ O período de validade está em <strong>1 hora</strong>?<br>✅ O custo estimado faz sentido para o volume de contatos?' } },
+      {
+              id: 'b1',
+              type: 'heading',
+              content: { text: 'Criando Transmissão na Infobip' }
+            },
+      {
+              id: 'b2',
+              type: 'paragraph',
+              content: {
+                html: `Após tratar a planilha, importar os contatos para o Infobip People e criar/aprovar os templates, o passo final é criar a <strong>transmissão (broadcast)</strong>. É aqui que você une destinatários + remetente + template e dispara as mensagens. Todo o processo é feito dentro do portal Infobip.`
+              }
+            },
+      {
+              id: 'block_1781224467446_gna9',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/Rx9YPrn.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b3',
+              type: 'heading',
+              content: { text: 'Acessando a Área de Transmissões' }
+            },
+      {
+              id: 'b4',
+              type: 'steps',
+              content: {
+                items: [
+                  `No menu lateral esquerdo da Infobip, clique em <strong>Transmissão</strong>.`,
+                  `Depois clique em <strong>Transmissões</strong>. A página lista todas as transmissões já criadas.`,
+                  {
+                    html: `Clique no botão <strong>Criar transmissão</strong> no topo da página.`,
+                    image: { src: 'https://i.imgur.com/0hJ27QE.png', caption: '' }
+                  }
+                ]
+              }
+            },
+      {
+              id: 'b5',
+              type: 'heading',
+              content: { text: '1. Destinatários' }
+            },
+      {
+              id: 'block_1781224641757_agnv',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/7Rjz57O.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b6',
+              type: 'paragraph',
+              content: {
+                html: `No campo <strong>"Destinatários"</strong>, clique em <strong>"Adicionar destinatários"</strong>. Uma janela de seleção será exibida.<br><br>Selecione a <strong>etiqueta (tag)</strong> que você criou ao importar a planilha no Infobip People (ex: <code>Importar_2026-06-11</code> ou a etiqueta personalizada que você definiu). Cada etiqueta representa um grupo de contatos — e cada grupo deve receber um template específico.<br><br><strong>Importante:</strong> A lista de destinatários só aparece se a etiqueta foi atribuída corretamente durante a importação da planilha. Se não encontrar a etiqueta, volte ao artigo 1.6 e confira o passo de atribuição de etiquetas.`
+              }
+            },
+      {
+              id: 'block_1781224716398_hlsf',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/I7RZzFN.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b7',
+              type: 'heading',
+              content: { text: '2. Remetente' }
+            },
+      {
+              id: 'b8',
+              type: 'paragraph',
+              content: {
+                html: `<p>No campo <strong>"Remetente"</strong>, digite ou selecione o número de WhatsApp que fará o disparo. Este número é o mesmo que foi definido no <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/templates">Template Creator</a> na hora de criar o template (a credencial associada ao cliente).<br><br>O remetente precisa estar registrado, verificado e aprovado na Infobip. Se o número não aparecer, confira se ele está ativo no painel <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/accounts">Contas &amp; Monitor.</a></p>`
+              }
+            },
+      {
+              id: 'block_1781224854008_hryc',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/Z8oEwFG.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b9',
+              type: 'heading',
+              content: { text: '3. Conteúdo — Selecionar o Template' }
+            },
+      {
+              id: 'block_1781224969548_2ixk',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/aiTI2c3.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b10',
+              type: 'paragraph',
+              content: {
+                html: `Após preencher destinatários e remetente, o botão <strong>"Selecione para criar o conteúdo"</strong> ficará disponível. Clique nele.<br><br>Uma janela <strong>pop-up</strong> será exibida com todos os templates do WhatsApp vinculados àquele remetente. Os templates são organizados por categoria: <strong>Utilidade</strong>, <strong>Marketing</strong>, <strong>Autenticação</strong>. Você pode filtrar por nome ou categoria.<br><br>Localize o template pelo <strong>nome técnico</strong> — confira se ele corresponde à campanha que você está disparando. O nome do template geralmente reflete a etiqueta ou o cliente. Clique em <strong>"Usar"</strong> ao lado do template desejado.`
+              }
+            },
+      {
+              id: 'block_1781225056326_eqyu',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/Tz5huh4.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b11',
+              type: 'heading',
+              content: { text: '4. Preenchendo as Variáveis (Parâmetros)' }
+            },
+      {
+              id: 'b12',
+              type: 'paragraph',
+              content: {
+                html: `Após selecionar o template, um novo pop-up exibe todos os <strong>parâmetros dinâmicos</strong> do template: <code>{{1}}</code>, <code>{{2}}</code>, <code>{{3}}</code>, <code>{{4}}</code>.<br><br>Cada parâmetro corresponde a uma <strong>coluna/campo do perfil</strong> que foi importado na planilha. Por exemplo:<br><br><code>{{1}}</code> → Nome do contato (coluna "Nome")<br><code>{{2}}</code> → Oferta ou informação variável<br><code>{{3}}</code> → Data ou valor<br><code>{{4}}</code> → Link ou texto adicional<br><br>Você pode digitar um valor fixo ou deixar que o sistema substitua automaticamente pelos dados de cada contato. Se o template tiver <strong>cabeçalho de mídia</strong> (imagem ou vídeo), insira a URL pública no campo indicado. Formatos aceitos: .mp4, .3gpp (até 16 MB) para vídeo.<br><br><strong>Dica:</strong> Os parâmetros são exatamente as colunas que você mapeou na importação da planilha. Quanto mais organizada a planilha, mais fácil é preencher esta etapa.`
+              }
+            },
+      {
+              id: 'block_1781225164049_kluk',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/NuptAE3.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b17',
+              type: 'heading',
+              content: { text: '5. Nome da Transmissão' }
+            },
+      {
+              id: 'b18',
+              type: 'paragraph',
+              content: {
+                html: `O nome padrão é <strong>"Transmissão_WhatsApp"</strong>. Altere para um nome descritivo, como o nome da campanha ou a etiqueta utilizada (ex: <code>Promo_Relogios_Junho</code>). Isso facilita a identificação na lista de transmissões futuras.`
+              }
+            },
+      {
+              id: 'block_1781225528586_t1sd',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/76DI51H.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b15',
+              type: 'heading',
+              content: { text: '6. Configurações Avançadas — Período de Validade' }
+            },
+      {
+              id: 'b16',
+              type: 'paragraph',
+              content: {
+                html: `Role até <strong>"Configurações Avançadas"</strong>. Localize o campo <strong>"Período de validade"</strong>.<br><br>O valor padrão é <strong>48 horas</strong>. <strong>Altere para 1 hora.</strong><br><br><strong>Por que 1 hora?</strong> Se o contato não estiver disponível no WhatsApp no momento do disparo, a plataforma tentará por até 1 hora. Depois disso, desiste. Isso evita que mensagens sejam enviadas muito depois do previsto — um contato receber uma oferta promocional 2 dias depois do prazo gera uma experiência negativa. 1 hora é o suficiente para a maioria dos casos.`
+              }
+            },
+      {
+              id: 'block_1781225475497_qm80',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/RmeggQ7.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b19',
+              type: 'heading',
+              content: { text: '8. Finalizar Design e Visualizar' }
+            },
+      {
+              id: 'b20',
+              type: 'steps',
+              content: {
+                items: [
+                  {
+                    html: `Clique em <strong>"Finalizar Design"</strong> para fechar o pop-up de template.`,
+                    image: { src: 'https://i.imgur.com/pFWC72V.png', caption: '' }
+                  },
+                  {
+                    html: `Clique em <strong>"Continue para Visualizar"</strong>. A tela de preview será exibida.`,
+                    image: { src: 'https://i.imgur.com/76DI51H.png', caption: '' }
+                  },
+                  {
+                    html: `Confira o <strong>Resumo da Transmissão</strong>: lista de destinatários (etiqueta + quantidade), remetente, total de destinos, custo estimado.`,
+                    image: { src: 'https://i.imgur.com/HCpxX4k.png', caption: '' }
+                  },
+                  `Verifique as <strong>configurações</strong>: rastreio (desativado), agendamento (imediato), período de validade (1 hora).`,
+                  `Confira se o <strong>custo estimado</strong> está dentro do esperado.`
+                ]
+              }
+            },
+      {
+              id: 'b21',
+              type: 'heading',
+              content: { text: '9. Lançar Transmissão' }
+            },
+      {
+              id: 'b22',
+              type: 'paragraph',
+              content: {
+                html: `Com tudo conferido, clique no botão <strong>"Lançamento"</strong>. A transmissão será iniciada imediatamente e o sistema começará a enviar as mensagens em lote para todos os contatos da etiqueta selecionada.<br><br>Você pode acompanhar o progresso na tela de transmissões: status, mensagens enviadas, entregues, com falha e o custo acumulado.`
+              }
+            },
+      {
+              id: 'b13',
+              type: 'heading',
+              content: { text: '5. Configurações Adicionais (Visão Geral)' }
+            },
+      {
+              id: 'b14',
+              type: 'list',
+              content: {
+                heading: 'Estas opções não serão utilizadas por enquanto, mas é importante conhecê-las:',
+                items: [
+                  `<strong>Failover para SMS:</strong> Envia a mensagem por SMS se o WhatsApp falhar. Mantenha <strong>desativado</strong> para evitar custos extras de SMS.`,
+                  `<strong>Programação de Mensagens:</strong> Permite agendar data/hora e janela de entrega. Mantenha como <strong>imediato</strong> por enquanto. Fuso horário: <strong>Brazil / Brasilia (BRT)</strong>.`,
+                  `<strong>Rastreamento e Relatórios:</strong> URLs encurtadas, clique tracking, relatórios via API pull e webhook. Podem ser ativados futuramente quando precisar de métricas detalhadas.`
+                ]
+              }
+            },
+      {
+              id: 'block_1781225922816_pvno',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/yZ7aKRN.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b23',
+              type: 'alert',
+              content: {
+                variant: 'warning',
+                title: 'Checklist Antes de Lançar',
+                text: `Antes de clicar em Lançamento, confira: <br><br>✅ A etiqueta de destinatários está correta? (não vai enviar para o grupo errado)<br>✅ O remetente é o número certo do cliente?<br>✅ O template selecionado tem as variáveis certas?<br>✅ O período de validade está em <strong>1 hora</strong>?<br>✅ O custo estimado faz sentido para o volume de contatos?`
+              }
+            }
     ],
   },
   'op-gerar-relatorios': {
@@ -413,29 +1862,190 @@ const articleBlocks: Record<string, ArticleData> = {
     description: 'Aprenda a baixar o relatório de entrega do Infobip e anexá-lo ao card de submissão no Plug & Sales, fechando o ciclo da campanha.',
     categoryId: 'operacional',
     blocks: [
-      { id: 'b1', type: 'heading', content: { text: 'Gerar e Importar Relatórios' } },
-      { id: 'b2', type: 'paragraph', content: { html: 'Após a transmissão ser concluída no Infobip, o próximo passo é <strong>baixar o relatório de entrega</strong> e <strong>anexá-lo ao card de submissão</strong> no Plug & Sales. Isso encerra o ciclo da campanha: o cliente pode visualizar as métricas, e o sistema registra os dados para relatórios futuros.' } },
-      { id: 'b3', type: 'heading', content: { text: '1. Acessar a Transmissão no Infobip' } },
-      { id: 'b4', type: 'paragraph', content: { html: 'No menu Infobip, vá em <strong>Transmissão > Transmissões</strong>. Localize a transmissão que você criou (pelo nome ou etiqueta). O status deve estar como <strong>"Terminado"</strong>. Clique no nome da transmissão para abrir a página de detalhes.' } },
-      { id: 'b5', type: 'heading', content: { text: '2. Obter Relatório' } },
-      { id: 'b6', type: 'paragraph', content: { html: 'Na página de detalhes da transmissão, clique no botão <strong>"Obter Relatório"</strong>. Um pop-up será exibido com as opções de relatório. Clique em <strong>"Gerar Relatório"</strong> para solicitar a geração do arquivo.' } },
-      { id: 'b7', type: 'heading', content: { text: '3. Aguardar a Geração' } },
-      { id: 'b8', type: 'paragraph', content: { html: 'O Infobip leva de <strong>2 a 5 minutos</strong> para processar e gerar o relatório completo. Você pode fechar o pop-up e continuar trabalhando normalmente — o relatório ficará disponível na seção de relatórios quando estiver pronto.' } },
-      { id: 'b9', type: 'heading', content: { text: '4. Baixar o Relatório' } },
-      { id: 'b10', type: 'paragraph', content: { html: 'No menu Infobip, vá em <strong>Analisar > Relatórios</strong> (<code>/analyze/reports</code>). Localize o relatório gerado pela data/hora ou nome da transmissão. Clique no botão de <strong>Download</strong> para baixar o arquivo (.xlsx).<br><br>Este arquivo contém os dados de cada mensagem enviada: status (delivered, expired, failed), horário, número de destino e outras informações técnicas.' } },
-      { id: 'b11', type: 'heading', content: { text: '5. Acessar o Card no Plug & Sales' } },
-      { id: 'b12', type: 'paragraph', content: { html: 'Agora vá para o Plug & Sales. No menu lateral, clique em <strong>Upload Clientes</strong>. Localize o card correspondente a esta campanha — use os filtros de status ou busque pelo nome do cliente/perfil. Clique em <strong>"Abrir Painel"</strong> no card para entrar na tela de detalhes.' } },
-      { id: 'b13', type: 'heading', content: { text: '6. Alterar o Status para "Disparo Concluído"' } },
-      { id: 'b14', type: 'paragraph', content: { html: 'Dentro do painel do card, localize a seção <strong>"Fluxo de Trabalho"</strong>. São botões horizontais com os status: PENDENTE, EM_ANDAMENTO, GERADO, CANCELADO, CONCLUIDO. Clique em <strong>"CONCLUIDO"</strong> para alterar o status da submissão para "Disparo Concluído".<br><br><strong>Por que mudar o status?</strong> O botão de anexar relatório só aparece quando o card está com status CONCLUIDO. Além disso, o cliente enxerga no dashboard dele que a campanha foi finalizada.' } },
-      { id: 'b15', type: 'heading', content: { text: '7. Anexar o Relatório' } },
-      { id: 'b16', type: 'paragraph', content: { html: 'Com o status em "Disparo Concluído", role até a seção <strong>"Ativos & Responsabilidade"</strong>. Você verá uma área com borda tracejada escrito <strong>"ANEXAR RELATÓRIO"</strong>.<br><br>Clique nela e selecione o arquivo .xlsx que você baixou do Infobip. Você pode anexar <strong>um ou vários arquivos</strong> de uma só vez — útil se tiver dividido a campanha em múltiplos lotes.<br><br>O sistema lê automaticamente a planilha: identifica a coluna <strong>"Status"</strong>, conta quantas linhas estão como <code>delivered</code> (entregues) e <code>expired</code> (expiradas/falhas), e armazena as métricas no card.' } },
-      { id: 'b17', type: 'heading', content: { text: '8. Onde os Relatórios Aparecem' } },
-      { id: 'b18', type: 'card', content: { items: [
-        { title: 'Página de Relatórios (/client-reports)', text: 'Visão agregada de todas as campanhas com total acumulado, entregues (com taxa %), não-entregues/expirados. Cada campanha pode ser expandida para ver os arquivos individuais anexados. Botão "BAIXAR FILTRADO" para download dos dados com colunas padronizadas.', icon: 'BarChart' },
-        { title: 'Dashboard do Cliente', text: 'O cliente vê o status "Concluído" no card da campanha e pode clicar em "DETALHES" para acessar o painel com os relatórios anexados. As métricas de entrega ficam visíveis para o cliente consultar.', icon: 'Eye' },
-      ] } },
-      { id: 'b19', type: 'image', content: { caption: 'Print: Painel do card com relatório anexado e métricas de entrega' } },
-      { id: 'b20', type: 'alert', content: { variant: 'success', title: 'Dica: Relatório de qualquer origem', text: 'Você não precisa esperar o relatório oficial do Infobip. Se já tiver as métricas por outro meio (planilha exportada manualmente, API, etc.), pode anexar qualquer arquivo .xlsx que contenha uma coluna "Status". O sistema identifica automaticamente as linhas que contêm "delivered" (entregues) e "expired" (não entregues) para gerar o resumo.' } },
+      {
+              id: 'b1',
+              type: 'heading',
+              content: { text: 'Gerar e Importar Relatórios' }
+            },
+      {
+              id: 'b2',
+              type: 'paragraph',
+              content: {
+                html: `Após a transmissão ser concluída no Infobip, o próximo passo é <strong>baixar o relatório de entrega</strong> e <strong>anexá-lo ao card de submissão</strong> no Plug & Sales. Isso encerra o ciclo da campanha: o cliente pode visualizar as métricas, e o sistema registra os dados para relatórios futuros.`
+              }
+            },
+      {
+              id: 'b3',
+              type: 'heading',
+              content: { text: '1. Acessar a Transmissão no Infobip' }
+            },
+      {
+              id: 'block_1781226897727_teij',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/Rx9YPrn.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b4',
+              type: 'paragraph',
+              content: {
+                html: `<p>No menu Infobip, vá em <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://portal-ny2.infobip.com/broadcast"><strong>Transmissão &gt; Transmissões</strong>.</a> Localize a transmissão que você criou (pelo nome ou etiqueta). O status deve estar como <strong>"Terminado"</strong>. Clique no nome da transmissão para abrir a página de detalhes.</p>`
+              }
+            },
+      {
+              id: 'b5',
+              type: 'heading',
+              content: { text: '2. Obter Relatório' }
+            },
+      {
+              id: 'block_1781226961456_x7ev',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/rcASRRP.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b6',
+              type: 'paragraph',
+              content: {
+                html: `Na página de detalhes da transmissão, clique no botão <strong>"Obter Relatório"</strong>. Um pop-up será exibido com as opções de relatório. Clique em <strong>"Gerar Relatório"</strong> para solicitar a geração do arquivo.`
+              }
+            },
+      {
+              id: 'block_1781227076787_y7ky',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/xemywgw.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b7',
+              type: 'heading',
+              content: { text: '3. Aguardar a Geração' }
+            },
+      {
+              id: 'b8',
+              type: 'paragraph',
+              content: {
+                html: `O Infobip leva de <strong>2 a 5 minutos</strong> para processar e gerar o relatório completo. Você pode fechar o pop-up e continuar trabalhando normalmente — o relatório ficará disponível na seção de relatórios quando estiver pronto.`
+              }
+            },
+      {
+              id: 'block_1781227262297_snj4',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/OqYaWvv.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b9',
+              type: 'heading',
+              content: { text: '4. Baixar o Relatório' }
+            },
+      {
+              id: 'block_1781227228271_ckei',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/W2jKQmD.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b10',
+              type: 'paragraph',
+              content: {
+                html: `<p>No menu Infobip, vá em<a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://portal-ny2.infobip.com/analyze/reports"> <strong>Analisar &gt; Relatórios</strong> (</a><code>/analyze/reports</code><a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://portal-ny2.infobip.com/analyze/reports">)</a>. Localize o relatório gerado pela data/hora ou nome da transmissão. Clique no botão de <strong>Download</strong> para baixar o arquivo (.xlsx).<br><br>Este arquivo contém os dados de cada mensagem enviada: status (delivered, expired, failed), horário, número de destino e outras informações técnicas.</p>`
+              }
+            },
+      {
+              id: 'b11',
+              type: 'heading',
+              content: {
+                text: `5. Acessar o Card no Plug & Sales`
+              }
+            },
+      {
+              id: 'b12',
+              type: 'paragraph',
+              content: {
+                html: `<p>Agora vá para o Plug &amp; Sales. No menu lateral, clique em <a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/client-submissions"><strong>Upload Clientes</strong>.</a> Localize o card correspondente a esta campanha — use os filtros de status ou busque pelo nome do cliente/perfil. Clique em <strong>"Abrir Painel"</strong> no card para entrar na tela de detalhes.</p>`
+              }
+            },
+      {
+              id: 'block_1781227354458_psm7',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/HQnMpPl.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b13',
+              type: 'heading',
+              content: { text: `6. Alterar o Status para "Disparo Concluído"` }
+            },
+      {
+              id: 'block_1781227415403_uosz',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/tadDSck.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b14',
+              type: 'paragraph',
+              content: {
+                html: `Dentro do painel do card, localize a seção <strong>"Fluxo de Trabalho"</strong>. São botões horizontais com os status: PENDENTE, EM_ANDAMENTO, GERADO, CANCELADO, CONCLUIDO. Clique em <strong>"CONCLUIDO"</strong> para alterar o status da submissão para "Disparo Concluído".<br><br><strong>Por que mudar o status?</strong> O botão de anexar relatório só aparece quando o card está com status CONCLUIDO. Além disso, o cliente enxerga no dashboard dele que a campanha foi finalizada.`
+              }
+            },
+      {
+              id: 'b15',
+              type: 'heading',
+              content: { text: '7. Anexar o Relatório' }
+            },
+      {
+              id: 'block_1781227517838_ovsd',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/ROJeQpB.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b16',
+              type: 'paragraph',
+              content: {
+                html: `Com o status em "Disparo Concluído", role até a seção <strong>"Ativos & Responsabilidade"</strong>. Você verá uma área com borda tracejada escrito <strong>"ANEXAR RELATÓRIO"</strong>.<br><br>Clique nela e selecione o arquivo .xlsx que você baixou do Infobip. Você pode anexar <strong>um ou vários arquivos</strong> de uma só vez — útil se tiver dividido a campanha em múltiplos lotes.<br><br>O sistema lê automaticamente a planilha: identifica a coluna <strong>"Status"</strong>, conta quantas linhas estão como <code>delivered</code> (entregues) e <code>expired</code> (expiradas/falhas), e armazena as métricas no card.`
+              }
+            },
+      {
+              id: 'b17',
+              type: 'heading',
+              content: { text: '8. Onde os Relatórios Aparecem' }
+            },
+      {
+              id: 'b18',
+              type: 'card',
+              content: {
+                items: [
+                  {
+                    title: 'Página de Relatórios (/client-reports)',
+                    text: `Visão agregada de todas as campanhas com total acumulado, entregues (com taxa %), não-entregues/expirados. Cada campanha pode ser expandida para ver os arquivos individuais anexados. Botão "BAIXAR FILTRADO" para download dos dados com colunas padronizadas.`,
+                    icon: 'BarChart'
+                  },
+                  {
+                    title: 'Dashboard do Cliente',
+                    text: `O cliente vê o status "Concluído" no card da campanha e pode clicar em "DETALHES" para acessar o painel com os relatórios anexados. As métricas de entrega ficam visíveis para o cliente consultar.`,
+                    icon: 'Eye'
+                  }
+                ]
+              }
+            },
+      {
+              id: 'block_1781227770165_vmj4',
+              type: 'steps',
+              content: {
+                items: [
+                  `<p><a target="_blank" rel="noopener noreferrer nofollow" class="text-primary-color underline" href="https://plugesales.com/client-reports"><strong>Clique aqui para acessar os relatórios.</strong></a></p>`
+                ]
+              }
+            },
+      {
+              id: 'block_1781227629257_j85y',
+              type: 'image',
+              content: { src: 'https://i.imgur.com/x2mJWEG.png', caption: 'Descrição da imagem' }
+            },
+      {
+              id: 'b20',
+              type: 'alert',
+              content: {
+                variant: 'success',
+                title: 'Dica: Relatório de qualquer origem',
+                text: `Você não precisa esperar o relatório oficial do Infobip. Se já tiver as métricas por outro meio (planilha exportada manualmente, API, etc.), pode anexar qualquer arquivo .xlsx que contenha uma coluna "Status". O sistema identifica automaticamente as linhas que contêm "delivered" (entregues) e "expired" (não entregues) para gerar o resumo.`
+              }
+            }
     ],
   },
   'op-troubleshooting': {
