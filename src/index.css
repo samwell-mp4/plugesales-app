@@ -45,6 +45,7 @@
   --primary-glow: rgba(172, 248, 0, 0.15);
   --primary-border-subtle: rgba(172, 248, 0, 0.3);
   --primary-shadow: rgba(172, 248, 0, 0.3);
+  --primary-color-rgb: 172, 248, 0;
   --command-center-bg: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
 
   --bg-primary: var(--bg-color);
@@ -85,6 +86,7 @@
   --primary-glow: rgba(5, 150, 105, 0.1);
   --primary-border-subtle: rgba(5, 150, 105, 0.2);
   --primary-shadow: rgba(5, 150, 105, 0.2);
+  --primary-color-rgb: 5, 150, 105;
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
 }

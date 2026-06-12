@@ -94,6 +94,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Control from './pages/Control';
 import EmployeeClients from './pages/EmployeeClients';
+import AcademyPage from './pages/AcademyPage';
 
 function AppContent() {
   const { user, theme, isLoading } = useAuth();
@@ -143,7 +144,8 @@ function AppContent() {
     location.pathname.startsWith('/comparacao/') ||
     location.pathname.startsWith('/para/') ||
     location.pathname === '/precos' ||
-    location.pathname === '/busca';
+    location.pathname === '/busca' ||
+    location.pathname === '/academy';
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -263,6 +265,7 @@ function AppContent() {
             <Route path="/para/educacao" element={<ParaEducacao />} />
             <Route path="/busca" element={<BuscaPage />} />
           </Route>
+          <Route path="/academy" element={<AcademyPage />} />
 
           {/* Legacy/Specific Public Routes */}
           <Route path="/news-clients/" element={<ClientRegistration />} />

@@ -29,7 +29,8 @@ import {
     Bell,
     Database,
     Smartphone,
-    DollarSign
+    DollarSign,
+    Book
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -196,6 +197,13 @@ const Sidebar = () => {
             items: [
                 ...(user?.role === 'ADMIN' ? [{ name: 'Controle Adm', path: '/control', icon: <ShieldCheck /> }] : []),
                 { name: 'Meu Perfil', path: '/profile', icon: <User /> },
+            ]
+        },
+        {
+            id: 'ACADEMY',
+            label: 'TREINAMENTO & SUPORTE',
+            items: [
+                { name: 'Academy', path: '/academy', icon: <Book /> }
             ]
         }
     ];
