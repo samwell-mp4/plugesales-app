@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Save } from 'lucide-react';
 import {
   BookOpen, Users, Briefcase, ShieldCheck, ChevronRight,
   FileText, Upload, MessageSquare, Calendar,
@@ -817,6 +818,32 @@ const AcademyPage = () => {
             >
               {editMode ? <Eye size={14} /> : <Edit3 size={14} />}
               {editMode ? 'Visualizar' : 'Editar'}
+            </button>
+            <button
+              onClick={() => {
+                const out: Record<string, any> = {};
+                for (let k in localStorage) {
+                  if (k.startsWith('academy_blocks_')) {
+                    const id = k.replace('academy_blocks_', '');
+                    try {
+                      const blocks = JSON.parse(localStorage.getItem(k) || '[]');
+                      const clean = blocks.map((b: any) => ({ id: b.id, type: b.type, content: b.content }));
+                      out[id] = clean;
+                    } catch {}
+                  }
+                }
+                const code = JSON.stringify(out, null, 2);
+                navigator.clipboard.writeText(code).then(() => {
+                  alert('Dados copiados para a área de transferência!');
+                }).catch(() => {
+                  prompt('Copie o código abaixo:', code);
+                });
+              }}
+              className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white/10 text-white/60 hover:bg-white/20 transition-all"
+              title="Salvar todos os dados da Academy"
+            >
+              <Save size={14} />
+              Salvar Tudo
             </button>
           </div>
 
