@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import SEO from '../components/SEO';
 import { Link } from 'react-router-dom';
 import { Search, MessageCircle, Zap } from 'lucide-react';
@@ -26,6 +26,13 @@ const searchItems = [
 
 const BuscaPage = () => {
     const [query, setQuery] = useState('');
+
+    // Preenche a busca a partir de ?q= da URL (para Sitelinks Searchbox)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('q');
+        if (q) setQuery(q);
+    }, []);
 
     const filtered = query.trim()
         ? searchItems.filter(item =>

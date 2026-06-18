@@ -15,5 +15,6 @@ Disallow: /engine
 Disallow: /dispatch
 Disallow: /campaigns
 Disallow: /finance
+Disallow: /academy
 
 Sitemap: https://plugesales.com/sitemap.xml

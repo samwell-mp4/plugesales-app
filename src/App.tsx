@@ -144,8 +144,7 @@ function AppContent() {
     location.pathname.startsWith('/comparacao/') ||
     location.pathname.startsWith('/para/') ||
     location.pathname === '/precos' ||
-    location.pathname === '/busca' ||
-    location.pathname === '/academy';
+    location.pathname === '/busca';
 
   if (!user && !isPublicRoute) {
     return <Login />;
@@ -265,7 +264,15 @@ function AppContent() {
             <Route path="/para/educacao" element={<ParaEducacao />} />
             <Route path="/busca" element={<BuscaPage />} />
           </Route>
-          <Route path="/academy" element={<AcademyPage />} />
+          {/* Academy: somente ADMIN/EMPLOYEE */}
+          <Route 
+            path="/academy" 
+            element={
+              <ProtectedRoute>
+                {(isAdmin || isEmployee) ? <AcademyPage /> : <Navigate to="/dashboard" replace />}
+              </ProtectedRoute>
+            } 
+          />
 
           {/* Legacy/Specific Public Routes */}
           <Route path="/news-clients/" element={<ClientRegistration />} />

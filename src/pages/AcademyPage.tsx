@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import SEO from '../components/SEO';
 import { Save } from 'lucide-react';
 import {
   BookOpen, Users, Briefcase, ShieldCheck, ChevronRight,
@@ -471,6 +472,21 @@ const AcademyPage = () => {
 
   return (
     <>
+      {/* SEO para a rota interna (auth required). Crawlers não acessam esta página. */}
+      <SEO
+        title="Academy — Central de Treinamento | Plug & Sales"
+        description="Central de treinamento Plug & Sales para equipe interna: guias operacionais, financeiro, CRM e materiais de apoio."
+        canonical="https://plugesales.com/academy"
+        schema={[{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Início", "item": "https://plugesales.com" },
+            { "@type": "ListItem", "position": 2, "name": "Academy", "item": "https://plugesales.com/academy" }
+          ]
+        }]}
+        keywords="academy plug sales, treinamento interno, documentação operacional"
+      />
     <style>{`
       @keyframes headingGlow {
         0% { background-color: transparent; }

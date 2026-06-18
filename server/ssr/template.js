@@ -31,6 +31,22 @@ export const renderHtml = ({ title, description, canonical, ogImage, keywords, s
     <meta name="twitter:image" content="${ogImage || 'https://plugesales.com/logo-supreme.png'}" />
 
     ${schemaHtml}
+    <script type="application/ld+json">
+    ${JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SiteNavigationElement",
+      "name": ["Início","Sobre","Blog","Serviços","Preços","Busca","Apresentações"],
+      "url": [
+        "https://plugesales.com/",
+        "https://plugesales.com/sobre",
+        "https://plugesales.com/blog",
+        "https://plugesales.com/servicos/disparo-em-massa-whatsapp",
+        "https://plugesales.com/precos",
+        "https://plugesales.com/busca",
+        "https://plugesales.com/apresentacoes"
+      ]
+    })}
+    </script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -48,8 +64,25 @@ export const renderHtml = ({ title, description, canonical, ogImage, keywords, s
         .ssr-cta { display: inline-block; background: linear-gradient(135deg, #acf800, #8cd000); color: #000; padding: 16px 40px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; text-decoration: none; margin-top: 24px; }
         .ssr-footer { text-align: center; padding: 40px; color: #555; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 60px; }
     </style>
+    <style>
+      .ssr-header{position:sticky;top:0;background:#05070aCC;backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.06)}
+      .ssr-nav{max-width:1000px;margin:0 auto;display:flex;gap:18px;padding:12px 24px;align-items:center}
+      .ssr-nav a{color:#ccc;text-decoration:none;font-weight:600}
+      .ssr-nav a:hover{color:#acf800}
+    </style>
 </head>
 <body class="${bodyClass}">
+    <header class="ssr-header">
+      <nav class="ssr-nav">
+        <a href="/">Início</a>
+        <a href="/sobre">Sobre</a>
+        <a href="/apresentacoes">Apresentações</a>
+        <a href="/blog">Blog</a>
+        <a href="/servicos/disparo-em-massa-whatsapp">Serviços</a>
+        <a href="/precos">Preços</a>
+        <a href="/busca">Busca</a>
+      </nav>
+    </header>
     <div class="ssr-container">
         ${content}
         <div class="ssr-footer">
