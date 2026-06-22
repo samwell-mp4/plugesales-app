@@ -114,7 +114,6 @@ const Sidebar = () => {
                 { name: 'Hospedagem', path: '/media', icon: <Layers />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Dashboard Client', path: '/client-dashboard', icon: <LayoutDashboard />, role: 'CLIENT' },
                 { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
-                { name: 'Financeiro', path: '/finance/sales', icon: <DollarSign />, role: 'CLIENT' },
                 { name: 'Clientes', path: '/employee-clients', icon: <Users />, roles: ['EMPLOYEE'] },
             ]
         },
@@ -131,12 +130,13 @@ const Sidebar = () => {
         {
             id: 'FINANCEIRO',
             label: 'MÓDULO FINANCEIRO',
+            roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'],
             items: [
                 { name: 'Painel Geral', path: '/finance/dashboard', icon: <LayoutDashboard />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Fornecedores', path: '/finance/suppliers', icon: <Users />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Contas a Pagar', path: '/finance/payables', icon: <FileSpreadsheet />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Reembolsos', path: '/finance/refunds', icon: <DollarSign />, roles: ['ADMIN', 'CONTABILIDADE'] },
-                { name: 'Solicitações', path: '/finance/requests', icon: <MessageSquare /> },
+                { name: 'Solicitações', path: '/finance/requests', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'CONTABILIDADE'] },
                 { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
                 { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
@@ -203,7 +203,7 @@ const Sidebar = () => {
             id: 'ACADEMY',
             label: 'TREINAMENTO & SUPORTE',
             items: [
-                { name: 'Academy', path: '/academy', icon: <Book /> }
+                { name: 'Academy', path: '/academy', icon: <Book />, excludeRole: 'CLIENT' }
             ]
         }
     ];
