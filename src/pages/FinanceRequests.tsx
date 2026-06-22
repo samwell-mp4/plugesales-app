@@ -114,13 +114,58 @@ const FinanceRequests = () => {
         }
     };
 
-    const handleFinishRequest = async () => {
-        if (!selectedRequest) return;
+    const [isFinishing, setIsFinishing] = useState(false);
+    const [finishFileUrl, setFinishFileUrl] = useState('');
+    const [finishUploading, setFinishUploading] = useState(false);
+
+    const handleFinishFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setFinishUploading(true);
+        const fileExt = file.name.split('.').pop();
+        const fileName = `receipt_${Math.random()}.${fileExt}`;
+        const filePath = `requests/${fileName}`;
+
+        const { error } = await supabase.storage.from('finance-files').upload(filePath, file);
+        if (!error) {
+            const { data } = supabase.storage.from('finance-files').getPublicUrl(filePath);
+            setFinishFileUrl(data.publicUrl);
+        }
+        setFinishUploading(false);
+    };
+
+    const confirmFinishRequest = async () => {
+        if (!selectedRequest || !finishFileUrl) return;
+        
+        // Add response message with the receipt URL
+        await supabase.from('finance_request_responses').insert([{
+            request_id: selectedRequest.id,
+            responder: user?.name || 'Sistema',
+            message: finishFileUrl
+        }]);
+
         const { error } = await supabase.from('finance_requests').update({ status: 'Finalizada' }).eq('id', selectedRequest.id);
+        if (!error) {
+            setIsFinishing(false);
+            setFinishFileUrl('');
+            setSelectedRequest(null);
+            fetchRequests();
+        }
+    };
+
+    const handleCancelRequest = async () => {
+        if (!selectedRequest) return;
+        if (!window.confirm("Deseja realmente cancelar esta solicitação?")) return;
+        
+        const { error } = await supabase.from('finance_requests').update({ status: 'Cancelada' }).eq('id', selectedRequest.id);
         if (!error) {
             setSelectedRequest(null);
             fetchRequests();
         }
+    };
+
+    const handleFinishRequest = async () => {
+        setIsFinishing(true);
     };
 
     return (
@@ -165,8 +210,8 @@ const FinanceRequests = () => {
             )}
 
             {isCreateOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-md shadow-2xl">
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)' }}>
+                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-md shadow-2xl relative">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                             <h2 className="text-xl font-bold text-white">Nova Solicitação</h2>
                             <button onClick={() => setIsCreateOpen(false)} className="text-white/50 hover:text-white"><X size={24} /></button>
@@ -201,14 +246,14 @@ const FinanceRequests = () => {
             )}
 
             {selectedRequest && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)' }}>
+                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl relative">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                             <div>
                                 <h2 className="text-xl font-bold text-white">{selectedRequest.type}</h2>
                                 <p className="text-xs text-white/50">Solicitado por {selectedRequest.requester} em {new Date(selectedRequest.created_at).toLocaleDateString()}</p>
                             </div>
-                            <button onClick={() => setSelectedRequest(null)} className="text-white/50 hover:text-white"><X size={24} /></button>
+                            <button onClick={() => { setSelectedRequest(null); setIsFinishing(false); setFinishFileUrl(''); }} className="text-white/50 hover:text-white"><X size={24} /></button>
                         </div>
                         
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-black/20">
@@ -228,14 +273,18 @@ const FinanceRequests = () => {
                                     <div key={resp.id} className={`flex flex-col max-w-[80%] ${resp.responder === user?.name ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
                                         <span className="text-[10px] text-white/40 mb-1 px-1">{resp.responder} • {new Date(resp.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                         <div className={`p-3 rounded-2xl text-sm ${resp.responder === user?.name ? 'bg-primary-color text-black rounded-tr-sm' : 'bg-white/10 text-white/90 rounded-tl-sm'}`}>
-                                            {resp.message}
+                                            {resp.message.startsWith('http') ? (
+                                                <a href={resp.message} target="_blank" rel="noreferrer" className="underline font-bold">Ver Comprovante Anexado</a>
+                                            ) : (
+                                                resp.message
+                                            )}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {selectedRequest.status !== 'Finalizada' ? (
+                        {selectedRequest.status !== 'Finalizada' && selectedRequest.status !== 'Cancelada' && !isFinishing ? (
                             <div className="p-4 border-t border-white/10 bg-black/40">
                                 <form onSubmit={handleSendResponse} className="flex gap-2">
                                     <input 
@@ -245,17 +294,44 @@ const FinanceRequests = () => {
                                         value={newMessage}
                                         onChange={e => setNewMessage(e.target.value)}
                                     />
-                                    <button type="submit" className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors">
+                                    <button type="submit" className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors" title="Enviar Mensagem">
                                         <Send size={18} />
                                     </button>
-                                    <button type="button" onClick={handleFinishRequest} className="px-6 py-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl font-bold text-sm transition-colors">
-                                        Finalizar
+                                    
+                                    <button type="button" onClick={handleCancelRequest} className="px-4 py-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl font-bold text-sm transition-colors">
+                                        Cancelar
                                     </button>
+
+                                    {user?.role === 'ADMIN' && (
+                                        <button type="button" onClick={() => setIsFinishing(true)} className="px-6 py-3 bg-primary-color text-black hover:opacity-80 rounded-xl font-bold text-sm transition-opacity">
+                                            Finalizar
+                                        </button>
+                                    )}
                                 </form>
                             </div>
+                        ) : isFinishing ? (
+                            <div className="p-6 border-t border-white/10 bg-black/60 flex flex-col gap-4">
+                                <h3 className="text-white font-bold text-sm">Anexar Comprovante (Obrigatório)</h3>
+                                <div className="border-2 border-dashed border-white/10 rounded-xl p-4 text-center relative hover:border-primary-color transition-colors bg-black/20">
+                                    <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFinishFileUpload} disabled={finishUploading} />
+                                    {finishUploading ? <span className="text-primary-color text-sm font-bold">Enviando comprovante...</span> : finishFileUrl ? <span className="text-green-400 text-sm font-bold">Comprovante anexado com sucesso!</span> : <span className="text-white/60 text-sm">Clique para enviar o comprovante de pagamento</span>}
+                                </div>
+                                <div className="flex gap-2 justify-end mt-2">
+                                    <button type="button" onClick={() => setIsFinishing(false)} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold text-sm transition-colors">
+                                        Voltar
+                                    </button>
+                                    <button type="button" onClick={confirmFinishRequest} disabled={!finishFileUrl || finishUploading} className="px-6 py-2 bg-primary-color text-black hover:opacity-80 rounded-xl font-bold text-sm transition-opacity disabled:opacity-50">
+                                        Confirmar Finalização
+                                    </button>
+                                </div>
+                            </div>
                         ) : (
-                            <div className="p-4 border-t border-white/10 bg-black/40 text-center flex items-center justify-center gap-2 text-primary-color font-bold text-sm">
-                                <CheckCircle2 size={18} /> Solicitação Finalizada
+                            <div className="p-4 border-t border-white/10 bg-black/40 text-center flex items-center justify-center gap-2 font-bold text-sm">
+                                {selectedRequest.status === 'Finalizada' ? (
+                                    <><CheckCircle2 size={18} className="text-primary-color" /> <span className="text-primary-color">Solicitação Finalizada</span></>
+                                ) : (
+                                    <><X size={18} className="text-red-500" /> <span className="text-red-500">Solicitação Cancelada</span></>
+                                )}
                             </div>
                         )}
                     </div>

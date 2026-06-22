@@ -89,7 +89,7 @@ const Control = () => {
             const data = await res.json();
             if (data.url) {
                 // Ensure we use the correct absolute URL for the image
-                const imageUrl = data.url.startsWith('http') ? data.url : `https://plug-sales-dispatch-app-dispatch-app.hx8235.easypanel.host${data.url}`;
+                const imageUrl = data.url.startsWith('http') ? data.url : `${window.location.origin}${data.url}`;
                 setNewPost({ ...newPost, image: imageUrl });
             }
         } catch (err) {
