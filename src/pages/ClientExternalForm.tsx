@@ -56,7 +56,7 @@ const ClientExternalForm = () => {
         ads: [{
             template_type: 'TEXT' as 'TEXT' | 'IMAGE' | 'VIDEO',
             media_url: '',
-            ad_copy: 'Oi {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\nPara {{4}}, use o botão abaixo 👇',
+            ad_copy: 'Oi {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo. 👇',
             ad_copy_file: '',
             button_link: '',
             spreadsheet_url: '',
