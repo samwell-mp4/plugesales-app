@@ -1099,19 +1099,24 @@ app.post('/api/monitor/bulk-status', async (req, res) => {
             return res.status(400).json({ error: 'Faltam dados ou formato inválido.' });
         }
 
-        const promises = recipientIds.map(id => {
-            const cleanId = id.replace(/\D/g, '');
-            return pool.query(
-                `UPDATE public.data_log_old 
-                 SET status = COALESCE($1, status), 
-                     campanha = COALESCE($2, campanha),
-                     campanha_target = $4
-                 WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)`,
-                [status || null, campanha || null, `%${cleanId}%`, cleanId]
-            );
-        });
+        const cleanIds = recipientIds.map(id => id.replace(/\D/g, '')).filter(Boolean);
+        const chunkSize = 10;
+        
+        for (let i = 0; i < cleanIds.length; i += chunkSize) {
+            const chunk = cleanIds.slice(i, i + chunkSize);
+            const promises = chunk.map(cleanId => {
+                return pool.query(
+                    `UPDATE public.data_log_old 
+                     SET status = COALESCE($1, status), 
+                         campanha = COALESCE($2, campanha),
+                         campanha_target = $4
+                     WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)`,
+                    [status || null, campanha || null, `%${cleanId}%`, cleanId]
+                );
+            });
+            await Promise.all(promises);
+        }
 
-        await Promise.all(promises);
         res.json({ success: true });
     } catch (err) {
         console.error("Bulk Status Error:", err);

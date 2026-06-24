@@ -595,22 +595,29 @@ const N8NWorkflow = () => {
                     </button>
 
                     {uniqueRecipients.length > 0 && activeTab === 'campaign' && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => setFilterStatus(filterStatus === 'Green List' ? 'Tudo' : 'Green List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: filterStatus === 'Green List' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.1)', borderRadius: '16px', color: '#22c55e', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <ShieldCheck size={18} /> GREEN
-                            </button>
-                            <button onClick={() => setFilterStatus(filterStatus === 'Cold List' ? 'Tudo' : 'Cold List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: filterStatus === 'Cold List' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)', borderRadius: '16px', color: '#3b82f6', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <Activity size={18} /> COLD
-                            </button>
-                            <button onClick={() => setFilterStatus(filterStatus === 'Black List' ? 'Tudo' : 'Black List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: filterStatus === 'Black List' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '16px', color: '#ef4444', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <Trash2 size={18} /> BLACK
-                            </button>
-                            <button onClick={() => downloadCSV()} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <Download size={18} /> BAIXAR CSV
-                            </button>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '4px' }}>
+                                <button onClick={() => setFilterStatus('Tudo')} style={{ padding: '8px 16px', background: filterStatus === 'Tudo' ? 'rgba(255,255,255,0.1)' : 'transparent', borderRadius: '12px', color: filterStatus === 'Tudo' ? 'white' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 800, fontSize: '11px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    TODOS
+                                </button>
+                                <button onClick={() => setFilterStatus('Green List')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: filterStatus === 'Green List' ? 'rgba(34, 197, 94, 0.15)' : 'transparent', borderRadius: '12px', color: filterStatus === 'Green List' ? '#22c55e' : 'rgba(34, 197, 94, 0.5)', border: 'none', fontWeight: 800, fontSize: '11px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    <ShieldCheck size={14} /> GREEN
+                                </button>
+                                <button onClick={() => setFilterStatus('Cold List')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: filterStatus === 'Cold List' ? 'rgba(59, 130, 246, 0.15)' : 'transparent', borderRadius: '12px', color: filterStatus === 'Cold List' ? '#3b82f6' : 'rgba(59, 130, 246, 0.5)', border: 'none', fontWeight: 800, fontSize: '11px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    <Activity size={14} /> COLD
+                                </button>
+                                <button onClick={() => setFilterStatus('Black List')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: filterStatus === 'Black List' ? 'rgba(239, 68, 68, 0.15)' : 'transparent', borderRadius: '12px', color: filterStatus === 'Black List' ? '#ef4444' : 'rgba(239, 68, 68, 0.5)', border: 'none', fontWeight: 800, fontSize: '11px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                    <Trash2 size={14} /> BLACK
+                                </button>
+                            </div>
+                            
                             <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)', margin: '0 5px' }} />
-                            <button onClick={() => document.getElementById('campaign-filter-input')?.click()} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <Filter size={18} /> LOCALIZAR NA LISTA
+                            
+                            <button onClick={() => downloadCSV()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '14px', color: 'white', fontWeight: 800, fontSize: '11px' }} className="hover-lift">
+                                <Download size={16} /> BAIXAR CSV
+                            </button>
+                            <button onClick={() => document.getElementById('campaign-filter-input')?.click()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '14px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '11px' }} className="hover-lift">
+                                <Filter size={16} /> LOCALIZAR NA LISTA
                                 <input type="file" id="campaign-filter-input" hidden accept=".csv,.txt" onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
@@ -676,8 +683,9 @@ const N8NWorkflow = () => {
             )}
 
             {isLoading ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '20px' }}>
                     <div className="animate-spin" style={{ width: '50px', height: '50px', border: '4px solid rgba(172,248,0,0.1)', borderTopColor: 'var(--primary-color)', borderRadius: '50%' }}></div>
+                    <span style={{ color: 'var(--primary-color)', fontWeight: 800, fontSize: '14px', letterSpacing: '1px', textTransform: 'uppercase' }}>Processando dados, aguarde...</span>
                 </div>
             ) : (
                 (viewMode === 'chat' && activeTab === 'monitor') ? (
