@@ -320,9 +320,9 @@ function AppContent() {
           <Route path="/crm/fluxo-leads" element={<ProtectedRoute adminOnly={true}><CRMCentralFluxo /></ProtectedRoute>} />
           <Route path="/crm/consultiva" element={<ProtectedRoute><GestaoConsultiva /></ProtectedRoute>} />
           <Route path="/cron-report" element={<ProtectedRoute><CronReport /></ProtectedRoute>} />
-          <Route path="/plug-cards" element={<ProtectedRoute><PlugCardsExchange /></ProtectedRoute>} />
-          <Route path="/my-cards" element={<ProtectedRoute><MyPlugCards /></ProtectedRoute>} />
-          <Route path="/my-wallet" element={<ProtectedRoute><MyWallet /></ProtectedRoute>} />
+          <Route path="/plug-cards" element={<ProtectedRoute adminOnly={true}><PlugCardsExchange /></ProtectedRoute>} />
+          <Route path="/my-cards" element={<ProtectedRoute adminOnly={true}><MyPlugCards /></ProtectedRoute>} />
+          <Route path="/my-wallet" element={<ProtectedRoute adminOnly={true}><MyWallet /></ProtectedRoute>} />
           <Route path="/admin/plug-cards" element={<ProtectedRoute adminOnly={true}><AdminPlugCards /></ProtectedRoute>} />
           <Route path="/employee-clients" element={<ProtectedRoute><EmployeeClients /></ProtectedRoute>} />
           

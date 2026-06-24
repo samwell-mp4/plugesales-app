@@ -19,7 +19,10 @@ const Obrigado = () => {
         '9': 'Ramon Gomes',
         '10': 'Gisele Vieira',
         '11': 'Joyce Vieira',
-        '12': 'Thiago Rocha'
+        '12': 'Thiago Rocha',
+        '13': 'Gelton Carlos',
+        '14': 'Bernardo Rodrigues',
+        '15': 'Lucas Maia'
     };
 
     // Mapeamento de Telefones dos Agentes para Redirecionamento de WhatsApp

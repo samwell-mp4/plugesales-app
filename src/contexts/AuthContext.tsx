@@ -44,6 +44,8 @@ const VALID_USERS = [
     { name: 'Gisele Vieira', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'Joyce Vieira', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'Thiago Rocha', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'Bernardo Rodrigues', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'Lucas Maia', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'manoelflow', role: 'ASSINATURA_BASICA' as Role, password: 'flow2026manoel!br' },
     { name: 'contabilidade', role: 'CONTABILIDADE' as Role, password: 'contabilidade2026' },
 ];

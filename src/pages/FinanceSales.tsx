@@ -12,6 +12,36 @@ import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
 
+const maskPhone = (value: string) => {
+    let v = value.replace(/\D/g, '');
+    if (v.length > 11) v = v.slice(0, 11);
+    if (v.length > 10) {
+        return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+    } else if (v.length > 5) {
+        return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+    } else if (v.length > 2) {
+        return v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+    } else if (v.length > 0) {
+        return v.replace(/^(\d*)/, '($1');
+    }
+    return v;
+};
+
+const maskCpfCnpj = (value: string) => {
+    let v = value.replace(/\D/g, '');
+    if (v.length <= 11) {
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    } else {
+        if (v.length > 14) v = v.slice(0, 14);
+        v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+        v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        v = v.replace(/(\d{4})(\d)/, '$1-$2');
+    }
+    return v;
+};
 const FinanceSales = () => {
     const { user } = useAuth();
     const [sales, setSales] = useState<any[]>([]);
@@ -84,7 +114,13 @@ const FinanceSales = () => {
     };
 
     const handleInputChange = (e: any) => {
-        const { name, value } = e.target;
+        let { name, value } = e.target;
+        if (name === 'client_contact') {
+            value = maskPhone(value);
+        } else if (name === 'client_cpf_cnpj') {
+            value = maskCpfCnpj(value);
+        }
+        
         setFormData(prev => {
             const newData = { ...prev, [name]: value };
             if (name === 'quantity_hired' || name === 'unit_value') {

@@ -177,7 +177,7 @@ const Sidebar = () => {
         {
             id: 'CARDS',
             label: 'PLUG CARDS',
-            roles: ['ADMIN', 'EMPLOYEE'],
+            roles: ['ADMIN'],
             items: [
                 {
                     name: 'Gestão de Cards',
