@@ -596,25 +596,33 @@ const N8NWorkflow = () => {
 
                     {uniqueRecipients.length > 0 && activeTab === 'campaign' && (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => downloadCSV('Green List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.1)', borderRadius: '16px', color: '#22c55e', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                            <button onClick={() => setFilterStatus(filterStatus === 'Green List' ? 'Tudo' : 'Green List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: filterStatus === 'Green List' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.1)', borderRadius: '16px', color: '#22c55e', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
                                 <ShieldCheck size={18} /> GREEN
                             </button>
-                            <button onClick={() => downloadCSV('Cold List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)', borderRadius: '16px', color: '#3b82f6', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                            <button onClick={() => setFilterStatus(filterStatus === 'Cold List' ? 'Tudo' : 'Cold List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: filterStatus === 'Cold List' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)', borderRadius: '16px', color: '#3b82f6', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
                                 <Activity size={18} /> COLD
                             </button>
-                            <button onClick={() => downloadCSV('Black List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '16px', color: '#ef4444', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                            <button onClick={() => setFilterStatus(filterStatus === 'Black List' ? 'Tudo' : 'Black List')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: filterStatus === 'Black List' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '16px', color: '#ef4444', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
                                 <Trash2 size={18} /> BLACK
+                            </button>
+                            <button onClick={() => downloadCSV()} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', color: 'white', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
+                                <Download size={18} /> BAIXAR CSV
                             </button>
                             <div style={{ width: '1px', height: '30px', background: 'rgba(255,255,255,0.1)', margin: '0 5px' }} />
                             <button onClick={() => document.getElementById('campaign-filter-input')?.click()} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 24px', background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '16px', color: 'var(--primary-color)', fontWeight: 800, fontSize: '12px' }} className="hover-lift">
-                                <Filter size={18} /> FILTRAR POR LISTA
+                                <Filter size={18} /> LOCALIZAR NA LISTA
                                 <input type="file" id="campaign-filter-input" hidden accept=".csv,.txt" onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
+                                    if (!window.confirm(`Deseja usar o arquivo "${file.name}" para filtrar visualmente os contatos que estão nesta tabela? (Isso não altera dados no servidor)`)) {
+                                        e.target.value = '';
+                                        return;
+                                    }
                                     const text = await file.text();
                                     const lines = text.split(/\r?\n/).map(l => l.trim().replace(/\D/g, '')).filter(l => l.length > 5);
                                     setCampaignLeads(prev => prev.filter(lead => lines.includes(lead.id.replace(/\D/g, ''))));
-                                    alert(`Filtro aplicado! ${lines.length} números carregados.`);
+                                    alert(`Filtro visual aplicado! Contatos filtrados na tabela.`);
+                                    e.target.value = '';
                                 }} />
                             </button>
                         </div>
