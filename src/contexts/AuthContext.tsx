@@ -46,6 +46,7 @@ const VALID_USERS = [
     { name: 'Thiago Rocha', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'Bernardo Rodrigues', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'Lucas Maia', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'Gelton Carlos', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'manoelflow', role: 'ASSINATURA_BASICA' as Role, password: 'flow2026manoel!br' },
     { name: 'contabilidade', role: 'CONTABILIDADE' as Role, password: 'contabilidade2026' },
 ];
@@ -119,10 +120,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (foundStatic) {
             // Ensure static user exists in DB to have an ID and persistent settings
             try {
+                const safeEmail = `${foundStatic.name.toLowerCase().replace(/\s+/g, '.')}@plugsales.com.br`;
                 // We use a special register/login flow for static team members
                 const dbRes = await dbService.register({
                     name: foundStatic.name,
-                    email: `${foundStatic.name.toLowerCase()}@internal.system`,
+                    email: safeEmail,
                     phone: '0000000000',
                     password: foundStatic.password,
                     role: foundStatic.role
@@ -130,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 // If already exists, result will have error or user. DB register returns the user object directly.
                 // If register failed (likely user exists), we try to login
-                const finalUser = dbRes && !dbRes.error ? dbRes : (await dbService.login({ email: `${foundStatic.name.toLowerCase()}@internal.system`, password: foundStatic.password }));
+                const finalUser = dbRes && !dbRes.error ? dbRes : (await dbService.login({ email: safeEmail, password: foundStatic.password }));
 
                 // In current dbService, login returns the user object directly, not wrapped in {user: ...}
                 const userObj = finalUser?.user || finalUser;
@@ -148,10 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Absolute Fallback: This might lack an ID, causing profile update issues
+            const safeEmailFallback = `${foundStatic.name.toLowerCase().replace(/\s+/g, '.')}@plugsales.com.br`;
             const userData: User = {
                 name: foundStatic.name,
                 role: foundStatic.role as Role,
-                email: `${foundStatic.name.toLowerCase()}@internal.system`
+                email: safeEmailFallback
             };
             setUser(userData);
             localStorage.setItem('auth_user', JSON.stringify(userData));

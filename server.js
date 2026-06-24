@@ -1278,19 +1278,19 @@ app.get('/api/monitor/campaign-leads', async (req, res) => {
 
         // Accurate Filtering: Only show the party that was explicitly tagged as the "lead" for this campaign
         const result = await pool.query(
-            `SELECT DISTINCT ON (identifier) 
+            `SELECT DISTINCT ON (clean_id) 
                 identifier as id, 
                 nome as name, 
                 mensagem as "lastMessage", 
                 data_final as "lastDate", 
                 status 
              FROM (
-                SELECT remetente as identifier, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log_old
+                SELECT remetente as identifier, regexp_replace(remetente, '\\D', '', 'g') as clean_id, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log_old
                 UNION
-                SELECT destinatario as identifier, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log_old
+                SELECT destinatario as identifier, regexp_replace(destinatario, '\\D', '', 'g') as clean_id, nome, mensagem, data_final, status, campanha, campanha_target FROM public.data_log_old
              ) as subquery
-             WHERE campanha = $1 AND identifier = campanha_target
-             ORDER BY identifier, data_final DESC`,
+             WHERE campanha = $1 AND clean_id = campanha_target
+             ORDER BY clean_id, data_final DESC`,
             [campanha]
         );
 
