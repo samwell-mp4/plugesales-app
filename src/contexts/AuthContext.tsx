@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (username: string, password: string): Promise<boolean | string> => {
         // Try static login first (Internal Team)
         const foundStatic = VALID_USERS.find(u =>
-            u.name.toLowerCase() === username.toLowerCase() && u.password === password
+            u.name.toLowerCase() === username.toLowerCase().trim() && u.password === password.trim()
         );
 
         if (foundStatic) {
