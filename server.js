@@ -780,6 +780,7 @@ const initDB = async () => {
         console.log('✔ Blog tables verified/created.');
 
         await client.query(`ALTER TABLE public.data_log_old ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDENTE'`);
+        await client.query(`ALTER TABLE public.data_log_old ADD COLUMN IF NOT EXISTS campanha TEXT`);
         await client.query(`ALTER TABLE public.data_log_old ADD COLUMN IF NOT EXISTS campanha_target TEXT`);
         console.log('✅ Database initialized and verified (data_log_old).');
 
