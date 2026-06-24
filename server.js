@@ -1095,23 +1095,33 @@ app.post('/api/monitor/status', async (req, res) => {
 app.post('/api/monitor/bulk-status', async (req, res) => {
     try {
         const { recipientIds, status, campanha } = req.body;
-        if (!recipientIds || !Array.isArray(recipientIds) || (!status && !campanha)) {
+        if (!recipientIds || !Array.isArray(recipientIds) || (status === undefined && campanha === undefined)) {
             return res.status(400).json({ error: 'Faltam dados ou formato inválido.' });
         }
 
         const cleanIds = recipientIds.map(id => id.replace(/\D/g, '')).filter(Boolean);
         if (cleanIds.length === 0) return res.status(400).json({ error: 'Nenhum ID válido' });
 
-        // Execução em query única super otimizada para milhares de registros
-        await pool.query(`
-            UPDATE public.data_log_old d
-            SET status = COALESCE($1, status),
-                campanha = COALESCE($2, campanha),
-                campanha_target = CASE WHEN $2 IS NOT NULL THEN matched.clean_id ELSE campanha_target END
-            FROM (SELECT unnest($3::text[]) as clean_id) matched
-            WHERE d.remetente LIKE '%' || matched.clean_id || '%' 
-               OR d.destinatario LIKE '%' || matched.clean_id || '%'
-        `, [status || null, campanha || null, cleanIds]);
+        const chunkSize = 100;
+        for (let i = 0; i < cleanIds.length; i += chunkSize) {
+            const chunk = cleanIds.slice(i, i + chunkSize);
+            await pool.query(`
+                UPDATE public.data_log_old
+                SET status = COALESCE($1, status),
+                    campanha = COALESCE($2, campanha),
+                    campanha_target = CASE WHEN $2 IS NOT NULL THEN (
+                        SELECT v FROM unnest($3::text[]) v 
+                        WHERE regexp_replace(remetente, '\\D', '', 'g') LIKE '%' || v || '%' 
+                           OR regexp_replace(destinatario, '\\D', '', 'g') LIKE '%' || v || '%'
+                        LIMIT 1
+                    ) ELSE campanha_target END
+                WHERE (
+                    SELECT count(*) FROM unnest($3::text[]) v 
+                    WHERE regexp_replace(remetente, '\\D', '', 'g') LIKE '%' || v || '%' 
+                       OR regexp_replace(destinatario, '\\D', '', 'g') LIKE '%' || v || '%'
+                ) > 0
+            `, [status || null, campanha || null, chunk]);
+        }
 
         res.json({ success: true });
     } catch (err) {
@@ -1130,13 +1140,18 @@ app.post('/api/monitor/bulk-delete', async (req, res) => {
         const cleanIds = recipientIds.map(id => id.replace(/\D/g, '')).filter(Boolean);
         if (cleanIds.length === 0) return res.status(400).json({ error: 'Nenhum ID válido' });
 
-        // Exclusão em lote extremamente rápida
-        await pool.query(`
-            DELETE FROM public.data_log_old d
-            USING (SELECT unnest($1::text[]) as clean_id) matched
-            WHERE d.remetente LIKE '%' || matched.clean_id || '%' 
-               OR d.destinatario LIKE '%' || matched.clean_id || '%'
-        `, [cleanIds]);
+        const chunkSize = 100;
+        for (let i = 0; i < cleanIds.length; i += chunkSize) {
+            const chunk = cleanIds.slice(i, i + chunkSize);
+            await pool.query(`
+                DELETE FROM public.data_log_old
+                WHERE (
+                    SELECT count(*) FROM unnest($1::text[]) v 
+                    WHERE regexp_replace(remetente, '\\D', '', 'g') LIKE '%' || v || '%' 
+                       OR regexp_replace(destinatario, '\\D', '', 'g') LIKE '%' || v || '%'
+                ) > 0
+            `, [chunk]);
+        }
 
         res.json({ success: true });
     } catch (err) {
