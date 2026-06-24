@@ -1100,26 +1100,47 @@ app.post('/api/monitor/bulk-status', async (req, res) => {
         }
 
         const cleanIds = recipientIds.map(id => id.replace(/\D/g, '')).filter(Boolean);
-        const chunkSize = 10;
-        
-        for (let i = 0; i < cleanIds.length; i += chunkSize) {
-            const chunk = cleanIds.slice(i, i + chunkSize);
-            const promises = chunk.map(cleanId => {
-                return pool.query(
-                    `UPDATE public.data_log_old 
-                     SET status = COALESCE($1, status), 
-                         campanha = COALESCE($2, campanha),
-                         campanha_target = $4
-                     WHERE (remetente ILIKE $3 OR destinatario ILIKE $3)`,
-                    [status || null, campanha || null, `%${cleanId}%`, cleanId]
-                );
-            });
-            await Promise.all(promises);
-        }
+        if (cleanIds.length === 0) return res.status(400).json({ error: 'Nenhum ID válido' });
+
+        // Execução em query única super otimizada para milhares de registros
+        await pool.query(`
+            UPDATE public.data_log_old d
+            SET status = COALESCE($1, status),
+                campanha = COALESCE($2, campanha),
+                campanha_target = CASE WHEN $2 IS NOT NULL THEN matched.clean_id ELSE campanha_target END
+            FROM (SELECT unnest($3::text[]) as clean_id) matched
+            WHERE d.remetente LIKE '%' || matched.clean_id || '%' 
+               OR d.destinatario LIKE '%' || matched.clean_id || '%'
+        `, [status || null, campanha || null, cleanIds]);
 
         res.json({ success: true });
     } catch (err) {
         console.error("Bulk Status Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/monitor/bulk-delete', async (req, res) => {
+    try {
+        const { recipientIds } = req.body;
+        if (!recipientIds || !Array.isArray(recipientIds)) {
+            return res.status(400).json({ error: 'Faltam dados ou formato inválido.' });
+        }
+
+        const cleanIds = recipientIds.map(id => id.replace(/\D/g, '')).filter(Boolean);
+        if (cleanIds.length === 0) return res.status(400).json({ error: 'Nenhum ID válido' });
+
+        // Exclusão em lote extremamente rápida
+        await pool.query(`
+            DELETE FROM public.data_log_old d
+            USING (SELECT unnest($1::text[]) as clean_id) matched
+            WHERE d.remetente LIKE '%' || matched.clean_id || '%' 
+               OR d.destinatario LIKE '%' || matched.clean_id || '%'
+        `, [cleanIds]);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Bulk Delete Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
