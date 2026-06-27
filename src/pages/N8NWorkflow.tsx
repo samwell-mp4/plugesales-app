@@ -81,6 +81,12 @@ const N8NWorkflow = () => {
     }, [filterStatus]);
 
     useEffect(() => {
+        if (user?.role === 'CLIENT' && user?.notification_number) {
+            setSearchNumber(user.notification_number);
+        }
+    }, [user]);
+
+    useEffect(() => {
         if (activeTab === 'campaign' && selectedCampaign) {
             fetchCampaignLeads();
         }
@@ -123,11 +129,12 @@ const N8NWorkflow = () => {
     }, [selectedRecipient, messages]);
 
     const handleSearch = async () => {
-        if (!searchNumber.trim()) return;
+        const numberToSearch = (user?.role === 'CLIENT' && user?.notification_number) ? user.notification_number : searchNumber;
+        if (!numberToSearch.trim()) return;
         setIsLoading(true);
         setError(null);
         try {
-            const cleanPhone = searchNumber.replace(/\D/g, '');
+            const cleanPhone = numberToSearch.replace(/\D/g, '');
             const response = await fetch(`/api/monitor/logs?phone=${cleanPhone}`);
             if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
             
@@ -508,7 +515,7 @@ const N8NWorkflow = () => {
                     
                     <div style={{ position: 'relative', marginBottom: '24px' }}>
                         <Phone size={24} style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.6 }} />
-                        <input type="text" className="premium-input" placeholder="Digite o número (ex: 55119...)" value={searchNumber} onChange={(e) => setSearchNumber(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSearch()} style={{ paddingLeft: '64px', height: '75px', borderRadius: '24px', width: '100%' }} />
+                        <input type="text" className="premium-input" placeholder="Digite o número (ex: 55119...)" value={(user?.role === 'CLIENT' && user?.notification_number) ? user.notification_number : searchNumber} onChange={(e) => setSearchNumber(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSearch()} style={{ paddingLeft: '64px', height: '75px', borderRadius: '24px', width: '100%' }} disabled={user?.role === 'CLIENT'} />
                     </div>
                     
                     <button onClick={handleSearch} className="premium-button" style={{ width: '100%', height: '70px', borderRadius: '22px', fontSize: '1.2rem', fontWeight: 950, letterSpacing: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
@@ -550,7 +557,9 @@ const N8NWorkflow = () => {
 
             <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '20px', width: 'fit-content', margin: '0 auto 40px auto', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <button disabled={isLoading} onClick={() => { setActiveTab('monitor'); }} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'monitor' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'monitor' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1 }}>MONITOR DE NÚMERO</button>
-                <button disabled={isLoading} onClick={() => setActiveTab('campaign')} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'campaign' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'campaign' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1 }}>GESTÃO DE CAMPANHA</button>
+                {user?.role !== 'CLIENT' && (
+                    <button disabled={isLoading} onClick={() => setActiveTab('campaign')} style={{ padding: '12px 30px', borderRadius: '16px', background: activeTab === 'campaign' ? 'var(--primary-color)' : 'transparent', color: activeTab === 'campaign' ? 'black' : 'rgba(255,255,255,0.4)', border: 'none', fontWeight: 900, fontSize: '12px', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1 }}>GESTÃO DE CAMPANHA</button>
+                )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
@@ -742,22 +751,17 @@ const N8NWorkflow = () => {
                                         ))}
                                         <div ref={messagesEndRef} />
                                     </div>
-                                    <div style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '15px' }}>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Digite sua mensagem..." 
-                                            value={newMessage} 
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                            style={{ flex: 1, padding: '16px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', color: 'white', outline: 'none', fontWeight: 600 }}
-                                        />
-                                        <button 
-                                            onClick={handleSendMessage}
-                                            disabled={isSending || !newMessage.trim()}
-                                            style={{ width: '56px', height: '56px', background: 'var(--primary-color)', border: 'none', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black', cursor: 'pointer', transition: 'all 0.2s', opacity: (isSending || !newMessage.trim()) ? 0.5 : 1 }}
+                                    <div style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'center' }}>
+                                        <a 
+                                            href={`https://wa.me/${selectedRecipient.replace(/\\D/g, '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ width: '100%', padding: '16px 24px', background: 'var(--primary-color)', border: 'none', borderRadius: '18px', color: 'black', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '14px', transition: 'all 0.2s' }}
+                                            className="hover-lift"
                                         >
-                                            {isSending ? <Loader2 size={24} className="animate-spin" /> : <Send size={24} />}
-                                        </button>
+                                            <MessageCircle size={20} />
+                                            CHAMAR NO WHATSAPP
+                                        </a>
                                     </div>
                                 </>
                             )}
@@ -805,9 +809,19 @@ const N8NWorkflow = () => {
                                         </td>
                                         <td style={{ padding: '20px', textAlign: 'right' }}>
                                             {activeTab === 'monitor' ? (
-                                                <button onClick={() => { selectRecipient(conv.id); setViewMode('chat'); }} style={{ padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 800 }}>ABRIR CHAT</button>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                    <a href={`https://wa.me/${conv.id.replace(/\\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ padding: '10px 18px', background: 'var(--primary-color)', border: 'none', borderRadius: '12px', color: 'black', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} className="hover-lift" onClick={(e) => e.stopPropagation()}>
+                                                        <MessageCircle size={16} /> WHATSAPP
+                                                    </a>
+                                                    <button onClick={(e) => { e.stopPropagation(); selectRecipient(conv.id); setViewMode('chat'); }} style={{ padding: '10px 18px', background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 800 }} className="hover-lift">ABRIR CHAT</button>
+                                                </div>
                                             ) : (
-                                                <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: 800 }}>{selectedCampaign}</div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                                                    <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: 800 }}>{selectedCampaign}</div>
+                                                    <a href={`https://wa.me/${conv.id.replace(/\\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', background: 'var(--primary-color)', border: 'none', borderRadius: '8px', color: 'black', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px' }} className="hover-lift" onClick={(e) => e.stopPropagation()}>
+                                                        <MessageCircle size={12} /> WHATSAPP
+                                                    </a>
+                                                </div>
                                             )}
                                         </td>
                                     </tr>

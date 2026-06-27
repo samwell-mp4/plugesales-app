@@ -529,7 +529,8 @@ const TemplateCreator = () => {
                         mensagem: `🆕 *Novo Template Criado!* 🛠️\n\n📌 *Nome*: ${payload.name}\n📂 *Categoria*: ${payload.category}\n🌐 *Idioma*: ${payload.language}${payload.original_button_link ? `\n🔗 *Link Original*: ${payload.original_button_link}` : ''}\n\nO template foi enviado para análise da Meta e o monitoramento já foi iniciado.`,
                         template: payload.name,
                         status: 'PENDING',
-                        original_button_link: payload.original_button_link
+                        original_button_link: payload.original_button_link,
+                        usuario: user?.name || ''
                     }
                 })
             });

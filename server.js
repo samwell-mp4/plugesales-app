@@ -4915,7 +4915,8 @@ const startTemplateMonitoring = () => {
     const triggerStartupWebhook = async () => {
         const payload = {
             to: '', // System-level startup, no specific user to notify
-            mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.`
+            mensagem: `🎬 *Monitor de Templates iniciado!* O servidor está online e monitorando novas aprovações a cada 45 segundos.`,
+            usuario: 'Sistema'
         };
         const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/template-aprovado';
 
@@ -4990,7 +4991,8 @@ const startTemplateMonitoring = () => {
                                     to: notification_number,
                                     mensagem: notificationMsg,
                                     template: templateName,
-                                    status: newStatus
+                                    status: newStatus,
+                                    usuario: userRow.name
                                 };
 
                                 await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));

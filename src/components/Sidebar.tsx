@@ -124,7 +124,7 @@ const Sidebar = () => {
                 { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'INFLUENCER'] },
                 { name: 'Central Fluxo Leads', path: '/crm/fluxo-leads', icon: <Activity />, role: 'ADMIN' },
                 { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar />, roles: ['ADMIN', 'EMPLOYEE'] },
-                { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE', 'CLIENT'] },
             ]
         },
         {
@@ -236,6 +236,10 @@ const Sidebar = () => {
             ...cat,
             items: cat.items.filter((item: any) => {
                 const userRole = user?.role || '';
+                
+                // Special condition for Monitor de Banco
+                if (item.name === 'Monitor de Banco' && userRole === 'CLIENT' && !user?.notification_number) return false;
+
                 if (item.excludeRole && userRole === item.excludeRole) return false;
                 if (item.roles && !item.roles.includes(userRole)) return false;
                 if (item.role && item.role !== userRole) return false;

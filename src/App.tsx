@@ -202,6 +202,11 @@ function AppContent() {
         return false;
     }
 
+    // Special case for CLIENT: Monitor de Banco
+    if (user?.role === 'CLIENT' && user?.notification_number && location.pathname === '/crm/n8n-monitor') {
+        return false;
+    }
+
     // Special case: Clients CAN access /client-submissions/:id but NOT /client-submissions (list) or /client-submissions/add
     // ASSINATURA_BASICA CAN access /client-submissions (list) and /accounts and /templates
     if (user?.role === 'ASSINATURA_BASICA') {
