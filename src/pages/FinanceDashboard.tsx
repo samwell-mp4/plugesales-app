@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
+import { FinanceDashboardAccounting } from './FinanceDashboardAccounting';
 
 const FinanceDashboard = () => {
     const { user } = useAuth();
@@ -14,8 +15,14 @@ const FinanceDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        fetchSales();
-    }, []);
+        if (user?.role !== 'CONTABILIDADE') {
+            fetchSales();
+        }
+    }, [user?.role]);
+
+    if (user?.role === 'CONTABILIDADE') {
+        return <FinanceDashboardAccounting user={user} />;
+    }
 
     const fetchSales = async () => {
         setIsLoading(true);
