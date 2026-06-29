@@ -42,11 +42,35 @@ const CollaboratorsRegistration = () => {
 
     const fetchCollaborators = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('collaborators').select('*').order('full_name', { ascending: true });
-        if (!error && data) {
-            setCollaborators(data);
+        try {
+            const [pgUsers, { data: sbCollabs }] = await Promise.all([
+                dbService.getFinanceSalespeople(),
+                supabase.from('collaborators').select('*').order('full_name', { ascending: true })
+            ]);
+
+            const merged = [...(sbCollabs || [])];
+
+            if (pgUsers && pgUsers.length > 0) {
+                pgUsers.forEach((u: any) => {
+                    const exists = merged.find(c => c.full_name?.toLowerCase() === u.name?.toLowerCase() || c.email?.toLowerCase() === u.email?.toLowerCase());
+                    if (!exists) {
+                        merged.push({
+                            id: `pg_${u.id}`,
+                            full_name: u.name,
+                            email: u.email,
+                            role: 'Vendedor / Colaborador' // fallback
+                        });
+                    }
+                });
+            }
+
+            merged.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+            setCollaborators(merged);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const fetchHistory = async (collab: any) => {

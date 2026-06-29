@@ -243,20 +243,26 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="glass-card-acc" style={{ borderLeft: '4px solid #facc15' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>CONTAS (FILTRO)</h3>
-                    <p style={{ fontSize: '1.8rem', fontWeight: 900, color: 'white', margin: '8px 0' }}>{formatCurrency(totalPayables)}</p>
-                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{payables.length} itens encontrados</span>
+                <div className="glass-card-acc flex items-center justify-between" style={{ borderLeft: '4px solid #facc15' }}>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>CONTAS (FILTRO)</h3>
+                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{payables.length} itens encontrados</span>
+                    </div>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: 'white', margin: 0 }}>{formatCurrency(totalPayables)}</p>
                 </div>
-                <div className="glass-card-acc" style={{ borderLeft: '4px solid #38bdf8' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>REEMBOLSOS (FILTRO)</h3>
-                    <p style={{ fontSize: '1.8rem', fontWeight: 900, color: 'white', margin: '8px 0' }}>{formatCurrency(totalRefunds)}</p>
-                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{refunds.length} solicitações encontradas</span>
+                <div className="glass-card-acc flex items-center justify-between" style={{ borderLeft: '4px solid #38bdf8' }}>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>REEMBOLSOS (FILTRO)</h3>
+                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{refunds.length} solicitações encontradas</span>
+                    </div>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: 'white', margin: 0 }}>{formatCurrency(totalRefunds)}</p>
                 </div>
-                <div className="glass-card-acc" style={{ borderLeft: '4px solid #ef4444' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>CONTAS ATRASADAS</h3>
-                    <p style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ef4444', margin: '8px 0' }}>{formatCurrency(totalOverdue)}</p>
-                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>Requer atenção imediata</span>
+                <div className="glass-card-acc flex items-center justify-between" style={{ borderLeft: '4px solid #ef4444' }}>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>CONTAS ATRASADAS</h3>
+                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>Requer atenção imediata</span>
+                    </div>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ef4444', margin: 0 }}>{formatCurrency(totalOverdue)}</p>
                 </div>
             </div>
 

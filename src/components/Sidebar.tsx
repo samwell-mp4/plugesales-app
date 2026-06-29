@@ -142,16 +142,10 @@ const Sidebar = () => {
                 { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN', 'CONTABILIDADE'] },
+                { name: 'Colaboradores', path: '/collaborators/register', icon: <User />, roles: ['ADMIN', 'CONTABILIDADE'] }
             ]
         },
-        {
-            id: 'COLABORADORES',
-            label: 'RH & COLABORADORES',
-            roles: ['ADMIN', 'CONTABILIDADE'],
-            items: [
-                { name: 'Cadastro', path: '/collaborators/register', icon: <User /> }
-            ]
-        },
+
         {
             id: 'PÁGINAS',
             label: 'CONVERSÃO & LINKS',
@@ -267,6 +261,9 @@ const Sidebar = () => {
                 return location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
             });
             initialStates[cat.id] = cat.id === 'OPERACIONAL' ? false : !hasActive;
+            if (user?.role === 'CONTABILIDADE' && cat.id === 'FINANCEIRO') {
+                initialStates[cat.id] = false;
+            }
         });
         setCollapsedCats(initialStates);
     }, [location.pathname, user?.role]);
