@@ -292,7 +292,7 @@ const FinanceRequests = () => {
 
             {isCreateOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)' }}>
-                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-md shadow-2xl relative flex flex-col max-h-[90vh]">
+                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-md shadow-2xl relative flex flex-col max-h-[90vh] m-auto">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                             <h2 className="text-xl font-bold text-white">Nova Solicitação</h2>
                             <button onClick={() => setIsCreateOpen(false)} className="text-white/50 hover:text-white"><X size={24} /></button>
@@ -332,7 +332,7 @@ const FinanceRequests = () => {
 
             {selectedRequest && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)' }}>
-                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl relative">
+                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl relative m-auto">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                             <div>
                                 <h2 className="text-xl font-bold text-white">{selectedRequest.type}</h2>
