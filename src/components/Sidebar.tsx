@@ -105,6 +105,7 @@ const Sidebar = () => {
         {
             id: 'OPERACIONAL',
             label: 'OPERACIONAL',
+            excludeRole: 'CONTABILIDADE',
             items: [
                 { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
                 { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
@@ -137,9 +138,9 @@ const Sidebar = () => {
                 { name: 'Contas a Pagar', path: '/finance/payables', icon: <FileSpreadsheet />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Reembolsos', path: '/finance/refunds', icon: <DollarSign />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Solicitações', path: '/finance/requests', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'CONTABILIDADE'] },
-                { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
+                { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'CONTABILIDADE'] },
-                { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
+                { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN', 'CONTABILIDADE'] },
             ]
         },
@@ -229,10 +230,11 @@ const Sidebar = () => {
             ];
         }
 
-        return menuData.filter(cat => {
+        return menuData.filter((cat: any) => {
+            if (cat.excludeRole && cat.excludeRole === user?.role) return false;
             if (cat.roles && !cat.roles.includes(user?.role || '')) return false;
             return true;
-        }).map(cat => ({
+        }).map((cat: any) => ({
             ...cat,
             items: cat.items.filter((item: any) => {
                 const userRole = user?.role || '';

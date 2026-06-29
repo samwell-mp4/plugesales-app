@@ -11,6 +11,7 @@ import {
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
+import { sendAccountingNotification } from '../services/webhookService';
 
 const maskPhone = (value: string) => {
     let v = value.replace(/\D/g, '');
@@ -218,6 +219,20 @@ const FinanceSales = () => {
             const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
 
             await dbService.saveFinanceSale({ id: saleIdToUpload, payment_receipt_url: hostedUrl, payment_status: 'RECEBIDO' });
+            
+            // Send webhook notification
+            const sale = sales.find(s => s.id === saleIdToUpload);
+            if (sale) {
+                const dateFormatted = new Date().toLocaleDateString('pt-BR');
+                const msg = `O pagamento da venda de ${sale.package_hired} para o cliente ${sale.client_name} (R$ ${sale.total_value}) foi recebido com sucesso na data de hoje (${dateFormatted}).\n\n📄 Comprovante de Pagamento: ${hostedUrl}`;
+                sendAccountingNotification(
+                    'PAGAMENTO_RECEBIDO_VENDA',
+                    `Comprovante de pagamento anexado para a venda de ${sale.client_name}`,
+                    msg,
+                    { saleId: sale.id, hostedUrl, sale }
+                );
+            }
+
             fetchData();
         } catch (err) {
             console.error(err);

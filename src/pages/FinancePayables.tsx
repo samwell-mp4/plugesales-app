@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Search, Plus, List, Upload, FileText, CheckCircle2, Clock, CreditCard } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
 import { useAuth } from '../contexts/AuthContext';
+import { sendAccountingNotification } from '../services/webhookService';
 
 interface Supplier {
     id: number;
@@ -114,6 +115,20 @@ const FinancePayables = () => {
         setLoading(false);
         if (!error) {
             alert('Conta adicionada com sucesso!');
+            
+            // Send webhook notification
+            const dateFormatted = new Date(formData.launch_date || '').toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+            let msgText = `Nova conta de ${formData.type} no valor de R$ ${formData.value} adicionada para o fornecedor. Data: ${dateFormatted}.`;
+            if (formData.attachment_url) {
+                msgText += `\n\n📄 Anexo/Comprovante: ${formData.attachment_url}`;
+            }
+            sendAccountingNotification(
+                'NOVA_CONTA_PAGAR',
+                `Nova conta adicionada: ${formData.description || formData.type}`,
+                msgText,
+                formData
+            );
+
             setFormData({ type: 'Outros', status: 'Pendente', launch_date: new Date().toISOString().split('T')[0], responsible: user?.name || '' });
             setFileUrl('');
             setActiveTab('consulta');
@@ -125,6 +140,30 @@ const FinancePayables = () => {
 
     const updateStatus = async (id: number, newStatus: string) => {
         await supabase.from('finance_payables').update({ status: newStatus }).eq('id', id);
+        
+        // Find payable to send in webhook
+        const payable = payables.find(p => p.id === id);
+        if (payable) {
+            const dateFormatted = new Date().toLocaleDateString('pt-BR');
+            let msg = `O status da conta foi alterado para ${newStatus}.`;
+            if (newStatus === 'Paga') {
+                msg = `A conta de ${payable.type} (Fornecedor: ${payable.finance_suppliers?.name || 'Sem Fornecedor'}) foi paga com sucesso na data de hoje (${dateFormatted}).`;
+            } else if (newStatus === 'Aprovada') {
+                msg = `A conta de ${payable.type} (Fornecedor: ${payable.finance_suppliers?.name || 'Sem Fornecedor'}) foi aprovada em ${dateFormatted}.`;
+            }
+            
+            if (payable.attachment_url) {
+                msg += `\n\n📄 Anexo da Conta: ${payable.attachment_url}`;
+            }
+
+            sendAccountingNotification(
+                'ALTERACAO_STATUS_CONTA',
+                `Status da conta alterado para ${newStatus}`,
+                msg,
+                { id, newStatus, payable }
+            );
+        }
+
         fetchData();
     };
 

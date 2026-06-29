@@ -164,6 +164,16 @@ const FinanceRequests = () => {
         }
     };
 
+    const updateStatus = async (id: number, newStatus: string) => {
+        const { error } = await supabase.from('finance_requests').update({ status: newStatus }).eq('id', id);
+        if (!error) {
+            setSelectedRequest(prev => prev ? { ...prev, status: newStatus } : null);
+            fetchRequests();
+        } else {
+            alert('Erro ao atualizar: ' + error.message);
+        }
+    };
+
     const handleFinishRequest = async () => {
         setIsFinishing(true);
     };
@@ -304,8 +314,19 @@ const FinanceRequests = () => {
 
                                     {user?.role === 'ADMIN' && (
                                         <button type="button" onClick={() => setIsFinishing(true)} className="px-6 py-3 bg-primary-color text-black hover:opacity-80 rounded-xl font-bold text-sm transition-opacity">
-                                            Finalizar
+                                            Finalizar c/ Anexo
                                         </button>
+                                    )}
+
+                                    {(user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE') && (
+                                        <>
+                                            <button type="button" onClick={() => updateStatus(selectedRequest.id, 'Aprovada')} className="px-4 py-3 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-xl font-bold text-sm transition-colors">
+                                                Aprovar
+                                            </button>
+                                            <button type="button" onClick={() => updateStatus(selectedRequest.id, 'Cancelada')} className="px-4 py-3 bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 rounded-xl font-bold text-sm transition-colors">
+                                                Rejeitar
+                                            </button>
+                                        </>
                                     )}
                                 </form>
                             </div>

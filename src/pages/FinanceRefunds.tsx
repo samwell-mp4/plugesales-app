@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Search, Plus, List, Upload, FileText, X } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
 import { useAuth } from '../contexts/AuthContext';
+import { sendAccountingNotification } from '../services/webhookService';
 
 interface Refund {
     id: number;
@@ -67,6 +68,19 @@ const FinanceRefunds = () => {
         const { error } = await supabase.from('finance_refunds').insert([formData]);
         setLoading(false);
         if (!error) {
+            // Send webhook notification
+            const dateFormatted = new Date(formData.request_date || '').toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+            let msgText = `Uma nova solicitação de reembolso no valor de R$ ${formData.value} foi feita por ${formData.requester} referente à data ${dateFormatted}.`;
+            if (formData.attachment_url) {
+                msgText += `\n\n📄 Comprovante do Reembolso: ${formData.attachment_url}`;
+            }
+            sendAccountingNotification(
+                'NOVO_REEMBOLSO',
+                `Nova solicitação de reembolso de ${formData.requester}`,
+                msgText,
+                formData
+            );
+
             setIsModalOpen(false);
             setFormData({ requester: user?.name || '', request_date: new Date().toISOString().split('T')[0], status: 'Solicitado' });
             setFileUrl('');
@@ -77,7 +91,36 @@ const FinanceRefunds = () => {
     };
 
     const updateStatus = async (id: number, newStatus: string) => {
-        await supabase.from('finance_refunds').update({ status: newStatus }).eq('id', id);
+        const { error } = await supabase.from('finance_refunds').update({ status: newStatus }).eq('id', id);
+        
+        if (error) {
+            alert('Erro ao atualizar status: ' + error.message);
+            return;
+        }
+
+        // Find refund to send in webhook
+        const refund = refunds.find(r => r.id === id);
+        if (refund) {
+            const dateFormatted = new Date().toLocaleDateString('pt-BR');
+            let msg = `O status do reembolso foi alterado para ${newStatus}.`;
+            if (newStatus === 'Pago') {
+                msg = `O reembolso de R$ ${refund.value} solicitado por ${refund.requester} foi pago com sucesso na data de hoje (${dateFormatted}).`;
+            } else if (newStatus === 'Aprovado') {
+                msg = `O reembolso de R$ ${refund.value} solicitado por ${refund.requester} foi aprovado em ${dateFormatted}.`;
+            }
+            
+            if (refund.attachment_url) {
+                msg += `\n\n📄 Comprovante do Reembolso: ${refund.attachment_url}`;
+            }
+
+            sendAccountingNotification(
+                'ALTERACAO_STATUS_REEMBOLSO',
+                `Status do reembolso alterado para ${newStatus}`,
+                msg,
+                { id, newStatus, refund }
+            );
+        }
+
         fetchData();
     };
 
