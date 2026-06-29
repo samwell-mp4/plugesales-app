@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
     Clock, CheckCircle2, AlertCircle, FileText, 
-    Upload, X, Search, Filter, Calendar, DollarSign
+    Upload, X, Search, Filter, Calendar, DollarSign, CloudUpload
 } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
-import { sendAccountingNotification } from '../services/webhookService';
+import { sendAccountingNotification, exportFinanceDataToN8n } from '../services/webhookService';
 
 export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
     const [payables, setPayables] = useState<any[]>([]);
@@ -145,6 +145,28 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
 
     const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+    const [isExporting, setIsExporting] = useState(false);
+    const handleExportToN8n = async () => {
+        setIsExporting(true);
+        const payload = {
+            contas: payables,
+            reembolsos: refunds,
+            resumo: {
+                total_contas: totalPayables,
+                total_reembolsos: totalRefunds,
+                total_atrasadas: totalOverdue
+            },
+            data_exportacao: new Date().toISOString()
+        };
+        const success = await exportFinanceDataToN8n(payload);
+        setIsExporting(false);
+        if (success) {
+            alert('Dados exportados com sucesso para o n8n!');
+        } else {
+            alert('Erro ao exportar dados. Verifique a configuração do webhook.');
+        }
+    };
+
     const getDaysLeft = (dateString: string) => {
         const due = new Date(dateString);
         due.setHours(0,0,0,0);
@@ -213,6 +235,14 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                     <h1>Painel Contábil</h1>
                     <p className="subtitle">Gestão de contas, reembolsos e vencimentos</p>
                 </div>
+                <button 
+                    onClick={handleExportToN8n}
+                    disabled={isExporting}
+                    style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '14px', padding: '12px 24px', fontWeight: 900, cursor: isExporting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    {isExporting ? <Clock size={18} className="animate-spin" /> : <CloudUpload size={18} />}
+                    {isExporting ? 'EXPORTANDO...' : 'EXPORTAR DADOS (n8n)'}
+                </button>
             </header>
 
             <div className="flex flex-wrap gap-4 mb-8">
