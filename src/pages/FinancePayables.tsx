@@ -93,19 +93,28 @@ const FinancePayables = () => {
         const file = event.target.files?.[0];
         if (!file) return;
         setUploading(true);
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `payables/${fileName}`;
-
-        const { error } = await supabase.storage.from('finance-files').upload(filePath, file);
-        if (error) {
-            alert('Erro no upload. O bucket finance-files existe? ' + error.message);
-        } else {
-            const { data } = supabase.storage.from('finance-files').getPublicUrl(filePath);
-            setFileUrl(data.publicUrl);
-            setFormData({ ...formData, attachment_url: data.publicUrl });
+        try {
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', file);
+            
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: uploadFormData
+            });
+            
+            if (!uploadRes.ok) throw new Error("Upload failed");
+            
+            const uploadData = await uploadRes.json();
+            const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
+            
+            setFileUrl(hostedUrl);
+            setFormData({ ...formData, attachment_url: hostedUrl });
+        } catch (err) {
+            console.error(err);
+            alert("Erro no upload do anexo.");
+        } finally {
+            setUploading(false);
         }
-        setUploading(false);
     };
 
     const handleSave = async (e: React.FormEvent) => {
