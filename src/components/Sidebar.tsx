@@ -286,12 +286,19 @@ const Sidebar = () => {
                     { icon: <FileUp />, path: '/client-submissions' },
                     { icon: <User />, path: '/profile' }
                 ]
-                : [
-                    { icon: <LayoutDashboard />, path: '/upload' },
-                    { icon: <Users />, path: '/crm/funil' },
-                    { icon: <Activity />, path: '/accounts' },
-                    { icon: <MessageSquare />, path: '/templates' }
-                ];
+                : user?.role === 'CONTABILIDADE'
+                    ? [
+                        { icon: <LayoutDashboard />, path: '/finance/dashboard' },
+                        { icon: <FileSpreadsheet />, path: '/finance/payables' },
+                        { icon: <MessageSquare />, path: '/finance/requests' },
+                        { icon: <User />, path: '/collaborators/register' }
+                    ]
+                    : [
+                        { icon: <LayoutDashboard />, path: '/upload' },
+                        { icon: <Users />, path: '/crm/funil' },
+                        { icon: <Activity />, path: '/accounts' },
+                        { icon: <MessageSquare />, path: '/templates' }
+                    ];
 
         return (
             <>
