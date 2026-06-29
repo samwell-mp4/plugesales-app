@@ -95,7 +95,7 @@ const FinanceDashboard = () => {
     ].filter(m => user?.role !== 'CLIENT' || m.label !== 'Lucro Líquido');
 
     return (
-        <div className="animate-fade-in finance-page" style={{ padding: '40px', paddingBottom: '80px' }}>
+        <div className="animate-fade-in finance-page p-4 md:p-10 pb-20 md:pb-20">
             <style>{`
                 .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
                 .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
