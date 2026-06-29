@@ -12,7 +12,7 @@ export const sendAccountingNotification = async (
             data
         };
 
-        await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/contabilidade_notificacao', {
+        await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/contabilidade_notificacao', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
