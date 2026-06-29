@@ -1,7 +1,7 @@
 export const sendAccountingNotification = async (
-    action_type: string, 
-    action_description: string, 
-    whatsapp_message: string, 
+    action_type: string,
+    action_description: string,
+    whatsapp_message: string,
     data: any
 ) => {
     try {
@@ -11,8 +11,8 @@ export const sendAccountingNotification = async (
             whatsapp_message,
             data
         };
-        
-        await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook-test/contabilidade_notificacao', {
+
+        await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/contabilidade_notificacao', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

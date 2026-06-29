@@ -80,3 +80,35 @@ CREATE TABLE IF NOT EXISTS finance_request_responses (
     message TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- ==========================================
+-- SUPABASE STORAGE CONFIGURATION
+-- ==========================================
+
+-- 1. Create the bucket (Public)
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('finance-files', 'finance-files', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Enable RLS on storage objects (if not already enabled)
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- 3. Policy: Allow public read access to the bucket
+CREATE POLICY "Public Read Access" 
+ON storage.objects FOR SELECT 
+USING (bucket_id = 'finance-files');
+
+-- 4. Policy: Allow anyone (or authenticated users) to upload files
+CREATE POLICY "Public Insert Access" 
+ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'finance-files');
+
+-- 5. Policy: Allow users to update their files
+CREATE POLICY "Public Update Access" 
+ON storage.objects FOR UPDATE 
+USING (bucket_id = 'finance-files');
+
+-- 6. Policy: Allow users to delete files
+CREATE POLICY "Public Delete Access" 
+ON storage.objects FOR DELETE 
+USING (bucket_id = 'finance-files');
