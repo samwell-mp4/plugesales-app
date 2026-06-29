@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Search, Plus, X, MessageSquare, Paperclip, Send, Clock, CheckCircle2 } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
 import { useAuth } from '../contexts/AuthContext';
+import { sendAccountingNotification } from '../services/webhookService';
 
 interface RequestModel {
     id: number;
@@ -42,7 +43,13 @@ const FinanceRequests = () => {
 
     const fetchRequests = async () => {
         setLoading(true);
-        const { data } = await supabase.from('finance_requests').select('*').order('created_at', { ascending: false });
+        let query = supabase.from('finance_requests').select('*').order('created_at', { ascending: false });
+        
+        if (user?.role === 'EMPLOYEE') {
+            query = query.eq('requester', user.name);
+        }
+
+        const { data } = await query;
         if (data) setRequests(data as RequestModel[]);
         setLoading(false);
     };
@@ -99,9 +106,22 @@ const FinanceRequests = () => {
             attachment_url: formData.attachment_url,
             status: 'Pendente'
         };
-        const { error } = await supabase.from('finance_requests').insert([payload]);
+        const { error, data: insertedData } = await supabase.from('finance_requests').insert([payload]).select().single();
         setLoading(false);
-        if (!error) {
+        if (!error && insertedData) {
+            // Webhook
+            const dateFormatted = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}`;
+            let msgText = `Uma nova solicitação do tipo "${formData.type}" foi enviada por ${user?.name || 'Usuário'}. Data: ${dateFormatted}.`;
+            if (formData.notes) msgText += `\n\n📝 Observações: ${formData.notes}`;
+            if (formData.attachment_url) msgText += `\n\n📄 Anexo: ${formData.attachment_url}`;
+            
+            sendAccountingNotification(
+                'NOVA_SOLICITACAO',
+                `Nova Solicitação: ${formData.type} - ${user?.name}`,
+                msgText,
+                { request: insertedData }
+            );
+
             setIsCreateOpen(false);
             setFormData({ type: 'Desconto', notes: '', attachment_url: '' });
             setFileUrl('');
@@ -168,6 +188,17 @@ const FinanceRequests = () => {
 
         const { error } = await supabase.from('finance_requests').update({ status: 'Finalizada' }).eq('id', selectedRequest.id);
         if (!error) {
+            // Webhook
+            const dateFormatted = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}`;
+            const msg = `A solicitação de ${selectedRequest.type} feita por ${selectedRequest.requester} foi Finalizada em ${dateFormatted}.\n\n📄 Comprovante: ${finishFileUrl}`;
+            
+            sendAccountingNotification(
+                'ALTERACAO_STATUS_SOLICITACAO',
+                `Solicitação Finalizada: ${selectedRequest.type}`,
+                msg,
+                { request: { ...selectedRequest, status: 'Finalizada' } }
+            );
+
             setIsFinishing(false);
             setFinishFileUrl('');
             setSelectedRequest(null);
@@ -189,10 +220,22 @@ const FinanceRequests = () => {
     const updateStatus = async (id: number, newStatus: string) => {
         const { error } = await supabase.from('finance_requests').update({ status: newStatus }).eq('id', id);
         if (!error) {
+            const req = requests.find(r => r.id === id);
+            if (req) {
+                const dateFormatted = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}`;
+                const msg = `O status da solicitação de ${req.type} feita por ${req.requester} foi alterado para ${newStatus} em ${dateFormatted}.`;
+                sendAccountingNotification(
+                    'ALTERACAO_STATUS_SOLICITACAO',
+                    `Status da Solicitação: ${newStatus}`,
+                    msg,
+                    { request: { ...req, status: newStatus } }
+                );
+            }
+
             setSelectedRequest(prev => prev ? { ...prev, status: newStatus } : null);
             fetchRequests();
         } else {
-            alert('Erro ao atualizar: ' + error.message);
+            alert("Erro ao atualizar status");
         }
     };
 
