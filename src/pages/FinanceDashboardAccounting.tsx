@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
     Clock, CheckCircle2, AlertCircle, FileText, 
-    Upload, X, Search, Filter, Calendar
+    Upload, X, Search, Filter, Calendar, DollarSign
 } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
 import { sendAccountingNotification } from '../services/webhookService';
@@ -34,21 +34,48 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
         const startDateStr = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2, '0')}-01`;
         const endDateStr = `${end.getFullYear()}-${String(end.getMonth()+1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
 
-        let pQuery = supabase.from('finance_payables').select(`*, finance_suppliers(name)`).gte('due_date', startDateStr).lte('due_date', endDateStr).order('due_date', { ascending: true });
-        let rQuery = supabase.from('finance_refunds').select('*').gte('request_date', startDateStr).lte('request_date', endDateStr).order('request_date', { ascending: false });
+        let pQuery = supabase.from('finance_payables').select(`*, finance_suppliers(name)`).order('due_date', { ascending: true });
+        let rQuery = supabase.from('finance_refunds').select('*').order('request_date', { ascending: false });
+        let reqQuery = supabase.from('finance_requests').select('*').eq('type', 'Reembolso').order('created_at', { ascending: false });
 
         if (filterStatus === 'Pendente') {
             pQuery = pQuery.in('status', ['Pendente', 'Aprovada']);
             rQuery = rQuery.in('status', ['Solicitado', 'Aprovado']);
+            reqQuery = reqQuery.in('status', ['Pendente', 'Aprovado']);
         } else if (filterStatus === 'Pago') {
-            pQuery = pQuery.eq('status', 'Paga');
-            rQuery = rQuery.eq('status', 'Pago');
+            pQuery = pQuery.eq('status', 'Paga').gte('due_date', startDateStr).lte('due_date', endDateStr);
+            rQuery = rQuery.eq('status', 'Pago').gte('request_date', startDateStr).lte('request_date', endDateStr);
+            reqQuery = reqQuery.in('status', ['Finalizada', 'Pago']).gte('created_at', startDateStr).lte('created_at', endDateStr);
+        } else {
+            pQuery = pQuery.gte('due_date', startDateStr).lte('due_date', endDateStr);
+            rQuery = rQuery.gte('request_date', startDateStr).lte('request_date', endDateStr);
+            reqQuery = reqQuery.gte('created_at', startDateStr).lte('created_at', endDateStr);
         }
 
-        const [pRes, rRes] = await Promise.all([pQuery, rQuery]);
+        const [pRes, rRes, reqRes] = await Promise.all([pQuery, rQuery, reqQuery]);
         
         if (pRes.data) setPayables(pRes.data);
-        if (rRes.data) setRefunds(rRes.data);
+        
+        let allRefunds: any[] = [];
+        if (rRes.data) {
+            allRefunds = [...rRes.data];
+        }
+        if (reqRes.data) {
+            const mappedReqs = reqRes.data.map(req => ({
+                id: `req_${req.id}`,
+                requester: req.requester,
+                request_date: req.created_at,
+                value: req.value || 0,
+                description: req.notes,
+                attachment_url: req.attachment_url,
+                status: req.status === 'Finalizada' ? 'Pago' : req.status === 'Pendente' ? 'Solicitado' : req.status,
+                isRequest: true
+            }));
+            allRefunds = [...allRefunds, ...mappedReqs];
+        }
+
+        allRefunds.sort((a, b) => new Date(b.request_date).getTime() - new Date(a.request_date).getTime());
+        setRefunds(allRefunds);
 
         setLoading(false);
     };
@@ -156,6 +183,29 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                     font-size: 0.75rem;
                     cursor: pointer;
                 }
+                .grid-row {
+                    display: grid;
+                    grid-template-columns: 2fr 1.5fr 1fr 1fr;
+                    align-items: center;
+                    gap: 16px;
+                    padding: 16px 24px;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                    transition: background 0.2s;
+                }
+                .grid-row:hover {
+                    background: rgba(255,255,255,0.02);
+                }
+                @media (max-width: 768px) {
+                    .grid-row {
+                        grid-template-columns: 1fr;
+                        gap: 12px;
+                    }
+                    .grid-row > div {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                }
             `}</style>
 
             <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
@@ -226,29 +276,36 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                                 const daysLeft = getDaysLeft(p.due_date);
                                 const isOverdue = daysLeft < 0 && p.status !== 'Paga';
                                 return (
-                                    <div key={p.id} style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    <div key={p.id} className="grid-row">
                                         <div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                                <h4 style={{ margin: 0, fontWeight: 800, color: 'white' }}>{p.finance_suppliers?.name || 'Sem Fornecedor'}</h4>
+                                                <h4 style={{ margin: 0, fontWeight: 800, color: 'white', fontSize: '0.9rem' }}>{p.finance_suppliers?.name || 'Sem Fornecedor'}</h4>
                                                 {isOverdue && <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: '0.65rem', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>ATRASADA</span>}
                                             </div>
-                                            <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>{p.type} • {p.description || 'Sem descrição'}</p>
-                                            
-                                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.875rem', fontWeight: 900, color: 'var(--primary-color)' }}>{formatCurrency(p.value)}</span>
-                                                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <Clock size={12} /> Venc: {new Date(p.due_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} 
-                                                    {p.status !== 'Paga' && ` (${daysLeft === 0 ? 'Hoje' : daysLeft > 0 ? `em ${daysLeft} dias` : `há ${Math.abs(daysLeft)} dias`})`}
-                                                </span>
+                                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{p.type}</p>
+                                        </div>
+                                        
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Clock size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                                            <div>
+                                                <div style={{ fontSize: '0.8rem', color: 'white' }}>{new Date(p.due_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                                                    {p.status !== 'Paga' && `(${daysLeft === 0 ? 'Hoje' : daysLeft > 0 ? `em ${daysLeft} dias` : `há ${Math.abs(daysLeft)} dias`})`}
+                                                </div>
                                             </div>
                                         </div>
+
+                                        <div>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary-color)' }}>{formatCurrency(p.value)}</span>
+                                        </div>
+
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                                             <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', padding: '4px 8px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: p.status === 'Paga' ? '#4ade80' : p.status === 'Aprovada' ? '#60a5fa' : '#facc15' }}>
                                                 {p.status}
                                             </span>
                                             {p.status !== 'Paga' && (
                                                 <button onClick={() => setIsFinishing(p.id)} className="btn-acc hover:opacity-80 transition-opacity">
-                                                    Pagar Conta
+                                                    Pagar
                                                 </button>
                                             )}
                                         </div>
@@ -266,25 +323,32 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                         <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
                             {refunds.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.4)' }}>Nenhum reembolso encontrado.</div>}
                             {refunds.map(r => (
-                                <div key={r.id} style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                <div key={r.id} className="grid-row">
                                     <div>
-                                        <h4 style={{ margin: '0 0 4px 0', fontWeight: 800, color: 'white' }}>{r.requester}</h4>
-                                        <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>{r.description || 'Sem descrição'}</p>
-                                        
-                                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '0.875rem', fontWeight: 900, color: 'var(--primary-color)' }}>{formatCurrency(r.value)}</span>
-                                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <Calendar size={12} /> Data: {new Date(r.request_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                                            </span>
+                                        <h4 style={{ margin: '0 0 4px 0', fontWeight: 800, color: 'white', fontSize: '0.9rem' }}>{r.requester}</h4>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            {r.isRequest ? 'Via Solicitação' : 'Direto'}
+                                        </p>
+                                    </div>
+                                    
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Calendar size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                                        <div style={{ fontSize: '0.8rem', color: 'white' }}>
+                                            {new Date(r.request_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                                         </div>
                                     </div>
+
+                                    <div>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary-color)' }}>{formatCurrency(r.value)}</span>
+                                    </div>
+
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                                         <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', padding: '4px 8px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: r.status === 'Pago' ? '#4ade80' : r.status === 'Aprovado' ? '#60a5fa' : r.status === 'Rejeitado' ? '#ef4444' : '#facc15' }}>
                                             {r.status}
                                         </span>
                                         {r.attachment_url && (
                                             <a href={r.attachment_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <FileText size={12} /> Ver Anexo
+                                                <FileText size={12} /> Anexo
                                             </a>
                                         )}
                                     </div>

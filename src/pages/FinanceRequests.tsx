@@ -11,6 +11,7 @@ interface RequestModel {
     type: string;
     notes: string;
     attachment_url: string;
+    value?: number;
     status: string;
     created_at: string;
 }
@@ -32,7 +33,7 @@ const FinanceRequests = () => {
     
     // Create Modal
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [formData, setFormData] = useState({ type: 'Desconto', notes: '', attachment_url: '' });
+    const [formData, setFormData] = useState({ type: 'Desconto', notes: '', attachment_url: '', value: 0 });
     const [uploading, setUploading] = useState(false);
     const [fileUrl, setFileUrl] = useState('');
 
@@ -99,19 +100,23 @@ const FinanceRequests = () => {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        const payload = {
+        const payload: any = {
             requester: user?.name || '',
             type: formData.type,
             notes: formData.notes,
             attachment_url: formData.attachment_url,
             status: 'Pendente'
         };
+        if (formData.type === 'Reembolso' || formData.type === 'Adiantamento') {
+            payload.value = formData.value;
+        }
         const { error, data: insertedData } = await supabase.from('finance_requests').insert([payload]).select().single();
         setLoading(false);
         if (!error && insertedData) {
             // Webhook
             const dateFormatted = `${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}`;
             let msgText = `Uma nova solicitação do tipo "${formData.type}" foi enviada por ${user?.name || 'Usuário'}. Data: ${dateFormatted}.`;
+            if (payload.value) msgText += `\n💰 Valor: R$ ${payload.value}`;
             if (formData.notes) msgText += `\n\n📝 Observações: ${formData.notes}`;
             if (formData.attachment_url) msgText += `\n\n📄 Anexo: ${formData.attachment_url}`;
             
@@ -123,7 +128,7 @@ const FinanceRequests = () => {
             );
 
             setIsCreateOpen(false);
-            setFormData({ type: 'Desconto', notes: '', attachment_url: '' });
+            setFormData({ type: 'Desconto', notes: '', attachment_url: '', value: 0 });
             setFileUrl('');
             fetchRequests();
         }
@@ -275,6 +280,7 @@ const FinanceRequests = () => {
                                 </span>
                             </div>
                             <p className="text-xs text-white/50 mb-6 line-clamp-2">{req.notes}</p>
+                            {req.value ? <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)' }}>R$ {req.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p> : null}
                             <div className="flex justify-between items-center pt-4 border-t border-white/5">
                                 <span className="text-xs text-white/40">{new Date(req.created_at).toLocaleDateString()}</span>
                                 <span className="text-xs font-bold text-white/80 group-hover:text-primary-color transition-colors">Ver Detalhes &rarr;</span>
@@ -303,6 +309,12 @@ const FinanceRequests = () => {
                                     <label className="text-xs font-bold text-white/60 uppercase">Descreva sua solicitação</label>
                                     <textarea required className="input-field w-full min-h-[100px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
                                 </div>
+                                {(formData.type === 'Reembolso' || formData.type === 'Adiantamento') && (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase">Valor (R$)</label>
+                                        <input type="number" step="0.01" min="0" required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
+                                    </div>
+                                )}
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Anexos (Opcional)</label>
                                     <div className="border-2 border-dashed border-white/10 rounded-xl p-4 text-center relative hover:border-primary-color transition-colors">
