@@ -75,11 +75,13 @@ const FinanceRefunds = () => {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        const { error } = await supabase.from('finance_refunds').insert([formData]);
+        const { error, data: insertedData } = await supabase.from('finance_refunds').insert([formData]).select().single();
         setLoading(false);
-        if (!error) {
+        if (!error && insertedData) {
             // Send webhook notification
-            const dateFormatted = new Date(formData.request_date || '').toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+            const dateObj = new Date(formData.request_date || '');
+            const dateFormatted = `${String(dateObj.getUTCDate()).padStart(2, '0')}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${dateObj.getUTCFullYear()}`;
+            
             let msgText = `Uma nova solicitação de reembolso no valor de R$ ${formData.value} foi feita por ${formData.requester} referente à data ${dateFormatted}.`;
             if (formData.attachment_url) {
                 msgText += `\n\n📄 Comprovante do Reembolso: ${formData.attachment_url}`;
@@ -88,7 +90,7 @@ const FinanceRefunds = () => {
                 'NOVO_REEMBOLSO',
                 `Nova solicitação de reembolso de ${formData.requester}`,
                 msgText,
-                formData
+                { refund: insertedData }
             );
 
             setIsModalOpen(false);
@@ -96,7 +98,7 @@ const FinanceRefunds = () => {
             setFileUrl('');
             fetchData();
         } else {
-            alert('Erro: ' + error.message);
+            alert('Erro: ' + (error?.message || 'Desconhecido'));
         }
     };
 
@@ -111,7 +113,9 @@ const FinanceRefunds = () => {
         // Find refund to send in webhook
         const refund = refunds.find(r => r.id === id);
         if (refund) {
-            const dateFormatted = new Date().toLocaleDateString('pt-BR');
+            const now = new Date();
+            const dateFormatted = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+            
             let msg = `O status do reembolso foi alterado para ${newStatus}.`;
             if (newStatus === 'Pago') {
                 msg = `O reembolso de R$ ${refund.value} solicitado por ${refund.requester} foi pago com sucesso na data de hoje (${dateFormatted}).`;
@@ -127,7 +131,7 @@ const FinanceRefunds = () => {
                 'ALTERACAO_STATUS_REEMBOLSO',
                 `Status do reembolso alterado para ${newStatus}`,
                 msg,
-                { id, newStatus, refund }
+                { refund: { ...refund, status: newStatus } }
             );
         }
 

@@ -117,16 +117,55 @@ const FinancePayables = () => {
         }
     };
 
+    const [isFinishing, setIsFinishing] = useState<number | null>(null);
+    const [finishFileUrl, setFinishFileUrl] = useState('');
+    const [finishUploading, setFinishUploading] = useState(false);
+
+    const handleFinishFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setFinishUploading(true);
+        try {
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', file);
+            
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: uploadFormData
+            });
+            
+            if (!uploadRes.ok) throw new Error("Upload failed");
+            
+            const uploadData = await uploadRes.json();
+            const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
+            
+            setFinishFileUrl(hostedUrl);
+        } catch (err) {
+            console.error(err);
+            alert("Erro no upload do comprovante.");
+        } finally {
+            setFinishUploading(false);
+        }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (formData.status === 'Paga' && !formData.attachment_url) {
+            alert('Por favor, anexe o comprovante de pagamento ao marcar a conta como Paga.');
+            return;
+        }
+
         setLoading(true);
-        const { error } = await supabase.from('finance_payables').insert([formData]);
+        const { error, data: insertedData } = await supabase.from('finance_payables').insert([formData]).select().single();
         setLoading(false);
-        if (!error) {
+        if (!error && insertedData) {
             alert('Conta adicionada com sucesso!');
             
             // Send webhook notification
-            const dateFormatted = new Date(formData.launch_date || '').toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+            const dateObj = new Date(formData.launch_date || '');
+            const dateFormatted = `${String(dateObj.getUTCDate()).padStart(2, '0')}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${dateObj.getUTCFullYear()}`;
+            
             let msgText = `Nova conta de ${formData.type} no valor de R$ ${formData.value} adicionada para o fornecedor. Data: ${dateFormatted}.`;
             if (formData.attachment_url) {
                 msgText += `\n\n📄 Anexo/Comprovante: ${formData.attachment_url}`;
@@ -135,7 +174,7 @@ const FinancePayables = () => {
                 'NOVA_CONTA_PAGAR',
                 `Nova conta adicionada: ${formData.description || formData.type}`,
                 msgText,
-                formData
+                { payable: insertedData }
             );
 
             setFormData({ type: 'Outros', status: 'Pendente', launch_date: new Date().toISOString().split('T')[0], responsible: user?.name || '' });
@@ -143,17 +182,40 @@ const FinancePayables = () => {
             setActiveTab('consulta');
             fetchData();
         } else {
-            alert('Erro: ' + error.message);
+            alert('Erro: ' + (error?.message || 'Desconhecido'));
         }
     };
 
     const updateStatus = async (id: number, newStatus: string) => {
-        await supabase.from('finance_payables').update({ status: newStatus }).eq('id', id);
+        if (newStatus === 'Paga') {
+            const payable = payables.find(p => p.id === id);
+            if (!payable?.attachment_url) {
+                setIsFinishing(id);
+                return;
+            }
+        }
+        await processStatusUpdate(id, newStatus, null);
+    };
+
+    const confirmFinishPayable = async () => {
+        if (!isFinishing || !finishFileUrl) return;
+        await processStatusUpdate(isFinishing, 'Paga', finishFileUrl);
+        setIsFinishing(null);
+        setFinishFileUrl('');
+    };
+
+    const processStatusUpdate = async (id: number, newStatus: string, attachmentUrl: string | null) => {
+        const updateData: any = { status: newStatus };
+        if (attachmentUrl) updateData.attachment_url = attachmentUrl;
+        
+        await supabase.from('finance_payables').update(updateData).eq('id', id);
         
         // Find payable to send in webhook
         const payable = payables.find(p => p.id === id);
         if (payable) {
-            const dateFormatted = new Date().toLocaleDateString('pt-BR');
+            const now = new Date();
+            const dateFormatted = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+            
             let msg = `O status da conta foi alterado para ${newStatus}.`;
             if (newStatus === 'Paga') {
                 msg = `A conta de ${payable.type} (Fornecedor: ${payable.finance_suppliers?.name || 'Sem Fornecedor'}) foi paga com sucesso na data de hoje (${dateFormatted}).`;
@@ -161,15 +223,18 @@ const FinancePayables = () => {
                 msg = `A conta de ${payable.type} (Fornecedor: ${payable.finance_suppliers?.name || 'Sem Fornecedor'}) foi aprovada em ${dateFormatted}.`;
             }
             
-            if (payable.attachment_url) {
-                msg += `\n\n📄 Anexo da Conta: ${payable.attachment_url}`;
+            const finalAttachment = attachmentUrl || payable.attachment_url;
+            if (finalAttachment) {
+                msg += `\n\n📄 Anexo da Conta: ${finalAttachment}`;
             }
+
+            const payloadPayable = { ...payable, ...updateData };
 
             sendAccountingNotification(
                 'ALTERACAO_STATUS_CONTA',
                 `Status da conta alterado para ${newStatus}`,
                 msg,
-                { id, newStatus, payable }
+                { payable: payloadPayable }
             );
         }
 
@@ -385,6 +450,38 @@ const FinancePayables = () => {
                             </button>
                         </div>
                     </form>
+                </div>
+            )}
+
+            {isFinishing && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', padding: '16px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+                    <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', width: '100%', maxWidth: '400px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)' }}>
+                            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'white' }}>Anexar Comprovante</h2>
+                            <button onClick={() => { setIsFinishing(null); setFinishFileUrl(''); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Para marcar esta conta como Paga, por favor, anexe o comprovante de pagamento.</p>
+                            <div style={{ border: '2px dashed rgba(255,255,255,0.1)', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative' }}>
+                                <input type="file" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} onChange={handleFinishFileUpload} disabled={finishUploading} />
+                                {finishUploading ? (
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-color)' }}>Enviando...</span>
+                                ) : finishFileUrl ? (
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#4ade80' }}>Arquivo anexado!</span>
+                                ) : (
+                                    <>
+                                        <Upload size={24} style={{ color: 'var(--primary-color)', marginBottom: '8px' }} />
+                                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'white' }}>Clique para enviar</span>
+                                    </>
+                                )}
+                            </div>
+                            <button onClick={confirmFinishPayable} disabled={!finishFileUrl || finishUploading} style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '12px', padding: '12px', fontWeight: 900, fontSize: '0.875rem', cursor: 'pointer', opacity: (!finishFileUrl || finishUploading) ? 0.5 : 1, transition: 'opacity 0.2s', marginTop: '8px' }}>
+                                Confirmar Pagamento
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
