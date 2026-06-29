@@ -292,12 +292,12 @@ const FinanceRequests = () => {
 
             {isCreateOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)' }}>
-                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-md shadow-2xl relative">
+                    <div className="bg-[#111111] border border-white/10 rounded-3xl w-full max-w-md shadow-2xl relative flex flex-col max-h-[90vh]">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                             <h2 className="text-xl font-bold text-white">Nova Solicitação</h2>
                             <button onClick={() => setIsCreateOpen(false)} className="text-white/50 hover:text-white"><X size={24} /></button>
                         </div>
-                        <div className="p-6">
+                        <div className="p-6 overflow-y-auto custom-scrollbar">
                             <form id="createReqForm" onSubmit={handleCreate} className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Tipo</label>
@@ -309,12 +309,10 @@ const FinanceRequests = () => {
                                     <label className="text-xs font-bold text-white/60 uppercase">Descreva sua solicitação</label>
                                     <textarea required className="input-field w-full min-h-[100px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
                                 </div>
-                                {(formData.type === 'Reembolso' || formData.type === 'Adiantamento') && (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase">Valor (R$)</label>
-                                        <input type="number" step="0.01" min="0" required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
-                                    </div>
-                                )}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-white/60 uppercase">Valor (R$)</label>
+                                    <input type="number" step="0.01" min="0" required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", fontWeight: 700, padding: "12px", width: "100%" }} value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
+                                </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase">Anexos (Opcional)</label>
                                     <div className="border-2 border-dashed border-white/10 rounded-xl p-4 text-center relative hover:border-primary-color transition-colors">

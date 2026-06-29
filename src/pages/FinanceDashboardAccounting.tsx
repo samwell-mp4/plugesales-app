@@ -242,27 +242,38 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="glass-card-acc flex items-center justify-between" style={{ borderLeft: '4px solid #facc15' }}>
-                    <div>
-                        <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>CONTAS (FILTRO)</h3>
-                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{payables.length} itens encontrados</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                <div className="glass-card-acc" style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderLeft: '4px solid #facc15', borderRadius: '20px', padding: '20px' }}>
+                    <div className="flex justify-between items-start mb-2">
+                        <div style={{ color: '#facc15', background: '#facc1515', padding: '10px', borderRadius: '12px' }}>
+                            <FileText size={24} />
+                        </div>
                     </div>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: 'white', margin: 0 }}>{formatCurrency(totalPayables)}</p>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>CONTAS (FILTRO)</p>
+                    <h2 style={{ margin: '4px 0', fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>{formatCurrency(totalPayables)}</h2>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{payables.length} itens encontrados</span>
                 </div>
-                <div className="glass-card-acc flex items-center justify-between" style={{ borderLeft: '4px solid #38bdf8' }}>
-                    <div>
-                        <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>REEMBOLSOS (FILTRO)</h3>
-                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{refunds.length} solicitações encontradas</span>
+
+                <div className="glass-card-acc" style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderLeft: '4px solid #38bdf8', borderRadius: '20px', padding: '20px' }}>
+                    <div className="flex justify-between items-start mb-2">
+                        <div style={{ color: '#38bdf8', background: '#38bdf815', padding: '10px', borderRadius: '12px' }}>
+                            <DollarSign size={24} />
+                        </div>
                     </div>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: 'white', margin: 0 }}>{formatCurrency(totalRefunds)}</p>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>REEMBOLSOS (FILTRO)</p>
+                    <h2 style={{ margin: '4px 0', fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>{formatCurrency(totalRefunds)}</h2>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{refunds.length} solicitações encontradas</span>
                 </div>
-                <div className="glass-card-acc flex items-center justify-between" style={{ borderLeft: '4px solid #ef4444' }}>
-                    <div>
-                        <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 800 }}>CONTAS ATRASADAS</h3>
-                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>Requer atenção imediata</span>
+
+                <div className="glass-card-acc" style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderLeft: '4px solid #ef4444', borderRadius: '20px', padding: '20px' }}>
+                    <div className="flex justify-between items-start mb-2">
+                        <div style={{ color: '#ef4444', background: '#ef444415', padding: '10px', borderRadius: '12px' }}>
+                            <AlertCircle size={24} />
+                        </div>
                     </div>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ef4444', margin: 0 }}>{formatCurrency(totalOverdue)}</p>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>CONTAS ATRASADAS</p>
+                    <h2 style={{ margin: '4px 0', fontSize: '1.4rem', fontWeight: 900, color: '#ef4444' }}>{formatCurrency(totalOverdue)}</h2>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>Requer atenção imediata</span>
                 </div>
             </div>
 
