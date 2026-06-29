@@ -7,7 +7,7 @@ import {
 import SupremeLoading from '../components/SupremeLoading';
 import { sendAccountingNotification } from '../services/webhookService';
 
-export const FinanceDashboardAccounting = ({ user }: { user: any }) => {
+export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
     const [payables, setPayables] = useState<any[]>([]);
     const [refunds, setRefunds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
