@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Plus, List, Upload, FileText, CheckCircle2, Clock, CreditCard } from 'lucide-react';
+import { Search, Plus, List, Upload, FileText, CheckCircle2, Clock, CreditCard, X } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
 import { useAuth } from '../contexts/AuthContext';
 import { sendAccountingNotification } from '../services/webhookService';
