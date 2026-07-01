@@ -131,7 +131,7 @@ const Sidebar = () => {
         {
             id: 'FINANCEIRO',
             label: 'MÓDULO FINANCEIRO',
-            roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'],
+            roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE', 'COZINHEIRA'],
             items: [
                 { name: 'Painel Geral', path: '/finance/dashboard', icon: <LayoutDashboard />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Fornecedores', path: '/finance/suppliers', icon: <Users />, roles: ['ADMIN', 'CONTABILIDADE'] },
@@ -142,6 +142,7 @@ const Sidebar = () => {
                 { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN', 'CONTABILIDADE'] },
+                { name: 'Controle de Estoque', path: '/finance/inventory', icon: <Database />, roles: ['ADMIN', 'COZINHEIRA'] },
                 { name: 'Colaboradores', path: '/collaborators/register', icon: <User />, roles: ['ADMIN', 'CONTABILIDADE'] }
             ]
         },

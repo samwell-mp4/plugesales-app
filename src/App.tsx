@@ -59,6 +59,7 @@ import FinanceSuppliers from './pages/FinanceSuppliers';
 import FinancePayables from './pages/FinancePayables';
 import FinanceRefunds from './pages/FinanceRefunds';
 import FinanceRequests from './pages/FinanceRequests';
+import FinanceInventory from './pages/FinanceInventory';
 import CollaboratorsRegistration from './pages/CollaboratorsRegistration';
 import './index.css';
 import './crm.css';
@@ -189,9 +190,17 @@ function AppContent() {
     '/admin/plug-cards'
   ];
 
-  const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA' || user?.role === 'VENDEDOR';
+  const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA' || user?.role === 'VENDEDOR' || user?.role === 'COZINHEIRA';
   
   if (isRestrictedRole && adminOnlyRoutes.some(route => {
+    // Special case for COZINHEIRA: They can ONLY access finance dashboard and inventory
+    if (user?.role === 'COZINHEIRA') {
+        if (location.pathname === '/finance/dashboard' || location.pathname === '/finance/inventory') {
+            return false;
+        }
+        return true; // Block everything else in admin routes
+    }
+
     // Special case for VENDEDOR: They can access the finance module
     if (user?.role === 'VENDEDOR' && location.pathname.startsWith('/finance')) {
         return false;
@@ -229,6 +238,11 @@ function AppContent() {
   // Admin exclusive
   if (!isAdmin && location.pathname.startsWith('/control')) {
       return <Navigate to="/dashboard" replace />;
+  }
+
+  // Cozinheira Default Redirect
+  if (user?.role === 'COZINHEIRA' && (location.pathname === '/' || location.pathname === '/dashboard')) {
+      return <Navigate to="/finance/inventory" replace />;
   }
 
   return (
@@ -341,6 +355,7 @@ function AppContent() {
           <Route path="/finance/payables" element={<ProtectedRoute><FinancePayables /></ProtectedRoute>} />
           <Route path="/finance/refunds" element={<ProtectedRoute><FinanceRefunds /></ProtectedRoute>} />
           <Route path="/finance/requests" element={<ProtectedRoute><FinanceRequests /></ProtectedRoute>} />
+          <Route path="/finance/inventory" element={<ProtectedRoute><FinanceInventory /></ProtectedRoute>} />
           <Route path="/collaborators/register" element={<ProtectedRoute><CollaboratorsRegistration /></ProtectedRoute>} />
 
           {/* External Public Views (Micro-apps) */}

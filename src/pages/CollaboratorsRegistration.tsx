@@ -345,6 +345,7 @@ const CollaboratorsRegistration = () => {
                                     <option value="ADMIN" className="bg-[#111]">Administradores</option>
                                     <option value="VENDEDOR" className="bg-[#111]">Vendedores</option>
                                     <option value="CONTABILIDADE" className="bg-[#111]">Contabilidade</option>
+                                    <option value="COZINHEIRA" className="bg-[#111]">Cozinha (COZINHEIRA)</option>
                                     <option value="PENDING_CLIENT" className="bg-[#111]">Pendentes (Waiting)</option>
                                 </select>
                             </div>
