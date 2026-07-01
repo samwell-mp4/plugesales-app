@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
     UserPlus, Landmark, FileText, Upload, X, Search, 
-    ChevronRight, CreditCard, DollarSign, Activity, FileCheck, ShieldAlert, Key
+    ChevronRight, CreditCard, DollarSign, Activity, FileCheck, ShieldAlert, Key, Filter, ExternalLink, Mail, Phone, MapPin, Briefcase
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -17,6 +17,7 @@ const CollaboratorsRegistration = () => {
     const [collaborators, setCollaborators] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [filterRole, setFilterRole] = useState('ALL');
     
     // Selected collaborator data
     const [selectedCollab, setSelectedCollab] = useState<any>(null);
@@ -318,47 +319,108 @@ const CollaboratorsRegistration = () => {
 
             {/* LIST VIEW */}
             {!loading && view === 'list' && (
-                <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="relative w-full md:w-96">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
-                            <input 
-                                type="text" 
-                                placeholder="Buscar colaborador..." 
-                                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:border-primary-color transition-colors"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                            />
+                <div className="space-y-8">
+                    {/* Filtros e Ações */}
+                    <div className="glass-card-rh p-4 md:p-6 flex flex-col lg:flex-row justify-between items-center gap-4 shadow-xl">
+                        <div className="flex flex-col md:flex-row w-full lg:w-2/3 gap-4">
+                            <div className="relative w-full md:w-3/5">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-color" size={18} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar por nome ou e-mail..." 
+                                    className="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white outline-none focus:border-primary-color transition-colors placeholder:text-white/30 font-medium"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                />
+                            </div>
+                            <div className="relative w-full md:w-2/5">
+                                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                                <select 
+                                    className="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white outline-none focus:border-white/20 transition-colors font-medium appearance-none cursor-pointer"
+                                    value={filterRole}
+                                    onChange={e => setFilterRole(e.target.value)}
+                                >
+                                    <option value="ALL" className="bg-[#111]">Todos os Cargos</option>
+                                    <option value="EMPLOYEE" className="bg-[#111]">Equipe Interna (EMPLOYEE)</option>
+                                    <option value="ADMIN" className="bg-[#111]">Administradores</option>
+                                    <option value="VENDEDOR" className="bg-[#111]">Vendedores</option>
+                                    <option value="CONTABILIDADE" className="bg-[#111]">Contabilidade</option>
+                                    <option value="PENDING_CLIENT" className="bg-[#111]">Pendentes (Waiting)</option>
+                                </select>
+                            </div>
                         </div>
-                        <button onClick={handleNewCollaborator} style={{ background: "var(--primary-color)", color: "black" }} className="border-none rounded-xl px-6 py-3 font-black text-sm cursor-pointer flex items-center gap-2 hover:opacity-90 w-full md:w-auto justify-center shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]">
-                            <UserPlus size={18} /> Novo Cadastro
+                        <button onClick={handleNewCollaborator} style={{ background: "var(--primary-color)", color: "black" }} className="border-none rounded-xl px-8 py-3 font-black text-sm cursor-pointer flex items-center justify-center gap-3 hover:scale-105 transition-all w-full lg:w-auto shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] whitespace-nowrap">
+                            <UserPlus size={18} /> Cadastrar Colaborador
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {collaborators.filter(c => c.full_name?.toLowerCase().includes(search.toLowerCase())).map(collab => (
-                            <div 
-                                key={collab.id} 
-                                onClick={() => handleSelectCollaborator(collab)}
-                                className="glass-card-rh p-6 cursor-pointer hover:border-primary-color/50 transition-all group relative overflow-hidden flex flex-col h-full"
-                            >
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-color/5 rounded-bl-full -z-10 group-hover:bg-primary-color/10 transition-colors"></div>
-                                <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-primary-color font-black text-2xl mb-5 border border-white/5 shadow-inner">
-                                    {collab.full_name?.charAt(0).toUpperCase()}
-                                </div>
-                                <h3 className="text-white font-bold text-lg m-0 mb-1">{collab.full_name}</h3>
-                                <p className="text-white/50 text-sm m-0 mb-6 font-medium">{collab.role || 'Sem cargo definido'}</p>
-                                
-                                <div className="flex flex-col text-xs text-white/40 gap-2 mt-auto pt-4 border-t border-white/5">
-                                    <span className="truncate">{collab.email}</span>
-                                    {collab.phone && <span>{collab.phone}</span>}
-                                </div>
-                            </div>
-                        ))}
-                        {collaborators.length === 0 && (
-                            <div className="col-span-full text-center py-12 text-white/50 font-medium">Nenhum colaborador cadastrado.</div>
-                        )}
+                    {/* Grid Cards (3 por linha no Desktop = lg:grid-cols-3) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                        {collaborators
+                            .filter(c => c.full_name?.toLowerCase().includes(search.toLowerCase()) || c.email?.toLowerCase().includes(search.toLowerCase()))
+                            .filter(c => filterRole === 'ALL' ? true : c.role === filterRole)
+                            .map(collab => {
+                                const numericId = String(collab.id).replace('pg_', '');
+                                const landingUrl = `https://plugesales.com/landing${numericId}`;
+                                return (
+                                    <div 
+                                        key={collab.id} 
+                                        onClick={() => handleSelectCollaborator(collab)}
+                                        className="glass-card-rh cursor-pointer hover:border-primary-color/50 transition-all group relative overflow-hidden flex flex-col h-full hover:shadow-[0_0_40px_rgba(var(--primary-rgb),0.15)] hover:-translate-y-1"
+                                    >
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-color/20 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                        
+                                        <div className="p-6 md:p-8 flex-1 flex flex-col">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center text-white font-black text-2xl border border-white/10 shadow-xl group-hover:border-primary-color/50 transition-colors">
+                                                    {collab.full_name?.charAt(0).toUpperCase()}
+                                                </div>
+                                                {collab.role && (
+                                                    <span className="text-[10px] font-black tracking-widest uppercase px-3 py-1.5 rounded-lg border flex items-center gap-1.5" style={{ 
+                                                        borderColor: collab.role === 'ADMIN' ? '#ef4444' : collab.role === 'EMPLOYEE' ? 'var(--primary-color)' : 'rgba(255,255,255,0.2)',
+                                                        color: collab.role === 'ADMIN' ? '#ef4444' : collab.role === 'EMPLOYEE' ? 'var(--primary-color)' : 'rgba(255,255,255,0.6)',
+                                                        backgroundColor: collab.role === 'ADMIN' ? 'rgba(239, 68, 68, 0.1)' : collab.role === 'EMPLOYEE' ? 'rgba(var(--primary-rgb), 0.1)' : 'rgba(255,255,255,0.05)'
+                                                    }}>
+                                                        <Briefcase size={12} /> {collab.role}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            
+                                            <h3 className="text-white font-black text-xl mb-2 group-hover:text-primary-color transition-colors line-clamp-1">{collab.full_name}</h3>
+                                            
+                                            <div className="space-y-3 mt-4 text-sm font-medium text-white/60 flex-1">
+                                                <div className="flex items-center gap-3">
+                                                    <Mail size={14} className="text-white/30" />
+                                                    <span className="truncate">{collab.email}</span>
+                                                </div>
+                                                {collab.phone && (
+                                                    <div className="flex items-center gap-3">
+                                                        <Phone size={14} className="text-white/30" />
+                                                        <span>{collab.phone}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-3">
+                                                    <ExternalLink size={14} className="text-primary-color/50" />
+                                                    <span className="text-primary-color/80 bg-primary-color/5 px-2 py-0.5 rounded border border-primary-color/20 font-bold truncate">/landing{numericId}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-black/30 p-4 border-t border-white/5 flex justify-between items-center mt-auto group-hover:bg-primary-color/5 transition-colors">
+                                            <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Acessar Ficha Completa</span>
+                                            <ChevronRight size={16} className="text-white/30 group-hover:text-primary-color transition-colors group-hover:translate-x-1" />
+                                        </div>
+                                    </div>
+                                );
+                            })}
                     </div>
+                    {collaborators.length === 0 && (
+                        <div className="text-center py-20 glass-card-rh">
+                            <UserPlus size={48} className="mx-auto mb-4 text-white/20" />
+                            <h3 className="text-white font-bold text-xl">Nenhum colaborador encontrado</h3>
+                            <p className="text-white/50 mt-2">Tente buscar com outro termo ou limpe os filtros.</p>
+                        </div>
+                    )}
                 </div>
             )}
 
