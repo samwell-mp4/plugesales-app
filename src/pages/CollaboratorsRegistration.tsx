@@ -340,7 +340,7 @@ const CollaboratorsRegistration = () => {
                             <button className={`tab-btn ${activeTab === 'vendas' ? 'active' : ''}`} onClick={() => setActiveTab('vendas')}>
                                 <DollarSign size={16} /> Histórico de Vendas
                             </button>
-                            {(user?.role === 'ADMIN' || user?.role === 'ACCOUNTING') && (
+                            {(user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE') && (
                                 <button className={`tab-btn ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>
                                     <ShieldAlert size={16} /> Controle Admin
                                 </button>
@@ -563,7 +563,7 @@ const CollaboratorsRegistration = () => {
                     )}
                     
                     {/* TAB: CONTROLE ADMIN */}
-                    {activeTab === 'admin' && (user?.role === 'ADMIN' || user?.role === 'ACCOUNTING') && (
+                    {activeTab === 'admin' && (user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE') && (
                         <div className="animate-fade-in space-y-8">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* Módulo de Senha */}
