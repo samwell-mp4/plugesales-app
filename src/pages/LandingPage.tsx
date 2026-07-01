@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import SEO from '../components/SEO';
 import {
     Zap,
@@ -72,17 +73,39 @@ const LandingPage = () => {
         '15': 'Lucas+Maia'
     };
 
-    const currentAgentParam = id ? (agentParamMap[id.replace('landing', '')] || '') : '';
+    const [dynamicAgentName, setDynamicAgentName] = useState<string>('');
+    const [dynamicAgentParam, setDynamicAgentParam] = useState<string>('');
+
+    const currentAgentParam = id ? (agentParamMap[id.replace('landing', '')] || dynamicAgentParam) : '';
 
     useEffect(() => {
         if (id) {
             const numericId = id.replace('landing', '');
-            const agentName = agentMap[numericId];
-
-            sessionStorage.setItem('landing_ref', `landing${numericId}`);
-            if (agentName) {
-                sessionStorage.setItem('landing_agent', agentName);
-            }
+            
+            const processAgent = async () => {
+                let agentName = agentMap[numericId];
+                
+                // Se não estiver no mapa fixo 1-15, busca do Supabase (dinâmico)
+                if (!agentName) {
+                    try {
+                        const { data } = await supabase.from('collaborators').select('full_name').eq('id', numericId).single();
+                        if (data && data.full_name) {
+                            agentName = data.full_name;
+                            setDynamicAgentName(agentName);
+                            setDynamicAgentParam(agentName.replace(/\s+/g, '+'));
+                        }
+                    } catch (err) {
+                        console.error('Erro ao buscar corretor:', err);
+                    }
+                }
+                
+                sessionStorage.setItem('landing_ref', `landing${numericId}`);
+                if (agentName) {
+                    sessionStorage.setItem('landing_agent', agentName);
+                }
+            };
+            
+            processAgent();
         } else {
             if (!sessionStorage.getItem('landing_ref')) {
                 sessionStorage.setItem('landing_ref', 'landing_original');

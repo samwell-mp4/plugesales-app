@@ -154,17 +154,53 @@ const CollaboratorsRegistration = () => {
         
         let payload = { ...formData };
         
-        if (view === 'create' || String(selectedCollab?.id).startsWith('pg_')) {
-            // Criação ou Movendo usuário do Postgres para o Supabase (ID numérico autogerado)
+        if (view === 'create') {
+            if (!payload.sys_password) {
+                return alert('Para um novo cadastro, é obrigatório definir uma Senha de Acesso.');
+            }
+            try {
+                // 1. Criar usuário nativo Postgres
+                const pgRes = await fetch('/api/admin/employees', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: payload.full_name,
+                        email: payload.email,
+                        password: payload.sys_password,
+                        phone: payload.phone
+                    })
+                });
+                const pgData = await pgRes.json();
+                if (!pgRes.ok) throw new Error(pgData.error || 'Erro ao criar usuário nativo (Postgres).');
+                
+                // 2. Registrar no Supabase com o ID (e como "Landing Page ID")
+                delete payload.id;
+                delete payload.sys_password;
+                
+                const { error } = await supabase.from('collaborators').insert([{ ...payload, id: pgData.id }]);
+                if (!error) {
+                    alert(`Colaborador cadastrado! ID Landing Page gerado automaticamente: ${pgData.id}`);
+                    setView('list');
+                } else {
+                    alert('Erro ao cadastrar perfil no Supabase: ' + error.message);
+                }
+            } catch (err: any) {
+                alert(err.message);
+            }
+        } else if (String(selectedCollab?.id).startsWith('pg_')) {
+            // Movendo usuário do Postgres para o Supabase (já tem o ID, vamos usar ele próprio)
             delete payload.id;
-            const { error } = await supabase.from('collaborators').insert([payload]);
+            delete payload.sys_password;
+            const numericId = parseInt(String(selectedCollab.id).replace('pg_', ''));
+            const { error } = await supabase.from('collaborators').insert([{ ...payload, id: numericId }]);
             if (!error) {
-                alert('Colaborador cadastrado com sucesso!');
+                alert('Colaborador atualizado com sucesso (movido para Supabase)!');
                 setView('list');
             } else {
-                alert('Erro ao cadastrar: ' + error.message);
+                alert('Erro ao atualizar: ' + error.message);
             }
         } else if (view === 'detail') {
+            delete payload.sys_password;
             const { error } = await supabase.from('collaborators').update(payload).eq('id', selectedCollab.id);
             if (!error) {
                 alert('Colaborador atualizado com sucesso!');
@@ -363,24 +399,40 @@ const CollaboratorsRegistration = () => {
                                         <input required type="text" className="input-field-premium" value={formData.full_name || ''} onChange={e => setFormData({...formData, full_name: e.target.value})} />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">CPF *</label>
-                                        <input required type="text" className="input-field-premium" value={formData.cpf || ''} onChange={e => setFormData({...formData, cpf: e.target.value})} />
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Cargo</label>
+                                        <input type="text" className="input-field-premium" value={formData.role || ''} onChange={e => setFormData({...formData, role: e.target.value})} />
                                     </div>
                                     <div className="space-y-2 lg:col-span-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">E-mail *</label>
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">E-mail de Acesso *</label>
                                         <input required type="email" className="input-field-premium" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
                                     </div>
+                                    
+                                    {view === 'create' ? (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1 text-primary-color">Senha Inicial de Acesso *</label>
+                                            <input required type="password" placeholder="Senha do sistema" className="input-field-premium border-primary-color/50" value={formData.sys_password || ''} onChange={e => setFormData({...formData, sys_password: e.target.value})} />
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1 text-primary-color">ID Landing Page</label>
+                                            <div className="input-field-premium bg-primary-color/10 border-primary-color/30 text-primary-color flex items-center justify-between">
+                                                <span>{String(selectedCollab?.id).replace('pg_', '')}</span>
+                                                <span className="text-[10px] bg-primary-color text-black px-2 py-1 rounded font-black">/landing{String(selectedCollab?.id).replace('pg_', '')}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Telefone</label>
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Telefone (WhatsApp)</label>
                                         <input type="text" className="input-field-premium" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Data de Nascimento</label>
                                         <input type="date" className="input-field-premium" value={formData.birth_date || ''} onChange={e => setFormData({...formData, birth_date: e.target.value})} />
                                     </div>
-                                    <div className="space-y-2 lg:col-span-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Cargo</label>
-                                        <input type="text" className="input-field-premium" value={formData.role || ''} onChange={e => setFormData({...formData, role: e.target.value})} />
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">CPF</label>
+                                        <input type="text" className="input-field-premium" value={formData.cpf || ''} onChange={e => setFormData({...formData, cpf: e.target.value})} />
                                     </div>
                                 </div>
                             </div>
