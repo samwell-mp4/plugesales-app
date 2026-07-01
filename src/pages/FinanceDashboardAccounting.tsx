@@ -15,6 +15,7 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
     const [filterStatus, setFilterStatus] = useState('Pendente');
     const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
     const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+    const [filterType, setFilterType] = useState('Todos');
 
     const [isFinishing, setIsFinishing] = useState<number | null>(null);
     const [finishFileUrl, setFinishFileUrl] = useState('');
@@ -22,7 +23,7 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
 
     useEffect(() => {
         fetchData();
-    }, [filterStatus, filterMonth, filterYear]);
+    }, [filterStatus, filterMonth, filterYear, filterType]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -50,6 +51,10 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
             pQuery = pQuery.gte('due_date', startDateStr).lte('due_date', endDateStr);
             rQuery = rQuery.gte('request_date', startDateStr).lte('request_date', endDateStr);
             reqQuery = reqQuery.gte('created_at', startDateStr).lte('created_at', endDateStr);
+        }
+
+        if (filterType !== 'Todos') {
+            pQuery = pQuery.eq('type', filterType);
         }
 
         const [pRes, rRes, reqRes] = await Promise.all([pQuery, rQuery, reqQuery]);
@@ -267,6 +272,15 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                     <select className="input-acc" value={filterYear} onChange={e => setFilterYear(parseInt(e.target.value))}>
                         {[2024, 2025, 2026].map(y => (
                             <option key={y} value={y} className="bg-[#111]">{y}</option>
+                        ))}
+                    </select>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>Tipo de Conta</span>
+                    <select className="input-acc" value={filterType} onChange={e => setFilterType(e.target.value)}>
+                        <option value="Todos" className="bg-[#111]">Todos</option>
+                        {['Aluguel', 'Telefone', 'Internet', 'Energia', 'Água', 'Impostos', 'Marketing', 'Uso e Consumo', 'Despesa Operacional', 'Outros'].map(t => (
+                            <option key={t} value={t} className="bg-[#111]">{t}</option>
                         ))}
                     </select>
                 </div>

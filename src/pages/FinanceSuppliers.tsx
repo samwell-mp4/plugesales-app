@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
-import { Search, Plus, X, Users, MapPin, Phone, Mail, Building, Landmark, ChevronRight } from 'lucide-react';
+import { Search, Plus, X, Users, MapPin, Phone, Mail, Building, Landmark, ChevronRight, Edit2, Trash2 } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
 
 interface Supplier {
@@ -49,13 +50,40 @@ const FinanceSuppliers = () => {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        const { error } = await supabase.from('finance_suppliers').insert([formData]);
+        setLoading(true);
+        let error;
+        if (formData.id) {
+            const { error: updateError } = await supabase.from('finance_suppliers').update(formData).eq('id', formData.id);
+            error = updateError;
+        } else {
+            const { error: insertError } = await supabase.from('finance_suppliers').insert([formData]);
+            error = insertError;
+        }
+        
         if (!error) {
             setIsModalOpen(false);
             setFormData({});
             fetchSuppliers();
         } else {
             alert('Erro ao salvar fornecedor: ' + error.message);
+            setLoading(false);
+        }
+    };
+
+    const handleEdit = (supplier: Supplier) => {
+        setFormData(supplier);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!window.confirm('Tem certeza que deseja excluir este fornecedor? Esta ação não pode ser desfeita.')) return;
+        setLoading(true);
+        const { error } = await supabase.from('finance_suppliers').delete().eq('id', id);
+        if (!error) {
+            fetchSuppliers();
+        } else {
+            alert('Erro ao excluir: ' + error.message);
+            setLoading(false);
         }
     };
 
@@ -71,6 +99,7 @@ const FinanceSuppliers = () => {
             <style>{`
                 .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
                 .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
+                .finance-page tr:hover .actions-cell { opacity: 1 !important; }
             `}</style>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px' }}>
@@ -105,7 +134,7 @@ const FinanceSuppliers = () => {
                     </thead>
                     <tbody>
                         {filteredSuppliers.map(s => (
-                            <tr key={s.id} style={{ ...rowStyle, transition: 'background 0.2s' }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                            <tr key={s.id} style={{ ...rowStyle, transition: 'background 0.2s', cursor: 'pointer' }} onClick={() => handleEdit(s)} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                                 <td style={cellStyle}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
@@ -122,11 +151,14 @@ const FinanceSuppliers = () => {
                                     </div>
                                 </td>
                                 <td style={{ ...cellStyle, textAlign: 'right' as const }}>
-                                    <button style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', opacity: 0, transition: 'opacity 0.2s' }}
-                                        onMouseEnter={e => { e.currentTarget.style.opacity = '1'; if (e.currentTarget.parentElement) { const tr = e.currentTarget.parentElement.parentElement; if (tr) tr.style.background = 'rgba(255,255,255,0.05)'; } }}
-                                        onMouseLeave={e => { e.currentTarget.style.opacity = '0'; }}>
-                                        <ChevronRight size={16} />
-                                    </button>
+                                    <div className="actions-cell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', opacity: 0, transition: 'opacity 0.2s' }}>
+                                        <button onClick={(e) => { e.stopPropagation(); handleEdit(s); }} style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', border: 'none', borderRadius: '8px', color: '#60a5fa', cursor: 'pointer', transition: 'all 0.2s' }} title="Editar">
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }} style={{ padding: '8px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '8px', color: '#ef4444', cursor: 'pointer', transition: 'all 0.2s' }} title="Excluir">
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -141,9 +173,9 @@ const FinanceSuppliers = () => {
                 </table>
             </div>
 
-            {isModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', padding: '16px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', overflowY: 'auto' }}>
-                    <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', width: '100%', maxWidth: '720px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' as const, maxHeight: '90vh' }}>
+            {isModalOpen && createPortal(
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', padding: '5vh 16px', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', overflowY: 'auto' }}>
+                    <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column' as const, margin: 'auto', maxHeight: 'none' }}>
                         <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)' }}>
                             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Users style={{ color: 'var(--primary-color)' }} /> Novo Fornecedor / Prestador
@@ -216,7 +248,8 @@ const FinanceSuppliers = () => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

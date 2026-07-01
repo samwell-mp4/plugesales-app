@@ -24,7 +24,7 @@ interface Payable {
     finance_suppliers?: Supplier;
 }
 
-const ACCOUNT_TYPES = ['Aluguel', 'Telefone', 'Internet', 'Energia', 'Água', 'Impostos', 'Marketing', 'Outros'];
+const ACCOUNT_TYPES = ['Aluguel', 'Telefone', 'Internet', 'Energia', 'Água', 'Impostos', 'Marketing', 'Uso e Consumo', 'Despesa Operacional', 'Outros'];
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Paga'];
 
 const labelBase: React.CSSProperties = { fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' };

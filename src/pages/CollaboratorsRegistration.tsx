@@ -176,6 +176,9 @@ const CollaboratorsRegistration = () => {
                     backdrop-filter: blur(20px);
                 }
                 .tab-btn {
+                    background: transparent;
+                    border: none;
+                    outline: none;
                     padding: 12px 24px;
                     font-weight: 800;
                     font-size: 0.85rem;
@@ -186,6 +189,7 @@ const CollaboratorsRegistration = () => {
                     display: flex;
                     align-items: center;
                     gap: 8px;
+                    white-space: nowrap;
                 }
                 .tab-btn:hover {
                     color: white;
