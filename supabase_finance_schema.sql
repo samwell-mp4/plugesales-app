@@ -86,6 +86,15 @@ CREATE TABLE IF NOT EXISTS finance_request_responses (
 -- ==========================================
 
 -- 1. Create the bucket (Public)
+CREATE INDEX idx_finance_payables_competence ON finance_payables(payment_competence);
+CREATE INDEX idx_finance_payables_status ON finance_payables(payment_status);
+
+-- Atualização de Saldo e Comissionamento Líquido (Implementado)
+ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS quantity_delivered INTEGER DEFAULT 0;
+ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS used_value DECIMAL(10, 2) DEFAULT 0;
+ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS remaining_balance DECIMAL(10, 2) DEFAULT 0;
+ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS balance_rolled_over BOOLEAN DEFAULT false;
+ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS discount_applied DECIMAL(10, 2) DEFAULT 0;
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('finance-files', 'finance-files', true)
 ON CONFLICT (id) DO NOTHING;

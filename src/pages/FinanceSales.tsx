@@ -91,8 +91,14 @@ const FinanceSales = () => {
         payment_status: 'PENDENTE',
         payment_competence: new Date().toISOString().slice(0, 7),
         commission_status: 'PREVISTA',
-        commission_value: 0
+        commission_value: 0,
+        quantity_delivered: 0,
+        used_value: 0,
+        remaining_balance: 0,
+        discount_applied: 0
     });
+    const [clientBalance, setClientBalance] = useState(0);
+    const [useClientBalance, setUseClientBalance] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -114,7 +120,7 @@ const FinanceSales = () => {
         }
     };
 
-    const handleInputChange = (e: any) => {
+    const handleInputChange = async (e: any) => {
         let { name, value } = e.target;
         if (name === 'client_contact') {
             value = maskPhone(value);
@@ -122,18 +128,27 @@ const FinanceSales = () => {
             value = maskCpfCnpj(value);
         }
         
+        if (name === 'client_name' && value && !editingSale) {
+            const bal = await dbService.getClientBalance(value);
+            setClientBalance(bal);
+        }
+        
         setFormData(prev => {
             const newData = { ...prev, [name]: value };
-            if (name === 'quantity_hired' || name === 'unit_value') {
-                const qty = name === 'quantity_hired' ? parseInt(value) || 0 : prev.quantity_hired;
-                const unit = name === 'unit_value' ? parseFloat(value) || 0 : prev.unit_value;
+            
+            const qty = name === 'quantity_hired' ? parseInt(value) || 0 : prev.quantity_hired;
+            const unit = name === 'unit_value' ? parseFloat(value) || 0 : prev.unit_value;
+            const delivered = name === 'quantity_delivered' ? parseInt(value) || 0 : prev.quantity_delivered;
+            
+            if (name === 'quantity_hired' || name === 'unit_value' || name === 'quantity_delivered' || name === 'salesperson_id') {
                 newData.total_value = qty * unit;
+                newData.used_value = delivered * unit;
+                newData.remaining_balance = newData.total_value - newData.used_value;
+                
                 const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
-                if (sp) newData.commission_value = (newData.total_value * (sp.commission_percentage || 0)) / 100;
-            }
-            if (name === 'salesperson_id') {
-                const sp = salespeople.find(s => String(s.id) === String(value));
-                if (sp) newData.commission_value = (newData.total_value * (sp.commission_percentage || 0)) / 100;
+                if (sp) {
+                    newData.commission_value = (newData.used_value * (sp.commission_percentage || 0)) / 100;
+                }
             }
             return newData;
         });
@@ -143,7 +158,22 @@ const FinanceSales = () => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            await dbService.saveFinanceSale({ ...formData, id: editingSale?.id });
+            let discount = 0;
+            if (useClientBalance && clientBalance > 0 && !editingSale) {
+                discount = Math.min(clientBalance, formData.total_value);
+                await dbService.rolloverClientBalance(formData.client_name);
+            }
+            
+            const dataToSave = { 
+                ...formData, 
+                id: editingSale?.id,
+                discount_applied: discount
+            };
+            
+            // Se for novo e usou saldo todo, total_value pode ser usado para bater, ou mantemos total e o discount abatido.
+            // O sistema trata o total a pagar como total_value - discount.
+            
+            await dbService.saveFinanceSale(dataToSave);
             setIsModalOpen(false);
             resetForm();
             fetchData();
@@ -169,8 +199,14 @@ const FinanceSales = () => {
             payment_status: sale.payment_status || 'PENDENTE',
             payment_competence: sale.payment_competence || '',
             commission_status: sale.commission_status || 'PREVISTA',
-            commission_value: sale.commission_value || 0
+            commission_value: sale.commission_value || 0,
+            quantity_delivered: sale.quantity_delivered || 0,
+            used_value: sale.used_value || 0,
+            remaining_balance: sale.remaining_balance !== undefined ? sale.remaining_balance : sale.total_value,
+            discount_applied: sale.discount_applied || 0
         });
+        setClientBalance(0);
+        setUseClientBalance(false);
         setIsModalOpen(true);
     };
 
@@ -198,8 +234,14 @@ const FinanceSales = () => {
             payment_status: 'PENDENTE',
             payment_competence: new Date().toISOString().slice(0, 7),
             commission_status: 'PREVISTA',
-            commission_value: 0
+            commission_value: 0,
+            quantity_delivered: 0,
+            used_value: 0,
+            remaining_balance: 0,
+            discount_applied: 0
         });
+        setClientBalance(0);
+        setUseClientBalance(false);
     };
 
     const handleUploadReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -685,8 +727,9 @@ const FinanceSales = () => {
                             </th>
                             <th>DATA / COMP.</th>
                             <th>CLIENTE & CAMPANHA (CARD)</th>
-                            <th>PACOTE</th>
-                            <th>VALOR BRUTO</th>
+                            <th>PACOTE & BASE</th>
+                            <th>ENTREGUE / CONSUMIDO</th>
+                            <th>SALDO / COMISSÃO</th>
                             <th>STATUS</th>
                             <th style={{ textAlign: 'right' }}>AÇÕES RÁPIDAS</th>
                         </tr>
@@ -726,16 +769,31 @@ const FinanceSales = () => {
                                     <div className="flex flex-col">
                                         <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'white' }}>{sale.package_hired}</span>
                                         <span style={{ fontSize: '0.7rem', color: 'var(--primary-color)', fontWeight: 900 }}>{sale.quantity_hired} UNID.</span>
+                                        <span style={{ fontWeight: 900, color: 'white', fontSize: '1rem', marginTop: '4px' }}>R$ {parseFloat(sale.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                                     </div>
                                 </td>
                                 <td>
-                                    {parseFloat(sale.quantity_hired) === 0 ? (
+                                    {parseFloat(sale.quantity_delivered || 0) === 0 ? (
                                         <span style={{ fontSize: '0.65rem', fontWeight: 900, background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)', padding: '6px 10px', borderRadius: '8px', color: 'var(--text-muted)' }}>
                                             AGUARDANDO RELATÓRIO
                                         </span>
                                     ) : (
-                                        <span style={{ fontWeight: 900, color: 'white', fontSize: '1rem' }}>R$ {parseFloat(sale.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                        <div className="flex flex-col">
+                                            <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 900 }}>{sale.quantity_delivered} UNID.</span>
+                                            <span style={{ fontWeight: 900, color: 'white', fontSize: '1rem', marginTop: '2px' }}>R$ {parseFloat(sale.used_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                        </div>
                                     )}
+                                </td>
+                                <td>
+                                    <div className="flex flex-col">
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: sale.balance_rolled_over ? 'var(--text-muted)' : '#facc15' }}>
+                                            Saldo: R$ {parseFloat(sale.remaining_balance || sale.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            {sale.balance_rolled_over && ' (ABATIDO)'}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-color)', marginTop: '4px' }}>
+                                            Comissão: R$ {parseFloat(sale.commission_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>
                                     <span className="badge-finance" style={{
@@ -914,13 +972,57 @@ const FinanceSales = () => {
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div style={{ padding: '24px', background: 'rgba(172, 248, 0, 0.08)', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', boxShadow: '0 10px 30px rgba(172, 248, 0, 0.1)' }}>
-                                        <div className="flex flex-col">
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Faturamento Bruto</span>
-                                            <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--primary-color)', opacity: 0.6 }}>Cálculo automático: Qtd x Unit.</span>
+                                    
+                                    {/* Adição da Quantidade Entregue (para Vendas Manuais ou Edições) */}
+                                    {(!editingSale || !editingSale.submission_id) && (
+                                        <div className="pt-4 border-t border-white/5 mt-4">
+                                            <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <CheckCircle2 size={14} /> RESULTADOS E CONSUMO
+                                            </h3>
+                                            <div className="flex gap-4 items-end">
+                                                <div style={{ flex: 1 }}>
+                                                    <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Quantidade Entregue (Relatório)</label>
+                                                    <input type="number" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="quantity_delivered" value={formData.quantity_delivered} onChange={handleInputChange} />
+                                                </div>
+                                                <button type="button" style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', color: '#38bdf8', borderRadius: '12px', padding: '12px 16px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Upload size={16} /> ANEXAR RELATÓRIO
+                                                </button>
+                                            </div>
                                         </div>
-                                        <span style={{ fontSize: '1.8rem', fontWeight: 1000, color: 'var(--primary-color)', letterSpacing: '-1px' }}>R$ {formData.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                    )}
+
+                                    {clientBalance > 0 && !editingSale && (
+                                        <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(250, 204, 21, 0.05)', border: '1px solid rgba(250, 204, 21, 0.2)', borderRadius: '16px' }}>
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#facc15', fontWeight: 900 }}>SALDO DISPONÍVEL DO CLIENTE</span>
+                                                    <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'white' }}>R$ {clientBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                                </div>
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input type="checkbox" checked={useClientBalance} onChange={(e) => setUseClientBalance(e.target.checked)} style={{ width: '20px', height: '20px', accentColor: '#facc15' }} />
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'white' }}>Abater na Compra</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ padding: '24px', background: 'rgba(172, 248, 0, 0.08)', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.15)', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', boxShadow: '0 10px 30px rgba(172, 248, 0, 0.1)' }}>
+                                        <div className="flex justify-between items-center">
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Faturamento Bruto</span>
+                                            <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-secondary)' }}>R$ {formData.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        {useClientBalance && (
+                                            <div className="flex justify-between items-center border-t border-white/5 pt-2">
+                                                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#facc15', textTransform: 'uppercase', letterSpacing: '1px' }}>Desconto Saldo Abatido</span>
+                                                <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#facc15' }}>- R$ {Math.min(clientBalance, formData.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center border-t border-white/5 pt-2">
+                                            <div className="flex flex-col">
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '1px' }}>Valor a Pagar Agora</span>
+                                            </div>
+                                            <span style={{ fontSize: '1.8rem', fontWeight: 1000, color: 'var(--primary-color)', letterSpacing: '-1px' }}>R$ {(useClientBalance ? Math.max(0, formData.total_value - clientBalance) : formData.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -43,8 +43,25 @@ const FinanceCommissions = () => {
 
     const calculateCommissionStats = (salespersonId: number) => {
         const personSales = sales.filter(s => s.salesperson_id === salespersonId);
-        const totalCommission = personSales.reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
-        const paidCommission = personSales.filter(s => s.commission_status === 'PAGA').reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
+        
+        let totalCommission = 0;
+        let paidCommission = 0;
+        
+        personSales.forEach(s => {
+            const sp = salespeople.find(person => person.id === salespersonId);
+            const commPerc = sp?.commission_percentage || 0;
+            
+            let comm = parseFloat(s.commission_value || 0);
+            
+            if (s.balance_rolled_over) {
+                 const remainingComm = parseFloat(s.remaining_balance || 0) * (commPerc / 100);
+                 comm += remainingComm;
+            }
+            
+            totalCommission += comm;
+            if (s.commission_status === 'PAGA') paidCommission += comm;
+        });
+
         const pendingCommission = totalCommission - paidCommission;
         return { totalCommission, paidCommission, pendingCommission, count: personSales.length };
     };
@@ -201,8 +218,22 @@ const FinanceCommissions = () => {
                                                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>{sale.package_hired}</span>
                                                     </div>
                                                 </td>
-                                                <td style={{ textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>R$ {parseFloat(sale.total_value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                                                <td style={{ textAlign: 'right', fontSize: '0.9rem', fontWeight: 950, color: 'var(--primary-color)' }}>R$ {parseFloat(sale.commission_value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                                <td style={{ textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                                    R$ {parseFloat(sale.total_value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                                    {sale.discount_applied > 0 && <span style={{display: 'block', fontSize: '0.65rem', color: '#facc15'}}>(-{parseFloat(sale.discount_applied).toLocaleString('pt-BR')})</span>}
+                                                </td>
+                                                <td style={{ textAlign: 'right', fontSize: '0.9rem', fontWeight: 950, color: 'var(--primary-color)' }}>
+                                                    R$ {(() => {
+                                                        const sp = salespeople.find(person => person.id === sale.salesperson_id);
+                                                        const commPerc = sp?.commission_percentage || 0;
+                                                        let comm = parseFloat(sale.commission_value || 0);
+                                                        if (sale.balance_rolled_over) {
+                                                            comm += parseFloat(sale.remaining_balance || 0) * (commPerc / 100);
+                                                        }
+                                                        return comm.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                                    })()}
+                                                    {sale.balance_rolled_over && <span style={{display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)'}}>+ ROLLOVER</span>}
+                                                </td>
                                                 <td style={{ textAlign: 'center' }}>
                                                     <span style={{ 
                                                         fontSize: '0.65rem', 

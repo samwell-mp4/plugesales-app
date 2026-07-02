@@ -1731,7 +1731,8 @@ app.post('/api/finance/sales', async (req, res) => {
             client_name, client_cpf_cnpj, client_contact, package_hired,
             quantity_hired, unit_value, total_value, sale_date,
             salesperson_id, payment_status, payment_competence,
-            commission_status, commission_value
+            commission_status, commission_value,
+            quantity_delivered, used_value, remaining_balance, discount_applied
         } = req.body;
 
         const query = `
@@ -1739,19 +1740,47 @@ app.post('/api/finance/sales', async (req, res) => {
                 client_name, client_cpf_cnpj, client_contact, package_hired,
                 quantity_hired, unit_value, total_value, sale_date,
                 salesperson_id, payment_status, payment_competence,
-                commission_status, commission_value
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                commission_status, commission_value,
+                quantity_delivered, used_value, remaining_balance, discount_applied
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *
         `;
         const params = [
             client_name, client_cpf_cnpj, client_contact, package_hired,
             quantity_hired, unit_value, total_value, sale_date || new Date(),
             salesperson_id, payment_status || 'PENDENTE', payment_competence,
-            commission_status || 'PREVISTA', commission_value || 0
+            commission_status || 'PREVISTA', commission_value || 0,
+            quantity_delivered || 0, used_value || 0, 
+            remaining_balance !== undefined ? remaining_balance : total_value, 
+            discount_applied || 0
         ];
 
         const result = await pool.query(query, params);
         res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/finance/sales/balance/:clientName', async (req, res) => {
+    try {
+        const query = `
+            SELECT SUM(remaining_balance) as total_balance 
+            FROM finance_sales 
+            WHERE client_name = $1 AND balance_rolled_over = false
+        `;
+        const result = await pool.query(query, [req.params.clientName]);
+        res.json({ balance: result.rows[0].total_balance || 0 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/finance/sales/rollover', async (req, res) => {
+    try {
+        const { client_name } = req.body;
+        await pool.query(`UPDATE finance_sales SET balance_rolled_over = true WHERE client_name = $1 AND balance_rolled_over = false`, [client_name]);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

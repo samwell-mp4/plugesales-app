@@ -1362,6 +1362,30 @@ export const dbService = {
             return { error: err };
         }
     },
+    getClientBalance: async (clientName: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/sales/balance/${encodeURIComponent(clientName)}`);
+            if (!res.ok) return 0;
+            const data = await res.json();
+            return data.balance || 0;
+        } catch (err) {
+            console.error("Error fetching client balance:", err);
+            return 0;
+        }
+    },
+    rolloverClientBalance: async (clientName: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/sales/rollover`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ client_name: clientName })
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error rolling over client balance:", err);
+            return { error: err };
+        }
+    },
     getFinanceSalespeople: async () => {
         try {
             const res = await fetch(`${API_BASE}/finance/salespeople`);
