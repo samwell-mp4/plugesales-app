@@ -59,6 +59,8 @@ const UploadContacts = () => {
         { value: 'Email', label: 'E-mail' },
         { value: 'Info 2', label: 'Info 2 (Nome)' },
         { value: 'Info3', label: 'Info3 (CPF/CNPJ)' },
+        { value: 'Info 4', label: 'Info 4 (Extra)' },
+        { value: 'Info 5', label: 'Info 5 (Extra)' },
         { value: 'Info_empresa', label: 'Info_empresa' },
         { value: 'CPF', label: 'CPF (Custom)' },
         { value: 'VALOR', label: 'VALOR (Custom)' }
@@ -403,11 +405,26 @@ const UploadContacts = () => {
 
                     console.log('Excel/XLSX Rows:', json.length, 'startIndex:', startIndex);
 
-                    // Auto-detect phone column (0 to 5)
-                    let phoneColIndex = 0;
-                    if (json.length > startIndex) {
+                    const headers = startIndex === 1 && json[0] ? json[0].map((h: any) => String(h || '').trim()) : null;
+                    const lowerHeaders = headers ? headers.map((h: string) => h.toLowerCase()) : [];
+
+                    let phoneColIndex = -1;
+                    let cpfColIndex = -1;
+                    let nameColIndex = -1;
+                    let emailColIndex = -1;
+
+                    if (lowerHeaders.length > 0) {
+                        phoneColIndex = lowerHeaders.findIndex((h: string) => h.includes('celular') || h.includes('telefone') || h.includes('whatsapp') || h.includes('numero') || h.includes('número'));
+                        cpfColIndex = lowerHeaders.findIndex((h: string) => h === 'cpf' || h === 'cnpj' || h.includes('cpf') || h.includes('cnpj'));
+                        nameColIndex = lowerHeaders.findIndex((h: string) => h === 'nome' || h === 'name' || h.includes('nome') || h === 'info_2');
+                        emailColIndex = lowerHeaders.findIndex((h: string) => h === 'email' || h === 'e-mail');
+                    }
+
+                    // Auto-detect phone column (0 to 5) se não achou no header
+                    if (json.length > startIndex && phoneColIndex === -1) {
                         const firstDataRow = json[startIndex];
                         for (let col = 0; col < Math.min(firstDataRow.length, 6); col++) {
+                            if (col === cpfColIndex) continue; // Skip cpf column when auto-detecting phone
                             const raw = String(firstDataRow[col] || '');
                             if (normalizePhone(raw).length === 13) {
                                 phoneColIndex = col;
@@ -422,6 +439,8 @@ const UploadContacts = () => {
                             }
                         }
                     }
+
+                    if (phoneColIndex === -1) phoneColIndex = 0;
 
                     for (let i = startIndex; i < json.length; i++) {
                         const row = json[i];
@@ -439,30 +458,55 @@ const UploadContacts = () => {
                             if (!contact) {
                                 const phone = normalizePhone(rawCell);
                                 if (phone.length >= 10 && phone.length <= 15) {
+                                    let contactName = '';
+                                    if (nameColIndex !== -1) {
+                                        contactName = String(row[nameColIndex] || '').trim();
+                                    } else {
+                                        contactName = String(row[phoneColIndex === 0 ? 1 : 0] || '').trim();
+                                    }
+
+                                    let contactCpf = '';
+                                    if (cpfColIndex !== -1) {
+                                        contactCpf = String(row[cpfColIndex] || '').replace(/[^\d.-]/g, '').trim();
+                                    }
+
+                                    let contactEmail = '';
+                                    if (emailColIndex !== -1) {
+                                        contactEmail = String(row[emailColIndex] || '').trim();
+                                    }
+
                                     contact = {
                                         telefone: phone,
-                                        nome: String(row[phoneColIndex === 0 ? 1 : 0] || '').trim()
+                                        nome: contactName,
+                                        cpf: contactCpf,
+                                        email: contactEmail
                                     };
-                                    if (mapExtraInfo) {
-                                        contact.cpf = String(row[2] || '');
-                                        contact.email = String(row[3] || '');
-                                    }
                                 }
                             }
 
                             if (contact) {
-                                const headerRow = startIndex === 1 ? json[0] : null;
-                                if (headerRow) {
-                                    headerRow.forEach((h: any, colIdx: number) => {
+                                let extraInfoCounter = 4; // Começa no info_4
+                                if (headers) {
+                                    headers.forEach((h: any, colIdx: number) => {
                                         const hStr = String(h || '').trim();
                                         if (hStr && contact[hStr] === undefined) {
-                                            contact[hStr] = row[colIdx] !== undefined ? String(row[colIdx]) : '';
+                                            const val = row[colIdx] !== undefined ? String(row[colIdx]) : '';
+                                            contact[hStr] = val;
+                                            if (val && colIdx !== phoneColIndex && colIdx !== nameColIndex && colIdx !== cpfColIndex && colIdx !== emailColIndex) {
+                                                contact[`info_${extraInfoCounter}`] = val;
+                                                extraInfoCounter++;
+                                            }
                                         }
                                     });
                                 } else {
                                     row.forEach((val: any, colIdx: number) => {
-                                        if (colIdx !== phoneColIndex && colIdx !== (phoneColIndex === 0 ? 1 : 0)) {
-                                            contact[`Coluna_${colIdx + 1}`] = val !== undefined ? String(val) : '';
+                                        if (colIdx !== phoneColIndex && colIdx !== nameColIndex && colIdx !== cpfColIndex && colIdx !== emailColIndex) {
+                                            const strVal = val !== undefined ? String(val) : '';
+                                            contact[`Coluna_${colIdx + 1}`] = strVal;
+                                            if (strVal) {
+                                                contact[`info_${extraInfoCounter}`] = strVal;
+                                                extraInfoCounter++;
+                                            }
                                         }
                                     });
                                 }
@@ -513,7 +557,7 @@ const UploadContacts = () => {
                     return {
                         Número: telefone,
                         info_2: nome || '',
-                        info_3: cpf || '',
+                        info_3: cpf || rest.CPF || rest.cpf || '',
                         'E-mail': email || '',
                         Etiquetas: `${baseTag}_${batchNumber}`,
                         ...cleanRest
