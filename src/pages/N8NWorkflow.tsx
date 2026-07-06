@@ -94,7 +94,7 @@ const N8NWorkflow = () => {
 
     const fetchCampaigns = async () => {
         try {
-            const res = await fetch('/api/campaigns');
+            const res = await fetch(`/api/campaigns?userId=${user?.id}`);
             const data = await res.json();
             if (Array.isArray(data)) setCampaigns(data);
         } catch (err) {
@@ -110,12 +110,29 @@ const N8NWorkflow = () => {
             const res = await fetch('/api/campaigns', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description: 'Criada via Monitor' })
+                body: JSON.stringify({ name, description: 'Criada via Monitor', userId: user?.id })
             });
             if (res.ok) {
                 alert("Campanha criada com sucesso!");
                 fetchCampaigns();
                 setSelectedCampaign(name);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleDeleteCampaign = async () => {
+        if (!selectedCampaign) return;
+        const campaign = campaigns.find(c => c.name === selectedCampaign);
+        if (!campaign) return;
+        if (!window.confirm(`Deseja realmente excluir a campanha "${selectedCampaign}"?`)) return;
+        try {
+            const res = await fetch(`/api/campaigns/${campaign.id}`, { method: 'DELETE' });
+            if (res.ok) {
+                alert("Campanha excluída com sucesso!");
+                setSelectedCampaign('');
+                fetchCampaigns();
             }
         } catch (err) {
             console.error(err);
@@ -510,8 +527,7 @@ const N8NWorkflow = () => {
                     <div style={{ padding: '24px', background: 'var(--primary-gradient)', borderRadius: '25px', color: 'black', display: 'inline-flex', marginBottom: '32px', boxShadow: '0 15px 45px rgba(172, 248, 0, 0.3)' }}>
                         <Database size={48} />
                     </div>
-                    <h1 style={{ fontSize: '4rem', fontWeight: 950, letterSpacing: '-4px', marginBottom: '8px', background: 'linear-gradient(to right, #fff, var(--primary-color), #fff)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase' }}>&gt; Monitor de Mensagem</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 900, letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '48px' }}>Advanced Real-Time Intelligence</p>
+                    <h1 style={{ fontSize: '4rem', fontWeight: 950, letterSpacing: '-4px', marginBottom: '8px', background: 'linear-gradient(to right, #fff, var(--primary-color), #fff)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textTransform: 'uppercase' }}>Monitor de Mensagem</h1>
                     
                     <div style={{ position: 'relative', marginBottom: '24px' }}>
                         <Phone size={24} style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.6 }} />
@@ -579,7 +595,10 @@ const N8NWorkflow = () => {
                                 <option value="">Escolha...</option>
                                 {campaigns.map(c => <option key={c.id} value={c.name} style={{ background: '#1a1a1a' }}>{c.name}</option>)}
                             </select>
-                            <button onClick={handleCreateCampaign} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer' }}><Plus size={18} /></button>
+                            <button onClick={handleCreateCampaign} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', marginLeft: '5px' }} title="Nova Campanha"><Plus size={18} /></button>
+                            {selectedCampaign && (
+                                <button onClick={handleDeleteCampaign} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: '10px' }} title="Excluir Campanha"><Trash2 size={18} /></button>
+                            )}
                         </div>
                     )}
                 </div>

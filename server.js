@@ -481,6 +481,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS submission_id INTEGER`);
         await client.query(`ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS salesperson_name TEXT`);
         await client.query(`ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS comissao_vendedor TEXT`);
+        await client.query(`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
 
         // Migration: Tag existing data
         console.log('Running security migration: tagging submission origin...');
@@ -2465,6 +2466,16 @@ app.delete('/api/contacts/:tag', async (req, res) => {
 // Campaigns (from CampaignPlanner)
 app.get('/api/campaigns', async (req, res) => {
     try {
+        const { userId } = req.query;
+        if (userId) {
+            const userRes = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
+            const role = userRes.rows[0]?.role || 'CLIENT';
+            if (role === 'CLIENT') {
+                const result = await pool.query('SELECT * FROM campaigns WHERE user_id = $1 ORDER BY updated_at DESC', [userId]);
+                return res.json(result.rows);
+            }
+        }
+        // Admin or Employee (or no userId provided, though frontend should provide it)
         const result = await pool.query('SELECT * FROM campaigns ORDER BY updated_at DESC');
         res.json(result.rows);
     } catch (err) {
@@ -2479,20 +2490,29 @@ app.get('/api/campaigns/active', async (req, res) => {
             return res.json(null);
         }
         const row = result.rows[0];
-        res.json({ id: row.id, name: row.name, steps: row.steps, createdAt: row.created_at });
+        res.json({ id: row.id, name: row.name, steps: row.steps, createdAt: row.created_at, user_id: row.user_id });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 app.post('/api/campaigns', async (req, res) => {
-    const { name, steps } = req.body;
+    const { name, steps, userId } = req.body;
     try {
         const result = await pool.query(
-            'INSERT INTO campaigns (name, steps, updated_at) VALUES ($1,$2,NOW()) RETURNING *',
-            [name, JSON.stringify(steps)]
+            'INSERT INTO campaigns (name, steps, user_id, updated_at) VALUES ($1, $2, $3, NOW()) RETURNING *',
+            [name, JSON.stringify(steps), userId || null]
         );
         res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/campaigns/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM campaigns WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
