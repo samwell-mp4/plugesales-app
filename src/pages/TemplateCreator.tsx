@@ -236,6 +236,7 @@ const TemplateCreator = () => {
     const [currentPages, setCurrentPages] = useState<{ [campaignId: string]: number }>({});
     const rowsPerPage = 10;
     const abortRef = useRef(false);
+    const progressContainerRef = useRef<HTMLDivElement>(null);
     const [enableCustomVariables, setEnableCustomVariables] = useState(false);
     const [enableBulkCustomVariables, setEnableBulkCustomVariables] = useState(false);
 
@@ -609,6 +610,7 @@ const TemplateCreator = () => {
 
         abortRef.current = false;
         setIsGenerating(true);
+        setTimeout(() => progressContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
         try {
             for (const sender of targetNumbers) {
                 if (abortRef.current) break;
@@ -730,6 +732,7 @@ const TemplateCreator = () => {
 
         abortRef.current = false;
         setIsGenerating(true);
+        setTimeout(() => progressContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
         let successCount = 0;
         let errors = [];
         // Map to store ads grouped by campaign ID
@@ -1989,7 +1992,7 @@ const TemplateCreator = () => {
                                     )}
                                 </div>
                             </div>
-                            <div className="mt-8">
+                            <div className="mt-8" ref={progressContainerRef}>
                                 <h4 style={{ color: 'var(--text-secondary)', marginBottom: '10px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
                                 <div style={{ background: 'var(--code-bg)', padding: '12px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
                                     <pre style={{ margin: 0, fontSize: '0.65rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
