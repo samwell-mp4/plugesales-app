@@ -232,6 +232,7 @@ const TemplateCreator = () => {
     const [campaigns, setCampaigns] = useState<CampaignBatch[]>([{ id: Date.now().toString(), prefix: 'nome_campanha_1_', rows: [] }]);
     const [selectedCategory, setSelectedCategory] = useState<'UTILITY'>('UTILITY');
     const [operationErrors, setOperationErrors] = useState<{ name: string, error: string, payload?: any, timestamp: string }[]>([]);
+    const [operationSuccesses, setOperationSuccesses] = useState<{ name: string, timestamp: string }[]>([]);
     const [currentPages, setCurrentPages] = useState<{ [campaignId: string]: number }>({});
     const rowsPerPage = 10;
     const abortRef = useRef(false);
@@ -628,6 +629,7 @@ const TemplateCreator = () => {
 
                     if (res.success) {
                         totalSuccess++;
+                        setOperationSuccesses(prev => [{ name: currentName, timestamp: new Date().toLocaleTimeString() }, ...prev].slice(0, 50));
                         if (user?.id) await dbService.trackTemplate(currentName, user.id);
                         const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
                         dbService.addLog({
@@ -699,10 +701,7 @@ const TemplateCreator = () => {
             lastError = err.message;
         } finally {
             setIsGenerating(false);
-            if (totalSuccess > 0) {
-                alert(`✅ ${totalSuccess} template(s) criado(s) com sucesso!`);
-                navigate('/accounts');
-            } else if (lastError) {
+            if (totalSuccess === 0 && lastError) {
                 alert(`❌ Erro: ${lastError}`);
             }
         }
@@ -785,6 +784,7 @@ const TemplateCreator = () => {
 
                     if (res.success) {
                         successCount++;
+                        setOperationSuccesses(prev => [{ name, timestamp: new Date().toLocaleTimeString() }, ...prev].slice(0, 50));
                         if (user?.id) await dbService.trackTemplate(name, user.id);
                         const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
                         dbService.addLog({
@@ -899,9 +899,6 @@ const TemplateCreator = () => {
         } finally {
             setIsGenerating(false);
         }
-
-        alert(`Finalizado!\nSucesso: ${successCount}\nErros: ${errors.length}`);
-        if (successCount > 0) navigate('/client-submissions');
     };
 
     const autoGenerateRows = (qty: number, campaignId: string) => {
@@ -1049,29 +1046,7 @@ const TemplateCreator = () => {
                 </div>
             )}
 
-            {isGenerating && (
-                <div className="loading-overlay">
-                    <div className="pulse-loader">
-                        <Activity size={40} className="animate-spin" />
-                    </div>
-                    <div className="flex flex-col items-center gap-1 animate-fade-in">
-                        <div className="loading-text" style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px', textAlign: 'center', color: 'white' }}>
-                            {generatingProgress.total > 1 ? "CRIANDO TEMPLATES EM MASSA" : "PUBLICANDO NA INFOBIP"}
-                        </div>
-                        <div className="loading-subtext" style={{ fontSize: '0.9rem', opacity: 0.7, fontWeight: 500, color: 'white' }}>
-                            {generatingProgress.total > 1 ? `${generatingProgress.current} de ${generatingProgress.total} - ${generatingProgress.msg}` : "Aguarde a validação da Meta..."}
-                        </div>
-                        <button 
-                            onClick={() => { abortRef.current = true; }} 
-                            style={{ marginTop: '16px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}
-                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                            Cancelar Publicação
-                        </button>
-                    </div>
-                </div>
-            )}
+
 
             <style>{`
                 /* --- CUSTOM CONFIRM MODAL --- */
@@ -2021,6 +1996,51 @@ const TemplateCreator = () => {
                                         <code>{JSON.stringify(buildInfobipPayload_STRICT(modelName, selectedPayloadLanguage), null, 2)}</code>
                                     </pre>
                                 </div>
+
+                                {isGenerating && (
+                                    <div className="mt-8 animate-fade-in p-4" style={{ background: 'rgba(172, 248, 0, 0.05)', borderRadius: '16px', border: '1px solid rgba(172, 248, 0, 0.2)' }}>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <Activity size={20} className="animate-spin" color="var(--primary-color)" />
+                                            <h4 style={{ color: 'var(--primary-color)', margin: 0, fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                                {generatingProgress.total > 1 ? "Criando Templates em Massa" : "Publicando..."}
+                                            </h4>
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: 'white', opacity: 0.8, marginBottom: '12px' }}>
+                                            {generatingProgress.total > 1 ? `${generatingProgress.current} de ${generatingProgress.total} - ${generatingProgress.msg}` : generatingProgress.msg || "Aguarde a validação da Meta..."}
+                                        </div>
+                                        <button 
+                                            onClick={() => { abortRef.current = true; }} 
+                                            className="global-tile-btn global-tile-btn-ghost"
+                                            style={{ height: '30px', fontSize: '10px' }}
+                                        >
+                                            CANCELAR
+                                        </button>
+                                    </div>
+                                )}
+
+                                {operationSuccesses.length > 0 && (
+                                    <div className="mt-8 animate-fade-in">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 style={{ color: 'var(--primary-color)', margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Criados com Sucesso</h4>
+                                            <button
+                                                onClick={() => setOperationSuccesses([])}
+                                                style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+                                            >
+                                                LIMPAR
+                                            </button>
+                                        </div>
+                                        <div className="error-log-container" style={{ maxHeight: '200px' }}>
+                                            {operationSuccesses.map((succ, i) => (
+                                                <div key={i} className="error-item" style={{ background: 'rgba(172, 248, 0, 0.05)', borderColor: 'rgba(172, 248, 0, 0.15)' }}>
+                                                    <div className="error-item-header" style={{ borderBottomColor: 'rgba(172, 248, 0, 0.1)', borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
+                                                        <span className="error-item-name" style={{ color: 'var(--primary-color)' }}>{succ.name}</span>
+                                                        <span className="error-item-time">{succ.timestamp}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {operationErrors.length > 0 && (
                                     <div className="mt-8 animate-fade-in">
