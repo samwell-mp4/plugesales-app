@@ -114,6 +114,7 @@ const Sidebar = () => {
                 { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
                 { name: 'Hospedagem', path: '/media', icon: <Layers />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Dashboard Client', path: '/client-dashboard', icon: <LayoutDashboard />, role: 'CLIENT' },
+                { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE', 'CLIENT'] },
                 { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
                 { name: 'Clientes', path: '/employee-clients', icon: <Users />, roles: ['EMPLOYEE'] },
             ]
@@ -125,7 +126,6 @@ const Sidebar = () => {
                 { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'INFLUENCER'] },
                 { name: 'Central Fluxo Leads', path: '/crm/fluxo-leads', icon: <Activity />, role: 'ADMIN' },
                 { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar />, roles: ['ADMIN', 'EMPLOYEE'] },
-                { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE', 'CLIENT'] },
             ]
         },
         {

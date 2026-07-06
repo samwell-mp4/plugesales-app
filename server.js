@@ -2651,8 +2651,7 @@ app.get('/api/client/submissions', async (req, res) => {
                 SELECT c.*, u.name as child_name 
                 FROM client_submissions c
                 LEFT JOIN users u ON c.user_id = u.id
-                WHERE (c.user_id IN (${idPlaceholders}) OR c.submitted_by = (SELECT name FROM users WHERE id = ${parentParam}))
-                  AND (c.submitted_role IN ('CLIENT', 'PENDING_CLIENT'))
+                WHERE (c.user_id IN (${idPlaceholders}) OR (c.submitted_by = (SELECT name FROM users WHERE id = ${parentParam}) AND c.submitted_role IN ('CLIENT', 'PENDING_CLIENT')))
                   AND (c.origin != 'TEMPLATE_CREATOR' OR c.origin IS NULL)
                 ORDER BY c.timestamp DESC
             `;

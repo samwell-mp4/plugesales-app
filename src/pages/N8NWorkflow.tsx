@@ -129,7 +129,7 @@ const N8NWorkflow = () => {
     }, [selectedRecipient, messages]);
 
     const handleSearch = async () => {
-        const numberToSearch = (user?.role === 'CLIENT' && user?.notification_number) ? user.notification_number : searchNumber;
+        const numberToSearch = searchNumber;
         if (!numberToSearch.trim()) return;
         setIsLoading(true);
         setError(null);
@@ -515,7 +515,7 @@ const N8NWorkflow = () => {
                     
                     <div style={{ position: 'relative', marginBottom: '24px' }}>
                         <Phone size={24} style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)', opacity: 0.6 }} />
-                        <input type="text" className="premium-input" placeholder="Digite o número (ex: 55119...)" value={(user?.role === 'CLIENT' && user?.notification_number) ? user.notification_number : searchNumber} onChange={(e) => setSearchNumber(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSearch()} style={{ paddingLeft: '64px', height: '75px', borderRadius: '24px', width: '100%' }} disabled={user?.role === 'CLIENT'} />
+                        <input type="text" className="premium-input" placeholder="Digite o número (ex: 55119...)" value={searchNumber} onChange={(e) => setSearchNumber(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSearch()} style={{ paddingLeft: '64px', height: '75px', borderRadius: '24px', width: '100%' }} />
                     </div>
                     
                     <button onClick={handleSearch} className="premium-button" style={{ width: '100%', height: '70px', borderRadius: '22px', fontSize: '1.2rem', fontWeight: 950, letterSpacing: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
