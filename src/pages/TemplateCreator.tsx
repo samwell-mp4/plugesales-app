@@ -655,6 +655,8 @@ const TemplateCreator = () => {
                         const clientName = client?.name || (user?.role === 'ASSINATURA_BASICA' ? user?.name : '');
                         const clientDDD = client?.phone?.substring(0, 2) || (user?.role === 'ASSINATURA_BASICA' ? user?.notification_number?.substring(2, 4) : '11');
 
+                        const actualBodyText = enableCustomVariables ? bodyText : (isFiveVars ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5) : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
+
                         await dbService.addClientSubmission({
                             user_id: isInternalUser ? undefined : selectedClientId,
                             client_name: clientName,
@@ -662,7 +664,7 @@ const TemplateCreator = () => {
                             ddd: clientDDD,
                             template_type: headerType,
                             media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
-                            ad_copy: bodyText,
+                            ad_copy: actualBodyText,
                             button_link: buttons.find(b => b.type === 'url')?.url || '',
                             spreadsheet_url: '',
                             status: 'GERADO',
@@ -678,7 +680,7 @@ const TemplateCreator = () => {
                                 template_type: headerType,
                                 message_mode: 'manual',
                                 media_url: headerType !== 'TEXT' ? headerMediaUrl : '',
-                                ad_copy: bodyText,
+                                ad_copy: actualBodyText,
                                 button_link: buttons.find(b => b.type === 'url')?.url || '',
                                 variables: [...variablesExample],
                                 delivered_leads: 0
@@ -799,12 +801,14 @@ const TemplateCreator = () => {
                         });
                         await sendToWebhook(extendedPayload);
 
+                        const actualBodyText = enableBulkCustomVariables ? bodyText : (isFiveVars ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5) : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
+
                         adsByCampaignId[campaign.id].push({
                             ad_name: name,
                             template_type: row.headerType,
                             message_mode: 'manual',
                             media_url: row.headerType !== 'TEXT' ? (row.mediaUrl || headerMediaUrl || "https://i.imgur.com/gZLbY6p.jpeg") : '',
-                            ad_copy: bodyText,
+                            ad_copy: actualBodyText,
                             button_link: (row.hasButtons !== false && finalButtonUrls && finalButtonUrls.length > 0) ? (finalButtonUrls[0] || '') : '',
                             original_button_link: (row.hasButtons !== false && row.originalButtonUrls && row.originalButtonUrls.length > 0) ? (row.originalButtonUrls[0] || '') : '',
                             variables: (row.variables && row.variables.length > 0) ? row.variables : [...variablesExample],
@@ -866,6 +870,8 @@ const TemplateCreator = () => {
                     const clientDDD = client?.phone?.substring(0, 2) || (user?.role === 'ASSINATURA_BASICA' ? user?.notification_number?.substring(2, 4) : '11');
                     const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
 
+                    const actualBodyText = enableBulkCustomVariables ? bodyText : (isFiveVars ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5) : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
+
                     await dbService.addClientSubmission({
                         user_id: (isInternalUser || !selectedClientId) ? undefined : String(selectedClientId),
                         client_name: clientName,
@@ -873,7 +879,7 @@ const TemplateCreator = () => {
                         ddd: clientDDD,
                         template_type: 'TEXT',
                         media_url: '',
-                        ad_copy: bodyText,
+                        ad_copy: actualBodyText,
                         button_link: campaignAds.length > 0 ? (campaignAds[0].button_link || '') : '',
                         original_button_link: campaignAds.length > 0 ? (campaignAds[0].original_button_link || '') : '',
                         spreadsheet_url: '',
@@ -955,6 +961,17 @@ const TemplateCreator = () => {
 
     const applyGlobalButtons = (hasButtons: boolean, campaignId: string) => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({ ...r, hasButtons })) } : c));
+    };
+
+    const applyGlobalLink = (link: string, campaignId: string) => {
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? {
+            ...c, rows: c.rows.map(r => {
+                const newUrls = [...r.buttonUrls];
+                if (newUrls.length === 0 && r.hasButtons !== false) newUrls.push(link);
+                else if (newUrls.length > 0) newUrls[0] = link;
+                return { ...r, buttonUrls: newUrls };
+            })
+        } : c));
     };
 
     const duplicateRow = (campaignId: string, rowIndex: number) => {
@@ -1833,7 +1850,7 @@ const TemplateCreator = () => {
                                                     <div className="mt-4 animate-fade-in">
                                                         <div className="flex flex-col gap-4 mb-6" style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
                                                             <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px', textTransform: 'uppercase' }}>Painel de Configuração Rápida</span>
-                                                            <div className="global-config-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                            <div className="global-config-grid grid grid-cols-1 md:grid-cols-4 gap-6">
                                                                 <div className="flex flex-col gap-2">
                                                                     <label style={{ fontSize: '10px' }}>REMETENTE GLOBAL</label>
                                                                     <div className="flex gap-2">
@@ -1841,6 +1858,16 @@ const TemplateCreator = () => {
                                                                         <button className="global-tile-btn global-tile-btn-primary" onClick={() => {
                                                                             const val = (document.getElementById(`global-sender-${camp.id}`) as HTMLInputElement)?.value;
                                                                             if (val) applyGlobalSender(val, camp.id);
+                                                                        }} style={{ flex: 1 }}>APLICAR</button>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col gap-2">
+                                                                    <label style={{ fontSize: '10px' }}>LINK GLOBAL (B1)</label>
+                                                                    <div className="flex gap-2">
+                                                                        <input id={`global-link-${camp.id}`} className="bulk-row-input" style={{ height: '38px' }} placeholder="Ex: https://..." />
+                                                                        <button className="global-tile-btn global-tile-btn-primary" onClick={() => {
+                                                                            const val = (document.getElementById(`global-link-${camp.id}`) as HTMLInputElement)?.value;
+                                                                            if (val) applyGlobalLink(val, camp.id);
                                                                         }} style={{ flex: 1 }}>APLICAR</button>
                                                                     </div>
                                                                 </div>
