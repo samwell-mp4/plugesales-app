@@ -658,7 +658,7 @@ const TemplateCreator = () => {
                         const actualBodyText = enableCustomVariables ? bodyText : (isFiveVars ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5) : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
 
                         await dbService.addClientSubmission({
-                            user_id: isInternalUser ? undefined : selectedClientId,
+                            user_id: selectedClientId || (isInternalUser ? undefined : user?.id),
                             client_name: clientName,
                             profile_name: currentName,
                             ddd: clientDDD,
@@ -873,7 +873,7 @@ const TemplateCreator = () => {
                     const actualBodyText = enableBulkCustomVariables ? bodyText : (isFiveVars ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5) : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
 
                     await dbService.addClientSubmission({
-                        user_id: (isInternalUser || !selectedClientId) ? undefined : String(selectedClientId),
+                        user_id: selectedClientId ? String(selectedClientId) : (isInternalUser ? undefined : String(user?.id)),
                         client_name: clientName,
                         profile_name: campaign.prefix.endsWith('_') ? campaign.prefix.slice(0, -1) : campaign.prefix,
                         ddd: clientDDD,
