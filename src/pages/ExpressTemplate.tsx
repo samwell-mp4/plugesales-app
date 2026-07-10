@@ -263,7 +263,7 @@ const ExpressTemplate = () => {
             )}
 
             {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
                     {filteredItems.map((item, index) => (
                         <div 
                             key={index} 
