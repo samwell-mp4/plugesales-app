@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, Smartphone, Upload, Link as LinkIcon, Send, X, AlertCircle } from 'lucide-react';
+import { Zap, RefreshCw, Smartphone, Upload, Link as LinkIcon, Send, X, AlertCircle, Search, LayoutGrid, List as ListIcon, User, Calendar } from 'lucide-react';
 
 interface WebhookItem {
     cliente?: string;
@@ -24,6 +24,13 @@ const ExpressTemplate = () => {
     const [selectedItem, setSelectedItem] = useState<WebhookItem | null>(null);
     const [showModal, setShowModal] = useState(false);
     
+    // View State
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    
+    // Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterDisparador, setFilterDisparador] = useState('ALL');
+
     // Form state
     const [spreadsheetFile, setSpreadsheetFile] = useState<File | null>(null);
     const [targetUrl, setTargetUrl] = useState('');
@@ -34,10 +41,8 @@ const ExpressTemplate = () => {
         setIsLoading(true);
         setError('');
         try {
-            // Note: Since this is an n8n webhook, we use GET or POST depending on configuration.
-            // Using POST as mentioned by user (but GET is also fine if configured).
             const response = await fetch(WEBHOOK_URL, {
-                method: 'POST', // Changed from GET based on user feedback
+                method: 'POST',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
@@ -51,11 +56,9 @@ const ExpressTemplate = () => {
 
             const data = await response.json();
             
-            // Handle n8n response format (often an array of items)
             if (Array.isArray(data)) {
                 setItems(data);
             } else if (data && typeof data === 'object') {
-                // If it returns an object, maybe it's wrapped
                 setItems([data]);
             } else {
                 setItems([]);
@@ -72,6 +75,34 @@ const ExpressTemplate = () => {
         fetchWebhookData();
     }, []);
 
+    // Extract unique responsáveis for the filter dropdown
+    const uniqueResponsaveis = useMemo(() => {
+        const set = new Set<string>();
+        items.forEach(i => {
+            if (i.responsavel_disparo && i.responsavel_disparo.trim()) {
+                set.add(i.responsavel_disparo.trim());
+            }
+        });
+        return Array.from(set).sort();
+    }, [items]);
+
+    // Apply filters
+    const filteredItems = useMemo(() => {
+        return items.filter(item => {
+            // Search query matches client or waba
+            const q = searchQuery.toLowerCase();
+            const matchesSearch = !q || 
+                (item.cliente || '').toLowerCase().includes(q) || 
+                (item.numero_disparo || '').toLowerCase().includes(q) ||
+                (item.waba || '').toLowerCase().includes(q);
+                
+            // Disparador filter
+            const matchesDisparador = filterDisparador === 'ALL' || (item.responsavel_disparo || '').trim() === filterDisparador;
+            
+            return matchesSearch && matchesDisparador;
+        });
+    }, [items, searchQuery, filterDisparador]);
+
     const handleCardClick = (item: WebhookItem) => {
         setSelectedItem(item);
         setSpreadsheetFile(null);
@@ -82,15 +113,12 @@ const ExpressTemplate = () => {
     const handleProcess = () => {
         if (!selectedItem) return;
         
-        // 1. Compute Base Campaign Name
-        // Example: c6bank_0907_0646
         const rawCliente = selectedItem.cliente || 'cliente';
         const cleanCliente = rawCliente.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
         
         const rawData = selectedItem.data_disparo || '';
         let dateSuffix = '';
         if (rawData) {
-            // from "10/07/2026" to "1007"
             const parts = rawData.split('/');
             if (parts.length >= 2) {
                 dateSuffix = `${parts[0]}${parts[1]}`;
@@ -107,43 +135,34 @@ const ExpressTemplate = () => {
 
         const basePrefix = `${cleanCliente}_${dateSuffix}_${finalNumero}`;
 
-        // 2. Compute rows based on quantidade_lead
         let leads = parseInt(String(selectedItem.quantidade_lead || '0'), 10);
         if (isNaN(leads)) leads = 0;
         
         const BATCH_SIZE = 10000;
-        const totalBatches = Math.ceil(leads / BATCH_SIZE) || 1; // Default to at least 1 row
+        const totalBatches = Math.ceil(leads / BATCH_SIZE) || 1; 
         
         const rows = [];
         for (let i = 0; i < totalBatches; i++) {
-            const prefix = totalBatches > 1 ? `${basePrefix}_parte${i + 1}_` : `${basePrefix}_`;
+            const suffix = totalBatches > 1 ? `parte${i + 1}_` : ``;
             rows.push({
-                prefix: prefix,
+                suffix: suffix,
                 headerType: 'TEXT',
                 buttonUrls: targetUrl ? [targetUrl] : [],
                 buttonTexts: ['Clique Aqui'],
-                variables: ['', '', '', '', '']
+                variables: ['', '', '', '', ''],
+                sender: rawNumero // Forçar o remetente específico para essa linha
             });
         }
 
-        // 3. Evaluate WABA (Luis vs Sidão)
         const wabaInfo = (selectedItem.waba || '').toLowerCase();
         const isLuis = wabaInfo.includes('luis');
 
-        // 4. Construct PreFillData
         const preFillData = {
             activeTab: 'BULK',
             senderNumber: rawNumero,
             useLuis: isLuis,
             campaignPrefix: basePrefix + '_',
             rows: rows
-            // Spreadsheet isn't directly passed to TemplateCreator since TemplateCreator
-            // doesn't upload the list itself. We might just upload it here to MediaHosting?
-            // Actually, "você ja vai tratar ela como trata no nosso Planilhas" 
-            // In Planilhas, they upload the list for splitting. But here, they just need to generate the template.
-            // If they need to upload the spreadsheet, we can upload it here or just pass the file reference 
-            // if we need to store it somewhere. But usually TemplateCreator doesn't need the file to generate templates.
-            // Let's assume TemplateCreator will just receive the targetUrl and create the templates.
         };
 
         setShowModal(false);
@@ -152,7 +171,7 @@ const ExpressTemplate = () => {
 
     return (
         <div className="p-4 md:p-8 min-h-screen" style={{ color: 'white' }}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div className="flex flex-col">
                     <h1 style={{ fontWeight: 900, fontSize: 'clamp(1.4rem, 6vw, 2.4rem)', letterSpacing: '-1.5px', lineHeight: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ background: 'var(--primary-color)', color: 'black', padding: '8px', borderRadius: '12px', display: 'flex' }}>
@@ -180,6 +199,48 @@ const ExpressTemplate = () => {
                 </button>
             </div>
 
+            {/* Toolbar: Filters and View Toggle */}
+            <div className="flex flex-col md:flex-row items-center gap-4 mb-8" style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center gap-2 flex-1 w-full" style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <Search size={18} className="opacity-50" />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar por cliente, waba ou número..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                    />
+                </div>
+                
+                <div className="flex items-center gap-4 w-full md:w-auto justify-between">
+                    <select 
+                        value={filterDisparador}
+                        onChange={(e) => setFilterDisparador(e.target.value)}
+                        style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none', fontSize: '0.9rem', minWidth: '200px' }}
+                    >
+                        <option value="ALL">Todos os Disparadores</option>
+                        {uniqueResponsaveis.map(resp => (
+                            <option key={resp} value={resp}>{resp}</option>
+                        ))}
+                    </select>
+
+                    <div className="flex items-center gap-1" style={{ background: 'rgba(0,0,0,0.5)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <button 
+                            onClick={() => setViewMode('grid')}
+                            style={{ padding: '8px', borderRadius: '8px', background: viewMode === 'grid' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'grid' ? 'black' : 'white', opacity: viewMode === 'grid' ? 1 : 0.5, transition: 'all 0.2s' }}
+                        >
+                            <LayoutGrid size={18} />
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('list')}
+                            style={{ padding: '8px', borderRadius: '8px', background: viewMode === 'list' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'list' ? 'black' : 'white', opacity: viewMode === 'list' ? 1 : 0.5, transition: 'all 0.2s' }}
+                        >
+                            <ListIcon size={18} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {error && (
                 <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '16px', borderRadius: '12px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: '#ef4444' }}>
                     <AlertCircle size={20} />
@@ -187,92 +248,162 @@ const ExpressTemplate = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {items.length === 0 && !isLoading && !error && (
-                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-50">
-                        <Zap size={48} style={{ marginBottom: '16px', opacity: 0.2 }} />
-                        <h3 className="text-xl font-bold">Nenhum disparo pendente</h3>
-                        <p className="text-sm mt-2">Clique em Atualizar para buscar novos dados do Webhook.</p>
+            {filteredItems.length === 0 && !isLoading && !error && (
+                <div className="py-20 flex flex-col items-center justify-center text-center opacity-50">
+                    <Zap size={48} style={{ marginBottom: '16px', opacity: 0.2 }} />
+                    <h3 className="text-xl font-bold">Nenhum disparo pendente</h3>
+                    <p className="text-sm mt-2">Clique em Atualizar ou mude seus filtros.</p>
+                </div>
+            )}
+
+            {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredItems.map((item, index) => (
+                        <div 
+                            key={index} 
+                            onClick={() => handleCardClick(item)}
+                            className="group relative cursor-pointer"
+                            style={{
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid rgba(255,255,255,0.05)',
+                                borderRadius: '20px',
+                                padding: '20px',
+                                transition: 'all 0.3s ease',
+                                overflow: 'hidden'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                e.currentTarget.style.borderColor = 'rgba(172, 248, 0, 0.3)';
+                                e.currentTarget.style.boxShadow = '0 10px 30px -10px rgba(172, 248, 0, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        >
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1.2 }}>
+                                    {item.cliente || 'Cliente Desconhecido'}
+                                </h3>
+                                <div style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '4px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
+                                    {item.horario_disparo || '--:--'}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <User size={14} className="opacity-50" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>Responsável</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.responsavel_disparo || 'N/A'}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Smartphone size={14} className="opacity-50" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>Remetente</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.numero_disparo || 'N/A'}</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-3">
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Zap size={14} className="opacity-50" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>Leads Previstos</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                            {item.quantidade_lead ? Number(item.quantidade_lead).toLocaleString('pt-BR') : '0'} leads
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <AlertCircle size={14} className="opacity-50" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>WABA</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                            {item.waba?.toLowerCase().includes('luis') ? 'Luis (Alternativo)' : 'Sidão (Padrão)'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
+                                <span style={{ background: 'var(--primary-color)', color: 'black', padding: '8px 16px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800 }}>
+                                    INICIAR PREPARO
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="flex flex-col gap-2">
+                    {/* List Header */}
+                    <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 text-xs font-bold uppercase tracking-wider text-white/50 border-b border-white/5">
+                        <div className="col-span-3">Cliente</div>
+                        <div className="col-span-2">Responsável</div>
+                        <div className="col-span-2">Data / Horário</div>
+                        <div className="col-span-2">Remetente</div>
+                        <div className="col-span-2">Leads / Waba</div>
+                        <div className="col-span-1 text-right">Ação</div>
                     </div>
-                )}
 
-                {items.map((item, index) => (
-                    <div 
-                        key={index} 
-                        onClick={() => handleCardClick(item)}
-                        className="group relative cursor-pointer"
-                        style={{
-                            background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            borderRadius: '20px',
-                            padding: '20px',
-                            transition: 'all 0.3s ease',
-                            overflow: 'hidden'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-4px)';
-                            e.currentTarget.style.borderColor = 'rgba(172, 248, 0, 0.3)';
-                            e.currentTarget.style.boxShadow = '0 10px 30px -10px rgba(172, 248, 0, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
-                    >
-                        <div className="flex justify-between items-start mb-4">
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1.2 }}>
-                                {item.cliente || 'Cliente Desconhecido'}
-                            </h3>
-                            <div style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '4px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
-                                {item.horario_disparo || '--:--'}
+                    {filteredItems.map((item, index) => (
+                        <div 
+                            key={index}
+                            onClick={() => handleCardClick(item)}
+                            className="group grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-4 cursor-pointer"
+                            style={{
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid rgba(255,255,255,0.05)',
+                                borderRadius: '16px',
+                                transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = 'rgba(172, 248, 0, 0.3)';
+                                e.currentTarget.style.background = 'rgba(172, 248, 0, 0.05)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                            }}
+                        >
+                            <div className="col-span-3">
+                                <span style={{ fontWeight: 900, color: 'var(--primary-color)' }}>{item.cliente || 'Desconhecido'}</span>
+                            </div>
+                            <div className="col-span-2 flex items-center gap-2">
+                                <User size={14} className="opacity-50" />
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.responsavel_disparo || 'N/A'}</span>
+                            </div>
+                            <div className="col-span-2 flex flex-col">
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.data_disparo || '--'}</span>
+                                <span style={{ fontSize: '0.75rem', opacity: 0.5, fontWeight: 700 }}>{item.horario_disparo || '--:--'}</span>
+                            </div>
+                            <div className="col-span-2 flex flex-col">
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.numero_disparo || 'N/A'}</span>
+                            </div>
+                            <div className="col-span-2 flex flex-col">
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.quantidade_lead ? Number(item.quantidade_lead).toLocaleString('pt-BR') : '0'}</span>
+                                <span style={{ fontSize: '0.75rem', opacity: 0.5, fontWeight: 700 }}>{item.waba?.toLowerCase().includes('luis') ? 'Luis' : 'Sidão'}</span>
+                            </div>
+                            <div className="col-span-1 text-right">
+                                <button style={{ background: 'var(--primary-color)', color: 'black', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800 }}>
+                                    CRIAR
+                                </button>
                             </div>
                         </div>
-
-                        <div className="flex flex-col gap-3">
-                            <div className="flex items-center gap-3">
-                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Smartphone size={14} className="opacity-50" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>Remetente</span>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.numero_disparo || 'N/A'}</span>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Zap size={14} className="opacity-50" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>Leads Previstos</span>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                        {item.quantidade_lead ? Number(item.quantidade_lead).toLocaleString('pt-BR') : '0'} leads
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <AlertCircle size={14} className="opacity-50" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>WABA</span>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                        {item.waba?.toLowerCase().includes('luis') ? 'Luis (Alternativo)' : 'Sidão (Padrão)'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
-                            <span style={{ background: 'var(--primary-color)', color: 'black', padding: '8px 16px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800 }}>
-                                INICIAR PREPARO
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* Wizard Modal */}
             {showModal && selectedItem && (
@@ -292,7 +423,7 @@ const ExpressTemplate = () => {
                             </div>
                             <div className="flex flex-col">
                                 <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Express Config</h2>
-                                <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>{selectedItem.cliente}</span>
+                                <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>{selectedItem.cliente} - Reponsável: {selectedItem.responsavel_disparo}</span>
                             </div>
                         </div>
 
@@ -316,8 +447,10 @@ const ExpressTemplate = () => {
                                 />
                                 <label 
                                     htmlFor="express-upload"
-                                    className="cursor-pointer"
+                                    className="cursor-pointer transition-colors"
                                     style={{ background: 'rgba(0,0,0,0.5)', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.8rem', opacity: 0.8 }}
+                                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'}
                                 >
                                     {spreadsheetFile ? (
                                         <span style={{ color: 'var(--primary-color)', fontWeight: 700 }}>Planilha Selecionada: {spreadsheetFile.name}</span>
@@ -363,8 +496,10 @@ const ExpressTemplate = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     gap: '12px',
-                                    marginTop: '8px'
+                                    marginTop: '8px',
+                                    transition: 'all 0.2s ease'
                                 }}
+                                className="hover:scale-[1.02]"
                             >
                                 IR PARA CRIAÇÃO EM MASSA
                                 <Send size={18} />
