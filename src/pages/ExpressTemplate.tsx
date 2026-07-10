@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, Smartphone, Upload, Link as LinkIcon, Send, X, AlertCircle, Search, LayoutGrid, List as ListIcon, User, Clock, FileText, CheckCircle2 } from 'lucide-react';
+import { Zap, RefreshCw, Smartphone, Upload, Link as LinkIcon, Send, X, AlertCircle, Search, LayoutGrid, List as ListIcon, User, Clock, FileText, CheckCircle2, Activity } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface WebhookItem {
     cliente?: string;
@@ -30,10 +31,18 @@ const ExpressTemplate = () => {
     // Filter State
     const [searchQuery, setSearchQuery] = useState('');
     const [filterDisparador, setFilterDisparador] = useState('ALL');
+    const [filterStatus, setFilterStatus] = useState('ALL');
+    const [filterWaba, setFilterWaba] = useState('ALL');
+    const [filterHorario, setFilterHorario] = useState('ALL');
 
     // Form state
     const [spreadsheetFile, setSpreadsheetFile] = useState<File | null>(null);
     const [targetUrl, setTargetUrl] = useState('');
+    
+    // Spreadsheet Processing State
+    const [isProcessingCsv, setIsProcessingCsv] = useState(false);
+    const [parsedCsvChunks, setParsedCsvChunks] = useState<any[]>([]);
+
     
     const WEBHOOK_URL = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/a2d2ee02-2bdf-4f5c-a1b6-a0cd43b128ed';
 
@@ -79,9 +88,31 @@ const ExpressTemplate = () => {
     const uniqueResponsaveis = useMemo(() => {
         const set = new Set<string>();
         items.forEach(i => {
-            if (i.responsavel_disparo && i.responsavel_disparo.trim()) {
-                set.add(i.responsavel_disparo.trim());
-            }
+            if (i.responsavel_disparo && i.responsavel_disparo.trim()) set.add(i.responsavel_disparo.trim());
+        });
+        return Array.from(set).sort();
+    }, [items]);
+    
+    const uniqueStatuses = useMemo(() => {
+        const set = new Set<string>();
+        items.forEach(i => {
+            if (i.status && i.status.trim()) set.add(i.status.trim());
+        });
+        return Array.from(set).sort();
+    }, [items]);
+
+    const uniqueWabas = useMemo(() => {
+        const set = new Set<string>();
+        items.forEach(i => {
+            if (i.waba && i.waba.trim()) set.add(i.waba.trim());
+        });
+        return Array.from(set).sort();
+    }, [items]);
+
+    const uniqueHorarios = useMemo(() => {
+        const set = new Set<string>();
+        items.forEach(i => {
+            if (i.horario_disparo && i.horario_disparo.trim()) set.add(i.horario_disparo.trim());
         });
         return Array.from(set).sort();
     }, [items]);
@@ -96,12 +127,14 @@ const ExpressTemplate = () => {
                 (item.numero_disparo || '').toLowerCase().includes(q) ||
                 (item.waba || '').toLowerCase().includes(q);
                 
-            // Disparador filter
             const matchesDisparador = filterDisparador === 'ALL' || (item.responsavel_disparo || '').trim() === filterDisparador;
+            const matchesStatus = filterStatus === 'ALL' || (item.status || '').trim() === filterStatus;
+            const matchesWaba = filterWaba === 'ALL' || (item.waba || '').trim() === filterWaba;
+            const matchesHorario = filterHorario === 'ALL' || (item.horario_disparo || '').trim() === filterHorario;
             
-            return matchesSearch && matchesDisparador;
+            return matchesSearch && matchesDisparador && matchesStatus && matchesWaba && matchesHorario;
         });
-    }, [items, searchQuery, filterDisparador]);
+    }, [items, searchQuery, filterDisparador, filterStatus, filterWaba, filterHorario]);
 
     const handleCardClick = (item: WebhookItem) => {
         setSelectedItem(item);
@@ -110,9 +143,187 @@ const ExpressTemplate = () => {
         setShowModal(true);
     };
 
+    const isReportLate = (item: WebhookItem) => {
+        const s = (item.status || '').trim().toUpperCase();
+        if (s !== 'ENVIAR RELATÓRIO' && s !== 'ENVIAR RELATORIO') return false;
+        
+        if (!item.data_disparo || !item.horario_disparo) return false;
+        
+        // data_disparo is usually "DD/MM/YYYY" or "DD/MM", horario_disparo "HH:MM"
+        const dateParts = item.data_disparo.split('/');
+        const timeParts = item.horario_disparo.split(':');
+        
+        if (dateParts.length < 2 || timeParts.length < 2) return false;
+        
+        const day = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10);
+        let year = dateParts.length === 3 ? parseInt(dateParts[2], 10) : new Date().getFullYear();
+        if (year < 100) year += 2000;
+        
+        const hour = parseInt(timeParts[0], 10);
+        const minute = parseInt(timeParts[1], 10);
+        
+        if (isNaN(day) || isNaN(month) || isNaN(hour) || isNaN(minute)) return false;
+        
+        const disparoDate = new Date(year, month - 1, day, hour, minute);
+        const oneHourLater = new Date(disparoDate.getTime() + 60 * 60 * 1000);
+        const now = new Date();
+        
+        return now > oneHourLater;
+    };
+
+    const getStatusStyle = (item: WebhookItem) => {
+        const status = item.status;
+        if (!status) return { text: 'PENDENTE', color: '#eab308', bg: 'rgba(234, 179, 8, 0.1)' };
+        const s = status.trim().toUpperCase();
+        if (s === 'RELATÓRIO ENVIADO' || s === 'RELATORIO ENVIADO') {
+            return { text: status.toUpperCase(), color: '#4ade80', bg: 'rgba(74, 222, 128, 0.1)' };
+        }
+        if (s === 'CANCELADO') {
+            return { text: status.toUpperCase(), color: '#f87171', bg: 'rgba(248, 113, 113, 0.1)' };
+        }
+        if (s === 'AGENDADO') {
+            return { text: status.toUpperCase(), color: '#eab308', bg: 'rgba(234, 179, 8, 0.1)' };
+        }
+        if (s === 'ENVIAR RELATÓRIO' || s === 'ENVIAR RELATORIO') {
+            if (isReportLate(item)) {
+                return { text: 'RELATÓRIO ATRASADO', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' }; // Red for late
+            }
+            return { text: status.toUpperCase(), color: '#eab308', bg: 'rgba(234, 179, 8, 0.1)' };
+        }
+        return { text: status.toUpperCase(), color: '#eab308', bg: 'rgba(234, 179, 8, 0.1)' };
+    };
+
+    // Appends processSpreadsheet logic
+    const normalizePhone = (input: string) => {
+        let cleaned = input.replace(/\D/g, '');
+        if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
+        if (cleaned.length === 10 || cleaned.length === 11) cleaned = '55' + cleaned;
+        if (cleaned.length === 12 && cleaned.startsWith('55')) {
+            cleaned = cleaned.slice(0, 4) + '9' + cleaned.slice(4);
+        }
+        return cleaned;
+    };
+
+    const processSpreadsheet = async (file: File) => {
+        setIsProcessingCsv(true);
+        setParsedCsvChunks([]);
+        
+        try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json: any[][] = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                const startIndex = (json[0] && typeof json[0][0] === 'string' && isNaN(Number(json[0][0]))) ? 1 : 0;
+                
+                const headers = startIndex === 1 && json[0] ? json[0].map((h: any) => String(h || '').trim()) : null;
+                const lowerHeaders = headers ? headers.map((h: string) => h.toLowerCase()) : [];
+
+                let phoneColIndex = lowerHeaders.findIndex((h: string) => h.includes('celular') || h.includes('telefone') || h.includes('whatsapp') || h.includes('numero') || h.includes('número'));
+                let nameColIndex = lowerHeaders.findIndex((h: string) => h === 'nome' || h === 'name' || h.includes('nome') || h === 'info_2');
+
+                if (phoneColIndex === -1) {
+                    if (json.length > startIndex) {
+                        const firstDataRow = json[startIndex];
+                        for (let col = 0; col < Math.min(firstDataRow.length, 6); col++) {
+                            const raw = String(firstDataRow[col] || '');
+                            if (normalizePhone(raw).length === 13) {
+                                phoneColIndex = col;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (phoneColIndex === -1) phoneColIndex = 0;
+
+                const extracted = [];
+                for (let i = startIndex; i < json.length; i++) {
+                    const row = json[i];
+                    if (row && row.length > 0) {
+                        const rawCell = String(row[phoneColIndex] || '');
+                        const phone = normalizePhone(rawCell);
+                        if (phone.length >= 10 && phone.length <= 15) {
+                            let contactName = '';
+                            if (nameColIndex !== -1) {
+                                contactName = String(row[nameColIndex] || '').trim();
+                            } else {
+                                contactName = String(row[phoneColIndex === 0 ? 1 : 0] || '').trim();
+                            }
+
+                            const contact: any = {
+                                telefone: phone,
+                                nome: contactName,
+                            };
+                            
+                            let extraCount = 4;
+                            if (headers) {
+                                headers.forEach((h: any, cIdx: number) => {
+                                    if (cIdx !== phoneColIndex && cIdx !== nameColIndex) {
+                                        contact[`info_${extraCount}`] = String(row[cIdx] || '');
+                                        extraCount++;
+                                    }
+                                });
+                            }
+                            
+                            extracted.push(contact);
+                        }
+                    }
+                }
+
+                const seen = new Set();
+                const filtered = extracted.filter(item => {
+                    const duplicate = seen.has(item.telefone);
+                    seen.add(item.telefone);
+                    return !duplicate;
+                });
+
+                if (filtered.length === 0) {
+                    alert("Nenhum número válido encontrado na planilha.");
+                    setIsProcessingCsv(false);
+                    return;
+                }
+
+                const BATCH_SIZE = 10000;
+                const chunks = [];
+                for (let i = 0; i < filtered.length; i += BATCH_SIZE) {
+                    const chunkData = filtered.slice(i, i + BATCH_SIZE).map((c) => {
+                        const res: any = { Número: c.telefone, info_2: c.nome };
+                        Object.keys(c).forEach(k => {
+                            if (k !== 'telefone' && k !== 'nome') res[k] = c[k];
+                        });
+                        return res;
+                    });
+                    
+                    const worksheet = XLSX.utils.json_to_sheet(chunkData);
+                    const newWorkbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(newWorkbook, worksheet, "Contatos");
+                    const csvOutput = XLSX.write(newWorkbook, { bookType: 'csv', type: 'array' });
+                    const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    chunks.push(blobUrl);
+                }
+                
+                setParsedCsvChunks(chunks);
+                setIsProcessingCsv(false);
+            };
+            reader.readAsArrayBuffer(file);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao processar planilha.");
+            setIsProcessingCsv(false);
+        }
+    };
+
     const handleProcess = () => {
         if (!selectedItem) return;
         
+        if (!spreadsheetFile) {
+            const proceed = window.confirm("Você tem certeza que quer continuar sem planilha anexada?");
+            if (!proceed) return;
+        }
+
         const rawCliente = selectedItem.cliente || 'cliente';
         const cleanCliente = rawCliente.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
         
@@ -129,10 +340,8 @@ const ExpressTemplate = () => {
             dateSuffix = `${String(today.getDate()).padStart(2, '0')}${String(today.getMonth() + 1).padStart(2, '0')}`;
         }
 
-        // Format sender to 55+number
         const rawNumero = selectedItem.numero_disparo || '';
         let cleanNumero = rawNumero.replace(/[^0-9]/g, '');
-        // If it's 10 or 11 digits (e.g., 3195732044), add 55
         if (cleanNumero.length === 10 || cleanNumero.length === 11) {
             cleanNumero = '55' + cleanNumero;
         }
@@ -141,11 +350,16 @@ const ExpressTemplate = () => {
 
         const basePrefix = `${cleanCliente}_${dateSuffix}_${finalNumero}`;
 
-        let leads = parseInt(String(selectedItem.quantidade_lead || '0'), 10);
-        if (isNaN(leads)) leads = 0;
-        
-        const BATCH_SIZE = 10000;
-        const totalBatches = Math.ceil(leads / BATCH_SIZE) || 1; 
+        // If we processed a CSV, we use the parsed chunks count, else we use the selected item lead quantity
+        let totalBatches = 1;
+        if (parsedCsvChunks.length > 0) {
+            totalBatches = parsedCsvChunks.length;
+        } else {
+            let leads = parseInt(String(selectedItem.quantidade_lead || '0'), 10);
+            if (isNaN(leads)) leads = 0;
+            const BATCH_SIZE = 10000;
+            totalBatches = Math.ceil(leads / BATCH_SIZE) || 1; 
+        }
         
         const rows = [];
         for (let i = 0; i < totalBatches; i++) {
@@ -156,7 +370,8 @@ const ExpressTemplate = () => {
                 buttonUrls: targetUrl ? [targetUrl] : [],
                 buttonTexts: ['Clique Aqui'],
                 variables: ['', '', '', '', ''],
-                sender: cleanNumero // Enviar o número já formatado certinho
+                sender: cleanNumero,
+                csvUrl: parsedCsvChunks[i] || null // Attach the processed CSV URL
             });
         }
 
@@ -206,8 +421,8 @@ const ExpressTemplate = () => {
             </div>
 
             {/* Toolbar: Filters and View Toggle */}
-            <div className="flex flex-col md:flex-row items-center gap-4 mb-8" style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div className="flex items-center gap-2 flex-1 w-full" style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="flex flex-col gap-4 mb-8" style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center gap-2 w-full" style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
                     <Search size={18} className="opacity-50" />
                     <input 
                         type="text" 
@@ -218,19 +433,44 @@ const ExpressTemplate = () => {
                     />
                 </div>
                 
-                <div className="flex items-center gap-4 w-full md:w-auto justify-between">
+                <div className="flex flex-wrap items-center gap-4 w-full">
                     <select 
                         value={filterDisparador}
                         onChange={(e) => setFilterDisparador(e.target.value)}
-                        style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none', fontSize: '0.9rem', minWidth: '200px' }}
+                        style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none', fontSize: '0.9rem', flex: '1 1 150px' }}
                     >
-                        <option value="ALL">Todos os Disparadores</option>
-                        {uniqueResponsaveis.map(resp => (
-                            <option key={resp} value={resp}>{resp}</option>
-                        ))}
+                        <option value="ALL">Resp. (Todos)</option>
+                        {uniqueResponsaveis.map(resp => <option key={resp} value={resp}>{resp}</option>)}
                     </select>
 
-                    <div className="flex items-center gap-1" style={{ background: 'rgba(0,0,0,0.5)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <select 
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none', fontSize: '0.9rem', flex: '1 1 150px' }}
+                    >
+                        <option value="ALL">Status (Todos)</option>
+                        {uniqueStatuses.map(val => <option key={val} value={val}>{val}</option>)}
+                    </select>
+
+                    <select 
+                        value={filterWaba}
+                        onChange={(e) => setFilterWaba(e.target.value)}
+                        style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none', fontSize: '0.9rem', flex: '1 1 150px' }}
+                    >
+                        <option value="ALL">Waba (Todos)</option>
+                        {uniqueWabas.map(val => <option key={val} value={val}>{val}</option>)}
+                    </select>
+
+                    <select 
+                        value={filterHorario}
+                        onChange={(e) => setFilterHorario(e.target.value)}
+                        style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none', fontSize: '0.9rem', flex: '1 1 150px' }}
+                    >
+                        <option value="ALL">Horário (Todos)</option>
+                        {uniqueHorarios.map(val => <option key={val} value={val}>{val}</option>)}
+                    </select>
+
+                    <div className="flex items-center gap-1 ml-auto" style={{ background: 'rgba(0,0,0,0.5)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <button 
                             onClick={() => setViewMode('grid')}
                             style={{ padding: '8px', borderRadius: '8px', background: viewMode === 'grid' ? 'var(--primary-color)' : 'transparent', color: viewMode === 'grid' ? 'black' : 'white', opacity: viewMode === 'grid' ? 1 : 0.5, transition: 'all 0.2s' }}
@@ -303,18 +543,23 @@ const ExpressTemplate = () => {
                                         </div>
                                     </div>
                                     
-                                    <span style={{ 
-                                        fontSize: '9px', 
-                                        fontWeight: 900, 
-                                        padding: '4px 8px', 
-                                        borderRadius: '8px', 
-                                        background: 'rgba(234, 179, 8, 0.1)', 
-                                        color: '#eab308', 
-                                        border: '1px solid rgba(234, 179, 8, 0.2)',
-                                        letterSpacing: '0.5px'
-                                    }}>
-                                        PENDENTE
-                                    </span>
+                                    {(() => {
+                                        const st = getStatusStyle(item);
+                                        return (
+                                            <span style={{ 
+                                                fontSize: '9px', 
+                                                fontWeight: 900, 
+                                                padding: '4px 8px', 
+                                                borderRadius: '8px', 
+                                                background: st.bg, 
+                                                color: st.color, 
+                                                border: `1px solid ${st.color.replace(')', ', 0.2)').replace('rgb', 'rgba')}`,
+                                                letterSpacing: '0.5px'
+                                            }}>
+                                                {st.text}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
                                 
                                 <div className="flex items-center gap-4 mb-6">
@@ -341,6 +586,12 @@ const ExpressTemplate = () => {
                                         <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5 }}>WABA</span>
                                         <span style={{ fontSize: '11px', fontWeight: 800 }}>{item.waba?.toLowerCase().includes('luis') ? 'Luis (Alt)' : 'Sidão (Pad)'}</span>
                                     </div>
+                                    {item.entregue && (
+                                        <div className="flex justify-between items-center">
+                                            <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5 }}>ENTREGUES</span>
+                                            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary-color)' }}>{Number(item.entregue).toLocaleString('pt-BR')}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
@@ -406,8 +657,26 @@ const ExpressTemplate = () => {
                                 e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
                             }}
                         >
-                            <div className="col-span-3">
+                            <div className="col-span-3 flex items-center gap-3">
                                 <span style={{ fontWeight: 900, color: 'var(--primary-color)' }}>{item.cliente || 'Desconhecido'}</span>
+                                {(() => {
+                                    const st = getStatusStyle(item);
+                                    return (
+                                        <span style={{ 
+                                            fontSize: '8px', 
+                                            fontWeight: 900, 
+                                            padding: '2px 6px', 
+                                            borderRadius: '6px', 
+                                            background: st.bg, 
+                                            color: st.color, 
+                                            border: `1px solid ${st.color.replace(')', ', 0.2)').replace('rgb', 'rgba')}`,
+                                            letterSpacing: '0.5px',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {st.text}
+                                        </span>
+                                    );
+                                })()}
                             </div>
                             <div className="col-span-2 flex items-center gap-2">
                                 <User size={14} className="opacity-50" />
@@ -421,8 +690,11 @@ const ExpressTemplate = () => {
                                 <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.numero_disparo || 'N/A'}</span>
                             </div>
                             <div className="col-span-2 flex flex-col">
-                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.quantidade_lead ? Number(item.quantidade_lead).toLocaleString('pt-BR') : '0'}</span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.quantidade_lead ? Number(item.quantidade_lead).toLocaleString('pt-BR') : '0'} Leads</span>
                                 <span style={{ fontSize: '0.75rem', opacity: 0.5, fontWeight: 700 }}>{item.waba?.toLowerCase().includes('luis') ? 'Luis' : 'Sidão'}</span>
+                                {item.entregue && (
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-color)', marginTop: '2px' }}>Entregues: {Number(item.entregue).toLocaleString('pt-BR')}</span>
+                                )}
                             </div>
                             <div className="col-span-1 text-right">
                                 <button style={{ background: 'var(--primary-color)', color: 'black', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800 }}>
@@ -470,7 +742,9 @@ const ExpressTemplate = () => {
                                     accept=".csv,.xlsx,.xls"
                                     onChange={(e) => {
                                         if (e.target.files && e.target.files[0]) {
-                                            setSpreadsheetFile(e.target.files[0]);
+                                            const selectedFile = e.target.files[0];
+                                            setSpreadsheetFile(selectedFile);
+                                            processSpreadsheet(selectedFile);
                                         }
                                     }}
                                 />
@@ -482,7 +756,7 @@ const ExpressTemplate = () => {
                                     onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'}
                                 >
                                     {spreadsheetFile ? (
-                                        <span style={{ color: 'var(--primary-color)', fontWeight: 700 }}>Planilha Selecionada: {spreadsheetFile.name}</span>
+                                        <span style={{ color: 'var(--primary-color)', fontWeight: 700 }}>Planilha Selecionada: {spreadsheetFile.name} {isProcessingCsv && '(Limpando...)'}</span>
                                     ) : (
                                         <span>Clique aqui para selecionar uma planilha CSV/XLSX</span>
                                     )}
@@ -514,6 +788,7 @@ const ExpressTemplate = () => {
 
                             <button
                                 onClick={handleProcess}
+                                disabled={isProcessingCsv}
                                 style={{
                                     background: 'var(--primary-color)',
                                     color: 'black',
@@ -526,12 +801,23 @@ const ExpressTemplate = () => {
                                     justifyContent: 'center',
                                     gap: '12px',
                                     marginTop: '8px',
-                                    transition: 'all 0.2s ease'
+                                    transition: 'all 0.2s ease',
+                                    opacity: isProcessingCsv ? 0.5 : 1,
+                                    cursor: isProcessingCsv ? 'not-allowed' : 'pointer'
                                 }}
-                                className="hover:scale-[1.02]"
+                                className={isProcessingCsv ? '' : 'hover:scale-[1.02]'}
                             >
-                                IR PARA CRIAÇÃO EM MASSA
-                                <Send size={18} />
+                                {isProcessingCsv ? (
+                                    <>
+                                        <Activity size={18} className="animate-spin" />
+                                        PROCESSANDO PLANILHA...
+                                    </>
+                                ) : (
+                                    <>
+                                        IR PARA CRIAÇÃO EM MASSA
+                                        <Send size={18} />
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
