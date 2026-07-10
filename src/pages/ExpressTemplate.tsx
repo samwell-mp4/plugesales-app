@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, Smartphone, Upload, Link as LinkIcon, Send, X, AlertCircle, Search, LayoutGrid, List as ListIcon, User, Calendar } from 'lucide-react';
+import { Zap, RefreshCw, Smartphone, Upload, Link as LinkIcon, Send, X, AlertCircle, Search, LayoutGrid, List as ListIcon, User, Clock, FileText, CheckCircle2 } from 'lucide-react';
 
 interface WebhookItem {
     cliente?: string;
@@ -129,8 +129,14 @@ const ExpressTemplate = () => {
             dateSuffix = `${String(today.getDate()).padStart(2, '0')}${String(today.getMonth() + 1).padStart(2, '0')}`;
         }
 
+        // Format sender to 55+number
         const rawNumero = selectedItem.numero_disparo || '';
-        const cleanNumero = rawNumero.replace(/[^0-9]/g, '');
+        let cleanNumero = rawNumero.replace(/[^0-9]/g, '');
+        // If it's 10 or 11 digits (e.g., 3195732044), add 55
+        if (cleanNumero.length === 10 || cleanNumero.length === 11) {
+            cleanNumero = '55' + cleanNumero;
+        }
+        
         const finalNumero = cleanNumero.length >= 4 ? cleanNumero.slice(-4) : cleanNumero;
 
         const basePrefix = `${cleanCliente}_${dateSuffix}_${finalNumero}`;
@@ -150,7 +156,7 @@ const ExpressTemplate = () => {
                 buttonUrls: targetUrl ? [targetUrl] : [],
                 buttonTexts: ['Clique Aqui'],
                 variables: ['', '', '', '', ''],
-                sender: rawNumero // Forçar o remetente específico para essa linha
+                sender: cleanNumero // Enviar o número já formatado certinho
             });
         }
 
@@ -159,7 +165,7 @@ const ExpressTemplate = () => {
 
         const preFillData = {
             activeTab: 'BULK',
-            senderNumber: rawNumero,
+            senderNumber: cleanNumero,
             useLuis: isLuis,
             campaignPrefix: basePrefix + '_',
             rows: rows
@@ -257,24 +263,23 @@ const ExpressTemplate = () => {
             )}
 
             {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredItems.map((item, index) => (
                         <div 
                             key={index} 
                             onClick={() => handleCardClick(item)}
-                            className="group relative cursor-pointer"
+                            className="group relative cursor-pointer flex flex-col"
                             style={{
-                                background: 'rgba(255,255,255,0.02)',
+                                background: '#131417',
                                 border: '1px solid rgba(255,255,255,0.05)',
-                                borderRadius: '20px',
-                                padding: '20px',
+                                borderRadius: '24px',
                                 transition: 'all 0.3s ease',
                                 overflow: 'hidden'
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-4px)';
                                 e.currentTarget.style.borderColor = 'rgba(172, 248, 0, 0.3)';
-                                e.currentTarget.style.boxShadow = '0 10px 30px -10px rgba(172, 248, 0, 0.1)';
+                                e.currentTarget.style.boxShadow = '0 10px 40px -10px rgba(172, 248, 0, 0.15)';
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = 'translateY(0)';
@@ -282,65 +287,89 @@ const ExpressTemplate = () => {
                                 e.currentTarget.style.boxShadow = 'none';
                             }}
                         >
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1.2 }}>
-                                    {item.cliente || 'Cliente Desconhecido'}
-                                </h3>
-                                <div style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '4px 8px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700 }}>
-                                    {item.horario_disparo || '--:--'}
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center gap-3">
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <User size={14} className="opacity-50" />
+                            <div className="p-6 flex-1 flex flex-col">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <User size={20} style={{ opacity: 0.3 }} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: 'white', letterSpacing: '-0.5px' }}>
+                                                {item.cliente || 'Desconhecido'}
+                                            </h3>
+                                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                                Responsável: {item.responsavel_disparo || 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>Responsável</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.responsavel_disparo || 'N/A'}</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Smartphone size={14} className="opacity-50" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>Remetente</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.numero_disparo || 'N/A'}</span>
-                                    </div>
+                                    
+                                    <span style={{ 
+                                        fontSize: '9px', 
+                                        fontWeight: 900, 
+                                        padding: '4px 8px', 
+                                        borderRadius: '8px', 
+                                        background: 'rgba(234, 179, 8, 0.1)', 
+                                        color: '#eab308', 
+                                        border: '1px solid rgba(234, 179, 8, 0.2)',
+                                        letterSpacing: '0.5px'
+                                    }}>
+                                        PENDENTE
+                                    </span>
                                 </div>
                                 
-                                <div className="flex items-center gap-3">
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Zap size={14} className="opacity-50" />
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <Zap size={14} className="text-primary-color" />
+                                        <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary-color)' }}>
+                                            {item.quantidade_lead ? Number(item.quantidade_lead).toLocaleString('pt-BR') : '0'} LEADS
+                                        </span>
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>Leads Previstos</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                            {item.quantidade_lead ? Number(item.quantidade_lead).toLocaleString('pt-BR') : '0'} leads
+                                    <div className="flex items-center gap-2">
+                                        <Clock size={14} style={{ opacity: 0.5 }} />
+                                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                            {item.horario_disparo || '--:--'}
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <AlertCircle size={14} className="opacity-50" />
+                                <div className="flex flex-col gap-3 mt-auto p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                    <div className="flex justify-between items-center">
+                                        <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5 }}>REMETENTE</span>
+                                        <span style={{ fontSize: '11px', fontWeight: 800 }}>{item.numero_disparo || 'N/A'}</span>
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>WABA</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                            {item.waba?.toLowerCase().includes('luis') ? 'Luis (Alternativo)' : 'Sidão (Padrão)'}
-                                        </span>
+                                    <div className="flex justify-between items-center">
+                                        <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.5 }}>WABA</span>
+                                        <span style={{ fontSize: '11px', fontWeight: 800 }}>{item.waba?.toLowerCase().includes('luis') ? 'Luis (Alt)' : 'Sidão (Pad)'}</span>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
-                                <span style={{ background: 'var(--primary-color)', color: 'black', padding: '8px 16px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 800 }}>
-                                    INICIAR PREPARO
-                                </span>
+                            
+                            <div className="px-6 pb-6 pt-0">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCardClick(item);
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        background: '#f97316', // Orange button like in the print
+                                        color: 'white',
+                                        fontWeight: 900,
+                                        fontSize: '12px',
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        border: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                    className="hover:brightness-110 transition-all"
+                                >
+                                    <FileText size={16} />
+                                    PREENCHER NO CREATOR
+                                </button>
                             </div>
                         </div>
                     ))}
