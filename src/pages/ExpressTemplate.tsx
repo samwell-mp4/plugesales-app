@@ -140,6 +140,7 @@ const ExpressTemplate = () => {
         setSelectedItem(item);
         setSpreadsheetFile(null);
         setTargetUrl('');
+        setParsedCsvChunks([]);
         setShowModal(true);
     };
 
@@ -640,20 +641,17 @@ const ExpressTemplate = () => {
                         <div 
                             key={index}
                             onClick={() => handleCardClick(item)}
-                            className="group grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-4 cursor-pointer"
+                            className="group grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-3 cursor-pointer border-b"
                             style={{
-                                background: 'rgba(255,255,255,0.02)',
-                                border: '1px solid rgba(255,255,255,0.05)',
-                                borderRadius: '16px',
+                                borderColor: 'rgba(255,255,255,0.05)',
+                                background: 'transparent',
                                 transition: 'all 0.2s ease',
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = 'rgba(172, 248, 0, 0.3)';
                                 e.currentTarget.style.background = 'rgba(172, 248, 0, 0.05)';
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                                e.currentTarget.style.background = 'transparent';
                             }}
                         >
                             <div className="col-span-3 flex items-center gap-3">
