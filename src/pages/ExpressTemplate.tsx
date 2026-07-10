@@ -259,7 +259,7 @@ const ExpressTemplate = () => {
                             
                             let extraCount = 4;
                             if (headers) {
-                                headers.forEach((h: any, cIdx: number) => {
+                                headers.forEach((_: any, cIdx: number) => {
                                     if (cIdx !== phoneColIndex && cIdx !== nameColIndex) {
                                         contact[`info_${extraCount}`] = String(row[cIdx] || '');
                                         extraCount++;
