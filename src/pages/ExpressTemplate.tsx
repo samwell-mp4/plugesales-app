@@ -350,16 +350,10 @@ const ExpressTemplate = () => {
 
         const basePrefix = `${cleanCliente}_${dateSuffix}_${finalNumero}`;
 
-        // If we processed a CSV, we use the parsed chunks count, else we use the selected item lead quantity
-        let totalBatches = 1;
-        if (parsedCsvChunks.length > 0) {
-            totalBatches = parsedCsvChunks.length;
-        } else {
-            let leads = parseInt(String(selectedItem.quantidade_lead || '0'), 10);
-            if (isNaN(leads)) leads = 0;
-            const BATCH_SIZE = 10000;
-            totalBatches = Math.ceil(leads / BATCH_SIZE) || 1; 
-        }
+        let leads = parseInt(String(selectedItem.quantidade_lead || '0'), 10);
+        if (isNaN(leads)) leads = 0;
+        const BATCH_SIZE = 10000;
+        const totalBatches = Math.ceil(leads / BATCH_SIZE) || 1; 
         
         const rows = [];
         for (let i = 0; i < totalBatches; i++) {
@@ -371,7 +365,7 @@ const ExpressTemplate = () => {
                 buttonTexts: ['Clique Aqui'],
                 variables: ['', '', '', '', ''],
                 sender: cleanNumero,
-                csvUrl: parsedCsvChunks[i] || null // Attach the processed CSV URL
+                csvUrl: null
             });
         }
 
@@ -410,10 +404,15 @@ const ExpressTemplate = () => {
                     disabled={isLoading}
                     className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all"
                     style={{ 
-                        background: 'rgba(255,255,255,0.05)', 
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        opacity: isLoading ? 0.5 : 1
+                        background: 'var(--primary-color)', 
+                        color: 'black',
+                        border: 'none',
+                        opacity: isLoading ? 0.5 : 1,
+                        fontSize: '0.9rem',
+                        boxShadow: '0 4px 14px 0 rgba(172, 248, 0, 0.2)'
                     }}
+                    onMouseEnter={(e) => { if (!isLoading) e.currentTarget.style.transform = 'translateY(-2px)' }}
+                    onMouseLeave={(e) => { if (!isLoading) e.currentTarget.style.transform = 'translateY(0)' }}
                 >
                     <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
                     ATUALIZAR DADOS
@@ -761,6 +760,20 @@ const ExpressTemplate = () => {
                                         <span>Clique aqui para selecionar uma planilha CSV/XLSX</span>
                                     )}
                                 </label>
+                                {parsedCsvChunks.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {parsedCsvChunks.map((chunkUrl, i) => (
+                                            <a 
+                                                key={i}
+                                                href={chunkUrl} 
+                                                download={`PLANILHA_${selectedItem?.cliente}_PARTE_${i + 1}.csv`}
+                                                style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}
+                                            >
+                                                Baixar Parte {i + 1}
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Passo 2: URL */}

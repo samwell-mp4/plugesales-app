@@ -1931,11 +1931,6 @@ const TemplateCreator = () => {
                                                                                             ))}
                                                                                             <td>
                                                                                                 <div className="flex gap-3" style={{ position: 'relative', zIndex: 100, justifyContent: 'center', width: '100%' }}>
-                                                                                                    {row.csvUrl && (
-                                                                                                        <a href={row.csvUrl} download={`PLANILHA_${fullName || camp.prefix}.csv`} className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Baixar Planilha (CSV)">
-                                                                                                            <Download size={20} color="var(--primary-color)" />
-                                                                                                        </a>
-                                                                                                    )}
                                                                                                     <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={24} color="#FFFFFF" /></button>
                                                                                                     <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={async () => { const ok = await showConfirm("Remover esta linha?"); if (ok) deleteRow(camp.id, rIdx); }} title="Excluir"><Trash2 size={24} color="#FFFFFF" /></button>
                                                                                                 </div>
