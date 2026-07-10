@@ -13,6 +13,7 @@ import CampaignPlanner from './pages/CampaignPlanner';
 import EngineExecution from './pages/EngineExecution';
 import MediaHosting from './pages/MediaHosting';
 import TemplateDispatch from './pages/TemplateDispatch';
+import ExpressTemplate from './pages/ExpressTemplate';
 import ClientSubmissions from './pages/ClientSubmissions';
 import ClientSubmissionDetail from './pages/ClientSubmissionDetail';
 import ClientSubmissionAdd from './pages/ClientSubmissionAdd';
@@ -175,6 +176,7 @@ function AppContent() {
     '/campaigns',
     '/engine',
     '/dispatch',
+    '/express-template',
     '/client-submissions',
     '/client-submissions/add',
     '/media',
@@ -322,6 +324,7 @@ function AppContent() {
           <Route path="/engine" element={<ProtectedRoute><EngineExecution /></ProtectedRoute>} />
           <Route path="/media" element={<ProtectedRoute><MediaHosting /></ProtectedRoute>} />
           <Route path="/dispatch" element={<ProtectedRoute><TemplateDispatch /></ProtectedRoute>} />
+          <Route path="/express-template" element={<ProtectedRoute><ExpressTemplate /></ProtectedRoute>} />
           <Route path="/link-shortener" element={<ProtectedRoute><LinkShortener /></ProtectedRoute>} />
           <Route path="/link-rotator" element={<ProtectedRoute><LinkRotator /></ProtectedRoute>} />
           <Route path="/rotator-stats/:id" element={<ProtectedRoute><RotatorDetails /></ProtectedRoute>} />

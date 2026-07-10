@@ -54,7 +54,7 @@ const TemplateCreator = () => {
     const [senderNumbers, setSenderNumbers] = useState(user?.infobip_sender || '');
     const [infobipUrl, setInfobipUrl] = useState(user?.infobip_url || '');
     const [isUploading, setIsUploading] = useState(false);
-    const [useLuis, setUseLuis] = useState(false);
+    const [useLuis, setUseLuis] = useState(location.state?.useLuis || false);
     const [trackingUrl, setTrackingUrl] = useState(false);
 
     const LUIS_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
