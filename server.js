@@ -2354,8 +2354,32 @@ app.delete('/api/reports/submission/:submissionId', async (req, res) => {
 // Media Library
 app.get('/api/media', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM media_library ORDER BY created_at DESC');
-        res.json(result.rows);
+        const page = parseInt(req.query.page);
+        const limit = parseInt(req.query.limit);
+        const search = req.query.search || '';
+
+        let queryParams = [];
+        let whereClause = '';
+
+        if (search) {
+            whereClause = 'WHERE name ILIKE $1';
+            queryParams.push(`%${search}%`);
+        }
+
+        if (page && limit) {
+            const countQuery = `SELECT COUNT(*) FROM media_library ${whereClause}`;
+            const countRes = await pool.query(countQuery, queryParams);
+            const total = parseInt(countRes.rows[0].count);
+
+            const offset = (page - 1) * limit;
+            queryParams.push(limit);
+            queryParams.push(offset);
+            const result = await pool.query(`SELECT * FROM media_library ${whereClause} ORDER BY created_at DESC LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}`, queryParams);
+            res.json({ media: result.rows, total });
+        } else {
+            const result = await pool.query(`SELECT * FROM media_library ${whereClause} ORDER BY created_at DESC`, queryParams);
+            res.json(result.rows);
+        }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

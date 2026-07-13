@@ -117,14 +117,20 @@ export const dbService = {
     },
 
     // --- Media Library ---
-    getMedia: async () => {
+    getMedia: async (page?: number, limit?: number, search?: string) => {
         try {
-            const res = await fetch(`${API_BASE}/media`);
-            if (!res.ok) return [];
+            const params = new URLSearchParams();
+            if (page) params.append('page', page.toString());
+            if (limit) params.append('limit', limit.toString());
+            if (search) params.append('search', search);
+            
+            const url = params.toString() ? `${API_BASE}/media?${params.toString()}` : `${API_BASE}/media`;
+            const res = await fetch(url);
+            if (!res.ok) return page ? { media: [], total: 0 } : [];
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching media:", err);
-            return [];
+            return page ? { media: [], total: 0 } : [];
         }
     },
     deleteMedia: async (id: number) => {

@@ -34,22 +34,40 @@ const MediaHosting = () => {
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [previewFile, setPreviewFile] = useState<HostedMedia | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalFiles, setTotalFiles] = useState(0);
+    const itemsPerPage = 20;
 
     const load = () => {
-        dbService.getMedia().then(media => {
-            setHostedFiles(media.map((m: any) => ({
-                id: String(m.id),
-                name: m.name,
-                type: m.type as 'image' | 'video',
-                size: '--',
-                shortUrl: m.short_url,
-                originalName: m.name,
-                uploadedAt: new Date(m.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short' })
-            })));
+        dbService.getMedia(currentPage, itemsPerPage, searchTerm).then((res: any) => {
+            if (res && res.media) {
+                setHostedFiles(res.media.map((m: any) => ({
+                    id: String(m.id),
+                    name: m.name,
+                    type: m.type as 'image' | 'video',
+                    size: '--',
+                    shortUrl: m.short_url,
+                    originalName: m.name,
+                    uploadedAt: new Date(m.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short' })
+                })));
+                setTotalFiles(res.total || 0);
+            } else {
+                setHostedFiles([]);
+                setTotalFiles(0);
+            }
         });
     };
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => { 
+        const delaySearch = setTimeout(() => {
+            load();
+        }, 300);
+        return () => clearTimeout(delaySearch);
+    }, [currentPage, searchTerm]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -96,7 +114,7 @@ const MediaHosting = () => {
         setTimeout(() => setCopiedId(null), 2000);
     };
 
-    const filteredFiles = hostedFiles.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredFiles = hostedFiles;
 
     return (
         <div className="container-root" style={{ minHeight: '100vh', padding: '28px 24px' }}>
@@ -232,7 +250,7 @@ const MediaHosting = () => {
                                 <Folder size={20} />
                             </div>
                             <div>
-                                <p style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>{hostedFiles.length}</p>
+                                <p style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>{totalFiles}</p>
                                 <p style={{ margin: 0, fontSize: '8px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1px' }}>ARQUIVOS TOTAIS</p>
                             </div>
                         </div>
@@ -313,6 +331,30 @@ const MediaHosting = () => {
                                 <ImageIcon size={64} style={{ marginBottom: '20px' }} />
                                 <h3 style={{ fontWeight: 900 }}>BIBLIOTECA VAZIA</h3>
                                 <p style={{ fontSize: '12px' }}>Nenhum arquivo encontrado conforme sua busca.</p>
+                            </div>
+                        )}
+
+                        {totalFiles > itemsPerPage && (
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
+                                <button
+                                    className="action-btn ghost-btn"
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    style={{ padding: '8px 16px' }}
+                                >
+                                    Anterior
+                                </button>
+                                <span style={{ display: 'flex', alignItems: 'center', fontWeight: 900, fontSize: '12px' }}>
+                                    Página {currentPage} de {Math.ceil(totalFiles / itemsPerPage)}
+                                </span>
+                                <button
+                                    className="action-btn ghost-btn"
+                                    onClick={() => setCurrentPage(prev => prev + 1)}
+                                    disabled={currentPage >= Math.ceil(totalFiles / itemsPerPage)}
+                                    style={{ padding: '8px 16px' }}
+                                >
+                                    Próximo
+                                </button>
                             </div>
                         )}
                     </div>
