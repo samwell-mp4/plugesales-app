@@ -2076,7 +2076,7 @@ app.get('/api/employees', async (req, res) => {
         const result = await pool.query("SELECT name FROM users WHERE (role = 'EMPLOYEE' OR role = 'ADMIN') AND role != 'INFLUENCER'");
         // Merge with static list if needed, or just rely on DB
         // For now, let's return combined set of names
-        const staticNames = ['Italo', 'Augusto', 'Otavio', 'Lucas', 'Geraldo', 'Ricardo'];
+        const staticNames = ['Italo', 'Augusto', 'Otavio', 'Lucas', 'Geraldo', 'Ricardo', 'Bernardo', 'Bernado'];
         const dbNames = result.rows.map(r => r.name);
         const allNames = Array.from(new Set([...staticNames, ...dbNames]));
         res.json(allNames);

@@ -597,7 +597,7 @@ export const dbService = {
             return await res.json();
         } catch (err: any) {
             console.error("Error fetching employees:", err);
-            return ['Italo Clovis', 'Augusto Fagundes', 'Otávio Augusto', 'Lucas', 'Geraldo', 'Ricardo Willer', 'Gisele Vieira', 'Joyce Vieira', 'Thiago Rocha']; // Fallback
+            return ['Italo Clovis', 'Augusto Fagundes', 'Otávio Augusto', 'Lucas', 'Geraldo', 'Ricardo Willer', 'Gisele Vieira', 'Joyce Vieira', 'Thiago Rocha', 'Bernardo Rodrigues', 'Bernado Rodrigues']; // Fallback
         }
     },
     getLinkStats: async (id: number) => {
