@@ -42,6 +42,8 @@ const ExpressTemplate = () => {
     // Spreadsheet Processing State
     const [isProcessingCsv, setIsProcessingCsv] = useState(false);
     const [parsedCsvChunks, setParsedCsvChunks] = useState<any[]>([]);
+    const [stats, setStats] = useState({ totalProcessed: 0, duplicateCount: 0, invalidCount: 0, validCount: 0 });
+    const [imageUrl, setImageUrl] = useState('');
 
     
     const WEBHOOK_URL = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/a2d2ee02-2bdf-4f5c-a1b6-a0cd43b128ed';
@@ -140,6 +142,8 @@ const ExpressTemplate = () => {
         setSelectedItem(item);
         setSpreadsheetFile(null);
         setTargetUrl('');
+        setImageUrl('');
+        setStats({ totalProcessed: 0, duplicateCount: 0, invalidCount: 0, validCount: 0 });
         setParsedCsvChunks([]);
         setShowModal(true);
     };
@@ -280,6 +284,13 @@ const ExpressTemplate = () => {
                     return !duplicate;
                 });
 
+                const totalProcessed = Math.max(0, json.length - startIndex);
+                const duplicateCount = extracted.length - filtered.length;
+                const invalidCount = totalProcessed - extracted.length;
+                const validCount = filtered.length;
+
+                setStats({ totalProcessed, duplicateCount, invalidCount, validCount });
+
                 if (filtered.length === 0) {
                     alert("Nenhum número válido encontrado na planilha.");
                     setIsProcessingCsv(false);
@@ -361,7 +372,8 @@ const ExpressTemplate = () => {
             const suffix = totalBatches > 1 ? `parte${i + 1}_` : ``;
             rows.push({
                 suffix: suffix,
-                headerType: 'TEXT',
+                headerType: imageUrl ? 'IMAGE' : 'TEXT',
+                headerContent: imageUrl || '',
                 buttonUrls: targetUrl ? [targetUrl] : [],
                 buttonTexts: ['Clique Aqui'],
                 variables: ['', '', '', '', ''],
@@ -772,29 +784,85 @@ const ExpressTemplate = () => {
                                         ))}
                                     </div>
                                 )}
+                                
+                                {stats.totalProcessed > 0 && (
+                                    <div className="grid grid-cols-3 gap-2 mt-2">
+                                        <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
+                                            <span style={{ display: 'block', fontSize: '1.2rem', fontWeight: 900, color: '#4ade80' }}>{stats.validCount}</span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.8 }}>VÁLIDOS</span>
+                                        </div>
+                                        <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.2)', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
+                                            <span style={{ display: 'block', fontSize: '1.2rem', fontWeight: 900, color: '#eab308' }}>{stats.duplicateCount}</span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.8 }}>DUPLICADOS</span>
+                                        </div>
+                                        <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
+                                            <span style={{ display: 'block', fontSize: '1.2rem', fontWeight: 900, color: '#ef4444' }}>{stats.invalidCount}</span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.8 }}>INVÁLIDOS</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Passo 2: URL */}
+                            {/* Passo 2: URL e Mídia */}
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div className="flex items-center gap-3">
                                     <LinkIcon size={18} color="var(--primary-color)" />
-                                    <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Passo 2: URL de Destino (Link do Botão)</span>
+                                    <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Passo 2: Configuração de Links</span>
                                 </div>
-                                <input 
-                                    type="text" 
-                                    value={targetUrl}
-                                    onChange={(e) => setTargetUrl(e.target.value)}
-                                    placeholder="https://exemplo.com/..."
-                                    style={{ 
-                                        width: '100%', 
-                                        background: 'rgba(0,0,0,0.5)', 
-                                        border: '1px solid rgba(255,255,255,0.1)', 
-                                        borderRadius: '12px', 
-                                        padding: '12px 16px', 
-                                        color: 'white',
-                                        outline: 'none'
-                                    }}
-                                />
+                                <div className="flex flex-col gap-2">
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7 }}>URL de Destino (Botão)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="text" 
+                                            value={targetUrl}
+                                            onChange={(e) => setTargetUrl(e.target.value)}
+                                            placeholder="https://exemplo.com/..."
+                                            style={{ 
+                                                flex: 1, 
+                                                background: 'rgba(0,0,0,0.5)', 
+                                                border: '1px solid rgba(255,255,255,0.1)', 
+                                                borderRadius: '12px', 
+                                                padding: '12px 16px', 
+                                                color: 'white',
+                                                outline: 'none'
+                                            }}
+                                        />
+                                        <button 
+                                            onClick={() => navigator.clipboard.readText().then(text => setTargetUrl(text))}
+                                            style={{ padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '12px', color: 'white', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', transition: 'background 0.2s' }}
+                                            className="hover:bg-white/20"
+                                        >
+                                            COLAR
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2 mt-2">
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7 }}>URL da Imagem (Opcional)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="text" 
+                                            value={imageUrl}
+                                            onChange={(e) => setImageUrl(e.target.value)}
+                                            placeholder="https://exemplo.com/imagem.jpg"
+                                            style={{ 
+                                                flex: 1, 
+                                                background: 'rgba(0,0,0,0.5)', 
+                                                border: '1px solid rgba(255,255,255,0.1)', 
+                                                borderRadius: '12px', 
+                                                padding: '12px 16px', 
+                                                color: 'white',
+                                                outline: 'none'
+                                            }}
+                                        />
+                                        <button 
+                                            onClick={() => navigator.clipboard.readText().then(text => setImageUrl(text))}
+                                            style={{ padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '12px', color: 'white', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', transition: 'background 0.2s' }}
+                                            className="hover:bg-white/20"
+                                        >
+                                            COLAR
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <button

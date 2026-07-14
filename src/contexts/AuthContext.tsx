@@ -48,7 +48,7 @@ const VALID_USERS = [
     { name: 'Bernado Rodrigues', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'Lucas Maia', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'Gelton Carlos', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
-    { name: 'Andre Maia', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
+    { name: 'Anderson Maia', role: 'EMPLOYEE' as Role, password: 'Plugsales2026' },
     { name: 'manoelflow', role: 'ASSINATURA_BASICA' as Role, password: 'flow2026manoel!br' },
     { name: 'contabilidade@plugesales.com', role: 'CONTABILIDADE' as Role, password: 'Plug#contabilidade2026!sales' },
 ];
