@@ -51,7 +51,8 @@ const LandingPage = () => {
         '12': 'Thiago Rocha',
         '13': 'Gelton Carlos',
         '14': 'Bernardo Rodrigues',
-        '15': 'Lucas Maia'
+        '15': 'Lucas Maia',
+        '16': 'Bernado Rodrigues'
     };
 
     // Mapeamento para os PARÂMETROS de URL específicos solicitados
@@ -70,7 +71,8 @@ const LandingPage = () => {
         '12': 'Thiago+Rocha',
         '13': 'Gelton-Carlos',
         '14': 'Bernardo+Rodrigues',
-        '15': 'Lucas+Maia'
+        '15': 'Lucas+Maia',
+        '16': 'Bernado+Rodrigues'
     };
 
     const [dynamicAgentName, setDynamicAgentName] = useState<string>('');
