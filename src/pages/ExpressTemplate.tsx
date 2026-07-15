@@ -38,6 +38,30 @@ const ExpressTemplate = () => {
     // Form state
     const [spreadsheetFile, setSpreadsheetFile] = useState<File | null>(null);
     const [targetUrl, setTargetUrl] = useState('');
+    const [isShorteningUrl, setIsShorteningUrl] = useState(false);
+    
+    const handleShortenUrl = async () => {
+        if (!targetUrl) return;
+        setIsShorteningUrl(true);
+        try {
+            const response = await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/db6ca312-d04b-4df2-a38f-a9db751ebcf4', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: targetUrl, type: 'encurtador' })
+            });
+            const data = await response.json();
+            if (data.shortenedUrl || data.shortUrl) {
+                setTargetUrl(data.shortenedUrl || data.shortUrl);
+            } else {
+                alert("Falha ao encurtar URL.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao encurtar URL.");
+        } finally {
+            setIsShorteningUrl(false);
+        }
+    };
     
     // Spreadsheet Processing State
     const [isProcessingCsv, setIsProcessingCsv] = useState(false);
@@ -847,6 +871,13 @@ const ExpressTemplate = () => {
                                             className="hover:bg-white/20"
                                         >
                                             COLAR
+                                        </button>
+                                        <button 
+                                            onClick={handleShortenUrl}
+                                            disabled={isShorteningUrl || !targetUrl}
+                                            style={{ padding: '12px', background: 'var(--primary-color)', border: 'none', borderRadius: '12px', color: 'black', cursor: isShorteningUrl || !targetUrl ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.8rem', opacity: isShorteningUrl || !targetUrl ? 0.5 : 1, transition: 'all 0.2s' }}
+                                        >
+                                            {isShorteningUrl ? '...' : 'ENCURTAR'}
                                         </button>
                                     </div>
                                 </div>
