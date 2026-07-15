@@ -44,6 +44,27 @@ const ExpressTemplate = () => {
     const [parsedCsvChunks, setParsedCsvChunks] = useState<any[]>([]);
     const [stats, setStats] = useState({ totalProcessed: 0, duplicateCount: 0, invalidCount: 0, validCount: 0 });
     const [imageUrl, setImageUrl] = useState('');
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+    const handleImageUpload = async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            setIsUploadingImage(true);
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const result = await res.json();
+            if (result.success) {
+                setImageUrl(result.url);
+            } else {
+                alert("Upload falhou: " + (result.error || "Erro desconhecido"));
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao enviar arquivo.");
+        } finally {
+            setIsUploadingImage(false);
+        }
+    };
 
     
     const WEBHOOK_URL = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/a2d2ee02-2bdf-4f5c-a1b6-a0cd43b128ed';
@@ -297,7 +318,7 @@ const ExpressTemplate = () => {
                     return;
                 }
 
-                const BATCH_SIZE = 10000;
+                const BATCH_SIZE = 5000;
                 const chunks = [];
                 for (let i = 0; i < filtered.length; i += BATCH_SIZE) {
                     const chunkData = filtered.slice(i, i + BATCH_SIZE).map((c) => {
@@ -362,9 +383,9 @@ const ExpressTemplate = () => {
 
         const basePrefix = `${cleanCliente}_${dateSuffix}_${finalNumero}`;
 
-        let leads = parseInt(String(selectedItem.quantidade_lead || '0'), 10);
+        const BATCH_SIZE = 5000;
+        let leads = stats.totalProcessed > 0 ? stats.validCount : parseInt(String(selectedItem.quantidade_lead || '0'), 10);
         if (isNaN(leads)) leads = 0;
-        const BATCH_SIZE = 10000;
         const totalBatches = Math.ceil(leads / BATCH_SIZE) || 1; 
         
         const rows = [];
@@ -374,11 +395,12 @@ const ExpressTemplate = () => {
                 suffix: suffix,
                 headerType: imageUrl ? 'IMAGE' : 'TEXT',
                 headerContent: imageUrl || '',
+                mediaUrl: imageUrl || '',
                 buttonUrls: targetUrl ? [targetUrl] : [],
                 buttonTexts: ['Clique Aqui'],
                 variables: ['', '', '', '', ''],
                 sender: cleanNumero,
-                csvUrl: null
+                csvUrl: parsedCsvChunks[i] || null
             });
         }
 
@@ -837,30 +859,35 @@ const ExpressTemplate = () => {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-2 mt-2">
-                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7 }}>URL da Imagem (Opcional)</label>
-                                    <div className="flex items-center gap-2">
-                                        <input 
-                                            type="text" 
-                                            value={imageUrl}
-                                            onChange={(e) => setImageUrl(e.target.value)}
-                                            placeholder="https://exemplo.com/imagem.jpg"
-                                            style={{ 
-                                                flex: 1, 
-                                                background: 'rgba(0,0,0,0.5)', 
-                                                border: '1px solid rgba(255,255,255,0.1)', 
-                                                borderRadius: '12px', 
-                                                padding: '12px 16px', 
-                                                color: 'white',
-                                                outline: 'none'
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7 }}>Imagem do Cabeçalho (Opcional)</label>
+                                    <div className="flex flex-col gap-2">
+                                        <input
+                                            type="file"
+                                            id="image-upload"
+                                            style={{ display: 'none' }}
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    handleImageUpload(e.target.files[0]);
+                                                }
                                             }}
                                         />
-                                        <button 
-                                            onClick={() => navigator.clipboard.readText().then(text => setImageUrl(text))}
-                                            style={{ padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '12px', color: 'white', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', transition: 'background 0.2s' }}
-                                            className="hover:bg-white/20"
+                                        <label
+                                            htmlFor="image-upload"
+                                            className="cursor-pointer transition-colors"
+                                            style={{
+                                                background: 'rgba(0,0,0,0.5)',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                borderRadius: '12px',
+                                                padding: '12px 16px',
+                                                color: imageUrl ? 'var(--primary-color)' : 'white',
+                                                textAlign: 'center',
+                                                fontSize: '0.8rem',
+                                                fontWeight: 700
+                                            }}
                                         >
-                                            COLAR
-                                        </button>
+                                            {isUploadingImage ? 'Enviando Imagem...' : (imageUrl ? 'Imagem Anexada ✓ (Clique para alterar)' : 'Clique para Fazer Upload da Imagem')}
+                                        </label>
                                     </div>
                                 </div>
                             </div>

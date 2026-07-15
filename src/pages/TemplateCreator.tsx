@@ -1896,6 +1896,7 @@ const TemplateCreator = () => {
                                                                                 <th>LINK B{i + 1}</th>
                                                                             </Fragment>
                                                                         ))}
+                                                                        <th>PLANILHA</th>
                                                                         <th>AÇÕES</th>
                                                                     </tr>
                                                                 </thead>
@@ -1929,6 +1930,15 @@ const TemplateCreator = () => {
                                                                                                     <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
                                                                                                 </Fragment>
                                                                                             ))}
+                                                                                            <td>
+                                                                                                {row.csvUrl ? (
+                                                                                                    <a href={row.csvUrl} download={`${camp.prefix}${row.suffix}CONTATOS.csv`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '6px', borderRadius: '8px', textDecoration: 'none' }} title="Baixar Contatos">
+                                                                                                        <Download size={18} />
+                                                                                                    </a>
+                                                                                                ) : (
+                                                                                                    <span style={{ opacity: 0.3, fontSize: '0.7rem' }}>N/A</span>
+                                                                                                )}
+                                                                                            </td>
                                                                                             <td>
                                                                                                 <div className="flex gap-3" style={{ position: 'relative', zIndex: 100, justifyContent: 'center', width: '100%' }}>
                                                                                                     <button className="global-tile-btn global-tile-btn-ghost" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }} onClick={() => duplicateRow(camp.id, rIdx)} title="Duplicar"><Edit2 size={24} color="#FFFFFF" /></button>
