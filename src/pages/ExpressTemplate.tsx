@@ -41,7 +41,7 @@ const ExpressTemplate = () => {
     
     // Spreadsheet Processing State
     const [isProcessingCsv, setIsProcessingCsv] = useState(false);
-    const [parsedCsvChunks, setParsedCsvChunks] = useState<any[]>([]);
+    const [parsedCsvUrl, setParsedCsvUrl] = useState<string | null>(null);
     const [stats, setStats] = useState({ totalProcessed: 0, duplicateCount: 0, invalidCount: 0, validCount: 0 });
     const [imageUrl, setImageUrl] = useState('');
     const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -165,7 +165,7 @@ const ExpressTemplate = () => {
         setTargetUrl('');
         setImageUrl('');
         setStats({ totalProcessed: 0, duplicateCount: 0, invalidCount: 0, validCount: 0 });
-        setParsedCsvChunks([]);
+        setParsedCsvUrl(null);
         setShowModal(true);
     };
 
@@ -233,7 +233,7 @@ const ExpressTemplate = () => {
 
     const processSpreadsheet = async (file: File) => {
         setIsProcessingCsv(true);
-        setParsedCsvChunks([]);
+        setParsedCsvUrl(null);
         
         try {
             const reader = new FileReader();
@@ -318,27 +318,22 @@ const ExpressTemplate = () => {
                     return;
                 }
 
-                const BATCH_SIZE = 5000;
-                const chunks = [];
-                for (let i = 0; i < filtered.length; i += BATCH_SIZE) {
-                    const chunkData = filtered.slice(i, i + BATCH_SIZE).map((c) => {
-                        const res: any = { Número: c.telefone, info_2: c.nome };
-                        Object.keys(c).forEach(k => {
-                            if (k !== 'telefone' && k !== 'nome') res[k] = c[k];
-                        });
-                        return res;
+                const singleCsvData = filtered.map((c) => {
+                    const res: any = { Número: c.telefone, info_2: c.nome };
+                    Object.keys(c).forEach(k => {
+                        if (k !== 'telefone' && k !== 'nome') res[k] = c[k];
                     });
-                    
-                    const worksheet = XLSX.utils.json_to_sheet(chunkData);
-                    const newWorkbook = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(newWorkbook, worksheet, "Contatos");
-                    const csvOutput = XLSX.write(newWorkbook, { bookType: 'csv', type: 'array' });
-                    const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
-                    const blobUrl = URL.createObjectURL(blob);
-                    chunks.push(blobUrl);
-                }
+                    return res;
+                });
                 
-                setParsedCsvChunks(chunks);
+                const worksheet = XLSX.utils.json_to_sheet(singleCsvData);
+                const newWorkbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(newWorkbook, worksheet, "Contatos");
+                const csvOutput = XLSX.write(newWorkbook, { bookType: 'csv', type: 'array' });
+                const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                setParsedCsvUrl(blobUrl);
                 setIsProcessingCsv(false);
             };
             reader.readAsArrayBuffer(file);
@@ -400,7 +395,7 @@ const ExpressTemplate = () => {
                 buttonTexts: ['Clique Aqui'],
                 variables: ['', '', '', '', ''],
                 sender: cleanNumero,
-                csvUrl: parsedCsvChunks[i] || null
+                csvUrl: parsedCsvUrl || null
             });
         }
 
@@ -792,18 +787,15 @@ const ExpressTemplate = () => {
                                         <span>Clique aqui para selecionar uma planilha CSV/XLSX</span>
                                     )}
                                 </label>
-                                {parsedCsvChunks.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {parsedCsvChunks.map((chunkUrl, i) => (
-                                            <a 
-                                                key={i}
-                                                href={chunkUrl} 
-                                                download={`PLANILHA_${selectedItem?.cliente}_PARTE_${i + 1}.csv`}
-                                                style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}
-                                            >
-                                                Baixar Parte {i + 1}
-                                            </a>
-                                        ))}
+                                {parsedCsvUrl && (
+                                    <div className="flex justify-center mt-2">
+                                        <a 
+                                            href={parsedCsvUrl} 
+                                            download={`PLANILHA_${selectedItem?.cliente}_COMPLETA.csv`}
+                                            style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '12px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        >
+                                            BAIXAR PLANILHA COM ETIQUETAS
+                                        </a>
                                     </div>
                                 )}
                                 
