@@ -31,10 +31,10 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
-const LEANDRO_BODY_4 = 'Olá {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇';
-const LEANDRO_BODY_5 = 'Olá {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\n{{4}}\n\nPara {{5}}, clique no botão abaixo 👇';
-const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇';
-const LEANDRO_BODY_5_EN = 'Hello {{1}}!\n\nWe inform you that {{2}}\n\n{{3}}\n\n{{4}}\n\nTo {{5}}, click the button below 👇';
+const LEANDRO_BODY_4 = 'Olá {{1}}\\n\\nInformamos que hoje: {{2}}\\n\\n{{3}}\\n\\nPara {{4}} Clique no botão abaixo!';
+const LEANDRO_BODY_5 = 'Olá {{1}}\\n\\nInformamos que hoje: {{2}}\\n\\n{{3}}\\n\\n{{4}}\\n\\nPara {{5}} Clique no botão abaixo!';
+const LEANDRO_BODY_4_EN = 'Hi {{1}}!\\n\\nWe inform you that today: {{2}}\\n\\n{{3}}\\n\\nTo {{4}} Click the button below!';
+const LEANDRO_BODY_5_EN = 'Hello {{1}}!\\n\\nWe inform you that today: {{2}}\\n\\n{{3}}\\n\\n{{4}}\\n\\nTo {{5}} Click the button below!';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
@@ -213,7 +213,7 @@ const TemplateCreator = () => {
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
     const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/gZLbY6p.jpeg');
 
-    const [bodyText, _setBodyText] = useState('Oi {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\nPara {{4}}, clique no botão abaixo 👇');
+    const [bodyText, _setBodyText] = useState('Olá {{1}}\\n\\nInformamos que hoje: {{2}}\\n\\n{{3}}\\n\\nPara {{4}} Clique no botão abaixo!');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
 
     const defaultVars = ['', '', '', ''];
