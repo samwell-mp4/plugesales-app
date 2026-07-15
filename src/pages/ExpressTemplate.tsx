@@ -735,7 +735,7 @@ const ExpressTemplate = () => {
             {/* Wizard Modal */}
             {showModal && selectedItem && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
-                    <div style={{ width: '100%', maxWidth: '600px', background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: '32px', position: 'relative' }}>
+                    <div style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: '32px', position: 'relative' }}>
                         <button 
                             onClick={() => setShowModal(false)}
                             style={{ position: 'absolute', top: '24px', right: '24px', color: 'rgba(255,255,255,0.5)' }}
@@ -800,7 +800,7 @@ const ExpressTemplate = () => {
                                 )}
                                 
                                 {stats.totalProcessed > 0 && (
-                                    <div className="grid grid-cols-3 gap-2 mt-2">
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '8px' }}>
                                         <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', padding: '12px', borderRadius: '12px', textAlign: 'center' }}>
                                             <span style={{ display: 'block', fontSize: '1.2rem', fontWeight: 900, color: '#4ade80' }}>{stats.validCount}</span>
                                             <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.8 }}>VÁLIDOS</span>
@@ -880,6 +880,26 @@ const ExpressTemplate = () => {
                                         >
                                             {isUploadingImage ? 'Enviando Imagem...' : (imageUrl ? 'Imagem Anexada ✓ (Clique para alterar)' : 'Clique para Fazer Upload da Imagem')}
                                         </label>
+                                        {imageUrl && (
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <input 
+                                                    type="text" 
+                                                    readOnly 
+                                                    value={imageUrl} 
+                                                    style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '8px', color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', outline: 'none' }}
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(imageUrl);
+                                                        alert("Link da imagem copiado!");
+                                                    }}
+                                                    style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem', transition: 'background 0.2s' }}
+                                                    className="hover:bg-white/20"
+                                                >
+                                                    COPIAR LINK
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
