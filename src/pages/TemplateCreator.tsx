@@ -31,9 +31,9 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
-const LEANDRO_BODY_4 = 'Olá {{1}}\n\nInformamos que hoje: {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!';
+const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!';
 const LEANDRO_BODY_5 = 'Olá {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\n{{4}}\n\nPara {{5}}, clique no botão abaixo 👇';
-const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that today: {{2}}\n\n{{3}}\n\nTo {{4}} Click the button below!';
+const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that: {{2}}\n\n{{3}}\n\nTo {{4}} Click the button below!';
 const LEANDRO_BODY_5_EN = 'Hello {{1}}!\n\nWe inform you that {{2}}\n\n{{3}}\n\n{{4}}\n\nTo {{5}}, click the button below 👇';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
 const LEANDRO_EXAMPLES = [
@@ -213,7 +213,7 @@ const TemplateCreator = () => {
     const [headerType, setHeaderType] = useState<'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
     const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/gZLbY6p.jpeg');
 
-    const [bodyText, _setBodyText] = useState('Olá {{1}}\n\nInformamos que hoje: {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!');
+    const [bodyText, _setBodyText] = useState('Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!');
     const [footerText, _setFooterText] = useState('Digite "sair" para não receber mais mensagens');
 
     const defaultVars = ['', '', '', ''];
@@ -1022,7 +1022,7 @@ const TemplateCreator = () => {
 
         if (!cleanLink || !cleanLink.includes('.')) return alert("Insira um link válido.");
         if (!selectedClientId && user?.role !== 'ASSINATURA_BASICA') return alert("Selecione um cliente.");
-        
+
         setIsShorteningUtility(true);
         try {
             const res = await dbService.createShortLink({
@@ -1733,7 +1733,7 @@ const TemplateCreator = () => {
                                             </div>
                                             <div className="mt-2 flex flex-col gap-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div 
+                                                    <div
                                                         onClick={() => setEnableCustomVariables(!enableCustomVariables)}
                                                         style={{ width: '40px', height: '24px', background: enableCustomVariables ? 'var(--primary-color)' : 'var(--surface-border-subtle)', borderRadius: '12px', position: 'relative', cursor: 'pointer', transition: 'all 0.3s' }}
                                                     >
@@ -1792,7 +1792,7 @@ const TemplateCreator = () => {
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 responsive-stack-mobile" style={{ marginTop: '24px', marginBottom: '16px' }}>
                                     <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.2rem' }}>Campanhas Multi-Gerador</h3>
                                     <div className="flex flex-wrap gap-2 responsive-stack-mobile">
-                                        <div 
+                                        <div
                                             onClick={() => setEnableBulkCustomVariables(!enableBulkCustomVariables)}
                                             style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border)', padding: '0 12px', borderRadius: '12px', cursor: 'pointer', height: '40px' }}
                                         >
@@ -2049,8 +2049,8 @@ const TemplateCreator = () => {
                                         <div style={{ fontSize: '0.75rem', color: 'white', opacity: 0.8, marginBottom: '12px' }}>
                                             {generatingProgress.total > 1 ? `${generatingProgress.current} de ${generatingProgress.total} - ${generatingProgress.msg}` : generatingProgress.msg || "Aguarde a validação da Meta..."}
                                         </div>
-                                        <button 
-                                            onClick={() => { abortRef.current = true; }} 
+                                        <button
+                                            onClick={() => { abortRef.current = true; }}
                                             className="global-tile-btn global-tile-btn-ghost"
                                             style={{ height: '30px', fontSize: '10px' }}
                                         >
