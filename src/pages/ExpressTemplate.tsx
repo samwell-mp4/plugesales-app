@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, Smartphone, Upload, Link as LinkIcon, Send, X, AlertCircle, Search, LayoutGrid, List as ListIcon, User, Clock, FileText, CheckCircle2, Activity } from 'lucide-react';
+import { Zap, RefreshCw, Smartphone, Upload, Link as LinkIcon, Send, X, AlertCircle, Search, LayoutGrid, List as ListIcon, User, Clock, FileText, CheckCircle2, Activity, Copy } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface WebhookItem {
