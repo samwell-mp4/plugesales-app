@@ -38,6 +38,7 @@ const ExpressTemplate = () => {
     // Form state
     const [spreadsheetFile, setSpreadsheetFile] = useState<File | null>(null);
     const [targetUrl, setTargetUrl] = useState('');
+    const [shortenedUrlDisplay, setShortenedUrlDisplay] = useState('');
     const [isShorteningUrl, setIsShorteningUrl] = useState(false);
     
     const handleShortenUrl = async () => {
@@ -51,9 +52,9 @@ const ExpressTemplate = () => {
             });
             const data = await response.json();
             if (data.shortUrl) {
-                setTargetUrl(data.shortUrl);
+                setShortenedUrlDisplay(data.shortUrl);
             } else if (data.shortenedUrl) {
-                setTargetUrl(data.shortenedUrl);
+                setShortenedUrlDisplay(data.shortenedUrl);
             } else {
                 alert("Falha ao encurtar URL.");
             }
@@ -187,8 +188,9 @@ const ExpressTemplate = () => {
 
     const handleCardClick = (item: WebhookItem) => {
         setSelectedItem(item);
-        setSpreadsheetFile(null);
         setTargetUrl('');
+        setShortenedUrlDisplay('');
+        setSpreadsheetFile(null);
         setImageUrl('');
         setStats({ totalProcessed: 0, duplicateCount: 0, invalidCount: 0, validCount: 0 });
         setParsedCsvUrl(null);
@@ -882,6 +884,23 @@ const ExpressTemplate = () => {
                                             {isShorteningUrl ? '...' : 'ENCURTAR'}
                                         </button>
                                     </div>
+                                    
+                                    {shortenedUrlDisplay && (
+                                        <div className="flex items-center gap-2 mt-2 p-3" style={{ background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', borderRadius: '12px' }}>
+                                            <div style={{ flex: 1, color: 'var(--primary-color)', fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-all' }}>
+                                                {shortenedUrlDisplay}
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(shortenedUrlDisplay);
+                                                    alert('Link copiado!');
+                                                }}
+                                                style={{ padding: '8px 16px', background: 'var(--primary-color)', border: 'none', borderRadius: '8px', color: 'black', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                <Copy size={14} /> COPIAR
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex flex-col gap-2 mt-2">
                                     <label style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7 }}>Imagem do Cabeçalho (Opcional)</label>
