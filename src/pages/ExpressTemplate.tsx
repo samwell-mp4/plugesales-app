@@ -44,7 +44,7 @@ const ExpressTemplate = () => {
         if (!targetUrl) return;
         setIsShorteningUrl(true);
         try {
-            const response = await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/db6ca312-d04b-4df2-a38f-a9db751ebcf4', {
+            const response = await fetch('/api/proxy/shorten-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: targetUrl, type: 'encurtador' })

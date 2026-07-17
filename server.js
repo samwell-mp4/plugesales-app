@@ -6452,6 +6452,33 @@ app.get('/api/external/accounting/reports', checkAccountingAuth, async (req, res
 });
 
 
+
+// ============================================================
+// PROXY FOR CORS ISSUES
+// ============================================================
+app.post('/api/proxy/shorten-url', async (req, res) => {
+    try {
+        const { url, type } = req.body;
+        if (!url) return res.status(400).json({ error: 'Missing url' });
+
+        const response = await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/db6ca312-d04b-4df2-a38f-a9db751ebcf4', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, type: type || 'encurtador' })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Webhook responded with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        console.error("Proxy Shorten URL Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${port}`);
 });
