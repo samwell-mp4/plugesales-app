@@ -418,6 +418,8 @@ const ExpressTemplate = () => {
         if (isNaN(leads)) leads = 0;
         const totalBatches = Math.ceil(leads / BATCH_SIZE) || 1; 
         
+        const finalUrl = shortenedUrlDisplay || targetUrl;
+        
         const rows = [];
         for (let i = 0; i < totalBatches; i++) {
             const suffix = totalBatches > 1 ? `parte${i + 1}_` : ``;
@@ -426,7 +428,8 @@ const ExpressTemplate = () => {
                 headerType: imageUrl ? 'IMAGE' : 'TEXT',
                 headerContent: imageUrl || '',
                 mediaUrl: imageUrl || '',
-                buttonUrls: targetUrl ? [targetUrl] : [],
+                hasButtons: true,
+                buttonUrls: finalUrl ? [finalUrl] : [],
                 buttonTexts: ['Clique Aqui'],
                 variables: ['', '', '', '', ''],
                 sender: cleanNumero,

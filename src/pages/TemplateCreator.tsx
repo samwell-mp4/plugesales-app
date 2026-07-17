@@ -925,7 +925,7 @@ const TemplateCreator = () => {
                     sender: firstSender,
                     headerType: 'TEXT',
                     mediaUrl: headerType !== 'TEXT' ? headerMediaUrl : '',
-                    hasButtons: buttons.length > 0,
+                    hasButtons: true,
                     buttonUrls: urlButtons.map(b => b.url || ''),
                     buttonTexts: urlButtons.map(b => b.text || ''),
                     variables: []
