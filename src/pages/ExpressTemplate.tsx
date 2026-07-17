@@ -44,14 +44,16 @@ const ExpressTemplate = () => {
         if (!targetUrl) return;
         setIsShorteningUrl(true);
         try {
-            const response = await fetch('/api/proxy/shorten-url', {
+            const response = await fetch('/api/shortener/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: targetUrl, type: 'encurtador' })
+                body: JSON.stringify({ original_url: targetUrl, title: 'Express Template Link' })
             });
             const data = await response.json();
-            if (data.shortenedUrl || data.shortUrl) {
-                setTargetUrl(data.shortenedUrl || data.shortUrl);
+            if (data.shortUrl) {
+                setTargetUrl(data.shortUrl);
+            } else if (data.shortenedUrl) {
+                setTargetUrl(data.shortenedUrl);
             } else {
                 alert("Falha ao encurtar URL.");
             }
