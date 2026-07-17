@@ -35,11 +35,11 @@ const ExpressTemplate = () => {
     const [filterWaba, setFilterWaba] = useState('ALL');
     const [filterHorario, setFilterHorario] = useState('ALL');
 
-    // Form state
     const [spreadsheetFile, setSpreadsheetFile] = useState<File | null>(null);
     const [targetUrl, setTargetUrl] = useState('');
     const [shortenedUrlDisplay, setShortenedUrlDisplay] = useState('');
     const [isShorteningUrl, setIsShorteningUrl] = useState(false);
+    const [hasDownloadedCsv, setHasDownloadedCsv] = useState(false);
     
     const handleShortenUrl = async () => {
         if (!targetUrl) return;
@@ -262,6 +262,7 @@ const ExpressTemplate = () => {
     const processSpreadsheet = async (file: File) => {
         setIsProcessingCsv(true);
         setParsedCsvUrl(null);
+        setHasDownloadedCsv(false);
         
         try {
             const reader = new FileReader();
@@ -346,8 +347,9 @@ const ExpressTemplate = () => {
                     return;
                 }
 
-                const singleCsvData = filtered.map((c) => {
-                    const res: any = { Número: c.telefone, info_2: c.nome };
+                const singleCsvData = filtered.map((c, index) => {
+                    const labelIndex = Math.floor(index / 5000) + 1;
+                    const res: any = { Número: c.telefone, info_2: c.nome, Etiqueta: `Etiqueta_${labelIndex}` };
                     Object.keys(c).forEach(k => {
                         if (k !== 'telefone' && k !== 'nome') res[k] = c[k];
                     });
@@ -375,6 +377,11 @@ const ExpressTemplate = () => {
     const handleProcess = () => {
         if (!selectedItem) return;
         
+        if (parsedCsvUrl && !hasDownloadedCsv) {
+            const proceedCsv = window.confirm("Você ainda não baixou a planilha higienizada! Tem certeza que deseja avançar sem baixá-la?");
+            if (!proceedCsv) return;
+        }
+
         if (!spreadsheetFile) {
             const proceed = window.confirm("Você tem certeza que quer continuar sem planilha anexada?");
             if (!proceed) return;
@@ -819,6 +826,7 @@ const ExpressTemplate = () => {
                                     <div className="flex justify-center mt-2">
                                         <a 
                                             href={parsedCsvUrl} 
+                                            onClick={() => setHasDownloadedCsv(true)}
                                             download={`PLANILHA_${selectedItem?.cliente}_COMPLETA.csv`}
                                             style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '12px 24px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 900, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
                                         >

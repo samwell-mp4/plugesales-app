@@ -981,12 +981,21 @@ const TemplateCreator = () => {
         if (isNaN(copiesCount) || copiesCount <= 0) return;
         setCampaigns(prev => prev.map(c => {
             if (c.id !== campaignId) return c;
+            
+            // Find max numeric suffix to start from
+            let maxNum = 0;
+            c.rows.forEach(r => {
+                const numStr = r.suffix.replace(/\D/g, '');
+                if (numStr) {
+                    const num = parseInt(numStr, 10);
+                    if (num > maxNum) maxNum = num;
+                }
+            });
+            
             const rowToCopy = c.rows[rowIndex];
-            const newRows = Array(copiesCount).fill(null).map(() => ({
+            const newRows = Array(copiesCount).fill(null).map((_, i) => ({
                 ...rowToCopy,
-                buttonTexts: [], // CLEAR TEXTS
-                buttonUrls: [],  // CLEAR URLS
-                originalButtonUrls: []
+                suffix: String(maxNum + i + 1).padStart(3, '0')
             }));
             const finalRows = [...c.rows];
             finalRows.splice(rowIndex + 1, 0, ...newRows);
