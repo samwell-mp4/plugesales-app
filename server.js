@@ -6468,11 +6468,18 @@ app.post('/api/proxy/shorten-url', async (req, res) => {
         });
 
         if (!response.ok) {
-            throw new Error(`Webhook responded with status ${response.status}`);
+            const errText = await response.text().catch(() => '');
+            throw new Error(`Webhook responded with status ${response.status}: ${errText}`);
         }
 
-        const data = await response.json();
-        res.json(data);
+        const textData = await response.text();
+        try {
+            const data = JSON.parse(textData);
+            res.json(data);
+        } catch (e) {
+            // Se não for JSON, vamos assumir que o n8n retornou o link diretamente como texto
+            res.json({ shortenedUrl: textData });
+        }
     } catch (err) {
         console.error("Proxy Shorten URL Error:", err);
         res.status(500).json({ error: err.message });
