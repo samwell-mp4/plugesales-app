@@ -543,6 +543,7 @@ const ClientDashboard = () => {
                                                 </button>
                                                 <button onClick={() => handleDeleteSubmission(sub.id)} className="action-btn ghost-btn" style={{ height: 40, color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }} title="Excluir"><Trash2 size={16} /></button>
                                                 <button onClick={() => handleDuplicateSubmission(sub)} className="action-btn ghost-btn" style={{ height: 40 }}><CopyIcon size={16} /></button>
+                                                <button onClick={() => navigate(`/client-form?id=${sub.id}`)} className="action-btn ghost-btn" style={{ height: 40, padding: '0 16px', fontSize: '9px', flex: 1, borderColor: '#acf800', color: '#acf800' }}>EDITAR</button>
                                                 <button onClick={() => navigate(`/client-submissions/${sub.id}`)} className="action-btn ghost-btn" style={{ height: 40, padding: '0 16px', fontSize: '9px', flex: 1 }}>DETALHES <ExternalLink size={14} /></button>
                                             </div>
                                         </div>

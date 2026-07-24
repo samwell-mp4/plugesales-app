@@ -20,7 +20,7 @@ import {
     RefreshCw,
     Home
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 import ClientAuth from './ClientAuth';
@@ -28,6 +28,8 @@ import ClientAuth from './ClientAuth';
 const ClientExternalForm = () => {
     const { user } = useAuth() as any;
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const editingId = searchParams.get('id');
     const [step, setStep] = useState(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' ? 0 : 1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -53,6 +55,7 @@ const ClientExternalForm = () => {
         profile_photo: '',
         profile_name: '',
         ddd: '',
+        notes: '',
         ads: [{
             template_type: 'TEXT' as 'TEXT' | 'IMAGE' | 'VIDEO',
             media_url: '',
@@ -69,6 +72,56 @@ const ClientExternalForm = () => {
         currentAdIndex: 0,
         status: 'PENDENTE'
     });
+
+    React.useEffect(() => {
+        if (editingId && user) {
+            dbService.getClientSubmissionById(Number(editingId)).then(sub => {
+                if (sub && !sub.error) {
+                    const isOwner = user?.id ? String(sub.user_id) === String(user.id) : false;
+                    const isParent = user?.id ? String(sub.parent_id) === String(user.id) : false;
+                    
+                    if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' || isOwner || isParent) {
+                        setFormData({
+                            user_id: sub.user_id || '',
+                            profile_photo: sub.profile_photo || '',
+                            profile_name: sub.profile_name || '',
+                            ddd: sub.ddd || '',
+                            notes: sub.notes || '',
+                            ads: (sub.ads && sub.ads.length > 0) ? sub.ads.map((ad: any, idx: number) => ({
+                                template_type: ad.template_type || 'TEXT',
+                                media_url: ad.media_url || '',
+                                ad_copy: ad.ad_copy || '',
+                                ad_copy_file: ad.ad_copy_file || '',
+                                button_link: ad.button_link || '',
+                                spreadsheet_url: ad.spreadsheet_url || '',
+                                message_mode: ad.message_mode || 'manual',
+                                ad_name: ad.ad_name || '',
+                                variables: ad.variables || ['', '', '', '', ''],
+                                showFifthVariable: ad.showFifthVariable || false,
+                                id: ad.id || String(idx + 1)
+                            })) : [{
+                                template_type: (sub.template_type || 'TEXT') as 'TEXT' | 'IMAGE' | 'VIDEO',
+                                media_url: sub.media_url || '',
+                                ad_copy: sub.ad_copy || '',
+                                ad_copy_file: '',
+                                button_link: sub.button_link || '',
+                                spreadsheet_url: sub.spreadsheet_url || '',
+                                message_mode: 'manual',
+                                ad_name: '',
+                                variables: ['', '', '', '', ''],
+                                showFifthVariable: false,
+                                id: '1'
+                            }],
+                            currentAdIndex: 0,
+                            status: sub.status || 'PENDENTE'
+                        });
+                        setStep(1); // Go straight to step 1
+                    }
+                }
+            });
+        }
+    }, [editingId, user]);
+
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
     const handleFileUpload = async (file: File, field: 'profile_photo' | 'media_url' | 'spreadsheet_url' | 'ad_copy_file') => {
@@ -172,6 +225,7 @@ const ClientExternalForm = () => {
                 profile_photo: formData.profile_photo,
                 profile_name: formData.profile_name,
                 ddd: formData.ddd,
+                notes: formData.notes,
                 status: formData.status,
                 submitted_by: user?.name || 'cliente',
                 submitted_role: user?.role || 'CLIENT',
@@ -189,8 +243,14 @@ const ClientExternalForm = () => {
                 origin: 'CLIENT_FORM'
             };
 
-            const result = await dbService.addClientSubmission(payload);
-            if (result && result.id) {
+            let result;
+            if (editingId) {
+                result = await dbService.updateClientSubmission(Number(editingId), payload);
+            } else {
+                result = await dbService.addClientSubmission(payload);
+            }
+
+            if (result && (result.id || result.success || !result.error)) {
                 setStep(4);
             } else {
                 alert("Erro ao enviar os dados. Tente novamente.");
@@ -768,6 +828,10 @@ const ClientExternalForm = () => {
                                             <div className="form-group">
                                                 <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">DDD Regional</label>
                                                 <input className="input-premium" placeholder="Ex: 11" maxLength={2} value={formData.ddd} onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Observações da Equipe</label>
+                                                <textarea className="input-premium" style={{ minHeight: '100px', resize: 'vertical' }} placeholder="Observações e anotações adicionais..." value={formData.notes} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} />
                                             </div>
                                         </div>
                                     </div>
