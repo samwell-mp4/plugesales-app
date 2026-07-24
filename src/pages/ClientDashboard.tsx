@@ -513,8 +513,21 @@ const ClientDashboard = () => {
                                                         </span>
                                                     </div>
                                                     {sub.dispatch_date && (
-                                                        <div style={{ fontSize: '10px', color: 'var(--primary-color)', marginTop: '4px', fontWeight: 700 }}>
-                                                            📅 Disparo: {new Date(sub.dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                                        <div style={{ 
+                                                            fontSize: '11px', 
+                                                            color: '#acf800', 
+                                                            marginTop: '8px', 
+                                                            fontWeight: 900,
+                                                            background: 'rgba(172, 248, 0, 0.08)',
+                                                            border: '1px solid rgba(172, 248, 0, 0.2)',
+                                                            padding: '6px 12px',
+                                                            borderRadius: '8px',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
+                                                            letterSpacing: '0.5px'
+                                                        }}>
+                                                            <span>📅</span> DISPARO: {new Date(sub.dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                                         </div>
                                                     )}
                                                 </div>

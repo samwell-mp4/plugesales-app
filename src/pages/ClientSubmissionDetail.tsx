@@ -505,9 +505,26 @@ const ClientSubmissionDetail = () => {
                                     <button onClick={() => setIsEditingTitle(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><Plus size={18} style={{ transform: 'rotate(45deg)' }} /></button>
                                 </div>
                             )}
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                                 <span className="info-chip" style={{ background: 'rgba(172,248,0,0.1)', color: 'var(--primary-color)' }}>REGIONAL {sub.ddd}</span>
                                 <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}><Clock size={14} /> {new Date(sub.timestamp).toLocaleString('pt-BR')}</span>
+                                {sub.dispatch_date && (
+                                    <span style={{ 
+                                        fontSize: '11px', 
+                                        color: '#acf800', 
+                                        fontWeight: 900,
+                                        background: 'rgba(172, 248, 0, 0.08)',
+                                        border: '1px solid rgba(172, 248, 0, 0.2)',
+                                        padding: '4px 10px',
+                                        borderRadius: '8px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        letterSpacing: '0.5px'
+                                    }}>
+                                        📅 DISPARO: {new Date(sub.dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -597,6 +614,12 @@ const ClientSubmissionDetail = () => {
                                 <label className="field-label" style={{ fontSize: '9px' }}>OBSERVAÇÕES DO TIME</label>
                                 <textarea className="field-input" value={notes} onChange={e => setNotes(e.target.value)} rows={2} readOnly={user?.role === 'CLIENT'} />
                             </div>
+                            {sub.dispatch_date && (
+                                <div>
+                                    <label className="field-label" style={{ fontSize: '9px' }}>DATA E HORÁRIO DO DISPARO</label>
+                                    <input className="field-input" type="text" value={new Date(sub.dispatch_date).toLocaleString('pt-BR')} readOnly={true} style={{ opacity: 0.8 }} />
+                                </div>
+                            )}
                             {user?.role !== 'CLIENT' && (
                                 <button className="action-btn primary-btn" onClick={handleSaveSender} style={{ width: '100%' }}>{isSaving ? <RefreshCw className="animate-spin" size={16} /> : 'SALVAR ALTERAÇÕES'}</button>
                             )}
