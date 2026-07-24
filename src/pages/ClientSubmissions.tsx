@@ -71,6 +71,7 @@ interface ClientSubmission {
     client_name?: string;
     timestamp: string;
     logs?: any[];
+    dispatch_date?: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -622,9 +623,22 @@ const ClientSubmissions = () => {
                             <div style={{ overflow: 'hidden' }}>
                                 <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>
                                 {s.client_name && <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>Cliente: {s.client_name}</div>}
-                                {(s as any).dispatch_date && (
-                                    <div style={{ fontSize: '10px', color: 'var(--primary-color)', marginTop: '2px', fontWeight: 900 }}>
-                                        📅 Disparo: {new Date((s as any).dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                {s.dispatch_date && (
+                                    <div style={{ 
+                                        fontSize: '11px', 
+                                        color: '#acf800', 
+                                        marginTop: '8px', 
+                                        fontWeight: 900,
+                                        background: 'rgba(172, 248, 0, 0.08)',
+                                        border: '1px solid rgba(172, 248, 0, 0.2)',
+                                        padding: '6px 12px',
+                                        borderRadius: '8px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        letterSpacing: '0.5px'
+                                    }}>
+                                        <span>📅</span> DISPARO: {new Date(s.dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
@@ -778,9 +792,21 @@ const ClientSubmissions = () => {
                             <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
                                 DDD: {s.ddd || '--'} | Ad: {(Array.isArray(s.ads) && s.ads.length > 0) ? s.ads[0].ad_name : 'Sem Ad'}
                             </span>
-                            {(s as any).dispatch_date && (
-                                <span style={{ fontSize: '9px', color: 'var(--primary-color)', fontWeight: 700, marginTop: '2px', display: 'block' }}>
-                                    📅 Disparo: {new Date((s as any).dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            {s.dispatch_date && (
+                                <span style={{ 
+                                    fontSize: '10px', 
+                                    color: '#acf800', 
+                                    fontWeight: 900, 
+                                    marginTop: '6px', 
+                                    display: 'inline-flex',
+                                    background: 'rgba(172, 248, 0, 0.08)',
+                                    border: '1px solid rgba(172, 248, 0, 0.2)',
+                                    padding: '4px 8px',
+                                    borderRadius: '6px',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}>
+                                    📅 DISPARO: {new Date(s.dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             )}
                         </div>

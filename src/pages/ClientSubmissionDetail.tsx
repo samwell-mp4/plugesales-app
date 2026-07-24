@@ -67,6 +67,7 @@ interface Submission {
     user_id?: number | string;
     parent_id?: number | string;
     sender_number?: string;
+    dispatch_date?: string;
     ads?: Ad[];
     ad_copy?: string;
     template_type?: string;
