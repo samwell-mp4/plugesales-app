@@ -158,7 +158,7 @@ const ClientSubmissions = () => {
                 data = await dbService.getClientSubmissionsByUserId(user.id as number);
             } else {
                 data = await dbService.getClientSubmissions();
-                if (user?.role === 'EMPLOYEE' || user?.role === 'VENDEDOR') {
+                if (user?.role === 'VENDEDOR') {
                     data = data.filter((s: any) => s.assigned_to === user?.name || s.submitted_by === user?.name || s.user_id === user?.id);
                 }
             }
@@ -181,7 +181,7 @@ const ClientSubmissions = () => {
 
     useEffect(() => { 
         loadSubmissions(); 
-        if (user?.role === 'ADMIN') {
+        if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
             setActiveTab('available');
         }
         const interval = setInterval(loadSubmissions, 20000);
@@ -542,9 +542,9 @@ const ClientSubmissions = () => {
     };
 
     const tabs = [
-        ...(user?.role === 'ADMIN' ? [{ id: 'available' as const, label: 'PENDENTES', icon: <Inbox size={13} />, count: Array.isArray(allFiltered) ? allFiltered.filter(s => !s.assigned_to).length : 0 }] : []),
+        ...((user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') ? [{ id: 'available' as const, label: 'PENDENTES', icon: <Inbox size={13} />, count: Array.isArray(allFiltered) ? allFiltered.filter(s => !s.assigned_to).length : 0 }] : []),
         { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: Array.isArray(allFiltered) ? allFiltered.filter(s => (s.assigned_to || '').trim().toLowerCase() === (user?.name || '').trim().toLowerCase()).length : 0 },
-        ...(user?.role === 'ADMIN' ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: Array.isArray(allFiltered) ? allFiltered.length : 0 }] : []),
+        ...((user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: Array.isArray(allFiltered) ? allFiltered.length : 0 }] : []),
     ];
 
     const totalEntregues = allFiltered.reduce((sum, sub) => {
