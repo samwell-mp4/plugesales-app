@@ -468,6 +468,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_role TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS user_id INTEGER`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS notes TEXT`);
+        await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS dispatch_date TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS original_button_link TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_approved BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS parent_feedback TEXT`);
@@ -2866,7 +2867,7 @@ app.delete('/api/client-for-client/:id', async (req, res) => {
 });
 
 app.post('/api/client-submissions', async (req, res) => {
-    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, notes } = req.body;
+    const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, notes, dispatch_date } = req.body;
     try {
         let finalStatus = status || 'PENDENTE';
         let parentApproved = true;
@@ -2891,15 +2892,15 @@ app.post('/api/client-submissions', async (req, res) => {
 
         const result = await pool.query(
             `INSERT INTO client_submissions 
-            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, parent_approved, origin, notes) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
+            (profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, parent_approved, origin, notes, dispatch_date) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
             [
                 profile_photo, profile_name, ddd,
                 template_type || 'none', media_url || '', ad_copy || '', button_link || '', original_button_link || button_link || '',
                 ads ? JSON.stringify(ads) : '[]',
                 spreadsheet_url, finalStatus,
                 user_id, submitted_by, submitted_role || null, finalAssignedTo, accepted_by, parentApproved,
-                req.body.origin || 'CLIENT_FORM', notes || ''
+                req.body.origin || 'CLIENT_FORM', notes || '', dispatch_date || null
             ]
         );
         res.json(result.rows[0]);

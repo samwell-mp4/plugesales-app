@@ -512,6 +512,11 @@ const ClientDashboard = () => {
                                                             {cfg.label.toUpperCase()}
                                                         </span>
                                                     </div>
+                                                    {sub.dispatch_date && (
+                                                        <div style={{ fontSize: '10px', color: 'var(--primary-color)', marginTop: '4px', fontWeight: 700 }}>
+                                                            📅 Disparo: {new Date(sub.dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="submission-link-actions">

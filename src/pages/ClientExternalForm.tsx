@@ -56,6 +56,7 @@ const ClientExternalForm = () => {
         profile_name: '',
         ddd: '',
         notes: '',
+        dispatch_date: '',
         ads: [{
             template_type: 'TEXT' as 'TEXT' | 'IMAGE' | 'VIDEO',
             media_url: '',
@@ -81,12 +82,22 @@ const ClientExternalForm = () => {
                     const isParent = user?.id ? String(sub.parent_id) === String(user.id) : false;
                     
                     if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' || isOwner || isParent) {
+                        // Helper to format timestamps back to datetime-local string (YYYY-MM-DDThh:mm)
+                        let formattedDispatchDate = '';
+                        if (sub.dispatch_date) {
+                            try {
+                                formattedDispatchDate = new Date(sub.dispatch_date).toISOString().slice(0, 16);
+                            } catch (e) {
+                                formattedDispatchDate = sub.dispatch_date;
+                            }
+                        }
                         setFormData({
                             user_id: sub.user_id || '',
                             profile_photo: sub.profile_photo || '',
                             profile_name: sub.profile_name || '',
                             ddd: sub.ddd || '',
                             notes: sub.notes || '',
+                            dispatch_date: formattedDispatchDate,
                             ads: (sub.ads && sub.ads.length > 0) ? sub.ads.map((ad: any, idx: number) => ({
                                 template_type: ad.template_type || 'TEXT',
                                 media_url: ad.media_url || '',
@@ -226,6 +237,7 @@ const ClientExternalForm = () => {
                 profile_name: formData.profile_name,
                 ddd: formData.ddd,
                 notes: formData.notes,
+                dispatch_date: formData.dispatch_date || null,
                 status: formData.status,
                 submitted_by: user?.name || 'cliente',
                 submitted_role: user?.role || 'CLIENT',
@@ -832,6 +844,10 @@ const ClientExternalForm = () => {
                                             <div className="form-group">
                                                 <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Observações da Equipe</label>
                                                 <textarea className="input-premium" style={{ minHeight: '100px', resize: 'vertical' }} placeholder="Observações e anotações adicionais..." value={formData.notes} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="text-[10px] font-black uppercase tracking-[3px] opacity-40 ml-1">Data e Horário do Disparo</label>
+                                                <input className="input-premium" type="datetime-local" value={formData.dispatch_date} onChange={e => setFormData(p => ({ ...p, dispatch_date: e.target.value }))} />
                                             </div>
                                         </div>
                                     </div>

@@ -619,7 +619,19 @@ const ClientSubmissions = () => {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '30px', marginBottom: '16px' }}>
                             {s.profile_photo ? <img src={s.profile_photo} alt="" style={{ width: 48, height: 48, borderRadius: '14px', objectFit: 'cover', border: '1.5px solid var(--surface-border-subtle)', flexShrink: 0 }} /> : <div style={{ width: 48, height: 48, borderRadius: '14px', background: 'var(--card-bg-subtle)', border: '1.5px solid var(--surface-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><User size={22} style={{ opacity: 0.2 }} /></div>}
-                            <div style={{ overflow: 'hidden' }}><h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>{s.client_name && <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>Cliente: {s.client_name}</div>}<div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}><span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span><span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {formatDate(s.timestamp)}</span></div></div>
+                            <div style={{ overflow: 'hidden' }}>
+                                <h4 style={{ margin: 0, fontWeight: 900, fontSize: '15px', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.profile_name}</h4>
+                                {s.client_name && <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>Cliente: {s.client_name}</div>}
+                                {(s as any).dispatch_date && (
+                                    <div style={{ fontSize: '10px', color: 'var(--primary-color)', marginTop: '2px', fontWeight: 900 }}>
+                                        📅 Disparo: {new Date((s as any).dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                                    <span style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>DDD {s.ddd}</span>
+                                    <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {formatDate(s.timestamp)}</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
@@ -766,6 +778,11 @@ const ClientSubmissions = () => {
                             <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
                                 DDD: {s.ddd || '--'} | Ad: {(Array.isArray(s.ads) && s.ads.length > 0) ? s.ads[0].ad_name : 'Sem Ad'}
                             </span>
+                            {(s as any).dispatch_date && (
+                                <span style={{ fontSize: '9px', color: 'var(--primary-color)', fontWeight: 700, marginTop: '2px', display: 'block' }}>
+                                    📅 Disparo: {new Date((s as any).dispatch_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            )}
                         </div>
                     </div>
 
