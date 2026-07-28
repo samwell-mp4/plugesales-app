@@ -17,7 +17,8 @@ import {
     Users,
     MousePointer2,
     Link as LinkIcon,
-    Smartphone
+    Smartphone,
+    Edit
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -46,6 +47,13 @@ const LinkShortener = () => {
     const [endDate, setEndDate] = useState<string>('');
     const [showBulkAssociateModal, setShowBulkAssociateModal] = useState(false);
     const [bulkAssociateTargetId, setBulkAssociateTargetId] = useState<string>('');
+
+    // Edit link states
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingLink, setEditingLink] = useState<any>(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editOriginalUrl, setEditOriginalUrl] = useState('');
+    const [editTargetUserId, setEditTargetUserId] = useState<string>('');
 
     // Pagination States
     const [currentPage, setCurrentPage] = useState(1);
@@ -245,6 +253,33 @@ const LinkShortener = () => {
             fetchLinks();
         } catch (error) {
             alert("Erro ao vincular links em massa.");
+        }
+    };
+
+    const handleOpenEditModal = (link: any) => {
+        setEditingLink(link);
+        setEditTitle(link.title || '');
+        setEditOriginalUrl(link.original_url || '');
+        setEditTargetUserId(link.target_user_id ? link.target_user_id.toString() : '');
+        setShowEditModal(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingLink) return;
+        if (!editOriginalUrl.trim()) return alert("A URL original não pode ser vazia.");
+        try {
+            const formattedUrl = ensureProtocol(editOriginalUrl);
+            await dbService.updateShortLink(editingLink.id, {
+                title: editTitle || null,
+                original_url: formattedUrl,
+                target_user_id: editTargetUserId ? parseInt(editTargetUserId) : null
+            });
+            setShowEditModal(false);
+            setEditingLink(null);
+            fetchLinks();
+            fetchStats();
+        } catch (error) {
+            alert("Erro ao atualizar o link.");
         }
     };
 
@@ -862,6 +897,13 @@ const LinkShortener = () => {
                                             </button>
                                             <button 
                                                 className="icon-button" 
+                                                title="Editar Link"
+                                                onClick={() => handleOpenEditModal(l)}
+                                            >
+                                                <Edit size={18} />
+                                            </button>
+                                            <button 
+                                                className="icon-button" 
                                                 title="Ver Estatísticas"
                                                 onClick={() => navigate(`/link-stats/${l.id}`)}
                                             >
@@ -985,6 +1027,69 @@ const LinkShortener = () => {
                             <button onClick={() => setShowBulkAssociateModal(false)} className="action-btn" style={{ flex: 1 }}>Cancelar</button>
                             <button onClick={handleBulkAssociate} className="action-btn primary-btn" style={{ flex: 1 }} disabled={!bulkAssociateTargetId}>
                                 <Check size={16} /> Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Link Modal */}
+            {showEditModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="glass-card" style={{ maxWidth: '450px', width: '100%', padding: '32px', animation: 'scaleIn 0.3s ease-out' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                                <Edit size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontWeight: 900 }}>Editar Link Encurtado</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Altere o destino e informações do link</p>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-muted)' }}>Título do Link</label>
+                            <input 
+                                type="text"
+                                className="input-field"
+                                value={editTitle}
+                                onChange={e => setEditTitle(e.target.value)}
+                                placeholder="Ex: Campanha de Vendas"
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-muted)' }}>Link Original (URL Destino)</label>
+                            <input 
+                                type="text"
+                                className="input-field"
+                                value={editOriginalUrl}
+                                onChange={e => setEditOriginalUrl(e.target.value)}
+                                placeholder="https://exemplo.com/pagina-destino"
+                            />
+                        </div>
+
+                        {user?.role !== 'CLIENT' && (
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-muted)' }}>Vincular a Cliente</label>
+                                <select 
+                                    className="input-field" 
+                                    value={editTargetUserId}
+                                    onChange={e => setEditTargetUserId(e.target.value)}
+                                    style={{ background: 'var(--card-bg-subtle)' }}
+                                >
+                                    <option value="">Sem vínculo</option>
+                                    {clients.map(u => (
+                                        <option key={u.id} value={u.id}>{u.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button onClick={() => { setShowEditModal(false); setEditingLink(null); }} className="action-btn" style={{ flex: 1 }}>Cancelar</button>
+                            <button onClick={handleSaveEdit} className="action-btn primary-btn" style={{ flex: 1 }} disabled={!editOriginalUrl.trim()}>
+                                <Check size={16} /> Salvar
                             </button>
                         </div>
                     </div>
