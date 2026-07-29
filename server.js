@@ -1513,6 +1513,10 @@ app.get('/api/crm/logs', async (req, res) => {
 });
 
 // --- LIVE CHAT SPREADSHEET ENDPOINT ---
+let sheetsCache = null;
+let sheetsCacheTime = 0;
+const SHEETS_CACHE_TTL = 10000; // 10 segundos
+
 app.get('/api/live-chat/spreadsheet', async (req, res) => {
     try {
         const { remetente } = req.query;
@@ -1525,13 +1529,21 @@ app.get('/api/live-chat/spreadsheet', async (req, res) => {
         const spreadsheetId = '1SnrnWoa9szFoonIebmHXRahL8YkQsDc0PC6pVjmqUE0';
         const range = 'innfobip!A2:F'; 
 
-        // Timeout wrapper para chamadas de biblioteca
-        const response = await Promise.race([
-            sheets.spreadsheets.values.get({ spreadsheetId, range }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Google Sheets Timeout')), 15000))
-        ]);
+        let rows;
+        const now = Date.now();
+        if (sheetsCache && (now - sheetsCacheTime < SHEETS_CACHE_TTL)) {
+            rows = sheetsCache;
+        } else {
+            // Timeout wrapper para chamadas de biblioteca
+            const response = await Promise.race([
+                sheets.spreadsheets.values.get({ spreadsheetId, range }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Google Sheets Timeout')), 15000))
+            ]);
+            rows = response.data.values || [];
+            sheetsCache = rows;
+            sheetsCacheTime = now;
+        }
 
-        const rows = response.data.values;
         if (!rows) return res.json([]);
 
         // Filtra pelo remetente ignorando formatação não numérica
@@ -1599,6 +1611,9 @@ app.post('/api/live-chat/spreadsheet/status', async (req, res) => {
                     valueInputOption: 'USER_ENTERED'
                 }
             });
+            // Invalida o cache para refletir o status imediatamente na próxima consulta
+            sheetsCache = null;
+            sheetsCacheTime = 0;
             return res.json({ success: true, updatedRows: updates.length });
         }
 
@@ -3437,6 +3452,10 @@ app.get('/api/shortener/links', async (req, res) => {
         if ((role === 'CLIENT' || role === 'ASSINATURA_BASICA') && user_id) {
             whereClauses.push(`(l.target_user_id = $${params.length + 1} OR l.target_user_id IN (SELECT id FROM users WHERE parent_id = $${params.length + 1}))`);
             params.push(user_id);
+        } else if (user_id) {
+            // Para ADMIN/EMPLOYEE, o "user_id" representa o ID do cliente selecionado no dropdown
+            whereClauses.push(`l.target_user_id = $${params.length + 1}`);
+            params.push(user_id);
         } else if (client_id) {
             whereClauses.push(`l.target_user_id = $${params.length + 1}`);
             params.push(client_id);
@@ -3444,13 +3463,11 @@ app.get('/api/shortener/links', async (req, res) => {
 
         if (startDate) {
             whereClauses.push(`l.created_at >= $${params.length + 1}`);
-            params.push(new Date(startDate));
+            params.push(`${startDate} 00:00:00`);
         }
         if (endDate) {
-            const end = new Date(endDate);
-            end.setHours(23, 59, 59, 999);
             whereClauses.push(`l.created_at <= $${params.length + 1}`);
-            params.push(end);
+            params.push(`${endDate} 23:59:59.999`);
         }
 
         if (search) {
@@ -3541,18 +3558,17 @@ app.get('/api/shortener/stats/all', async (req, res) => {
     console.log(`[STATS_ALL] Request: user_id=${user_id}, targetUserId=${targetUserId}, range=${startDate} to ${endDate}`);
 
     try {
-        const start = startDate ? new Date(startDate) : new Date(0);
-        const end = endDate ? new Date(endDate) : new Date();
-        if (endDate) end.setHours(23, 59, 59, 999);
+        const start = startDate ? `${startDate} 00:00:00` : '1970-01-01 00:00:00';
+        const end = endDate ? `${endDate} 23:59:59.999` : '9999-12-31 23:59:59.999';
 
         const params = [start, end];
         let userFilter = "";
         let linksUserFilter = "";
         if (targetUserId) {
             params.push(targetUserId);
-            // Fix: table shortened_links uses 'user_id' not 'target_user_id'
-            userFilter = `AND (sl.user_id = $3 OR sl.user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
-            linksUserFilter = `AND (user_id = $3 OR user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
+            // Filtra por target_user_id (cliente associado) ou user_id (criador) do link
+            userFilter = `AND (sl.target_user_id = $3 OR sl.user_id = $3 OR sl.target_user_id IN (SELECT id FROM users WHERE parent_id = $3) OR sl.user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
+            linksUserFilter = `AND (target_user_id = $3 OR user_id = $3 OR target_user_id IN (SELECT id FROM users WHERE parent_id = $3) OR user_id IN (SELECT id FROM users WHERE parent_id = $3))`;
         }
 
         // 1. Aggregated Total Clicks & Link Count

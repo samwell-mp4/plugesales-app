@@ -108,9 +108,12 @@ const LinkShortener = () => {
     const fetchLinks = async () => {
         setIsLoading(true);
         try {
+            const isStaff = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
+            const targetUserId = isStaff ? (filterClientId ? parseInt(filterClientId) : undefined) : user?.id;
+
             const result = await dbService.getShortLinks(
                 user?.role, 
-                user?.role !== 'ADMIN' ? user?.id : (filterClientId ? parseInt(filterClientId) : undefined), 
+                targetUserId, 
                 startDate, 
                 endDate,
                 currentPage,

@@ -36,15 +36,33 @@ const LiveChat = () => {
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const pollInterval = useRef<any>(null);
+    const prevActiveChatId = useRef<string | null>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    const activeChatId = chatSource === 'api' ? activeConversation?.id : selectedRecipient;
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        if (!activeChatId) return;
+
+        const chatChanged = activeChatId !== prevActiveChatId.current;
+        prevActiveChatId.current = activeChatId;
+
+        if (chatChanged) {
+            // Nova conversa selecionada: rolar para o final instantaneamente
+            messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+        } else {
+            // Mensagens atualizadas: rolar para o final apenas se o usuário já estiver perto do final
+            const container = scrollContainerRef.current;
+            if (container) {
+                const threshold = 150; // pixels de tolerância
+                const isNear = (container.scrollHeight - container.scrollTop - container.clientHeight) < threshold;
+                if (isNear) {
+                    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                }
+            }
+        }
+    }, [messages, activeChatId]);
 
     // Polling for new messages
     useEffect(() => {
@@ -700,7 +718,7 @@ const LiveChat = () => {
                             </div>
                         </div>
 
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(0,0,0,0.1)' }}>
+                        <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(0,0,0,0.1)' }}>
                             {messages.map((msg: any) => (
                                 <div key={msg.id} className={`message-bubble ${msg.direction === 'INBOUND' ? 'message-inbound' : 'message-outbound'}`}>
                                     {msg.content?.text || '[Mídia ou Conteúdo não suportado]'}
