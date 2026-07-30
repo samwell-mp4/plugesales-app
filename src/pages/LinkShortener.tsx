@@ -33,6 +33,14 @@ const LinkShortener = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
     
     // Phase 2 States
     const [isBulk, setIsBulk] = useState(false);
@@ -62,9 +70,16 @@ const LinkShortener = () => {
     const [linksPerPage] = useState(20);
 
     useEffect(() => {
-        fetchLinks();
+        const active = { current: true };
+        fetchLinks(debouncedSearchTerm, active);
+        return () => {
+            active.current = false;
+        };
+    }, [user, filterClientId, startDate, endDate, currentPage, debouncedSearchTerm]);
+
+    useEffect(() => {
         fetchClients();
-    }, [user, filterClientId, startDate, endDate, currentPage, searchTerm]);
+    }, [user]);
 
     useEffect(() => {
         fetchStats();
@@ -105,7 +120,7 @@ const LinkShortener = () => {
         }
     };
 
-    const fetchLinks = async () => {
+    const fetchLinks = async (search = debouncedSearchTerm, active = { current: true }) => {
         setIsLoading(true);
         try {
             const isStaff = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
@@ -118,23 +133,29 @@ const LinkShortener = () => {
                 endDate,
                 currentPage,
                 linksPerPage,
-                searchTerm
+                search
             );
             
-            if (result && result.links) {
-                setLinks(result.links);
-                setTotalPages(result.totalPages);
-                setTotalCount(result.totalCount);
-            } else {
-                setLinks([]);
-                setTotalPages(1);
-                setTotalCount(0);
+            if (active.current) {
+                if (result && result.links) {
+                    setLinks(result.links);
+                    setTotalPages(result.totalPages);
+                    setTotalCount(result.totalCount);
+                } else {
+                    setLinks([]);
+                    setTotalPages(1);
+                    setTotalCount(0);
+                }
             }
         } catch (error) {
             console.error("Error fetching links:", error);
-            setLinks([]);
+            if (active.current) {
+                setLinks([]);
+            }
         } finally {
-            setIsLoading(false);
+            if (active.current) {
+                setIsLoading(false);
+            }
         }
     };
 
