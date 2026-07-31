@@ -124,7 +124,7 @@ const TemplateDispatch = () => {
         if (location.state?.sender) setSenderNumbers(location.state.sender);
 
         // Load settings from DB
-        dbService.getSettings().then(settings => {
+        dbService.getSettings(user?.role).then(settings => {
             if (!location.state?.key && settings['infobip_key']) setApiKey(settings['infobip_key']);
             if (!location.state?.sender && settings['infobip_sender']) {
                 setSenderNumbers(settings['infobip_sender']);

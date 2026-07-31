@@ -83,7 +83,7 @@ const TemplateCreator = () => {
 
             // Carrega configurações globais da Infobip para ADMINs/EMPLOYEEs
             // que não têm chave própria cadastrada no perfil
-            dbService.getSettings().then(settings => {
+            dbService.getSettings(user?.role).then(settings => {
                 if (!user?.infobip_key && settings['infobip_key']) {
                     setApiKey(settings['infobip_key']);
                 }
@@ -105,7 +105,7 @@ const TemplateCreator = () => {
         } else if (user?.infobip_key) {
             setApiKey(user.infobip_key);
         } else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
-            dbService.getSettings().then(settings => {
+            dbService.getSettings(user?.role).then(settings => {
                 if (settings['infobip_key']) setApiKey(settings['infobip_key']);
             });
         }
@@ -115,7 +115,7 @@ const TemplateCreator = () => {
         } else if (user?.infobip_sender) {
             setSenderNumbers(user.infobip_sender);
         } else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
-            dbService.getSettings().then(settings => {
+            dbService.getSettings(user?.role).then(settings => {
                 if (settings['infobip_sender']) setSenderNumbers(settings['infobip_sender']);
             });
         }

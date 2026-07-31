@@ -12,7 +12,8 @@ import {
     Globe,
     ExternalLink,
     AlertCircle,
-    BarChart3
+    BarChart3,
+    Check
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -28,6 +29,14 @@ const LinkRotator = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Bulk selection states
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [showBulkAddModal, setShowBulkAddModal] = useState(false);
+    const [showBulkResetModal, setShowBulkResetModal] = useState(false);
+    const [bulkTargetUrl, setBulkTargetUrl] = useState('');
+    const [bulkTargetWeight, setBulkTargetWeight] = useState(1);
+    const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+
     useEffect(() => {
         if (user) fetchRotators();
     }, [user]);
@@ -35,12 +44,99 @@ const LinkRotator = () => {
     const fetchRotators = async () => {
         setIsLoading(true);
         try {
-            const data = await dbService.getProLinks(user.id);
+            const data = await dbService.getProLinks(user.id, user.role);
             setRotators(data || []);
         } catch (error) {
             console.error("Error fetching rotators:", error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredRotators.length && filteredRotators.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredRotators.map(r => r.id));
+        }
+    };
+
+    const toggleSelectRotator = (id: number) => {
+        if (selectedIds.includes(id)) {
+            setSelectedIds(selectedIds.filter(x => x !== id));
+        } else {
+            setSelectedIds([...selectedIds, id]);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`Tem certeza que deseja excluir permanentemente estes ${selectedIds.length} rotacionadores?`)) return;
+        setIsBulkProcessing(true);
+        try {
+            const res = await dbService.bulkDeleteProLinks(selectedIds);
+            if (res && !res.error) {
+                setSelectedIds([]);
+                fetchRotators();
+                alert("Rotacionadores excluídos com sucesso.");
+            } else {
+                alert(res.error || "Erro ao excluir rotacionadores.");
+            }
+        } catch (error) {
+            console.error("Error in bulk delete:", error);
+        } finally {
+            setIsBulkProcessing(false);
+        }
+    };
+
+    const handleBulkAddTarget = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!bulkTargetUrl.trim()) return alert("Preencha a URL.");
+        setIsBulkProcessing(true);
+        try {
+            const res = await dbService.bulkAddTargetProLinks(selectedIds, {
+                url: ensureProtocol(bulkTargetUrl),
+                weight: Number(bulkTargetWeight) || 1
+            });
+            if (res && !res.error) {
+                setBulkTargetUrl('');
+                setBulkTargetWeight(1);
+                setShowBulkAddModal(false);
+                setSelectedIds([]);
+                fetchRotators();
+                alert("Destino adicionado com sucesso a todos os selecionados.");
+            } else {
+                alert(res.error || "Erro ao adicionar destino.");
+            }
+        } catch (error) {
+            console.error("Error in bulk add target:", error);
+        } finally {
+            setIsBulkProcessing(false);
+        }
+    };
+
+    const handleBulkResetTargets = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!bulkTargetUrl.trim()) return alert("Preencha a URL.");
+        setIsBulkProcessing(true);
+        try {
+            const res = await dbService.bulkResetTargetsProLinks(selectedIds, {
+                url: ensureProtocol(bulkTargetUrl),
+                weight: Number(bulkTargetWeight) || 1
+            });
+            if (res && !res.error) {
+                setBulkTargetUrl('');
+                setBulkTargetWeight(1);
+                setShowBulkResetModal(false);
+                setSelectedIds([]);
+                fetchRotators();
+                alert("Destinos resetados com sucesso para todos os selecionados.");
+            } else {
+                alert(res.error || "Erro ao resetar destinos.");
+            }
+        } catch (error) {
+            console.error("Error in bulk reset targets:", error);
+        } finally {
+            setIsBulkProcessing(false);
         }
     };
 
@@ -262,55 +358,206 @@ const LinkRotator = () => {
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                            {filteredRotators.map((r) => (
-                                <div key={r.id} className="crm-card" style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
-                                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.1)', flexShrink: 0 }}>
-                                        <Zap size={28} />
-                                    </div>
-                                    
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 950, letterSpacing: '-0.5px' }}>{r.title}</h3>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                            <span style={{ fontSize: '14px', fontWeight: 850, color: 'var(--primary-color)' }}>{window.location.host}/r/{r.slug}</span>
-                                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)', opacity: 0.2 }}></span>
-                                            <span className="info-chip" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
-                                                {r.targets?.length || 0} DESTINOS
-                                            </span>
-                                        </div>
-                                        
-                                        <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                            {r.targets?.map((t: any, i: number) => (
-                                                <div key={i} title={t.url} style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <span style={{ fontWeight: 950, color: 'var(--primary-color)' }}>%{calculatePercentage(t.weight)}</span>
-                                                    <span style={{ opacity: 0.4, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>{t.url}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', flexShrink: 0 }}>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '32px', fontWeight: 950, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-1px' }}>{r.total_clicks || 0}</div>
-                                            <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '1px' }}>CLICKS</div>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                            <button onClick={() => navigate(`/rotator-stats/${r.id}`)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8' }} title="Análise">
-                                                <BarChart3 size={18} />
-                                            </button>
-                                            <button onClick={() => copyToClipboard(r.slug)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)' }} title="Copiar URL">
-                                                <Copy size={18} />
-                                            </button>
-                                            <button onClick={() => handleDeleteRotator(r.id)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }} title="Excluir">
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
+                            {/* Bulk Actions Panel */}
+                            {selectedIds.length > 0 && (
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '16px 24px',
+                                    background: 'var(--card-bg-subtle)',
+                                    border: '1px solid var(--primary-color)',
+                                    borderRadius: '16px',
+                                    marginBottom: '8px',
+                                    animation: 'fadeInUp 0.3s ease-out'
+                                }}>
+                                    <span style={{ fontSize: '13px', fontWeight: 900 }}>
+                                        {selectedIds.length} selecionados
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowBulkAddModal(true)}
+                                            className="action-btn"
+                                            style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', height: '36px', fontSize: '10px' }}
+                                        >
+                                            Adicionar Destino
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowBulkResetModal(true)}
+                                            className="action-btn"
+                                            style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', height: '36px', fontSize: '10px' }}
+                                        >
+                                            Resetar p/ Único
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={handleBulkDelete}
+                                            className="action-btn"
+                                            style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', height: '36px', fontSize: '10px' }}
+                                        >
+                                            Excluir Selecionados
+                                        </button>
                                     </div>
                                 </div>
-                            ))}
+                            )}
+
+                            {filteredRotators.length > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '8px' }}>
+                                    <button 
+                                        type="button"
+                                        onClick={toggleSelectAll}
+                                        className="action-btn"
+                                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--surface-border-subtle)', color: 'var(--text-primary)', fontSize: '11px', height: '36px', padding: '0 16px' }}
+                                    >
+                                        {selectedIds.length === filteredRotators.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {filteredRotators.map((r) => {
+                                const isChecked = selectedIds.includes(r.id);
+                                return (
+                                    <div key={r.id} className="crm-card" style={{ display: 'flex', alignItems: 'center', gap: '28px', border: isChecked ? '1px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)' }}>
+                                        {/* Checkbox for Bulk Selection */}
+                                        <div 
+                                            onClick={() => toggleSelectRotator(r.id)}
+                                            style={{ 
+                                                width: '24px', 
+                                                height: '24px', 
+                                                borderRadius: '6px', 
+                                                border: isChecked ? '2px solid var(--primary-color)' : '2px solid var(--surface-border-subtle)', 
+                                                background: isChecked ? 'var(--primary-color)' : 'transparent',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}
+                                        >
+                                            {isChecked && <Check size={16} color="black" strokeWidth={3} />}
+                                        </div>
+
+                                        <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(172, 248, 0, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)', border: '1px solid rgba(172,248,0,0.1)', flexShrink: 0 }}>
+                                            <Zap size={28} />
+                                        </div>
+                                        
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 950, letterSpacing: '-0.5px' }}>{r.title}</h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                                <span style={{ fontSize: '14px', fontWeight: 850, color: 'var(--primary-color)' }}>{window.location.host}/r/{r.slug}</span>
+                                                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)', opacity: 0.2 }}></span>
+                                                <span className="info-chip" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+                                                    {r.targets?.length || 0} DESTINOS
+                                                </span>
+                                                {['ADMIN', 'EMPLOYEE'].includes(user?.role || '') && r.owner_name && (
+                                                    <>
+                                                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)', opacity: 0.2 }}></span>
+                                                        <span className="info-chip" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)' }}>
+                                                            Criador: {r.owner_name}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                            
+                                            <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                                {r.targets?.map((t: any, i: number) => (
+                                                    <div key={i} title={t.url} style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <span style={{ fontWeight: 950, color: 'var(--primary-color)' }}>%{calculatePercentage(t.weight)}</span>
+                                                        <span style={{ opacity: 0.4, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>{t.url}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+ 
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', flexShrink: 0 }}>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '32px', fontWeight: 950, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-1px' }}>{r.total_clicks || 0}</div>
+                                                <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '1px' }}>CLICKS</div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                                <button onClick={() => navigate(`/rotator-stats/${r.id}`)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8' }} title="Análise">
+                                                    <BarChart3 size={18} />
+                                                </button>
+                                                <button onClick={() => copyToClipboard(r.slug)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)' }} title="Copiar URL">
+                                                    <Copy size={18} />
+                                                </button>
+                                                <button onClick={() => handleDeleteRotator(r.id)} className="action-btn" style={{ width: '44px', height: '44px', padding: 0, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }} title="Excluir">
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Bulk Add Target Modal */}
+            {showBulkAddModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
+                    <div className="crm-card" style={{ width: '400px', padding: '32px' }}>
+                        <h3 style={{ fontWeight: 950, marginBottom: '24px' }}>Adicionar Destino em Massa</h3>
+                        <form onSubmit={handleBulkAddTarget} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div>
+                                <label className="field-label">URL do Destino</label>
+                                <input 
+                                    className="field-input" 
+                                    placeholder="https://wa.me/..." 
+                                    required 
+                                    value={bulkTargetUrl} 
+                                    onChange={e => setBulkTargetUrl(e.target.value)} 
+                                />
+                            </div>
+                            <div>
+                                <label className="field-label">Peso (1 a 100)</label>
+                                <input 
+                                    type="number" 
+                                    className="field-input" 
+                                    min="1" 
+                                    max="100" 
+                                    required 
+                                    value={bulkTargetWeight} 
+                                    onChange={e => setBulkTargetWeight(Number(e.target.value))} 
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                                <button type="button" onClick={() => setShowBulkAddModal(false)} className="action-btn" style={{ flex: 1, background: 'rgba(255,255,255,0.05)' }}>Cancelar</button>
+                                <button type="submit" disabled={isBulkProcessing} className="action-btn primary-btn" style={{ flex: 1 }}>{isBulkProcessing ? 'SALVANDO...' : 'ADICIONAR'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Reset Targets Modal */}
+            {showBulkResetModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
+                    <div className="crm-card" style={{ width: '400px', padding: '32px' }}>
+                        <h3 style={{ fontWeight: 950, marginBottom: '12px' }}>Resetar p/ Destino Único</h3>
+                        <p style={{ fontSize: '12px', opacity: 0.5, marginBottom: '24px' }}>Isso substituirá todos os links de destino existentes nos rotacionadores selecionados.</p>
+                        <form onSubmit={handleBulkResetTargets} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div>
+                                <label className="field-label">Nova URL do Destino</label>
+                                <input 
+                                    className="field-input" 
+                                    placeholder="https://wa.me/..." 
+                                    required 
+                                    value={bulkTargetUrl} 
+                                    onChange={e => setBulkTargetUrl(e.target.value)} 
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                                <button type="button" onClick={() => setShowBulkResetModal(false)} className="action-btn" style={{ flex: 1, background: 'rgba(255,255,255,0.05)' }}>Cancelar</button>
+                                <button type="submit" disabled={isBulkProcessing} className="action-btn primary-btn" style={{ flex: 1 }}>{isBulkProcessing ? 'RESETAR' : 'DEFINIR'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

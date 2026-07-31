@@ -75,7 +75,7 @@ const Dashboard = () => {
         setIsLoading(true);
         try {
             // Load settings first
-            const settings = await dbService.getSettings();
+            const settings = await dbService.getSettings(user?.role);
             const currentKey = settings['infobip_key'] || apiKey;
             const currentSender = settings['infobip_sender'] || fromNumber;
             setApiKey(currentKey);

@@ -7,9 +7,10 @@ const API_BASE = Capacitor.isNativePlatform()
 
 export const dbService = {
     // --- Settings ---
-    getSettings: async (): Promise<Record<string, string>> => {
+    getSettings: async (role?: string): Promise<Record<string, string>> => {
         try {
-            const res = await fetch(`${API_BASE}/settings`);
+            const url = role ? `${API_BASE}/settings?role=${role}` : `${API_BASE}/settings`;
+            const res = await fetch(url);
             if (!res.ok) return {};
             return await res.json();
         } catch (err: any) {
@@ -17,12 +18,12 @@ export const dbService = {
             return {};
         }
     },
-    saveSetting: async (key: string, value: string) => {
+    saveSetting: async (key: string, value: string, role?: string) => {
         try {
             await fetch(`${API_BASE}/settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key, value })
+                body: JSON.stringify({ key, value, role })
             });
         } catch (err: any) {
             console.error("Error saving setting:", err);
@@ -672,9 +673,12 @@ export const dbService = {
         }
     },
     // --- PRO Rotator ---
-    getProLinks: async (userId: number) => {
+    getProLinks: async (userId: number, role?: string) => {
         try {
-            const res = await fetch(`${API_BASE}/pro-links?user_id=${userId}`);
+            const params = new URLSearchParams();
+            if (userId) params.append('user_id', userId.toString());
+            if (role) params.append('role', role);
+            const res = await fetch(`${API_BASE}/pro-links?${params.toString()}`);
             if (!res.ok) throw new Error("Erro ao buscar rotacionadores");
             return await res.json();
         } catch (err: any) {
@@ -705,6 +709,45 @@ export const dbService = {
             return await res.json();
         } catch (err: any) {
             console.error("Error deleting pro link:", err);
+            return { error: err.message };
+        }
+    },
+    bulkDeleteProLinks: async (ids: number[]) => {
+        try {
+            const res = await fetch(`${API_BASE}/pro-links/bulk-delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids })
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error bulk deleting pro links:", err);
+            return { error: err.message };
+        }
+    },
+    bulkAddTargetProLinks: async (ids: number[], target: { url: string; weight: number }) => {
+        try {
+            const res = await fetch(`${API_BASE}/pro-links/bulk-add-target`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids, target })
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error bulk adding target to pro links:", err);
+            return { error: err.message };
+        }
+    },
+    bulkResetTargetsProLinks: async (ids: number[], target: { url: string; weight: number }) => {
+        try {
+            const res = await fetch(`${API_BASE}/pro-links/bulk-reset-targets`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids, target })
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error bulk resetting targets on pro links:", err);
             return { error: err.message };
         }
     },

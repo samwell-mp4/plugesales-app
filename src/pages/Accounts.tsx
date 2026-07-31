@@ -69,15 +69,15 @@ const Accounts = () => {
             setApiKey(user.infobip_key);
             // ADMIN: propaga automaticamente para settings globais (para todos os funcionários herdarem)
             if (user?.role === 'ADMIN') {
-                dbService.getSettings().then(settings => {
+                dbService.getSettings(user?.role).then(settings => {
                     if (!settings['infobip_key'] || settings['infobip_key'] !== user.infobip_key) {
-                        dbService.saveSetting('infobip_key', user.infobip_key!);
+                        dbService.saveSetting('infobip_key', user.infobip_key!, user?.role);
                     }
                 });
             }
         } else if (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') {
             // Fallback: carrega as configurações globais
-            dbService.getSettings().then(settings => {
+            dbService.getSettings(user?.role).then(settings => {
                 if (settings['infobip_key']) setApiKey(settings['infobip_key']);
                 if (settings['infobip_sender']) setSenderNumber(settings['infobip_sender']);
             });
@@ -90,9 +90,9 @@ const Accounts = () => {
             setSenderNumber(user.infobip_sender);
             // ADMIN: propaga o sender para settings globais também
             if (user?.role === 'ADMIN') {
-                dbService.getSettings().then(settings => {
+                dbService.getSettings(user?.role).then(settings => {
                     if (!settings['infobip_sender'] || settings['infobip_sender'] !== user.infobip_sender) {
-                        dbService.saveSetting('infobip_sender', user.infobip_sender!);
+                        dbService.saveSetting('infobip_sender', user.infobip_sender!, user?.role);
                     }
                 });
             }
@@ -110,7 +110,7 @@ const Accounts = () => {
             });
             // Se for ADMIN, salva também nas settings globais para todos os funcionários
             if (user?.role === 'ADMIN') {
-                dbService.saveSetting('infobip_key', apiKey);
+                dbService.saveSetting('infobip_key', apiKey, user?.role);
             }
         }
         if (infobipUrl && infobipUrl !== user?.infobip_url) {
@@ -131,7 +131,7 @@ const Accounts = () => {
             });
             // Se for ADMIN, salva também nas settings globais
             if (user?.role === 'ADMIN') {
-                dbService.saveSetting('infobip_sender', senderNumber);
+                dbService.saveSetting('infobip_sender', senderNumber, user?.role);
             }
             addToRecents(senderNumber);
         }, 1000); // 1s delay for typing

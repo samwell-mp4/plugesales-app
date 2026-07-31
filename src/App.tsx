@@ -189,7 +189,13 @@ function AppContent() {
     '/crm/consultiva',
     '/crm/n8n-monitor',
     '/admin/step-leads',
-    '/admin/plug-cards'
+    '/admin/plug-cards',
+    '/finance',
+    '/crm/funil',
+    '/crm/analise',
+    '/employee-clients',
+    '/collaborators/register',
+    '/cron-report'
   ];
 
   const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA' || user?.role === 'VENDEDOR' || user?.role === 'COZINHEIRA';

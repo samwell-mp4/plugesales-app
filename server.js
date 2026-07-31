@@ -2027,7 +2027,14 @@ app.get('/api/auth/me/:id', async (req, res) => {
         const { id } = req.params;
         const result = await pool.query('SELECT id, name, email, phone, role, notification_number, infobip_key, infobip_sender, infobip_url, parent_id FROM users WHERE id = $1', [id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-        res.json(result.rows[0]);
+        
+        const userObj = result.rows[0];
+        if (userObj.role === 'CLIENT') {
+            userObj.infobip_key = null;
+            userObj.infobip_sender = null;
+            userObj.infobip_url = null;
+        }
+        res.json(userObj);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -2038,6 +2045,11 @@ app.put('/api/auth/profile', async (req, res) => {
     if (!id) return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
 
     try {
+        const userRes = await pool.query('SELECT role FROM users WHERE id = $1', [id]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        const userRole = userRes.rows[0].role;
+        const isClient = userRole === 'CLIENT';
+
         const result = await pool.query(
             `UPDATE users 
              SET name = COALESCE($1, name), 
@@ -2055,14 +2067,21 @@ app.put('/api/auth/profile', async (req, res) => {
                 phone || null,
                 password || null,
                 req.body.notification_number || null,
-                req.body.infobip_key || null,
-                req.body.infobip_sender || null,
-                req.body.infobip_url || null,
+                isClient ? null : (req.body.infobip_key || null),
+                isClient ? null : (req.body.infobip_sender || null),
+                isClient ? null : (req.body.infobip_url || null),
                 id
             ]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado.' });
-        res.json(result.rows[0]);
+        
+        const updatedUser = result.rows[0];
+        if (isClient) {
+            updatedUser.infobip_key = null;
+            updatedUser.infobip_sender = null;
+            updatedUser.infobip_url = null;
+        }
+        res.json(updatedUser);
     } catch (err) {
         if (err.code === '23505') return res.status(400).json({ error: 'Este email já está em uso.' });
         res.status(500).json({ error: err.message });
@@ -2154,9 +2173,25 @@ app.post('/api/admin/update-password', async (req, res) => {
 // Settings
 app.get('/api/settings', async (req, res) => {
     try {
+        const { role } = req.query;
         const result = await pool.query('SELECT * FROM settings');
         const settings = {};
-        result.rows.forEach(row => settings[row.key] = row.value);
+        const isAuthorized = ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'].includes(role);
+        
+        result.rows.forEach(row => {
+            if (isAuthorized) {
+                settings[row.key] = row.value;
+            } else {
+                const lowerKey = row.key.toLowerCase();
+                const isSensitive = lowerKey.startsWith('infobip_') || 
+                                    lowerKey.includes('key') || 
+                                    lowerKey.includes('token') || 
+                                    lowerKey.includes('secret');
+                if (!isSensitive) {
+                    settings[row.key] = row.value;
+                }
+            }
+        });
         res.json(settings);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2164,7 +2199,10 @@ app.get('/api/settings', async (req, res) => {
 });
 
 app.post('/api/settings', async (req, res) => {
-    const { key, value } = req.body;
+    const { key, value, role } = req.body;
+    if (role && !['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'].includes(role)) {
+        return res.status(403).json({ error: 'Acesso negado.' });
+    }
     try {
         await pool.query(
             'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
@@ -3360,13 +3398,79 @@ app.post('/api/pro-links', async (req, res) => {
 });
 
 app.get('/api/pro-links', async (req, res) => {
-    const { user_id } = req.query;
+    const { user_id, role } = req.query;
     try {
-        const result = await pool.query(
-            'SELECT * FROM pro_rotators WHERE user_id = $1 ORDER BY created_at DESC',
-            [user_id]
-        );
+        let result;
+        if (role === 'ADMIN' || role === 'EMPLOYEE') {
+            result = await pool.query(
+                `SELECT pr.*, u.name as owner_name 
+                 FROM pro_rotators pr 
+                 LEFT JOIN users u ON pr.user_id = u.id 
+                 ORDER BY pr.created_at DESC`
+            );
+        } else {
+            result = await pool.query(
+                `SELECT pr.*, u.name as owner_name 
+                 FROM pro_rotators pr 
+                 LEFT JOIN users u ON pr.user_id = u.id 
+                 WHERE pr.user_id = $1 
+                 ORDER BY pr.created_at DESC`,
+                [user_id]
+            );
+        }
         res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/pro-links/bulk-delete', async (req, res) => {
+    const { ids } = req.body;
+    try {
+        await pool.query('DELETE FROM pro_rotators WHERE id = ANY($1)', [ids]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/pro-links/bulk-add-target', async (req, res) => {
+    const { ids, target } = req.body;
+    if (!target || !target.url) {
+        return res.status(400).json({ error: 'URL de destino é obrigatória.' });
+    }
+    const clientDB = await pool.connect();
+    try {
+        await clientDB.query('BEGIN');
+        for (const id of ids) {
+            const getRes = await clientDB.query('SELECT targets FROM pro_rotators WHERE id = $1', [id]);
+            if (getRes.rows.length > 0) {
+                let targets = getRes.rows[0].targets;
+                if (!Array.isArray(targets)) {
+                    targets = [];
+                }
+                targets.push(target);
+                await clientDB.query('UPDATE pro_rotators SET targets = $1 WHERE id = $2', [JSON.stringify(targets), id]);
+            }
+        }
+        await clientDB.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await clientDB.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        clientDB.release();
+    }
+});
+
+app.post('/api/pro-links/bulk-reset-targets', async (req, res) => {
+    const { ids, target } = req.body;
+    if (!target || !target.url) {
+        return res.status(400).json({ error: 'URL de destino é obrigatória.' });
+    }
+    try {
+        await pool.query('UPDATE pro_rotators SET targets = $1 WHERE id = ANY($2)', [JSON.stringify([target]), ids]);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

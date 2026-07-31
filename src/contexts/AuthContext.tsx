@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 password: foundStatic.password,
                 role: foundStatic.role
             });
-            const finalUser = dbRes && !dbRes.error ? dbRes : (await dbService.login({ email: `${foundStatic.name.toLowerCase()}@internal.system`, password: foundStatic.password }));
+            const finalUser = dbRes && !dbRes.error ? dbRes : (await dbService.login({ email: `${foundStatic.name.toLowerCase().replace(/\s+/g, '.')}@plugsales.com.br`, password: foundStatic.password }));
             const userObj = finalUser?.user || finalUser;
 
             if (userObj && userObj.id) {
