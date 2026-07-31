@@ -512,6 +512,25 @@ const initDB = async () => {
             )
         `);
 
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS template_batch_jobs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                base_name TEXT NOT NULL,
+                sender TEXT NOT NULL,
+                api_key TEXT NOT NULL,
+                base_url TEXT NOT NULL,
+                category TEXT NOT NULL,
+                language TEXT NOT NULL,
+                structure JSONB NOT NULL,
+                copies_count INTEGER DEFAULT 20,
+                status TEXT NOT NULL DEFAULT 'PENDING_APPROVAL',
+                error_message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         // Backward-compat for users table
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_number TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_key TEXT`);
@@ -4386,6 +4405,72 @@ app.post('/api/logs/template-error', async (req, res) => {
     }
 });
 
+// --- WhatsApp Template Batch Generator APIs ---
+app.post('/api/template-batch', async (req, res) => {
+    const { user_id, base_name, sender, api_key, base_url, category, language, structure, copies_count } = req.body;
+    if (!user_id || !base_name || !sender || !api_key || !base_url || !category || !language || !structure) {
+        return res.status(400).json({ error: 'Parâmetros obrigatórios ausentes.' });
+    }
+
+    try {
+        const encodedSender = encodeURIComponent(sender);
+        const url = `https://${base_url}/whatsapp/2/senders/${encodedSender}/templates`;
+        
+        const payload = {
+            name: base_name,
+            language,
+            category,
+            structure
+        };
+
+        const createRes = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `App ${api_key}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await createRes.json().catch(() => ({}));
+
+        if (!createRes.ok) {
+            return res.status(400).json({ error: result.error || 'Erro ao enviar template base para a Infobip' });
+        }
+
+        const dbResult = await pool.query(
+            `INSERT INTO template_batch_jobs (user_id, base_name, sender, api_key, base_url, category, language, structure, copies_count, status) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'PENDING_APPROVAL') RETURNING *`,
+            [user_id, base_name, sender, api_key, base_url, category, language, JSON.stringify(structure), copies_count || 20]
+        );
+
+        res.json(dbResult.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/template-batch', async (req, res) => {
+    const { user_id } = req.query;
+    try {
+        let result;
+        if (user_id) {
+            result = await pool.query(
+                "SELECT id, base_name, sender, category, language, copies_count, status, error_message, created_at, updated_at FROM template_batch_jobs WHERE user_id = $1 ORDER BY created_at DESC",
+                [user_id]
+            );
+        } else {
+            result = await pool.query(
+                "SELECT id, base_name, sender, category, language, copies_count, status, error_message, created_at, updated_at FROM template_batch_jobs ORDER BY created_at DESC"
+            );
+        }
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- REDIS WORKER ---
 const dispatchWorker = async () => {
     try {
@@ -5252,6 +5337,123 @@ const startTemplateMonitoring = () => {
     setTimeout(checkStatus, 2000);
     setInterval(checkStatus, 45000);
 };
+
+const processTemplateBatchJobs = async () => {
+    let client;
+    try {
+        client = await pool.connect();
+        
+        // Find jobs that are in PENDING_APPROVAL
+        const pendingJobs = await client.query(
+            "SELECT * FROM template_batch_jobs WHERE status = 'PENDING_APPROVAL'"
+        );
+
+        for (const job of pendingJobs.rows) {
+            const { id, base_name, sender, api_key, base_url, copies_count, category, language, structure } = job;
+            try {
+                const encodedSender = encodeURIComponent(sender);
+                const url = `https://${base_url}/whatsapp/2/senders/${encodedSender}/templates?_t=${Date.now()}`;
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `App ${api_key}`, 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    console.error(`❌ [BATCH JOB] Error checking template status for job ${id}: ${response.status}`);
+                    continue;
+                }
+
+                const data = await response.json();
+                const templates = data.templates || [];
+                const baseTemplate = templates.find(t => t.name === base_name);
+
+                if (!baseTemplate) {
+                    console.log(`ℹ️ [BATCH JOB] Base template ${base_name} not found yet for job ${id}.`);
+                    continue;
+                }
+
+                const baseStatus = (baseTemplate.status || 'PENDING').toUpperCase();
+
+                if (baseStatus === 'REJECTED') {
+                    await client.query(
+                        "UPDATE template_batch_jobs SET status = 'FAILED', error_message = 'O template base foi rejeitado pela Meta.', updated_at = NOW() WHERE id = $1",
+                        [id]
+                    );
+                    console.log(`❌ [BATCH JOB] Job ${id} marked as FAILED because base template was rejected.`);
+                } else if (baseStatus === 'APPROVED') {
+                    console.log(`✅ [BATCH JOB] Base template ${base_name} is APPROVED for job ${id}. Starting cloning...`);
+                    
+                    await client.query(
+                        "UPDATE template_batch_jobs SET status = 'APPROVED_CLONING', updated_at = NOW() WHERE id = $1",
+                        [id]
+                    );
+
+                    let successCount = 0;
+                    let errorMsg = null;
+
+                    // Create copies
+                    for (let i = 1; i <= copies_count; i++) {
+                        const copyName = `${base_name}_${i}`;
+                        const copyPayload = {
+                            name: copyName,
+                            language,
+                            category,
+                            structure
+                        };
+
+                        const createRes = await fetch(`https://${base_url}/whatsapp/2/senders/${encodedSender}/templates`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `App ${api_key}`,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(copyPayload)
+                        });
+
+                        if (createRes.ok) {
+                            successCount++;
+                        } else {
+                            const errData = await createRes.json().catch(() => ({}));
+                            console.error(`❌ [BATCH JOB] Failed to create copy ${copyName}:`, errData);
+                            errorMsg = errData.error || `Falha ao criar cópia ${i}`;
+                        }
+                    }
+
+                    // Delete the base template
+                    console.log(`🗑️ [BATCH JOB] Deleting base template ${base_name} for job ${id}...`);
+                    const deleteRes = await fetch(`https://${base_url}/whatsapp/2/senders/${encodedSender}/templates/${base_name}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `App ${api_key}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!deleteRes.ok) {
+                        console.error(`⚠️ [BATCH JOB] Warning: Failed to delete base template ${base_name}. Status: ${deleteRes.status}`);
+                    }
+
+                    const finalStatus = successCount === copies_count ? 'COMPLETED' : 'PARTIALLY_COMPLETED';
+                    await client.query(
+                        "UPDATE template_batch_jobs SET status = $1, error_message = $2, updated_at = NOW() WHERE id = $3",
+                        [finalStatus, errorMsg, id]
+                    );
+                    console.log(`🎉 [BATCH JOB] Job ${id} finished with status: ${finalStatus}`);
+                }
+            } catch (jobErr) {
+                console.error(`❌ [BATCH JOB] Error processing job ${id}:`, jobErr.message);
+            }
+        }
+    } catch (err) {
+        console.error('❌ [BATCH JOB] Error in template batch worker:', err.message);
+    } finally {
+        if (client) client.release();
+    }
+};
+
+// Start the template batch job worker (polls every 15 seconds)
+setInterval(processTemplateBatchJobs, 15000);
 
 // Start monitoring session
 

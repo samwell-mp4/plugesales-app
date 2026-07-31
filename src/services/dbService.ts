@@ -1487,5 +1487,30 @@ export const dbService = {
             console.error("Error fetching finance stats:", err);
             return null;
         }
+    },
+    // --- WhatsApp Template Batch ---
+    createTemplateBatchJob: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/template-batch`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error creating template batch job:", err);
+            return { error: err.message || "Erro ao conectar com servidor" };
+        }
+    },
+    getTemplateBatchJobs: async (userId?: number) => {
+        try {
+            const url = userId ? `${API_BASE}/template-batch?user_id=${userId}` : `${API_BASE}/template-batch`;
+            const res = await fetch(url);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching template batch jobs:", err);
+            return [];
+        }
     }
 };

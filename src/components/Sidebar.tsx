@@ -111,6 +111,7 @@ const Sidebar = () => {
                 { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
                 { name: 'Upload Clientes', path: '/client-submissions', icon: <FileUp />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
                 { name: 'Express Template', path: '/express-template', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Gerar Em Lote', path: '/template-batch', icon: <Layers />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Pendências Alteração', path: '/admin/changes', icon: <Bell />, roles: ['ADMIN', 'EMPLOYEE'] },
                 { name: 'Planilhas', path: '/upload', icon: <FileSpreadsheet />, excludeRole: 'CLIENT' },
                 { name: 'Hospedagem', path: '/media', icon: <Layers />, roles: ['ADMIN', 'EMPLOYEE'] },

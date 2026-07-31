@@ -14,6 +14,7 @@ import EngineExecution from './pages/EngineExecution';
 import MediaHosting from './pages/MediaHosting';
 import TemplateDispatch from './pages/TemplateDispatch';
 import ExpressTemplate from './pages/ExpressTemplate';
+import TemplateBatchGenerator from './pages/TemplateBatchGenerator';
 import ClientSubmissions from './pages/ClientSubmissions';
 import ClientSubmissionDetail from './pages/ClientSubmissionDetail';
 import ClientSubmissionAdd from './pages/ClientSubmissionAdd';
@@ -195,7 +196,8 @@ function AppContent() {
     '/crm/analise',
     '/employee-clients',
     '/collaborators/register',
-    '/cron-report'
+    '/cron-report',
+    '/template-batch'
   ];
 
   const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA' || user?.role === 'VENDEDOR' || user?.role === 'COZINHEIRA';
@@ -331,6 +333,7 @@ function AppContent() {
           <Route path="/media" element={<ProtectedRoute><MediaHosting /></ProtectedRoute>} />
           <Route path="/dispatch" element={<ProtectedRoute><TemplateDispatch /></ProtectedRoute>} />
           <Route path="/express-template" element={<ProtectedRoute><ExpressTemplate /></ProtectedRoute>} />
+          <Route path="/template-batch" element={<ProtectedRoute><TemplateBatchGenerator /></ProtectedRoute>} />
           <Route path="/link-shortener" element={<ProtectedRoute><LinkShortener /></ProtectedRoute>} />
           <Route path="/link-rotator" element={<ProtectedRoute><LinkRotator /></ProtectedRoute>} />
           <Route path="/rotator-stats/:id" element={<ProtectedRoute><RotatorDetails /></ProtectedRoute>} />
