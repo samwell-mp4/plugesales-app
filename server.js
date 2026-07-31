@@ -3476,6 +3476,26 @@ app.post('/api/pro-links/bulk-reset-targets', async (req, res) => {
     }
 });
 
+app.put('/api/pro-links/:id', async (req, res) => {
+    const { id } = req.params;
+    const { title, slug, targets } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE pro_rotators 
+             SET title = COALESCE($1, title),
+                 slug = COALESCE($2, slug),
+                 targets = COALESCE($3, targets)
+             WHERE id = $4 RETURNING *`,
+            [title || null, slug || null, targets ? JSON.stringify(targets) : null, id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Rotacionador não encontrado' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ error: 'Este slug já está em uso.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.delete('/api/pro-links/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM pro_rotators WHERE id = $1', [req.params.id]);

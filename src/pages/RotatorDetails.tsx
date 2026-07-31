@@ -11,7 +11,11 @@ import {
     MapPin,
     Smartphone,
     Laptop,
-    Globe
+    Globe,
+    Plus,
+    Trash2,
+    Edit,
+    Check
 } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
@@ -20,6 +24,73 @@ const RotatorDetails = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editSlug, setEditSlug] = useState('');
+    const [editTargets, setEditTargets] = useState<{ url: string; weight: number }[]>([]);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+    const handleOpenEdit = () => {
+        if (!stats?.rotator) return;
+        setEditTitle(stats.rotator.title || '');
+        setEditSlug(stats.rotator.slug || '');
+        
+        const rawTargets = typeof stats.rotator.targets === 'string' 
+            ? JSON.parse(stats.rotator.targets) 
+            : (stats.rotator.targets || []);
+        
+        setEditTargets(rawTargets.map((t: any) => ({
+            url: t.url || t.target_url || '',
+            weight: parseInt(t.weight) || 1
+        })));
+        setShowEditModal(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editTitle.trim()) return alert("O título não pode ser vazio.");
+        if (!editSlug.trim()) return alert("O slug não pode ser vazio.");
+        if (editTargets.length === 0) return alert("Adicione pelo menos um link de destino.");
+        
+        for (let i = 0; i < editTargets.length; i++) {
+            if (!editTargets[i].url.trim()) {
+                return alert(`O link #${i + 1} não pode ser vazio.`);
+            }
+        }
+
+        setIsSavingEdit(true);
+        try {
+            const ensureProtocol = (url: string) => {
+                if (!/^https?:\/\//i.test(url)) {
+                    return `https://${url}`;
+                }
+                return url;
+            };
+
+            const formattedTargets = editTargets.map(t => ({
+                url: ensureProtocol(t.url.trim()),
+                weight: t.weight
+            }));
+
+            const res = await dbService.updateProLink(stats.rotator.id, {
+                title: editTitle,
+                slug: editSlug.trim(),
+                targets: formattedTargets
+            });
+
+            if (res.error) {
+                alert(res.error);
+            } else {
+                alert("Rotacionador atualizado com sucesso!");
+                setShowEditModal(false);
+                fetchStats();
+            }
+        } catch (error) {
+            alert("Erro ao atualizar o rotacionador.");
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
 
     useEffect(() => {
         if (id) fetchStats();
@@ -263,12 +334,15 @@ const RotatorDetails = () => {
                                     {window.location.host}/r/{stats.rotator.slug}
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
-                                <button onClick={() => copyToClipboard(stats.rotator.slug)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', fontSize: '11px' }}>
-                                    <Copy size={16} /> COPIAR
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '8px', marginTop: '16px' }}>
+                                <button onClick={() => copyToClipboard(stats.rotator.slug)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px 6px', fontSize: '11px', fontWeight: 900 }}>
+                                    <Copy size={14} /> COPIAR
                                 </button>
-                                <button onClick={() => window.open(`/r/${stats.rotator.slug}`, '_blank')} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', fontSize: '11px' }}>
-                                    <ExternalLink size={16} /> TESTAR
+                                <button onClick={() => window.open(`/r/${stats.rotator.slug}`, '_blank')} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px 6px', fontSize: '11px', fontWeight: 900 }}>
+                                    <ExternalLink size={14} /> TESTAR
+                                </button>
+                                <button onClick={handleOpenEdit} className="action-btn primary-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px 6px', fontSize: '11px', fontWeight: 900, borderRadius: '12px' }}>
+                                    <Edit size={14} /> EDITAR
                                 </button>
                             </div>
                         </div>
@@ -321,6 +395,115 @@ const RotatorDetails = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Rotator Modal */}
+            {showEditModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="glass-card" style={{ maxWidth: '600px', width: '100%', padding: '32px', maxHeight: '90vh', overflowY: 'auto', animation: 'scaleIn 0.3s ease-out' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(172, 248, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                                <Edit size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontWeight: 950, fontSize: '1.25rem' }}>Editar Rotacionador PRO</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Modifique o título, slug e os links de destino</p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Título</label>
+                                <input 
+                                    type="text"
+                                    className="field-input"
+                                    value={editTitle}
+                                    onChange={e => setEditTitle(e.target.value)}
+                                    placeholder="Ex: WhatsApp Comercial"
+                                    style={{ width: '100%', height: '44px', background: 'var(--bg-primary)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 16px', color: 'var(--text-primary)', outline: 'none' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Slug (Caminho do Link)</label>
+                                <input 
+                                    type="text"
+                                    className="field-input"
+                                    value={editSlug}
+                                    onChange={e => setEditSlug(e.target.value)}
+                                    placeholder="Ex: whatsapp-comercial"
+                                    style={{ width: '100%', height: '44px', background: 'var(--bg-primary)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', padding: '0 16px', color: 'var(--text-primary)', outline: 'none' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                <label style={{ fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Links de Destino & Pesos</label>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setEditTargets([...editTargets, { url: '', weight: 1 }])}
+                                    style={{ background: 'rgba(172, 248, 0, 0.1)', border: 'none', borderRadius: '8px', color: 'var(--primary-color)', fontSize: '11px', fontWeight: 900, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                >
+                                    <Plus size={14} /> ADICIONAR LINK
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+                                {editTargets.map((t, idx) => (
+                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border-subtle)', padding: '12px', borderRadius: '14px' }}>
+                                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)' }}>
+                                            #{idx + 1}
+                                        </div>
+                                        <input 
+                                            type="text"
+                                            value={t.url}
+                                            onChange={e => {
+                                                const newTargets = [...editTargets];
+                                                newTargets[idx].url = e.target.value;
+                                                setEditTargets(newTargets);
+                                            }}
+                                            placeholder="https://wa.me/5511999999999"
+                                            style={{ flex: 1, height: '36px', background: 'var(--bg-primary)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '0 12px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' }}
+                                        />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>PESO:</span>
+                                            <input 
+                                                type="number"
+                                                min="1"
+                                                max="100"
+                                                value={t.weight}
+                                                onChange={e => {
+                                                    const newTargets = [...editTargets];
+                                                    newTargets[idx].weight = parseInt(e.target.value) || 1;
+                                                    setEditTargets(newTargets);
+                                                }}
+                                                style={{ width: '50px', height: '36px', background: 'var(--bg-primary)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', textAlign: 'center', color: 'var(--text-primary)', outline: 'none', fontWeight: 700 }}
+                                            />
+                                        </div>
+                                        {editTargets.length > 1 && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => setEditTargets(editTargets.filter((_, i) => i !== idx))}
+                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button onClick={() => setShowEditModal(false)} className="action-btn" style={{ flex: 1, height: '44px', borderRadius: '12px', background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', color: 'var(--text-primary)', fontWeight: 900, cursor: 'pointer' }}>
+                                Cancelar
+                            </button>
+                            <button onClick={handleSaveEdit} className="action-btn primary-btn" style={{ flex: 1, height: '44px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }} disabled={isSavingEdit}>
+                                <Check size={16} /> {isSavingEdit ? 'Salvando...' : 'Salvar Alterações'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

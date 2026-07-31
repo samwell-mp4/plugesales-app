@@ -712,6 +712,23 @@ export const dbService = {
             return { error: err.message };
         }
     },
+    updateProLink: async (id: number, data: { title?: string; slug?: string; targets?: any[] }) => {
+        try {
+            const res = await fetch(`${API_BASE}/pro-links/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || "Erro ao atualizar rotacionador");
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error updating pro link:", err);
+            return { error: err.message };
+        }
+    },
     bulkDeleteProLinks: async (ids: number[]) => {
         try {
             const res = await fetch(`${API_BASE}/pro-links/bulk-delete`, {
