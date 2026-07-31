@@ -11,39 +11,61 @@ import {
     MousePointer2, 
     FileText, 
     RefreshCw,
-    ExternalLink
+    ExternalLink,
+    Smartphone,
+    Users
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
+// --- LEANDRO STANDARD CONSTANTS ---
+const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!';
+const LEANDRO_BODY_5 = 'Olá {{1}} \n\nTemos uma novidade: {{2}}\n\n{{3}}\n\n{{4}}\n\nPara {{5}}, clique no botão abaixo 👇';
+const LEANDRO_EXAMPLES = [
+    "Leandro", // {{1}}
+    "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
+    "O comprovante digital já se encontra disponível para conferência", // {{3}}
+    "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
+    "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
+];
+
 const TemplateBatchGenerator = () => {
     const { user } = useAuth();
 
+    // --- Luis Credentials Constants ---
+    const LUIS_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
+    const LUIS_BASE = '4k3e4p.api-us.infobip.com';
+
     // --- Infobip Config States ---
-    const [apiKey, setApiKey] = useState(user?.infobip_key || '');
-    const [sender, setSender] = useState(user?.infobip_sender || '');
-    const [infobipUrl, setInfobipUrl] = useState(user?.infobip_url || '');
+    const [apiKey, setApiKey] = useState('');
+    const [sender, setSender] = useState('');
+    const [infobipUrl, setInfobipUrl] = useState('');
+    const [useLuis, setUseLuis] = useState(false);
+
+    // --- Client Selection State ---
+    const [clients, setClients] = useState<any[]>([]);
+    const [selectedClientId, setSelectedClientId] = useState<string | number>('');
 
     // --- Template Form States ---
-    const [baseName, setBaseName] = useState('');
+    const [baseName, setBaseName] = useState('pagamento_confirmado');
     const [category, setCategory] = useState<'UTILITY' | 'MARKETING'>('UTILITY');
     const [language, setLanguage] = useState('pt_BR');
+    const [isFiveVars, setIsFiveVars] = useState(false);
     
-    const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO'>('NONE');
-    const [headerText, setHeaderText] = useState('');
-    const [headerTextExample, setHeaderTextExample] = useState('');
-    const [headerMediaUrl, setHeaderMediaUrl] = useState('');
+    const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
+    const [headerText, setHeaderText] = useState('Alerta de Atualização');
+    const [headerTextExample, setHeaderTextExample] = useState('João');
+    const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/gZLbY6p.jpeg');
 
-    const [bodyText, setBodyText] = useState('');
-    const [bodyExamples, setBodyExamples] = useState<string[]>([]);
-    const [bodyExampleInput, setBodyExampleInput] = useState('');
+    const [bodyText, setBodyText] = useState(LEANDRO_BODY_4);
+    const [bodyExamples, setBodyExamples] = useState<string[]>(LEANDRO_EXAMPLES.slice(0, 4));
 
-    const [footerText, setFooterText] = useState('');
+    const [footerText, setFooterText] = useState('Digite "sair" para não receber mais mensagens');
     
-    const [buttonType, setButtonType] = useState<'NONE' | 'URL' | 'QUICK_REPLY'>('NONE');
-    const [buttonText, setButtonText] = useState('');
+    const [buttonType, setButtonType] = useState<'NONE' | 'URL' | 'QUICK_REPLY'>('URL');
+    const [buttonText, setButtonText] = useState('Clique Aqui');
     const [buttonUrl, setButtonUrl] = useState('');
-    const [buttonUrlExample, setButtonUrlExample] = useState('');
+    const [buttonUrlExample, setButtonUrlExample] = useState('https://exemplo.com');
 
     const [copiesCount, setCopiesCount] = useState<number>(20);
 
@@ -53,7 +75,7 @@ const TemplateBatchGenerator = () => {
     const [jobs, setJobs] = useState<any[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(false);
 
-    // Load credentials
+    // Load credentials & clients
     useEffect(() => {
         if (user) {
             dbService.getSettings(user.role).then(settings => {
@@ -61,15 +83,55 @@ const TemplateBatchGenerator = () => {
                 setSender(user.infobip_sender || settings['infobip_sender'] || '');
                 setInfobipUrl(user.infobip_url || settings['infobip_url'] || '8k6xv1.api-us.infobip.com');
             });
+
+            if (user.role === 'ADMIN' || user.role === 'EMPLOYEE') {
+                dbService.getClients().then(data => {
+                    setClients(data);
+                });
+            } else {
+                setSelectedClientId(user.id || '');
+            }
         }
     }, [user]);
+
+    // Handle isFiveVars changes to reset bodyText and examples
+    useEffect(() => {
+        if (isFiveVars) {
+            setBodyText(LEANDRO_BODY_5);
+            setBodyExamples(LEANDRO_EXAMPLES.slice(0, 5));
+        } else {
+            setBodyText(LEANDRO_BODY_4);
+            setBodyExamples(LEANDRO_EXAMPLES.slice(0, 4));
+        }
+    }, [isFiveVars]);
+
+    // Dynamic variable detection to ensure bodyExamples has enough items
+    const detectBodyVariables = () => {
+        const matches = bodyText.match(/\{\{\d+\}\}/g);
+        if (!matches) return 0;
+        const unique = new Set(matches);
+        return unique.size;
+    };
+
+    const varsCount = detectBodyVariables();
+
+    // Resize body examples array when variables count changes
+    useEffect(() => {
+        if (bodyExamples.length < varsCount) {
+            const newEx = [...bodyExamples];
+            for (let i = bodyExamples.length; i < varsCount; i++) {
+                newEx.push(LEANDRO_EXAMPLES[i] || '');
+            }
+            setBodyExamples(newEx);
+        }
+    }, [varsCount]);
 
     // Load and refresh jobs list
     const fetchJobs = async () => {
         if (!user) return;
         setIsLoadingJobs(true);
         try {
-            const data = await dbService.getTemplateBatchJobs(user.id);
+            const data = await dbService.getTemplateBatchJobs(user.role === 'CLIENT' ? user.id : undefined);
             setJobs(data);
         } catch (error) {
             console.error("Error loading batch jobs:", error);
@@ -83,25 +145,6 @@ const TemplateBatchGenerator = () => {
         const interval = setInterval(fetchJobs, 10000); // Poll every 10s
         return () => clearInterval(interval);
     }, [user]);
-
-    // Parse variable placeholders in text body
-    const detectBodyVariables = () => {
-        const matches = bodyText.match(/\{\{\d+\}\}/g);
-        if (!matches) return 0;
-        const unique = new Set(matches);
-        return unique.size;
-    };
-
-    const handleAddBodyExample = () => {
-        if (bodyExampleInput.trim()) {
-            setBodyExamples([...bodyExamples, bodyExampleInput.trim()]);
-            setBodyExampleInput('');
-        }
-    };
-
-    const handleRemoveBodyExample = (index: number) => {
-        setBodyExamples(bodyExamples.filter((_, i) => i !== index));
-    };
 
     const getStatusBadgeStyle = (status: string) => {
         switch (status) {
@@ -137,7 +180,10 @@ const TemplateBatchGenerator = () => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
 
-        if (!apiKey.trim() || !sender.trim() || !infobipUrl.trim()) {
+        const effectiveKey = useLuis ? LUIS_KEY : apiKey;
+        const effectiveBaseUrl = useLuis ? LUIS_BASE : infobipUrl;
+
+        if (!effectiveKey.trim() || !sender.trim() || !effectiveBaseUrl.trim()) {
             setMessage({ type: 'error', text: 'Credenciais da Infobip incompletas. Por favor, verifique seu perfil ou Contas.' });
             return;
         }
@@ -148,10 +194,18 @@ const TemplateBatchGenerator = () => {
             return;
         }
 
-        const variablesCount = detectBodyVariables();
-        if (bodyExamples.length < variablesCount) {
-            setMessage({ type: 'error', text: `Adicione pelo menos ${variablesCount} exemplos para as variáveis do corpo.` });
+        const finalUserId = selectedClientId || user?.id;
+        if (!finalUserId) {
+            setMessage({ type: 'error', text: 'Selecione um cliente para vincular o lote.' });
             return;
+        }
+
+        // Validate examples
+        for (let i = 0; i < varsCount; i++) {
+            if (!bodyExamples[i] || !bodyExamples[i].trim()) {
+                setMessage({ type: 'error', text: `Preencha o exemplo para a variável {{${i + 1}}}` });
+                return;
+            }
         }
 
         setIsSubmitting(true);
@@ -160,7 +214,7 @@ const TemplateBatchGenerator = () => {
             const structure: any = {
                 body: {
                     text: bodyText,
-                    examples: bodyExamples.slice(0, variablesCount)
+                    examples: bodyExamples.slice(0, varsCount)
                 }
             };
 
@@ -192,7 +246,7 @@ const TemplateBatchGenerator = () => {
                 structure.buttons = [{
                     type: 'URL',
                     text: buttonText,
-                    url: buttonUrl,
+                    url: buttonUrl || 'https://exemplo.com',
                     example: buttonUrl.includes('{{1}}') ? [buttonUrlExample || 'https://exemplo.com'] : undefined
                 }];
             } else if (buttonType === 'QUICK_REPLY') {
@@ -203,11 +257,11 @@ const TemplateBatchGenerator = () => {
             }
 
             const payload = {
-                user_id: user?.id,
+                user_id: finalUserId,
                 base_name: cleanName,
                 sender: sender.trim(),
-                api_key: apiKey.trim(),
-                base_url: infobipUrl.trim(),
+                api_key: effectiveKey.trim(),
+                base_url: effectiveBaseUrl.trim(),
                 category,
                 language,
                 structure,
@@ -219,17 +273,8 @@ const TemplateBatchGenerator = () => {
             if (res.error) {
                 setMessage({ type: 'error', text: res.error });
             } else {
-                setMessage({ type: 'success', text: `Lote iniciado! O template base "${cleanName}" foi submetido. Aguardando aprovação...` });
-                setBaseName('');
-                setBodyText('');
-                setBodyExamples([]);
-                setFooterText('');
-                setHeaderText('');
-                setHeaderTextExample('');
-                setHeaderMediaUrl('');
-                setButtonText('');
-                setButtonUrl('');
-                setButtonUrlExample('');
+                setMessage({ type: 'success', text: `Lote iniciado com sucesso! O template base "${cleanName}" foi enviado para aprovação.` });
+                setBaseName('pagamento_confirmado_' + Date.now().toString().slice(-4));
                 fetchJobs();
             }
         } catch (err: any) {
@@ -260,6 +305,53 @@ const TemplateBatchGenerator = () => {
                     </h2>
 
                     <form onSubmit={handleCreateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        
+                        {/* --- SENDER CONFIG & CLIENT --- */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label style={{ fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Configuração de Credenciais</label>
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setUseLuis(!useLuis)}>
+                                    <div style={{ width: '32px', height: '18px', background: useLuis ? 'var(--primary-color)' : 'var(--surface-border-subtle)', borderRadius: '9px', position: 'relative', transition: 'all 0.3s' }}>
+                                        <div style={{ position: 'absolute', top: '3px', left: useLuis ? '17px' : '3px', width: '12px', height: '12px', background: 'white', borderRadius: '50%', transition: 'all 0.3s' }} />
+                                    </div>
+                                    <span style={{ fontSize: '11px', fontWeight: 900, color: useLuis ? 'var(--primary-color)' : 'white' }}>CREDENCIAL DO LUIS</span>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
+                                <div>
+                                    <label className="field-label">Remetente Oficial (WABA)</label>
+                                    <input 
+                                        className="field-input" 
+                                        placeholder="5511999998888" 
+                                        value={sender}
+                                        onChange={e => setSender(e.target.value)}
+                                        required 
+                                    />
+                                </div>
+
+                                {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
+                                    <div>
+                                        <label className="field-label">Vincular a Cliente</label>
+                                        <select 
+                                            className="field-input"
+                                            value={selectedClientId}
+                                            onChange={e => setSelectedClientId(e.target.value)}
+                                            style={{ background: 'var(--card-bg-subtle)' }}
+                                            required
+                                        >
+                                            <option value="">Selecione um cliente...</option>
+                                            {clients.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* --- BASIC INFOS --- */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
                             <div>
                                 <label className="field-label">Nome Base do Template (Sem espaços/símbolos)</label>
@@ -285,16 +377,26 @@ const TemplateBatchGenerator = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                            <div>
-                                <label className="field-label">Idioma</label>
-                                <input 
-                                    className="field-input" 
-                                    placeholder="pt_BR" 
-                                    value={language}
-                                    onChange={e => setLanguage(e.target.value)}
-                                    required 
-                                />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label className="field-label">Idioma</label>
+                                    <input 
+                                        className="field-input" 
+                                        placeholder="pt_BR" 
+                                        value={language}
+                                        onChange={e => setLanguage(e.target.value)}
+                                        required 
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setIsFiveVars(!isFiveVars)}>
+                                        <div style={{ width: '32px', height: '18px', background: isFiveVars ? 'var(--primary-color)' : 'var(--surface-border-subtle)', borderRadius: '9px', position: 'relative', transition: 'all 0.3s' }}>
+                                            <div style={{ position: 'absolute', top: '3px', left: isFiveVars ? '17px' : '3px', width: '12px', height: '12px', background: 'white', borderRadius: '50%', transition: 'all 0.3s' }} />
+                                        </div>
+                                        <span style={{ fontSize: '11px', fontWeight: 900 }}>MODO 5 VARS</span>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label className="field-label">Quantidade de Cópias</label>
@@ -310,6 +412,7 @@ const TemplateBatchGenerator = () => {
                             </div>
                         </div>
 
+                        {/* --- HEADER --- */}
                         <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '20px' }}>
                             <label className="field-label">Cabeçalho (Header)</label>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
@@ -365,6 +468,7 @@ const TemplateBatchGenerator = () => {
                             )}
                         </div>
 
+                        {/* --- BODY & EDITABLE VARIABLES --- */}
                         <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '20px' }}>
                             <label className="field-label">Corpo do Texto (Body)</label>
                             <textarea 
@@ -374,50 +478,41 @@ const TemplateBatchGenerator = () => {
                                 onChange={e => setBodyText(e.target.value)}
                                 rows={4}
                                 required
-                                style={{ fontFamily: 'inherit', resize: 'vertical' }}
+                                style={{ fontFamily: 'inherit', resize: 'vertical', marginBottom: '16px' }}
                             />
 
-                            {detectBodyVariables() > 0 && (
-                                <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--surface-border-subtle)' }}>
-                                    <label className="field-label" style={{ marginBottom: '8px' }}>Exemplos de Variáveis (Necessário {detectBodyVariables()})</label>
+                            {varsCount > 0 && (
+                                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
+                                    <label style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', display: 'block', marginBottom: '16px', letterSpacing: '0.5px' }}>
+                                        EXEMPLOS DE VARIÁVEIS (EDITÁVEIS)
+                                    </label>
                                     
-                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                                        <input 
-                                            className="field-input" 
-                                            placeholder={`Exemplo para {{${bodyExamples.length + 1}}}`} 
-                                            value={bodyExampleInput}
-                                            onChange={e => setBodyExampleInput(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddBodyExample(); } }}
-                                        />
-                                        <button 
-                                            type="button" 
-                                            onClick={handleAddBodyExample}
-                                            className="action-btn primary-btn"
-                                            style={{ height: '42px', padding: '0 16px' }}
-                                        >
-                                            Adicionar
-                                        </button>
-                                    </div>
-
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                        {bodyExamples.map((ex, idx) => (
-                                            <span 
-                                                key={idx}
-                                                style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                                            >
-                                                {`{{${idx + 1}}}`}: {ex}
-                                                <Trash2 
-                                                    size={12} 
-                                                    onClick={() => handleRemoveBodyExample(idx)}
-                                                    style={{ cursor: 'pointer', opacity: 0.6 }} 
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {Array.from({ length: varsCount }).map((_, i) => (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', minWidth: '40px' }}>
+                                                    {`{{${i + 1}}}`}
+                                                </span>
+                                                <input 
+                                                    className="field-input"
+                                                    style={{ height: '38px', fontSize: '13px' }}
+                                                    placeholder={`Exemplo da variável {{${i + 1}}}`}
+                                                    value={bodyExamples[i] || ''}
+                                                    onChange={e => {
+                                                        const newEx = [...bodyExamples];
+                                                        newEx[i] = e.target.value;
+                                                        setBodyExamples(newEx);
+                                                    }}
+                                                    required
                                                 />
-                                            </span>
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
                         </div>
 
+                        {/* --- FOOTER & BUTTONS --- */}
                         <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '20px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                 <div>
