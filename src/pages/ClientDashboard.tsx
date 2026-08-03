@@ -19,7 +19,8 @@ import {
     Building2,
     ShieldCheck,
     Lock,
-    Bell
+    Bell,
+    Coins
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -294,6 +295,20 @@ const ClientDashboard = () => {
         }
     };
 
+    const totalDelivered = submissions.reduce((sum: number, sub: any) => {
+        const adsArr = Array.isArray(sub.ads) ? sub.ads : [];
+        const subDelivered = adsArr.reduce((s: number, ad: any) => s + (ad.delivered_leads || 0), 0) || 0;
+        return sum + subDelivered;
+    }, 0);
+
+    const totalHired = submissions.reduce((sum: number, sub: any) => {
+        const adsArr = Array.isArray(sub.ads) ? sub.ads : [];
+        const subHired = adsArr.reduce((s: number, ad: any) => s + (ad.total_leads || 0), 0) || 0;
+        return sum + subHired;
+    }, 0);
+
+    const totalUndelivered = Math.max(0, totalHired - totalDelivered);
+
     const stats = {
         total: submissions.length,
         pending: submissions.filter(s => s.status === 'PENDENTE' || s.status === 'AGUARDANDO_APROVACAO_PAI').length,
@@ -440,32 +455,41 @@ const ClientDashboard = () => {
                     </div>
                 </div>
 
-                <div className="stats-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
+                <div className="stats-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '24px' }}>
                     <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.1s' }}>
+                        <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(172,248,0,0.1)', border: '1px solid rgba(172,248,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#acf800', flexShrink: 0 }}>
+                            <Coins size={24} />
+                        </div>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px', color: 'var(--text-primary)' }}>{(user?.disparo_quantidade || 0).toLocaleString()}</p>
+                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Saldo Atual (Disparos)</p>
+                        </div>
+                    </div>
+                    <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.2s' }}>
+                        <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e', flexShrink: 0 }}>
+                            <CheckCircle2 size={24} />
+                        </div>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px', color: 'var(--text-primary)' }}>{totalDelivered.toLocaleString()}</p>
+                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Entregues / Consumidos</p>
+                        </div>
+                    </div>
+                    <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.3s' }}>
+                        <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexShrink: 0 }}>
+                            <XCircle size={24} />
+                        </div>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px', color: 'var(--text-primary)' }}>{totalUndelivered.toLocaleString()}</p>
+                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Não Entregues / Restantes</p>
+                        </div>
+                    </div>
+                    <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.4s' }}>
                         <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', flexShrink: 0 }}>
                             <Layers size={24} />
                         </div>
                         <div>
                             <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px', color: 'var(--text-primary)' }}>{stats.total}</p>
-                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Total Enviado</p>
-                        </div>
-                    </div>
-                    <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.2s' }}>
-                        <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', flexShrink: 0 }}>
-                            <Clock size={24} />
-                        </div>
-                        <div>
-                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px', color: 'var(--text-primary)' }}>{stats.pending}</p>
-                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Em Análise</p>
-                        </div>
-                    </div>
-                    <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.3s' }}>
-                        <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e', flexShrink: 0 }}>
-                            <CheckCircle2 size={24} />
-                        </div>
-                        <div>
-                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px', color: 'var(--text-primary)' }}>{stats.completed}</p>
-                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Finalizadas</p>
+                            <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Total de Cards ({stats.pending} em análise)</p>
                         </div>
                     </div>
                 </div>
