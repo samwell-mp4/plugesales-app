@@ -2019,11 +2019,11 @@ app.post('/api/users/:id/approve', async (req, res) => {
 
 app.put('/api/users/:id/commercial', async (req, res) => {
     const { id } = req.params;
-    const { pacote, preco_vendido, comissao_vendedor, seller_name } = req.body || {};
+    const { pacote, preco_vendido, comissao_vendedor, seller_name, disparo_quantidade } = req.body || {};
     try {
         await pool.query(
-            "UPDATE users SET pacote = $1, preco_vendido = $2, comissao_vendedor = $3, seller_name = $4 WHERE id = $5", 
-            [pacote || '', preco_vendido || '', comissao_vendedor || '', seller_name || '', id]
+            "UPDATE users SET pacote = $1, preco_vendido = $2, comissao_vendedor = $3, seller_name = $4, disparo_quantidade = $5 WHERE id = $6", 
+            [pacote || '', preco_vendido || '', comissao_vendedor || '', seller_name || '', disparo_quantidade || 0, id]
         );
         res.json({ success: true });
     } catch (err) {
@@ -2157,14 +2157,37 @@ app.post('/api/admin/employees', async (req, res) => {
     }
 });
 
+// Admin: Criar novo Cliente
+app.post('/api/admin/clients', async (req, res) => {
+    const { name, email, password, phone, whatsapp, document_type, document_number, seller_name, pacote, preco_vendido, comissao_vendedor, disparo_quantidade } = req.body;
+    if (!name || !email) {
+        return res.status(400).json({ error: 'Nome e email são obrigatórios.' });
+    }
+    const pwd = password || '123456';
+    try {
+        const result = await pool.query(
+            `INSERT INTO users (name, email, password, phone, whatsapp, role, document_type, document_number, seller_name, pacote, preco_vendido, comissao_vendedor, disparo_quantidade) 
+             VALUES ($1, $2, $3, $4, $5, 'CLIENT', $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+            [name, email, pwd, phone || null, whatsapp || null, document_type || null, document_number || null, seller_name || null, pacote || 'Avulso', preco_vendido || '0', comissao_vendedor || '0', disparo_quantidade || 0]
+        );
+        res.json({ success: true, user: result.rows[0] });
+    } catch (err) {
+        if (err.code === '23505') return res.status(400).json({ error: 'Este email já está cadastrado.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Admin/Employee: Get users
 app.get('/api/admin/users', async (req, res) => {
     try {
-        const { seller_name } = req.query;
-        let query = "SELECT id, name, email, role, document_type, document_number, phone, whatsapp, pacote, preco_vendido, comissao_vendedor, seller_name FROM users WHERE role != 'INFLUENCER'";
+        const { seller_name, role } = req.query;
+        let query = "SELECT id, name, email, role, document_type, document_number, phone, whatsapp, pacote, preco_vendido, comissao_vendedor, seller_name, disparo_quantidade FROM users WHERE role != 'INFLUENCER'";
         const params = [];
-        if (seller_name) {
+        if (seller_name && role !== 'ADMIN') {
             query += " AND seller_name = $1 AND role = 'CLIENT'";
+            params.push(seller_name);
+        } else if (seller_name) {
+            query += " AND seller_name = $1";
             params.push(seller_name);
         }
         query += " ORDER BY name ASC";
@@ -2369,11 +2392,22 @@ app.post('/api/reports', async (req, res) => {
 
                 const checkFinance = await pool.query("SELECT * FROM finance_sales WHERE submission_id = $1", [submissionId]);
                 if (checkFinance.rows.length === 0) {
+                    let commValue = 0;
+                    let commPerUnit = parseFloat(String(user.comissao_vendedor || '0').replace(',', '.')) || 0;
+                    if (commPerUnit > 0) {
+                        commValue = delivered * commPerUnit;
+                    } else if (salespersonId) {
+                        const spRes = await pool.query("SELECT commission_percentage FROM salesperson_configs WHERE user_id = $1", [salespersonId]);
+                        const commPerc = spRes.rows[0]?.commission_percentage || 0;
+                        commValue = (totalValue * commPerc) / 100;
+                    }
+
                     await pool.query(`
                         INSERT INTO finance_sales (
                             client_name, client_cpf_cnpj, package_hired, quantity_hired, unit_value, total_value, 
-                            salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor, salesperson_id
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10, $11)
+                            salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor, salesperson_id,
+                            quantity_delivered, used_value, remaining_balance, commission_value
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10, $11, $12, $13, $14, $15)
                     `, [
                         user.name, 
                         user.phone || '', 
@@ -2385,18 +2419,46 @@ app.post('/api/reports', async (req, res) => {
                         submissionId,
                         new Date().toISOString().substring(0, 7),
                         user.comissao_vendedor || '',
-                        salespersonId
+                        salespersonId,
+                        delivered,
+                        totalValue,
+                        0,
+                        commValue
                     ]);
                 } else {
+                    const sale = checkFinance.rows[0];
+                    const unitVal = parseFloat(sale.unit_value) || precoVendido;
+                    const qtyHired = parseInt(sale.quantity_hired) || delivered;
+                    
+                    const finalQtyHired = qtyHired > 0 ? qtyHired : delivered;
+                    const finalTotalValue = finalQtyHired * unitVal;
+                    const finalUsedValue = delivered * unitVal;
+                    const finalRemainingBalance = finalTotalValue - finalUsedValue;
+
+                    let commValue = 0;
+                    let commPerUnit = parseFloat(String(user.comissao_vendedor || '0').replace(',', '.')) || 0;
+                    if (commPerUnit > 0) {
+                        commValue = delivered * commPerUnit;
+                    } else if (salespersonId || sale.salesperson_id) {
+                        const spRes = await pool.query("SELECT commission_percentage FROM salesperson_configs WHERE user_id = $1", [salespersonId || sale.salesperson_id]);
+                        const commPerc = spRes.rows[0]?.commission_percentage || 0;
+                        commValue = (finalUsedValue * commPerc) / 100;
+                    }
+
                     await pool.query(`
                         UPDATE finance_sales SET 
                             quantity_hired = $1, 
                             unit_value = $2, 
                             total_value = $3,
                             comissao_vendedor = $4,
-                            salesperson_name = $5
-                        WHERE submission_id = $6
-                    `, [delivered, precoVendido, totalValue, user.comissao_vendedor || '', user.seller_name || sub.assigned_to || '', submissionId]);
+                            salesperson_name = $5,
+                            salesperson_id = $6,
+                            quantity_delivered = $7,
+                            used_value = $8,
+                            remaining_balance = $9,
+                            commission_value = $10
+                        WHERE submission_id = $11
+                    `, [finalQtyHired, unitVal, finalTotalValue, user.comissao_vendedor || '', salespersonName, salespersonId || sale.salesperson_id, delivered, finalUsedValue, finalRemainingBalance, commValue, submissionId]);
                 }
             }
         }
@@ -2938,6 +3000,68 @@ app.delete('/api/client-for-client/:id', async (req, res) => {
     }
 });
 
+async function createFinanceSaleForSubmission(submissionId, dbClient = pool) {
+    try {
+        const subRes = await dbClient.query("SELECT * FROM client_submissions WHERE id = $1", [submissionId]);
+        if (subRes.rows.length === 0) return;
+        const sub = subRes.rows[0];
+        
+        const checkFinance = await dbClient.query("SELECT * FROM finance_sales WHERE submission_id = $1", [submissionId]);
+        if (checkFinance.rows.length > 0) return;
+
+        let clientName = sub.profile_name || 'Desconhecido';
+        let clientPhone = sub.ddd || '';
+        let pacote = 'Avulso';
+        let precoVendido = 0;
+        let comissaoVendedor = '';
+        let salespersonName = sub.assigned_to || '';
+
+        if (sub.user_id) {
+            const userRes = await dbClient.query("SELECT * FROM users WHERE id = $1", [sub.user_id]);
+            if (userRes.rows.length > 0) {
+                const user = userRes.rows[0];
+                clientName = user.name || clientName;
+                clientPhone = user.phone || clientPhone;
+                pacote = user.pacote || 'Avulso';
+                let precoStr = String(user.preco_vendido || '0').replace(',', '.').trim();
+                precoVendido = parseFloat(precoStr) || 0;
+                comissaoVendedor = user.comissao_vendedor || '';
+                salespersonName = user.seller_name || salespersonName;
+            }
+        }
+
+        let salespersonId = null;
+        if (salespersonName) {
+            const spRes = await dbClient.query("SELECT id FROM users WHERE name = $1 LIMIT 1", [salespersonName]);
+            if (spRes.rows.length > 0) {
+                salespersonId = spRes.rows[0].id;
+            }
+        }
+
+        await dbClient.query(`
+            INSERT INTO finance_sales (
+                client_name, client_cpf_cnpj, package_hired, quantity_hired, unit_value, total_value, 
+                salesperson_name, payment_status, submission_id, payment_competence, comissao_vendedor, salesperson_id,
+                quantity_delivered, used_value, remaining_balance, commission_value
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDENTE', $8, $9, $10, $11, 0, 0, 0, 0)
+        `, [
+            clientName, 
+            clientPhone, 
+            pacote, 
+            0, 
+            precoVendido, 
+            0, 
+            salespersonName,
+            submissionId,
+            new Date().toISOString().substring(0, 7),
+            comissaoVendedor,
+            salespersonId
+        ]);
+    } catch (err) {
+        console.error('Error creating finance sale for submission:', err);
+    }
+}
+
 app.post('/api/client-submissions', async (req, res) => {
     const { profile_photo, profile_name, ddd, template_type, media_url, ad_copy, button_link, original_button_link, ads, spreadsheet_url, status, user_id, submitted_by, submitted_role, assigned_to, accepted_by, notes, dispatch_date } = req.body;
     try {
@@ -2975,7 +3099,9 @@ app.post('/api/client-submissions', async (req, res) => {
                 req.body.origin || 'CLIENT_FORM', notes || '', dispatch_date || null
             ]
         );
-        res.json(result.rows[0]);
+        const newSubmission = result.rows[0];
+        await createFinanceSaleForSubmission(newSubmission.id);
+        res.json(newSubmission);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -3052,7 +3178,9 @@ app.post('/api/client-submissions/bulk', async (req, res) => {
                     s.origin || 'CLIENT_FORM'
                 ]
             );
-            results.push(result.rows[0]);
+            const newSub = result.rows[0];
+            results.push(newSub);
+            await createFinanceSaleForSubmission(newSub.id, client);
         }
         await client.query('COMMIT');
         res.json(results);

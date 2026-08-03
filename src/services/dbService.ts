@@ -1475,6 +1475,19 @@ export const dbService = {
             return { error: err };
         }
     },
+    createClient: async (clientData: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/clients`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(clientData)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error creating client:", err);
+            return { error: err.message };
+        }
+    },
     getFinanceStats: async (userId?: number, role?: string) => {
         try {
             let url = `${API_BASE}/finance/stats?`;

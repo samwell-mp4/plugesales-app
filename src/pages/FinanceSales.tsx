@@ -47,6 +47,21 @@ const FinanceSales = () => {
     const { user } = useAuth();
     const [sales, setSales] = useState<any[]>([]);
     const [salespeople, setSalespeople] = useState<any[]>([]);
+    const [dbClients, setDbClients] = useState<any[]>([]);
+    const [isRegisteringClient, setIsRegisteringClient] = useState(false);
+    const [newClientData, setNewClientData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        whatsapp: '',
+        document_type: 'CPF',
+        document_number: '',
+        password: '123456',
+        pacote: 'Avulso',
+        preco_vendido: '0.20',
+        comissao_vendedor: '0.05',
+        disparo_quantidade: 0
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -107,12 +122,14 @@ const FinanceSales = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [salesData, peopleData] = await Promise.all([
+            const [salesData, peopleData, clientsRes] = await Promise.all([
                 dbService.getFinanceSales({ userId: user?.id, role: user?.role }),
-                dbService.getFinanceSalespeople()
+                dbService.getFinanceSalespeople(),
+                fetch('/api/clients').then(res => res.json()).catch(() => [])
             ]);
             setSales(salesData);
             setSalespeople(peopleData);
+            setDbClients(clientsRes);
         } catch (err) {
             console.error(err);
         } finally {
@@ -136,18 +153,42 @@ const FinanceSales = () => {
         setFormData(prev => {
             const newData = { ...prev, [name]: value };
             
-            const qty = name === 'quantity_hired' ? parseInt(value) || 0 : prev.quantity_hired;
-            const unit = name === 'unit_value' ? parseFloat(value) || 0 : prev.unit_value;
-            const delivered = name === 'quantity_delivered' ? parseInt(value) || 0 : prev.quantity_delivered;
-            
-            if (name === 'quantity_hired' || name === 'unit_value' || name === 'quantity_delivered' || name === 'salesperson_id') {
-                newData.total_value = qty * unit;
-                newData.used_value = delivered * unit;
+            if (name === 'client_name') {
+                const clientObj = dbClients.find(c => c.name === value);
+                if (clientObj) {
+                    newData.client_cpf_cnpj = clientObj.document_number || '';
+                    newData.client_contact = clientObj.whatsapp || clientObj.phone || '';
+                    newData.package_hired = clientObj.pacote || prev.package_hired;
+                    let unitVal = parseFloat(String(clientObj.preco_vendido || '0').replace(',', '.')) || 0;
+                    if (unitVal > 0) {
+                        newData.unit_value = unitVal;
+                    }
+                    if (clientObj.seller_name) {
+                        const sp = salespeople.find(s => s.name === clientObj.seller_name);
+                        if (sp) newData.salesperson_id = String(sp.id);
+                    }
+                }
+            }
+
+            if (name === 'quantity_hired' || name === 'unit_value' || name === 'quantity_delivered' || name === 'salesperson_id' || name === 'client_name') {
+                const finalQty = name === 'quantity_hired' ? parseInt(value) || 0 : newData.quantity_hired;
+                const finalUnit = name === 'unit_value' ? parseFloat(value) || 0 : newData.unit_value;
+                const finalDelivered = name === 'quantity_delivered' ? parseInt(value) || 0 : newData.quantity_delivered;
+
+                newData.total_value = finalQty * finalUnit;
+                newData.used_value = finalDelivered * finalUnit;
                 newData.remaining_balance = newData.total_value - newData.used_value;
                 
-                const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
-                if (sp) {
-                    newData.commission_value = (newData.used_value * (sp.commission_percentage || 0)) / 100;
+                const clientObj = dbClients.find(c => c.name === newData.client_name);
+                const commPerUnit = clientObj ? parseFloat(String(clientObj.comissao_vendedor || '0').replace(',', '.')) || 0 : 0;
+                
+                if (commPerUnit > 0) {
+                    newData.commission_value = finalQty * commPerUnit;
+                } else {
+                    const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
+                    if (sp) {
+                        newData.commission_value = (newData.total_value * (sp.commission_percentage || 0)) / 100;
+                    }
                 }
             }
             return newData;
@@ -297,7 +338,9 @@ const FinanceSales = () => {
         const matchesSearch =
             (s.client_name || '').toLowerCase().includes(term) ||
             (s.campaign_name || '').toLowerCase().includes(term) ||
-            (s.salesperson_name || '').toLowerCase().includes(term);
+            (s.salesperson_name || '').toLowerCase().includes(term) ||
+            (s.client_contact || '').toLowerCase().includes(term) ||
+            (s.client_cpf_cnpj || '').toLowerCase().includes(term);
 
         const matchesStatus = filterStatus === 'TODOS' || s.payment_status === filterStatus;
         const matchesSalesperson = filterSalesperson === 'TODOS' || String(s.salesperson_id) === filterSalesperson;
@@ -763,6 +806,9 @@ const FinanceSales = () => {
                                         ) : (
                                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>VENDA MANUAL</span>
                                         )}
+                                        <span style={{ fontSize: '0.72rem', color: 'var(--primary-color)', fontWeight: 800, marginTop: '2px' }}>
+                                            Vendedor: {sale.salesperson_name || 'Não vinculado'}
+                                        </span>
                                     </div>
                                 </td>
                                 <td>
@@ -891,8 +937,98 @@ const FinanceSales = () => {
                                         <User size={14} /> IDENTIFICAÇÃO DO CLIENTE
                                     </h3>
                                     <div>
-                                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Nome Completo / Razão Social</label>
-                                        <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="client_name" value={formData.client_name} onChange={handleInputChange} required placeholder="Ex: João da Silva ou Empresa LTDA" />
+                                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Selecionar Cliente</label>
+                                        {!isRegisteringClient ? (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <select 
+                                                    className="input-field" 
+                                                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} 
+                                                    name="client_name" 
+                                                    value={formData.client_name} 
+                                                    onChange={handleInputChange} 
+                                                    required
+                                                >
+                                                    <option value="" style={{ background: '#0a0f18' }}>Selecione um cliente...</option>
+                                                    {dbClients.map(c => (
+                                                        <option key={c.id} value={c.name} style={{ background: '#0a0f18' }}>{c.name} ({c.email})</option>
+                                                    ))}
+                                                </select>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setIsRegisteringClient(true)}
+                                                    style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '12px', padding: '12px 16px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                                                >
+                                                    + NOVO
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)' }}>CADASTRAR NOVO CLIENTE</span>
+                                                    <button type="button" onClick={() => setIsRegisteringClient(false)} style={{ background: 'transparent', border: 'none', color: '#ef4444', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem' }}>CANCELAR</button>
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Nome Completo</label>
+                                                    <input className="input-field" style={{ padding: '8px', fontSize: '0.85rem', background: '#0f172a' }} value={newClientData.name} onChange={e => setNewClientData({...newClientData, name: e.target.value})} placeholder="Razão Social ou Nome Completo" />
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Email</label>
+                                                    <input className="input-field" style={{ padding: '8px', fontSize: '0.85rem', background: '#0f172a' }} value={newClientData.email} onChange={e => setNewClientData({...newClientData, email: e.target.value})} placeholder="email@dominio.com" />
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                    <div>
+                                                        <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>CPF / CNPJ</label>
+                                                        <input className="input-field" style={{ padding: '8px', fontSize: '0.85rem', background: '#0f172a' }} value={newClientData.document_number} onChange={e => setNewClientData({...newClientData, document_number: maskCpfCnpj(e.target.value)})} placeholder="Documento" />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>WhatsApp</label>
+                                                        <input className="input-field" style={{ padding: '8px', fontSize: '0.85rem', background: '#0f172a' }} value={newClientData.whatsapp} onChange={e => setNewClientData({...newClientData, whatsapp: maskPhone(e.target.value)})} placeholder="WhatsApp" />
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                    <div>
+                                                        <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Preço Unitário (R$)</label>
+                                                        <input className="input-field" style={{ padding: '8px', fontSize: '0.85rem', background: '#0f172a' }} value={newClientData.preco_vendido} onChange={e => setNewClientData({...newClientData, preco_vendido: e.target.value})} placeholder="Ex: 0.20" />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Comissão (R$)</label>
+                                                        <input className="input-field" style={{ padding: '8px', fontSize: '0.85rem', background: '#0f172a' }} value={newClientData.comissao_vendedor} onChange={e => setNewClientData({...newClientData, comissao_vendedor: e.target.value})} placeholder="Ex: 0.05" />
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={async () => {
+                                                        if (!newClientData.name || !newClientData.email) {
+                                                            alert("Nome e Email são obrigatórios.");
+                                                            return;
+                                                        }
+                                                        const res = await dbService.createClient({
+                                                            ...newClientData,
+                                                            seller_name: salespeople.find(s => String(s.id) === String(formData.salesperson_id))?.name || user?.name
+                                                        });
+                                                        if (res.error) {
+                                                            alert("Erro ao cadastrar cliente: " + res.error);
+                                                        } else {
+                                                            alert("Cliente cadastrado com sucesso!");
+                                                            const newClient = res.user;
+                                                            setDbClients(prev => [...prev, newClient]);
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                client_name: newClient.name,
+                                                                client_cpf_cnpj: newClient.document_number || '',
+                                                                client_contact: newClient.whatsapp || newClient.phone || '',
+                                                                package_hired: newClient.pacote || prev.package_hired,
+                                                                unit_value: parseFloat(String(newClient.preco_vendido || '0').replace(',', '.')) || 0
+                                                            }));
+                                                            setIsRegisteringClient(false);
+                                                        }
+                                                    }}
+                                                    style={{ background: 'var(--primary-color)', color: 'black', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 900, cursor: 'pointer', fontSize: '0.85rem' }}
+                                                >
+                                                    SALVAR E SELECIONAR CLIENTE
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
