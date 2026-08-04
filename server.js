@@ -1738,7 +1738,7 @@ app.get('/api/finance/sales', async (req, res) => {
             query += ` AND s.salesperson_id = $${params.length}`;
         } else if (role === 'CLIENT') {
             params.push(userId);
-            query += ` AND cs.user_id = $${params.length}`;
+            query += ` AND (cs.user_id = $${params.length} OR s.client_name = (SELECT name FROM users WHERE id = $${params.length}))`;
         } else if (salespersonId) {
             params.push(salespersonId);
             query += ` AND s.salesperson_id = $${params.length}`;

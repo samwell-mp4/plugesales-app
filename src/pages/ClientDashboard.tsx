@@ -31,6 +31,8 @@ const ClientDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'submissions' | 'links' | 'activity' | 'referrals'>('submissions');
     const [submissions, setSubmissions] = useState<any[]>([]);
+    const [sales, setSales] = useState<any[]>([]);
+    const [clientProfile, setClientProfile] = useState<any>(user);
     const [subClients, setSubClients] = useState<any[]>([]);
     const [links, setLinks] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -55,9 +57,33 @@ const ClientDashboard = () => {
     const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
     const [selectedSubForChange, setSelectedSubForChange] = useState<any>(null);
 
+    const fetchLatestProfile = async () => {
+        if (!user?.id) return;
+        try {
+            const latestUser = await dbService.getCurrentUser(user.id);
+            if (latestUser) {
+                setClientProfile(latestUser);
+            }
+        } catch (err) {
+            console.error("Error fetching latest user profile:", err);
+        }
+    };
+
+    const fetchSales = async () => {
+        if (!user?.id) return;
+        try {
+            const data = await dbService.getFinanceSales({ userId: user.id, role: user.role });
+            setSales(data || []);
+        } catch (error) {
+            console.error("Error fetching client sales:", error);
+        }
+    };
+
     useEffect(() => {
         if (user?.id) {
+            fetchLatestProfile();
             fetchSubmissions();
+            fetchSales();
             fetchLinks();
             if (activeTab === 'links') fetchAggregatedStats();
             if (activeTab === 'activity') fetchLogs();
@@ -295,16 +321,12 @@ const ClientDashboard = () => {
         }
     };
 
-    const totalDelivered = submissions.reduce((sum: number, sub: any) => {
-        const adsArr = Array.isArray(sub.ads) ? sub.ads : [];
-        const subDelivered = adsArr.reduce((s: number, ad: any) => s + (ad.delivered_leads || 0), 0) || 0;
-        return sum + subDelivered;
+    const totalDelivered = sales.reduce((sum: number, sale: any) => {
+        return sum + (parseInt(sale.quantity_delivered) || 0);
     }, 0);
 
-    const totalHired = submissions.reduce((sum: number, sub: any) => {
-        const adsArr = Array.isArray(sub.ads) ? sub.ads : [];
-        const subHired = adsArr.reduce((s: number, ad: any) => s + (ad.total_leads || 0), 0) || 0;
-        return sum + subHired;
+    const totalHired = sales.reduce((sum: number, sale: any) => {
+        return sum + (parseInt(sale.quantity_hired) || 0);
     }, 0);
 
     const totalUndelivered = Math.max(0, totalHired - totalDelivered);
@@ -461,7 +483,7 @@ const ClientDashboard = () => {
                             <Coins size={24} />
                         </div>
                         <div>
-                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px', color: 'var(--text-primary)' }}>{(user?.disparo_quantidade || 0).toLocaleString()}</p>
+                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 900, letterSpacing: '-1px', color: 'var(--text-primary)' }}>{(clientProfile?.disparo_quantidade || 0).toLocaleString()}</p>
                             <p style={{ margin: 0, fontSize: '9px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Saldo Atual (Disparos)</p>
                         </div>
                     </div>
