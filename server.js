@@ -2044,7 +2044,7 @@ app.post('/api/users/:id/reject', async (req, res) => {
 app.get('/api/auth/me/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query('SELECT id, name, email, phone, role, notification_number, infobip_key, infobip_sender, infobip_url, parent_id FROM users WHERE id = $1', [id]);
+        const result = await pool.query('SELECT id, name, email, phone, role, notification_number, infobip_key, infobip_sender, infobip_url, parent_id, disparo_quantidade FROM users WHERE id = $1', [id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         
         const userObj = result.rows[0];

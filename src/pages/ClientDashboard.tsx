@@ -33,6 +33,7 @@ const ClientDashboard = () => {
     const [submissions, setSubmissions] = useState<any[]>([]);
     const [sales, setSales] = useState<any[]>([]);
     const [clientProfile, setClientProfile] = useState<any>(user);
+    const [reports, setReports] = useState<any[]>([]);
     const [subClients, setSubClients] = useState<any[]>([]);
     const [links, setLinks] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -79,11 +80,22 @@ const ClientDashboard = () => {
         }
     };
 
+    const fetchReports = async () => {
+        if (!user?.id) return;
+        try {
+            const data = await dbService.getReports(user.id);
+            setReports(data || []);
+        } catch (err) {
+            console.error("Error fetching client reports:", err);
+        }
+    };
+
     useEffect(() => {
         if (user?.id) {
             fetchLatestProfile();
             fetchSubmissions();
             fetchSales();
+            fetchReports();
             fetchLinks();
             if (activeTab === 'links') fetchAggregatedStats();
             if (activeTab === 'activity') fetchLogs();
@@ -321,15 +333,13 @@ const ClientDashboard = () => {
         }
     };
 
-    const totalDelivered = sales.reduce((sum: number, sale: any) => {
-        return sum + (parseInt(sale.quantity_delivered) || 0);
+    const totalDelivered = reports.reduce((sum: number, curr: any) => {
+        return sum + (curr.summary?.delivered || 0);
     }, 0);
 
-    const totalHired = sales.reduce((sum: number, sale: any) => {
-        return sum + (parseInt(sale.quantity_hired) || 0);
+    const totalUndelivered = reports.reduce((sum: number, curr: any) => {
+        return sum + (curr.summary?.expired || 0);
     }, 0);
-
-    const totalUndelivered = Math.max(0, totalHired - totalDelivered);
 
     const stats = {
         total: submissions.length,
