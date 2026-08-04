@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, Clock, CheckCircle2, ShieldCheck, Edit, Trash2, Key, Search, DollarSign, Plus, Coins, Zap, User, Link as LinkIcon, RefreshCw, X } from 'lucide-react';
+import { Users, Clock, CheckCircle2, ShieldCheck, Edit, Trash2, Key, Search, DollarSign, Plus, Minus, Coins, Zap, User, Link as LinkIcon, RefreshCw, X, Filter } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 const EmployeeClients = () => {
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED'>('PENDING');
+    const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED'>('APPROVED');
     const [pendingClients, setPendingClients] = useState<any[]>([]);
     const [approvedClients, setApprovedClients] = useState<any[]>([]);
     const [salespeople, setSalespeople] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterSeller, setFilterSeller] = useState('TODOS');
+    const [filterPacote, setFilterPacote] = useState('TODOS');
 
     const [editingClient, setEditingClient] = useState<any>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -22,6 +23,12 @@ const EmployeeClients = () => {
         name: '', email: '', phone: '', document_number: '', whatsapp: '',
         password: '', disparo_quantidade: 0, seller_name: ''
     });
+
+    // Credit quick add/remove modal
+    const [isCreditQuickModalOpen, setIsCreditQuickModalOpen] = useState(false);
+    const [creditOpType, setCreditOpType] = useState<'ADD' | 'SUBTRACT'>('ADD');
+    const [creditOpAmount, setCreditOpAmount] = useState<number>(0);
+    const [selectedClientForCredit, setSelectedClientForCredit] = useState<any>(null);
 
     // Modal to create sale directly
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
@@ -180,6 +187,42 @@ const EmployeeClients = () => {
         }
     };
 
+    const handleQuickCreditOp = async () => {
+        if (!selectedClientForCredit) return;
+        const currentCredits = selectedClientForCredit.disparo_quantidade || 0;
+        const opAmount = creditOpAmount || 0;
+        if (opAmount <= 0) {
+            alert("Por favor, insira uma quantidade maior que zero.");
+            return;
+        }
+
+        const newCredits = creditOpType === 'ADD' ? currentCredits + opAmount : Math.max(0, currentCredits - opAmount);
+
+        try {
+            const res = await fetch(`/api/users/${selectedClientForCredit.id}/commercial`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    pacote: selectedClientForCredit.pacote || 'Avulso', 
+                    preco_vendido: selectedClientForCredit.preco_vendido || '0.20', 
+                    comissao_vendedor: selectedClientForCredit.comissao_vendedor || '0.05',
+                    seller_name: selectedClientForCredit.seller_name || '',
+                    disparo_quantidade: newCredits
+                })
+            });
+            if (res.ok) {
+                alert(`Saldo atualizado com sucesso! Novo saldo: ${newCredits}`);
+                setIsCreditQuickModalOpen(false);
+                setCreditOpAmount(0);
+                loadClients();
+            } else {
+                alert("Erro ao atualizar saldo de créditos.");
+            }
+        } catch (err) {
+            alert("Erro ao salvar dados de créditos.");
+        }
+    };
+
     const handleCreateSale = async () => {
         try {
             const saleData = {
@@ -246,30 +289,26 @@ const EmployeeClients = () => {
                               (c.phone || '').includes(searchTerm) ||
                               (c.whatsapp || '').includes(searchTerm);
         const matchesSeller = filterSeller === 'TODOS' || c.seller_name === filterSeller;
-        return matchesSearch && matchesSeller;
+        const matchesPacote = filterPacote === 'TODOS' || c.pacote === filterPacote;
+        return matchesSearch && matchesSeller && matchesPacote;
     });
 
     const uniqueSellers = Array.from(new Set([...pendingClients, ...approvedClients].map(c => c.seller_name).filter(Boolean))).sort();
+    const uniquePacotes = Array.from(new Set([...pendingClients, ...approvedClients].map(c => c.pacote).filter(Boolean))).sort();
 
     return (
         <div className="crm-container" style={{ minHeight: '100vh', padding: '32px' }}>
             <div className="crm-header-premium mb-8">
                 <div className="crm-title-group">
                     <div className="crm-badge-small">
-                        <Users size={12} /> CONFIGURAÇÃO DE CLIENTES E CRÉDITOS
+                        <Users size={12} /> CENTRAL DE CLIENTES E CONTROLE FINANCEIRO
                     </div>
                     <h1 className="crm-main-title">Gerenciamento de Clientes</h1>
                 </div>
             </div>
 
+            {/* Alternar Abas Pendentes e Ativos */}
             <div className="crm-card" style={{ padding: '8px', marginBottom: '32px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button 
-                    onClick={() => setActiveTab('PENDING')} 
-                    className={`action-btn ${activeTab === 'PENDING' ? 'primary-btn' : 'ghost-btn'}`}
-                    style={{ flex: 1, height: '54px' }}
-                >
-                    <Clock size={20} /> AGUARDANDO APROVAÇÃO ({pendingClients.length})
-                </button>
                 <button 
                     onClick={() => setActiveTab('APPROVED')} 
                     className={`action-btn ${activeTab === 'APPROVED' ? 'primary-btn' : 'ghost-btn'}`}
@@ -277,14 +316,22 @@ const EmployeeClients = () => {
                 >
                     <CheckCircle2 size={20} /> CLIENTES ATIVOS ({approvedClients.length})
                 </button>
+                <button 
+                    onClick={() => setActiveTab('PENDING')} 
+                    className={`action-btn ${activeTab === 'PENDING' ? 'primary-btn' : 'ghost-btn'}`}
+                    style={{ flex: 1, height: '54px' }}
+                >
+                    <Clock size={20} /> AGUARDANDO APROVAÇÃO ({pendingClients.length})
+                </button>
             </div>
 
+            {/* Filtros Avançados */}
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
                     <Search size={22} style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
                     <input 
                         className="field-input" 
-                        placeholder="Buscar por nome, email ou telefone..." 
+                        placeholder="Buscar cliente por nome, email ou contato..." 
                         value={searchTerm} 
                         onChange={e => setSearchTerm(e.target.value)}
                         style={{ height: '58px', paddingLeft: '70px', fontSize: '1rem' }}
@@ -304,103 +351,206 @@ const EmployeeClients = () => {
                         ))}
                     </select>
                 </div>
+
+                <div style={{ minWidth: '200px' }}>
+                    <select 
+                        className="field-input"
+                        value={filterPacote}
+                        onChange={e => setFilterPacote(e.target.value)}
+                        style={{ height: '58px', padding: '0 20px', background: 'var(--card-bg)' }}
+                    >
+                        <option value="TODOS">Todos Planos</option>
+                        {uniquePacotes.map(pacote => (
+                            <option key={pacote} value={pacote}>{pacote}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {isLoading ? (
                 <div style={{ color: 'var(--text-muted)' }}>Carregando clientes...</div>
             ) : filteredList.length === 0 ? (
                 <div className="crm-card" style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
-                    Nenhum cliente encontrado.
+                    Nenhum cliente cadastrado nesta seção.
                 </div>
             ) : (
-                <div className="card-grid-responsive" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
-                    {filteredList.map(client => (
-                        <div key={client.id} className="crm-card" style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--surface-border-subtle)', padding: '24px', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '340px' }}>
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                    <div style={{ fontSize: '1.25rem', fontWeight: 950, color: 'white' }}>{client.name}</div>
-                                </div>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                                    {client.email} <br />
-                                    {client.whatsapp || client.phone || 'Sem telefone'}
-                                </div>
-                                
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-                                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>Créditos Disponíveis</span>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#acf800', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                                            <Coins size={16} /> {client.disparo_quantidade || 0}
+                <div className="crm-card" style={{ padding: '0', overflowX: 'auto', border: '1px solid var(--surface-border-subtle)', background: 'rgba(10,15,24,0.3)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
+                        <thead>
+                            <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Cliente / Contato</th>
+                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Plano</th>
+                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Vendedor Responsável</th>
+                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center' }}>Saldo (Créditos)</th>
+                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Valores Unitários</th>
+                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'right' }}>Ações / Operações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredList.map(client => (
+                                <tr key={client.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.01)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                                    <td style={{ padding: '20px 24px' }}>
+                                        <div style={{ fontWeight: 950, color: 'white', fontSize: '1rem' }}>{client.name}</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                            {client.email} • {client.whatsapp || client.phone || 'Sem contato'}
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '20px 24px' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', color: 'white', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                            {client.pacote || 'Avulso'}
                                         </span>
-                                    </div>
-                                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>Preço Unitário</span>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'white', display: 'block', marginTop: '4px' }}>
-                                            R$ {client.preco_vendido || '0.00'}
-                                        </span>
-                                    </div>
-                                </div>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>
+                                        {client.seller_name || <span style={{ opacity: 0.3 }}>Nenhum</span>}
+                                    </td>
+                                    <td style={{ padding: '20px 24px', textAlign: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                            <span style={{ fontSize: '1.05rem', fontWeight: 950, color: '#acf800' }}>
+                                                {(client.disparo_quantidade || 0).toLocaleString()}
+                                            </span>
+                                            {activeTab === 'APPROVED' && (
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedClientForCredit(client);
+                                                        setCreditOpAmount(0);
+                                                        setIsCreditQuickModalOpen(true);
+                                                    }}
+                                                    style={{ padding: '4px 8px', background: 'rgba(172,248,0,0.1)', border: '1px solid rgba(172,248,0,0.2)', color: '#acf800', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 900, cursor: 'pointer' }}
+                                                    title="Adicionar ou descontar créditos"
+                                                >
+                                                    + CRÉDITOS
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                                        <div>Preço Unit: <strong style={{ color: 'white' }}>R$ {client.preco_vendido || '0.20'}</strong></div>
+                                        <div style={{ marginTop: '2px' }}>Comissão: <strong style={{ color: 'white' }}>R$ {client.comissao_vendedor || '0.05'}</strong></div>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                            {activeTab === 'PENDING' ? (
+                                                <>
+                                                    <button onClick={() => handleApprove(client)} className="action-btn primary-btn" style={{ padding: '0 16px', fontSize: '0.8rem', height: '36px' }}>
+                                                        APROVAR ACESSO
+                                                    </button>
+                                                    <button onClick={() => handleReject(client.id)} className="action-btn ghost-btn" style={{ width: '36px', height: '36px', padding: 0, color: '#ef4444', borderColor: '#ef4444' }} title="Rejeitar">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedClientForSale(client);
+                                                            setSaleForm(prev => ({ ...prev, unit_value: parseFloat(client.preco_vendido) || 0.20 }));
+                                                            setIsSaleModalOpen(true);
+                                                        }} 
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ padding: '0 14px', fontSize: '0.8rem', height: '36px', borderColor: '#acf800', color: '#acf800' }}
+                                                    >
+                                                        <DollarSign size={14} /> NOVA VENDA
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedClientForCard(client);
+                                                            setCardForm({ profile_name: client.name, ddd: '', template_type: 'none', media_url: '', ad_copy: '', button_link: '', notes: '' });
+                                                            setIsCardModalOpen(true);
+                                                        }} 
+                                                        className="action-btn ghost-btn" 
+                                                        style={{ padding: '0 14px', fontSize: '0.8rem', height: '36px', borderColor: '#38bdf8', color: '#38bdf8' }}
+                                                    >
+                                                        <LinkIcon size={14} /> VINCULAR CARD
+                                                    </button>
+                                                    
+                                                    {/* Config Options dropdown replacements (Quick Edit buttons) */}
+                                                    <button className="action-btn ghost-btn" onClick={() => openEditModal(client, 'COMMERCIAL')} style={{ width: '36px', height: '36px', padding: 0 }} title="Comercial e Parâmetros">
+                                                        <Edit size={15} color="#acf800" />
+                                                    </button>
+                                                    <button className="action-btn ghost-btn" onClick={() => openEditModal(client, 'BASIC')} style={{ width: '36px', height: '36px', padding: 0 }} title="Editar Dados">
+                                                        <User size={15} color="#3b82f6" />
+                                                    </button>
+                                                    <button className="action-btn ghost-btn" onClick={() => openEditModal(client, 'PASSWORD')} style={{ width: '36px', height: '36px', padding: 0 }} title="Mudar Senha">
+                                                        <Key size={15} color="#f59e0b" />
+                                                    </button>
+                                                    <button onClick={() => handleReject(client.id)} className="action-btn ghost-btn" style={{ width: '36px', height: '36px', padding: 0, color: '#ef4444', borderColor: '#ef4444' }} title="Excluir cliente">
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                                    <span style={{ display: 'block' }}>Vendedor: <strong style={{ color: 'white' }}>{client.seller_name || 'Nenhum'}</strong></span>
-                                    <span style={{ display: 'block' }}>Comissão: <strong style={{ color: 'white' }}>R$ {client.comissao_vendedor || '0.00'} / unidade</strong></span>
-                                    <span style={{ display: 'block' }}>Plano: <strong style={{ color: 'white' }}>{client.pacote || 'Avulso'}</strong></span>
+            {/* Quick Credit Add/Remove Modal */}
+            {isCreditQuickModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="crm-card" style={{ width: '100%', maxWidth: '460px', padding: '32px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950 }}>Adicionar / Descontar Créditos</h2>
+                            <button onClick={() => setIsCreditQuickModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                            Cliente: <strong style={{ color: 'white' }}>{selectedClientForCredit?.name}</strong> <br />
+                            Saldo Atual: <strong style={{ color: '#acf800' }}>{(selectedClientForCredit?.disparo_quantidade || 0).toLocaleString()} créditos</strong>
+                        </p>
+
+                        <div className="flex-col gap-4">
+                            <div>
+                                <label className="field-label">Tipo de Operação</label>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setCreditOpType('ADD')}
+                                        className={`action-btn ${creditOpType === 'ADD' ? 'primary-btn' : 'ghost-btn'}`}
+                                        style={{ flex: 1, height: '48px', borderColor: creditOpType === 'ADD' ? 'var(--primary-color)' : '' }}
+                                    >
+                                        <Plus size={16} /> Adicionar (+)
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setCreditOpType('SUBTRACT')}
+                                        className={`action-btn ${creditOpType === 'SUBTRACT' ? 'primary-btn' : 'ghost-btn'}`}
+                                        style={{ flex: 1, height: '48px', color: creditOpType === 'SUBTRACT' ? 'black' : '#ef4444', background: creditOpType === 'SUBTRACT' ? '#ef4444' : '', borderColor: '#ef4444' }}
+                                    >
+                                        <Minus size={16} /> Descontar (-)
+                                    </button>
                                 </div>
                             </div>
 
                             <div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-                                    <button className="action-btn ghost-btn" onClick={() => openEditModal(client, 'COMMERCIAL')} style={{ padding: '8px', fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '4px', height: 'auto' }} title="Valores e Créditos">
-                                        <Coins size={16} color="#acf800" /> Crédito
-                                    </button>
-                                    <button className="action-btn ghost-btn" onClick={() => openEditModal(client, 'BASIC')} style={{ padding: '8px', fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '4px', height: 'auto' }} title="Dados">
-                                        <Edit size={16} color="#38bdf8" /> Dados
-                                    </button>
-                                    <button className="action-btn ghost-btn" onClick={() => openEditModal(client, 'PASSWORD')} style={{ padding: '8px', fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '4px', height: 'auto' }} title="Senha">
-                                        <Key size={16} color="#f59e0b" /> Senha
-                                    </button>
-                                </div>
+                                <label className="field-label">Quantidade de Créditos</label>
+                                <input 
+                                    type="number" 
+                                    className="field-input" 
+                                    value={creditOpAmount === 0 ? '' : creditOpAmount} 
+                                    onChange={e => setCreditOpAmount(Math.max(0, parseInt(e.target.value) || 0))} 
+                                    placeholder="Ex: 5000"
+                                />
+                            </div>
 
-                                {activeTab === 'PENDING' ? (
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                                        <button onClick={() => handleApprove(client)} className="action-btn primary-btn" style={{ flex: 1, fontSize: '11px', height: '40px' }}>
-                                            APROVAR ACESSO
-                                        </button>
-                                        <button onClick={() => handleReject(client.id)} className="action-btn ghost-btn" style={{ width: '40px', padding: 0, color: '#ef4444', borderColor: '#ef4444' }} title="Rejeitar">
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                                        <button 
-                                            onClick={() => {
-                                                setSelectedClientForSale(client);
-                                                setSaleForm(prev => ({ ...prev, unit_value: parseFloat(client.preco_vendido) || 0.20 }));
-                                                setIsSaleModalOpen(true);
-                                            }} 
-                                            className="action-btn ghost-btn" 
-                                            style={{ flex: 1, fontSize: '11px', height: '40px', borderColor: '#acf800', color: '#acf800' }}
-                                        >
-                                            <DollarSign size={14} /> NOVA VENDA
-                                        </button>
-                                        <button 
-                                            onClick={() => {
-                                                setSelectedClientForCard(client);
-                                                setCardForm({ profile_name: client.name, ddd: '', template_type: 'none', media_url: '', ad_copy: '', button_link: '', notes: '' });
-                                                setIsCardModalOpen(true);
-                                            }} 
-                                            className="action-btn ghost-btn" 
-                                            style={{ flex: 1, fontSize: '11px', height: '40px', borderColor: '#38bdf8', color: '#38bdf8' }}
-                                        >
-                                            <LinkIcon size={14} /> VINCULAR CARD
-                                        </button>
-                                        <button onClick={() => handleReject(client.id)} className="action-btn ghost-btn" style={{ width: '40px', padding: 0, color: '#ef4444', borderColor: '#ef4444' }} title="Deletar permanentemente">
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                )}
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', marginTop: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Projeção do Novo Saldo:</span>
+                                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'white', marginTop: '4px' }}>
+                                    {creditOpType === 'ADD' 
+                                        ? ((selectedClientForCredit?.disparo_quantidade || 0) + (creditOpAmount || 0)).toLocaleString()
+                                        : Math.max(0, (selectedClientForCredit?.disparo_quantidade || 0) - (creditOpAmount || 0)).toLocaleString()
+                                    } créditos
+                                </div>
                             </div>
                         </div>
-                    ))}
+
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                            <button onClick={handleQuickCreditOp} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }}>CONFIRMAR</button>
+                            <button onClick={() => setIsCreditQuickModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }}>CANCELAR</button>
+                        </div>
+                    </div>
                 </div>
             )}
 

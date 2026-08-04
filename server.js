@@ -2357,6 +2357,14 @@ app.post('/api/reports', async (req, res) => {
             [userId, submissionId, reportName, filename, JSON.stringify(data), JSON.stringify(summary)]
         );
 
+        // Descontar créditos do saldo do cliente com base no relatório de entregues
+        if (userId && summary && summary.delivered) {
+            await pool.query(
+                'UPDATE users SET disparo_quantidade = disparo_quantidade - $1 WHERE id = $2',
+                [Number(summary.delivered) || 0, userId]
+            );
+        }
+
         if (submissionId) {
             const userRes = await pool.query("SELECT * FROM users WHERE id = $1", [userId]);
             const subRes = await pool.query("SELECT * FROM client_submissions WHERE id = $1", [submissionId]);
@@ -2471,7 +2479,17 @@ app.post('/api/reports', async (req, res) => {
 
 app.delete('/api/reports/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM client_reports WHERE id = $1', [req.params.id]);
+        const { id } = req.params;
+        const reportRes = await pool.query('SELECT user_id, summary FROM client_reports WHERE id = $1', [id]);
+        if (reportRes.rows.length > 0) {
+            const report = reportRes.rows[0];
+            let sm = report.summary;
+            if (typeof sm === 'string') sm = JSON.parse(sm);
+            if (sm && sm.delivered) {
+                await pool.query('UPDATE users SET disparo_quantidade = disparo_quantidade + $1 WHERE id = $2', [Number(sm.delivered) || 0, report.user_id]);
+            }
+        }
+        await pool.query('DELETE FROM client_reports WHERE id = $1', [id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2480,7 +2498,16 @@ app.delete('/api/reports/:id', async (req, res) => {
 
 app.delete('/api/reports/submission/:submissionId', async (req, res) => {
     try {
-        await pool.query('DELETE FROM client_reports WHERE submission_id = $1', [req.params.submissionId]);
+        const { submissionId } = req.params;
+        const reportsRes = await pool.query('SELECT user_id, summary FROM client_reports WHERE submission_id = $1', [submissionId]);
+        for (let report of reportsRes.rows) {
+            let sm = report.summary;
+            if (typeof sm === 'string') sm = JSON.parse(sm);
+            if (sm && sm.delivered) {
+                await pool.query('UPDATE users SET disparo_quantidade = disparo_quantidade + $1 WHERE id = $2', [Number(sm.delivered) || 0, report.user_id]);
+            }
+        }
+        await pool.query('DELETE FROM client_reports WHERE submission_id = $1', [submissionId]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
