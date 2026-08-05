@@ -4,6 +4,7 @@ import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, Exter
 import { dbService } from '../services/dbService';
 
 interface InfobipTemplate {
+    id?: string;
     name: string;
     language: string;
     category: string;
@@ -384,8 +385,10 @@ const TemplateManager = () => {
                 body: JSON.stringify(payload)
             });
 
-            if (res.status === 404) {
-                res = await fetch(`https://${cleanBaseUrl}/whatsapp/1/senders/${sender.trim()}/templates/${editingTemplate.name}`, {
+            // If 404, try using the Template ID (numerical ID) on whatsapp/2/
+            if (res.status === 404 && editingTemplate.id) {
+                console.log(`[Save] Template name returned 404, attempting with Template ID: ${editingTemplate.id}`);
+                res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${editingTemplate.id}`, {
                     method: 'PUT',
                     headers: {
                         'Authorization': `App ${apiKey.trim()}`,

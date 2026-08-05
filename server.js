@@ -5763,6 +5763,23 @@ const processScheduledTemplateEdits = async () => {
                         ];
                     }
 
+                    // Fetch templates list first to locate the template's numerical ID
+                    let templateId = null;
+                    try {
+                        const listResponse = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender}/templates`, {
+                            headers: { 'Authorization': `App ${apiKey}` }
+                        });
+                        if (listResponse.ok) {
+                            const listData = await listResponse.json();
+                            const matchedTemplate = (listData.templates || []).find(t => t.name === edit.template_name);
+                            if (matchedTemplate && matchedTemplate.id) {
+                                templateId = matchedTemplate.id;
+                            }
+                        }
+                    } catch (listErr) {
+                        console.error("[SCHEDULED EDITS] Failed to fetch template ID fallback list:", listErr.message);
+                    }
+
                     // Try WhatsApp V2
                     let response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${edit.template_name}`, {
                         method: 'PUT',
@@ -5773,9 +5790,10 @@ const processScheduledTemplateEdits = async () => {
                         body: JSON.stringify(payload)
                     });
 
-                    // Fallback to V1
-                    if (response.status === 404) {
-                        response = await fetch(`https://${cleanBaseUrl}/whatsapp/1/senders/${sender.trim()}/templates/${edit.template_name}`, {
+                    // Fallback to V2 with Template ID
+                    if (response.status === 404 && templateId) {
+                        console.log(`[SCHEDULED EDITS] Name failed with 404, attempting ID fallback: ${templateId}`);
+                        response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${templateId}`, {
                             method: 'PUT',
                             headers: {
                                 'Authorization': `App ${apiKey.trim()}`,
