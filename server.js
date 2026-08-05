@@ -5374,6 +5374,14 @@ app.get('/api/digital-card/:id', async (req, res) => {
     }
 });
 
+// Interceptador de alta performance para o redirect do link 144516
+app.get('/link-stats/144516', (req, res) => {
+    if (req.query.no_redirect === 'true') {
+        return res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    }
+    return res.redirect('/l/144516');
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
