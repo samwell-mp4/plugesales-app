@@ -64,6 +64,8 @@ import FinanceRequests from './pages/FinanceRequests';
 import FinanceInventory from './pages/FinanceInventory';
 import CollaboratorsRegistration from './pages/CollaboratorsRegistration';
 import TemplateManager from './pages/TemplateManager';
+import TermsOfUse from './pages/TermsOfUse';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import './index.css';
 import './crm.css';
 import './finance.css';
@@ -377,6 +379,10 @@ function AppContent() {
           <Route path="/card/:id" element={<DigitalCardView />} />
           <Route path="/test-cards" element={<TestCards />} />
           <Route path="/download" element={<Download />} />
+          <Route path="/terms-of-use" element={<TermsOfUse />} />
+          <Route path="/termos-de-uso" element={<TermsOfUse />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
           <Route path="/l/:id" element={<Navigate to="/login" />} /> {/* Placeholder for shortlinks logic if needed */}
           <Route path="/r/:id" element={<Navigate to="/login" />} />
         </Routes>
