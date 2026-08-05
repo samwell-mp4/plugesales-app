@@ -24,6 +24,12 @@ const TemplateManager = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Credentials toggle (Sidão vs Luiz)
+    const [useLuis, setUseLuis] = useState(false);
+    const LUIS_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
+    const LUIS_BASE = '4k3e4p.api-us.infobip.com';
+    const LUIS_SENDER = '5511922034701';
+
     // Editing State
     const [editingTemplate, setEditingTemplate] = useState<InfobipTemplate | null>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -50,7 +56,6 @@ const TemplateManager = () => {
         try {
             const res = await fetch(`/api/admin/users`);
             const data = await res.json();
-            // Filter users who have infobip configurations
             const infobipClients = data.filter((u: any) => u.infobip_key && u.infobip_sender);
             setClients(infobipClients);
             if (infobipClients.length > 0) {
@@ -62,12 +67,19 @@ const TemplateManager = () => {
     };
 
     const fetchTemplates = async () => {
-        if (!selectedClient) return;
         setIsLoading(true);
         try {
-            const baseUrl = selectedClient.infobip_url || '8k6xv1.api-us.infobip.com';
-            const response = await fetch(`https://${baseUrl}/whatsapp/2/senders/${selectedClient.infobip_sender}/templates`, {
-                headers: { 'Authorization': `App ${selectedClient.infobip_key}` }
+            const apiKey = useLuis ? LUIS_KEY : selectedClient?.infobip_key;
+            const baseUrl = useLuis ? LUIS_BASE : (selectedClient?.infobip_url || '8k6xv1.api-us.infobip.com');
+            const sender = useLuis ? LUIS_SENDER : selectedClient?.infobip_sender;
+
+            if (!apiKey || !sender) {
+                setTemplates([]);
+                return;
+            }
+
+            const response = await fetch(`https://${baseUrl}/whatsapp/2/senders/${sender}/templates`, {
+                headers: { 'Authorization': `App ${apiKey}` }
             });
             const data = await response.json();
             setTemplates(data.templates || []);
@@ -94,10 +106,8 @@ const TemplateManager = () => {
     }, []);
 
     useEffect(() => {
-        if (selectedClient) {
-            fetchTemplates();
-        }
-    }, [selectedClient]);
+        fetchTemplates();
+    }, [selectedClient, useLuis]);
 
     const handleOpenEdit = (template: InfobipTemplate) => {
         setEditingTemplate(template);
@@ -138,11 +148,14 @@ const TemplateManager = () => {
     };
 
     const handleSaveTemplate = async () => {
-        if (!editingTemplate || !selectedClient) return;
+        if (!editingTemplate) return;
         try {
-            const baseUrl = selectedClient.infobip_url || '8k6xv1.api-us.infobip.com';
-            
-            // Build the payload components/structure for WhatsApp templates API
+            const apiKey = useLuis ? LUIS_KEY : selectedClient?.infobip_key;
+            const baseUrl = useLuis ? LUIS_BASE : (selectedClient?.infobip_url || '8k6xv1.api-us.infobip.com');
+            const sender = useLuis ? LUIS_SENDER : selectedClient?.infobip_sender;
+
+            if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
+
             const payload: any = {
                 category: editForm.category,
                 structure: {
@@ -171,10 +184,10 @@ const TemplateManager = () => {
                 ];
             }
 
-            const res = await fetch(`https://${baseUrl}/whatsapp/2/senders/${selectedClient.infobip_sender}/templates/${editingTemplate.name}`, {
+            const res = await fetch(`https://${baseUrl}/whatsapp/2/senders/${sender}/templates/${editingTemplate.name}`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `App ${selectedClient.infobip_key}`,
+                    'Authorization': `App ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
@@ -197,9 +210,10 @@ const TemplateManager = () => {
         setSelectedTemplateForCard(template);
         setReconcileModalOpen(true);
         
-        // Load cards/submissions for this client
+        // Load cards/submissions for the selected client, or if Luis is selected, load the first active client cards
+        const targetUserId = useLuis ? (clients[0]?.id || user?.id) : selectedClient?.id;
         try {
-            const subs = await dbService.getClientSubmissionsByUserId(selectedClient.id);
+            const subs = await dbService.getClientSubmissionsByUserId(targetUserId);
             setCards(subs || []);
             if (subs && subs.length > 0) {
                 setSelectedCard(subs[0]);
@@ -224,11 +238,10 @@ const TemplateManager = () => {
     const handleLaunchCampaign = () => {
         if (!selectedTemplateForCard || !selectedCard) return;
 
-        // Auto-configure the variables binding mapping
         const bindingsQuery = varBindings.map((val, idx) => `var_${idx + 1}=${encodeURIComponent(val)}`).join('&');
+        const sender = useLuis ? LUIS_SENDER : selectedClient?.infobip_sender;
         
-        // Navigate directly to the template dispatch tab, carrying this information
-        window.location.href = `/dispatch?from=${selectedClient.infobip_sender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
+        window.location.href = `/dispatch?from=${sender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
     };
 
     const filteredTemplates = templates.filter(t => 
@@ -247,14 +260,57 @@ const TemplateManager = () => {
                 </div>
             </div>
 
+            {/* Switch Credentials */}
+            <div className="crm-card" style={{ padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border-subtle)' }}>
+                <div>
+                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--primary-color)' }}>Selecione a Credencial de Acesso</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Escolha qual conta da Infobip você deseja gerenciar os templates</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                        onClick={() => setUseLuis(false)}
+                        className="action-btn"
+                        style={{ 
+                            height: '42px', 
+                            minWidth: '130px', 
+                            background: !useLuis ? 'var(--primary-color)' : 'transparent', 
+                            color: !useLuis ? 'black' : 'white',
+                            borderColor: !useLuis ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
+                            borderRadius: '10px',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Sidão (Padrão)
+                    </button>
+                    <button 
+                        onClick={() => setUseLuis(true)}
+                        className="action-btn"
+                        style={{ 
+                            height: '42px', 
+                            minWidth: '130px', 
+                            background: useLuis ? 'var(--primary-color)' : 'transparent', 
+                            color: useLuis ? 'black' : 'white',
+                            borderColor: useLuis ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
+                            borderRadius: '10px',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Luiz
+                    </button>
+                </div>
+            </div>
+
             <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ minWidth: '280px' }}>
+                <div style={{ minWidth: '280px', opacity: useLuis ? 0.4 : 1, pointerEvents: useLuis ? 'none' : 'auto' }}>
                     <label className="field-label" style={{ marginBottom: '8px' }}>Selecione o Cliente / Remetente</label>
                     <select 
                         className="field-input" 
                         value={selectedClient ? selectedClient.id : ''} 
                         onChange={e => setSelectedClient(clients.find(c => String(c.id) === e.target.value))}
                         style={{ height: '58px', background: 'var(--card-bg)' }}
+                        disabled={useLuis}
                     >
                         <option value="">Selecione...</option>
                         {clients.map(c => (
@@ -285,6 +341,12 @@ const TemplateManager = () => {
                     <RefreshCw size={20} />
                 </button>
             </div>
+
+            {useLuis && (
+                <div style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.2)', color: '#38bdf8', padding: '12px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '0.85rem', fontWeight: 800 }}>
+                    ℹ️ Credenciais do Luiz Ativas (Remetente: {LUIS_SENDER})
+                </div>
+            )}
 
             {isLoading ? (
                 <div style={{ color: 'var(--text-muted)' }}>Buscando templates na Infobip...</div>
