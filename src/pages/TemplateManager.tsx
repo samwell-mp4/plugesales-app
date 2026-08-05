@@ -82,6 +82,18 @@ const TemplateManager = () => {
     const [newLinkTarget, setNewLinkTarget] = useState('');
     const [isCreatingLink, setIsCreatingLink] = useState(false);
 
+    // Helper to get tag (filename without extension) from spreadsheet URL
+    const getSpreadsheetTag = (url: string) => {
+        if (!url) return '';
+        try {
+            const parts = url.split('/');
+            const filename = parts[parts.length - 1];
+            return filename.replace(/\.[^/.]+$/, ""); // strip extension
+        } catch (e) {
+            return url;
+        }
+    };
+
     const loadClients = async () => {
         try {
             const res = await fetch(`/api/admin/users`);
@@ -296,7 +308,7 @@ const TemplateManager = () => {
             if (safeSubs.length > 0) {
                 const initialCard = safeSubs[0];
                 setSelectedCard(initialCard);
-                setTransitionExcel(initialCard.spreadsheet_url || '');
+                setTransitionExcel(getSpreadsheetTag(initialCard.spreadsheet_url || ''));
                 setTransitionImage(initialCard.media_url || '');
                 setTransitionCardId(initialCard.id || '');
             } else {
@@ -328,7 +340,7 @@ const TemplateManager = () => {
     const handleSelectCard = (card: any) => {
         setSelectedCard(card);
         if (card) {
-            setTransitionExcel(card.spreadsheet_url || '');
+            setTransitionExcel(getSpreadsheetTag(card.spreadsheet_url || ''));
             setTransitionImage(card.media_url || '');
             setTransitionCardId(card.id || '');
             setCampaignName(`${selectedTemplateForCard?.name || 'Campanha'} - ${card.profile_name || ''}`);
@@ -353,11 +365,20 @@ const TemplateManager = () => {
             broadcastName: campaignName,
             senderNumber: activeSender,
             recipientBase: transitionExcel,
+            templateName: selectedTemplateForCard.name,
+            variables: varBindings,
+            imageUrl: transitionImage,
             tabCount: parseInt(tabCount) || 1
         }, '*');
 
+        // Build parameters query string including templateName, variables, imageUrl
+        let queryParams = `?auto=true&broadcastName=${encodeURIComponent(campaignName)}&senderNumber=${encodeURIComponent(activeSender)}&recipientBase=${encodeURIComponent(transitionExcel)}&templateName=${encodeURIComponent(selectedTemplateForCard.name)}&imageUrl=${encodeURIComponent(transitionImage)}`;
+        varBindings.forEach((v, idx) => {
+            queryParams += `&var_${idx + 1}=${encodeURIComponent(v)}`;
+        });
+
         // Open Infobip page in a new tab
-        const autoUrl = `https://portal-ny2.infobip.com/broadcast/create/?auto=true&broadcastName=${encodeURIComponent(campaignName)}&senderNumber=${encodeURIComponent(activeSender)}&recipientBase=${encodeURIComponent(transitionExcel)}`;
+        const autoUrl = `https://portal-ny2.infobip.com/broadcast/create/${queryParams}`;
         window.open(autoUrl, '_blank');
     };
 
@@ -998,12 +1019,12 @@ const TemplateManager = () => {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                     <div>
-                                        <label className="field-label">Planilha Excel (Contatos)</label>
+                                        <label className="field-label">Etiqueta/Nome da Planilha no Infobip (Destinatários)</label>
                                         <input 
                                             className="field-input" 
                                             value={transitionExcel} 
                                             onChange={e => setTransitionExcel(e.target.value)} 
-                                            placeholder="URL da Planilha..."
+                                            placeholder="Nome da etiqueta no Infobip..."
                                             style={{ height: '42px', background: 'rgba(0,0,0,0.2)' }}
                                         />
                                     </div>
