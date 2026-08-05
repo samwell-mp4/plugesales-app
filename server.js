@@ -6902,6 +6902,35 @@ app.get('/api/auth/callback/facebook', async (req, res) => {
     }
 });
 
+app.post('/api/auth/facebook-deletion', async (req, res) => {
+    try {
+        const { signed_request } = req.body;
+        if (!signed_request) {
+            return res.status(400).json({ error: 'Falta signed_request' });
+        }
+
+        const parts = signed_request.split('.');
+        const encodedSig = parts[0];
+        const payload = parts[1];
+
+        const decodedPayload = JSON.parse(Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
+        const fbUserId = decodedPayload.user_id;
+
+        if (fbUserId) {
+            console.log(`[FB_DELETION] Request received for Facebook User ID: ${fbUserId}`);
+        }
+
+        const confirmationCode = `del_${fbUserId || 'unknown'}_${Date.now()}`;
+        res.json({
+            url: `https://plugesales.com/data-deletion-status?code=${confirmationCode}`,
+            confirmation_code: confirmationCode
+        });
+    } catch (err) {
+        console.error("Facebook Data Deletion Request Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ============================================================
 // EXTERNAL ACCOUNTING API
 // ============================================================

@@ -66,6 +66,7 @@ import CollaboratorsRegistration from './pages/CollaboratorsRegistration';
 import TemplateManager from './pages/TemplateManager';
 import TermsOfUse from './pages/TermsOfUse';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import DataDeletion from './pages/DataDeletion';
 import './index.css';
 import './crm.css';
 import './finance.css';
@@ -383,6 +384,9 @@ function AppContent() {
           <Route path="/termos-de-uso" element={<TermsOfUse />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
+          <Route path="/data-deletion" element={<DataDeletion />} />
+          <Route path="/exclusao-de-dados" element={<DataDeletion />} />
+          <Route path="/data-deletion-status" element={<DataDeletion />} />
           <Route path="/l/:id" element={<Navigate to="/login" />} /> {/* Placeholder for shortlinks logic if needed */}
           <Route path="/r/:id" element={<Navigate to="/login" />} />
         </Routes>
