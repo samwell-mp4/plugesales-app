@@ -727,29 +727,46 @@ const TemplateDispatch = () => {
                                 />
                             </div>
 
-                            <div className="flex items-center justify-between p-4" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
-                                <div className="flex flex-col">
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>Infobip do Luis?</span>
-                                    <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>Ativar credenciais alternativas de disparo</span>
+                            <div className="flex flex-col p-4 gap-2" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', marginBottom: '16px' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>Selecione a Credencial de Envio</span>
+                                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setUseLuis(false)}
+                                        className="action-btn"
+                                        style={{ 
+                                            flex: 1, 
+                                            height: '42px', 
+                                            fontSize: '0.85rem',
+                                            fontWeight: 800,
+                                            background: !useLuis ? 'var(--primary-color)' : 'transparent',
+                                            color: !useLuis ? 'black' : 'white',
+                                            borderColor: !useLuis ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
+                                            borderRadius: '10px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Sidão (Padrão)
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setUseLuis(true)}
+                                        className="action-btn"
+                                        style={{ 
+                                            flex: 1, 
+                                            height: '42px', 
+                                            fontSize: '0.85rem',
+                                            fontWeight: 800,
+                                            background: useLuis ? 'var(--primary-color)' : 'transparent',
+                                            color: useLuis ? 'black' : 'white',
+                                            borderColor: useLuis ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
+                                            borderRadius: '10px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Luiz
+                                    </button>
                                 </div>
-                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
-                                    <input
-                                        type="checkbox"
-                                        style={{ opacity: 0, width: 0, height: 0 }}
-                                        checked={useLuis}
-                                        onChange={(e) => setUseLuis(e.target.checked)}
-                                    />
-                                    <span style={{
-                                        position: 'absolute', cursor: 'pointer', inset: 0,
-                                        backgroundColor: useLuis ? 'var(--primary-color)' : '#333',
-                                        transition: '.4s', borderRadius: '34px'
-                                    }}>
-                                        <span style={{
-                                            position: 'absolute', height: '16px', width: '16px', left: useLuis ? '24px' : '4px', bottom: '3px',
-                                            backgroundColor: useLuis ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
-                                        }}></span>
-                                    </span>
-                                </label>
                             </div>
 
                             <div className="input-group">
