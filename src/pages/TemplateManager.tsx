@@ -24,6 +24,9 @@ const TemplateManager = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Global settings credentials (Sidão/Padrão)
+    const [sidaoConfig, setSidaoConfig] = useState<any>(null);
+
     // Credentials toggle (Sidão vs Luiz)
     const [useLuis, setUseLuis] = useState(false);
     const LUIS_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
@@ -58,20 +61,46 @@ const TemplateManager = () => {
             const data = await res.json();
             const infobipClients = data.filter((u: any) => u.infobip_key && u.infobip_sender);
             setClients(infobipClients);
-            if (infobipClients.length > 0) {
-                setSelectedClient(infobipClients[0]);
-            }
         } catch (err) {
             console.error("Error loading clients for templates:", err);
+        }
+    };
+
+    const loadSettings = async () => {
+        try {
+            const settings = await dbService.getSettings(user?.role);
+            if (settings) {
+                setSidaoConfig({
+                    infobip_key: settings['infobip_key'] || '',
+                    infobip_sender: settings['infobip_sender'] || '',
+                    infobip_url: settings['infobip_url'] || '8k6xv1.api-us.infobip.com'
+                });
+            }
+        } catch (err) {
+            console.error("Error loading global settings:", err);
         }
     };
 
     const fetchTemplates = async () => {
         setIsLoading(true);
         try {
-            const apiKey = useLuis ? LUIS_KEY : selectedClient?.infobip_key;
-            const baseUrl = useLuis ? LUIS_BASE : (selectedClient?.infobip_url || '8k6xv1.api-us.infobip.com');
-            const sender = useLuis ? LUIS_SENDER : selectedClient?.infobip_sender;
+            let apiKey = '';
+            let baseUrl = '8k6xv1.api-us.infobip.com';
+            let sender = '';
+
+            if (useLuis) {
+                apiKey = LUIS_KEY;
+                baseUrl = LUIS_BASE;
+                sender = LUIS_SENDER;
+            } else if (selectedClient) {
+                apiKey = selectedClient.infobip_key;
+                baseUrl = selectedClient.infobip_url || '8k6xv1.api-us.infobip.com';
+                sender = selectedClient.infobip_sender;
+            } else if (sidaoConfig) {
+                apiKey = sidaoConfig.infobip_key;
+                baseUrl = sidaoConfig.infobip_url || '8k6xv1.api-us.infobip.com';
+                sender = sidaoConfig.infobip_sender;
+            }
 
             if (!apiKey || !sender) {
                 setTemplates([]);
@@ -102,12 +131,13 @@ const TemplateManager = () => {
 
     useEffect(() => {
         loadClients();
+        loadSettings();
         loadRotators();
     }, []);
 
     useEffect(() => {
         fetchTemplates();
-    }, [selectedClient, useLuis]);
+    }, [selectedClient, useLuis, sidaoConfig]);
 
     const handleOpenEdit = (template: InfobipTemplate) => {
         setEditingTemplate(template);
@@ -150,9 +180,23 @@ const TemplateManager = () => {
     const handleSaveTemplate = async () => {
         if (!editingTemplate) return;
         try {
-            const apiKey = useLuis ? LUIS_KEY : selectedClient?.infobip_key;
-            const baseUrl = useLuis ? LUIS_BASE : (selectedClient?.infobip_url || '8k6xv1.api-us.infobip.com');
-            const sender = useLuis ? LUIS_SENDER : selectedClient?.infobip_sender;
+            let apiKey = '';
+            let baseUrl = '8k6xv1.api-us.infobip.com';
+            let sender = '';
+
+            if (useLuis) {
+                apiKey = LUIS_KEY;
+                baseUrl = LUIS_BASE;
+                sender = LUIS_SENDER;
+            } else if (selectedClient) {
+                apiKey = selectedClient.infobip_key;
+                baseUrl = selectedClient.infobip_url || '8k6xv1.api-us.infobip.com';
+                sender = selectedClient.infobip_sender;
+            } else if (sidaoConfig) {
+                apiKey = sidaoConfig.infobip_key;
+                baseUrl = sidaoConfig.infobip_url || '8k6xv1.api-us.infobip.com';
+                sender = sidaoConfig.infobip_sender;
+            }
 
             if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 
@@ -210,8 +254,7 @@ const TemplateManager = () => {
         setSelectedTemplateForCard(template);
         setReconcileModalOpen(true);
         
-        // Load cards/submissions for the selected client, or if Luis is selected, load the first active client cards
-        const targetUserId = useLuis ? (clients[0]?.id || user?.id) : selectedClient?.id;
+        const targetUserId = useLuis ? (clients[0]?.id || user?.id) : (selectedClient?.id || user?.id);
         try {
             const subs = await dbService.getClientSubmissionsByUserId(targetUserId);
             setCards(subs || []);
@@ -239,7 +282,7 @@ const TemplateManager = () => {
         if (!selectedTemplateForCard || !selectedCard) return;
 
         const bindingsQuery = varBindings.map((val, idx) => `var_${idx + 1}=${encodeURIComponent(val)}`).join('&');
-        const sender = useLuis ? LUIS_SENDER : selectedClient?.infobip_sender;
+        const sender = useLuis ? LUIS_SENDER : (selectedClient?.infobip_sender || sidaoConfig?.infobip_sender);
         
         window.location.href = `/dispatch?from=${sender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
     };
@@ -248,6 +291,8 @@ const TemplateManager = () => {
         t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const effectiveSender = useLuis ? LUIS_SENDER : (selectedClient?.infobip_sender || sidaoConfig?.infobip_sender);
 
     return (
         <div className="crm-container" style={{ minHeight: '100vh', padding: '32px' }}>
@@ -304,7 +349,7 @@ const TemplateManager = () => {
 
             <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ minWidth: '280px', opacity: useLuis ? 0.4 : 1, pointerEvents: useLuis ? 'none' : 'auto' }}>
-                    <label className="field-label" style={{ marginBottom: '8px' }}>Selecione o Cliente / Remetente</label>
+                    <label className="field-label" style={{ marginBottom: '8px' }}>Selecione o Cliente / Remetente Alternativo</label>
                     <select 
                         className="field-input" 
                         value={selectedClient ? selectedClient.id : ''} 
@@ -342,9 +387,9 @@ const TemplateManager = () => {
                 </button>
             </div>
 
-            {useLuis && (
+            {effectiveSender && (
                 <div style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.2)', color: '#38bdf8', padding: '12px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '0.85rem', fontWeight: 800 }}>
-                    ℹ️ Credenciais do Luiz Ativas (Remetente: {LUIS_SENDER})
+                    ℹ️ Remetente Ativo: {effectiveSender} ({useLuis ? 'Conta do Luiz' : selectedClient ? 'Cliente ' + selectedClient.name : 'Configuração Padrão do Sidão'})
                 </div>
             )}
 
