@@ -25,8 +25,8 @@ const TemplateManager = () => {
     
     // Filter and search states
     const [searchTerm, setSearchTerm] = useState('');
-    const [numberSearchTerm, setNumberSearchTerm] = useState(''); // search clients by number
-    const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, APPROVED, PENDING, REJECTED
+    const [numberSearchTerm, setNumberSearchTerm] = useState(''); 
+    const [statusFilter, setStatusFilter] = useState('ALL'); 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(100);
 
@@ -85,7 +85,7 @@ const TemplateManager = () => {
         try {
             const res = await fetch(`/api/admin/users`);
             const data = await res.json();
-            setClients(data || []);
+            setClients(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Error loading clients for templates:", err);
         }
@@ -131,11 +131,10 @@ const TemplateManager = () => {
             }
 
             const data = await response.json();
-            setTemplates(data.templates || []);
+            setTemplates(Array.isArray(data.templates) ? data.templates : []);
             setCurrentPage(1);
         } catch (err: any) {
             console.error("Error fetching templates from Infobip:", err);
-            alert(`Erro ao buscar templates: ${err.message}\nVerifique a Chave de API, Remetente e URL informados.`);
             setTemplates([]);
         } finally {
             setIsLoading(false);
@@ -145,7 +144,7 @@ const TemplateManager = () => {
     const loadRotators = async () => {
         try {
             const linksData = await dbService.getShortLinks(user?.role, user?.id);
-            setRotatorLinks(linksData?.links || []);
+            setRotatorLinks(linksData && Array.isArray(linksData.links) ? linksData.links : []);
         } catch (err) {
             console.error("Error loading rotators:", err);
         }
@@ -287,21 +286,41 @@ const TemplateManager = () => {
     const handleOpenReconcile = async (template: InfobipTemplate) => {
         setSelectedTemplateForCard(template);
         setReconcileModalOpen(true);
-        setShowLaunchTransition(false); // Reset step to 1
+        setShowLaunchTransition(false); 
         
-        const targetUserId = useLuis ? (clients[0]?.id || user?.id) : (selectedClient?.id || user?.id);
-        try {
-            const subs = await dbService.getClientSubmissionsByUserId(targetUserId);
-            setCards(subs || []);
-            if (subs && subs.length > 0) {
-                const initialCard = subs[0];
-                setSelectedCard(initialCard);
-                setTransitionExcel(initialCard.spreadsheet_url || '');
-                setTransitionImage(initialCard.media_url || '');
-                setTransitionCardId(initialCard.id || '');
+        // Safely determine targetUserId
+        let targetUserId = user?.id;
+        if (useLuis && clients.length > 0) {
+            targetUserId = clients[0]?.id || user?.id;
+        } else if (selectedClient) {
+            targetUserId = selectedClient.id || user?.id;
+        }
+
+        if (targetUserId) {
+            try {
+                const subs = await dbService.getClientSubmissionsByUserId(targetUserId);
+                const safeSubs = Array.isArray(subs) ? subs : [];
+                setCards(safeSubs);
+                if (safeSubs.length > 0) {
+                    const initialCard = safeSubs[0];
+                    setSelectedCard(initialCard);
+                    setTransitionExcel(initialCard.spreadsheet_url || '');
+                    setTransitionImage(initialCard.media_url || '');
+                    setTransitionCardId(initialCard.id || '');
+                } else {
+                    setSelectedCard(null);
+                    setTransitionExcel('');
+                    setTransitionImage('');
+                    setTransitionCardId('');
+                }
+            } catch (e) {
+                console.error("Error loading submissions:", e);
+                setCards([]);
+                setSelectedCard(null);
             }
-        } catch (e) {
-            console.error("Error loading submissions:", e);
+        } else {
+            setCards([]);
+            setSelectedCard(null);
         }
 
         let bodyText = '';
@@ -315,7 +334,6 @@ const TemplateManager = () => {
         const uniqueVarsCount = new Set(matchVars).size;
         setVarBindings(Array(uniqueVarsCount).fill(''));
         
-        // Default campaign name
         setCampaignName(`${template.name} - ${new Date().toLocaleDateString('pt-BR')}`);
     };
 
@@ -329,7 +347,6 @@ const TemplateManager = () => {
         }
     };
 
-    // Step 2: Show transition details
     const handleProceedToTransition = () => {
         if (!selectedCard) {
             alert("Por favor, selecione um Card.");
@@ -342,14 +359,13 @@ const TemplateManager = () => {
         if (!selectedTemplateForCard || !selectedCard) return;
 
         const bindingsQuery = varBindings.map((val, idx) => `var_${idx + 1}=${encodeURIComponent(val)}`).join('&');
-        
-        window.location.href = `/dispatch?from=${activeSender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
+        const targetUrl = `/dispatch?from=${activeSender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
+        window.open(targetUrl, '_blank'); // Open in a new tab keeping current page active
     };
 
     const handleLaunchExtension = () => {
         if (!selectedTemplateForCard) return;
 
-        // Auto-run URL for the extension
         const autoUrl = `https://portal-ny2.infobip.com/broadcast/create/?auto=true&broadcastName=${encodeURIComponent(campaignName)}&senderNumber=${encodeURIComponent(activeSender)}&recipientBase=${encodeURIComponent(transitionExcel)}`;
         window.open(autoUrl, '_blank');
     };
@@ -395,7 +411,6 @@ const TemplateManager = () => {
         }
     };
 
-    // Filter templates by name, category AND Status
     const filteredTemplates = templates.filter(t => {
         const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                               t.category.toLowerCase().includes(searchTerm.toLowerCase());
@@ -403,7 +418,6 @@ const TemplateManager = () => {
         return matchesSearch && matchesStatus;
     });
 
-    // Pagination
     const totalPages = Math.ceil(filteredTemplates.length / itemsPerPage);
     const paginatedTemplates = filteredTemplates.slice(
         (currentPage - 1) * itemsPerPage,
@@ -713,10 +727,10 @@ const TemplateManager = () => {
                 </>
             )}
 
-            {/* Edit Template Modal */}
+            {/* Edit Template Modal with full scrollbar support */}
             {editModalOpen && editingTemplate && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="crm-card" style={{ width: '100%', maxWidth: '600px', padding: '32px' }}>
+                    <div className="crm-card visible-scrollbar" style={{ width: '100%', maxWidth: '600px', padding: '32px', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>Editar Template</h2>
@@ -772,10 +786,10 @@ const TemplateManager = () => {
                 </div>
             )}
 
-            {/* Reconcile Card & Launch Modal */}
+            {/* Reconcile Card & Launch Modal with full scrollbar support */}
             {reconcileModalOpen && selectedTemplateForCard && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="crm-card visible-scrollbar" style={{ width: '100%', maxWidth: '680px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="crm-card visible-scrollbar" style={{ width: '100%', maxWidth: '680px', padding: '32px', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>
@@ -854,11 +868,11 @@ const TemplateManager = () => {
                                                         </button>
                                                     )}
                                                 </div>
-                                                <p style={{ fontSize: '0.85rem', color: 'white', margin: 0, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{selectedCard.ad_copy || 'Sem cópia'}</p>
-                                            </div>
+                                            <p style={{ fontSize: '0.85rem', color: 'white', margin: 0, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{selectedCard.ad_copy || 'Sem cópia'}</p>
                                         </div>
                                     </div>
-                                )}
+                                </div>
+                            )}
 
                                 <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -1025,25 +1039,25 @@ const TemplateManager = () => {
                                     />
                                 </div>
 
-                                {/* Quick Copy Panel for Manual / Extension override */}
+                                {/* Quick Copy Panel */}
                                 <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)', marginTop: '8px' }}>
                                     <span style={{ fontWeight: 900, color: 'white', fontSize: '0.8rem', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Painel de Cópia Rápida para Extensão:</span>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '8px' }}>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Nome da Campanha: <strong style={{ color: 'white' }}>{campaignName}</strong></span>
-                                            <button onClick={() => handleCopy(campaignName, 'c_camp')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>Nome da Campanha: <strong style={{ color: 'white' }}>{campaignName}</strong></span>
+                                            <button onClick={() => handleCopy(campaignName, 'c_camp')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer', flexShrink: 0 }}>
                                                 {copiedField === 'c_camp' ? 'Copiado!' : 'Copiar'}
                                             </button>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '8px' }}>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Planilha Excel: <strong style={{ color: 'white' }}>{transitionExcel || 'Nenhuma'}</strong></span>
-                                            <button onClick={() => handleCopy(transitionExcel, 'c_excel')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>Planilha Excel: <strong style={{ color: 'white' }}>{transitionExcel || 'Nenhuma'}</strong></span>
+                                            <button onClick={() => handleCopy(transitionExcel, 'c_excel')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer', flexShrink: 0 }}>
                                                 {copiedField === 'c_excel' ? 'Copiado!' : 'Copiar'}
                                             </button>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '8px' }}>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Link da Imagem: <strong style={{ color: 'white' }}>{transitionImage || 'Nenhum'}</strong></span>
-                                            <button onClick={() => handleCopy(transitionImage, 'c_image')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>Link da Imagem: <strong style={{ color: 'white' }}>{transitionImage || 'Nenhum'}</strong></span>
+                                            <button onClick={() => handleCopy(transitionImage, 'c_image')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer', flexShrink: 0 }}>
                                                 {copiedField === 'c_image' ? 'Copiado!' : 'Copiar'}
                                             </button>
                                         </div>
