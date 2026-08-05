@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, ExternalLink, ArrowRight, Layers, Link as LinkIcon, Database } from 'lucide-react';
+import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, ExternalLink, ArrowRight, Layers, Link as LinkIcon, Database, Key } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 interface InfobipTemplate {
@@ -22,10 +22,18 @@ const TemplateManager = () => {
     const [selectedClient, setSelectedClient] = useState<any>(null);
     const [templates, setTemplates] = useState<InfobipTemplate[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    
+    // Filter and search states
     const [searchTerm, setSearchTerm] = useState('');
+    const [numberSearchTerm, setNumberSearchTerm] = useState(''); // search clients by number
 
     // Global settings credentials (Sidão/Padrão)
     const [sidaoConfig, setSidaoConfig] = useState<any>(null);
+
+    // Current Active Editable Credentials
+    const [activeSender, setActiveSender] = useState('');
+    const [activeApiKey, setActiveApiKey] = useState('');
+    const [activeBaseUrl, setActiveBaseUrl] = useState('8k6xv1.api-us.infobip.com');
 
     // Credentials toggle (Sidão vs Luiz)
     const [useLuis, setUseLuis] = useState(false);
@@ -59,8 +67,8 @@ const TemplateManager = () => {
         try {
             const res = await fetch(`/api/admin/users`);
             const data = await res.json();
-            const infobipClients = data.filter((u: any) => u.infobip_key && u.infobip_sender);
-            setClients(infobipClients);
+            // Show all users, but keep the filter optional
+            setClients(data || []);
         } catch (err) {
             console.error("Error loading clients for templates:", err);
         }
@@ -70,11 +78,19 @@ const TemplateManager = () => {
         try {
             const settings = await dbService.getSettings(user?.role);
             if (settings) {
-                setSidaoConfig({
+                const config = {
                     infobip_key: settings['infobip_key'] || '',
                     infobip_sender: settings['infobip_sender'] || '',
                     infobip_url: settings['infobip_url'] || '8k6xv1.api-us.infobip.com'
-                });
+                };
+                setSidaoConfig(config);
+                
+                // Set as active if Luis is not active
+                if (!useLuis) {
+                    setActiveSender(config.infobip_sender);
+                    setActiveApiKey(config.infobip_key);
+                    setActiveBaseUrl(config.infobip_url);
+                }
             }
         } catch (err) {
             console.error("Error loading global settings:", err);
@@ -82,38 +98,27 @@ const TemplateManager = () => {
     };
 
     const fetchTemplates = async () => {
+        if (!activeApiKey || !activeSender) {
+            setTemplates([]);
+            return;
+        }
         setIsLoading(true);
         try {
-            let apiKey = '';
-            let baseUrl = '8k6xv1.api-us.infobip.com';
-            let sender = '';
-
-            if (useLuis) {
-                apiKey = LUIS_KEY;
-                baseUrl = LUIS_BASE;
-                sender = LUIS_SENDER;
-            } else if (selectedClient) {
-                apiKey = selectedClient.infobip_key;
-                baseUrl = selectedClient.infobip_url || '8k6xv1.api-us.infobip.com';
-                sender = selectedClient.infobip_sender;
-            } else if (sidaoConfig) {
-                apiKey = sidaoConfig.infobip_key;
-                baseUrl = sidaoConfig.infobip_url || '8k6xv1.api-us.infobip.com';
-                sender = sidaoConfig.infobip_sender;
-            }
-
-            if (!apiKey || !sender) {
-                setTemplates([]);
-                return;
-            }
-
-            const response = await fetch(`https://${baseUrl}/whatsapp/2/senders/${sender}/templates`, {
-                headers: { 'Authorization': `App ${apiKey}` }
+            const cleanBaseUrl = activeBaseUrl.trim() || '8k6xv1.api-us.infobip.com';
+            const response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${activeSender.trim()}/templates`, {
+                headers: { 'Authorization': `App ${activeApiKey.trim()}` }
             });
+            
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.description || `Erro ${response.status} ao carregar templates.`);
+            }
+
             const data = await response.json();
             setTemplates(data.templates || []);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error fetching templates from Infobip:", err);
+            alert(`Erro ao buscar templates: ${err.message}\nVerifique a Chave de API, Remetente e URL informados.`);
             setTemplates([]);
         } finally {
             setIsLoading(false);
@@ -135,9 +140,29 @@ const TemplateManager = () => {
         loadRotators();
     }, []);
 
+    // Handle Switch Toggle population
     useEffect(() => {
-        fetchTemplates();
-    }, [selectedClient, useLuis, sidaoConfig]);
+        if (useLuis) {
+            setActiveSender(LUIS_SENDER);
+            setActiveApiKey(LUIS_KEY);
+            setActiveBaseUrl(LUIS_BASE);
+        } else if (selectedClient) {
+            setActiveSender(selectedClient.infobip_sender || '');
+            setActiveApiKey(selectedClient.infobip_key || '');
+            setActiveBaseUrl(selectedClient.infobip_url || '8k6xv1.api-us.infobip.com');
+        } else if (sidaoConfig) {
+            setActiveSender(sidaoConfig.infobip_sender || '');
+            setActiveApiKey(sidaoConfig.infobip_key || '');
+            setActiveBaseUrl(sidaoConfig.infobip_url || '8k6xv1.api-us.infobip.com');
+        }
+    }, [useLuis, selectedClient, sidaoConfig]);
+
+    // Automatically trigger fetch when active credentials change
+    useEffect(() => {
+        if (activeApiKey && activeSender) {
+            fetchTemplates();
+        }
+    }, [activeSender, activeApiKey, activeBaseUrl]);
 
     const handleOpenEdit = (template: InfobipTemplate) => {
         setEditingTemplate(template);
@@ -179,27 +204,10 @@ const TemplateManager = () => {
 
     const handleSaveTemplate = async () => {
         if (!editingTemplate) return;
+        if (!activeApiKey || !activeSender) return alert("Parâmetros do remetente ausentes.");
+
         try {
-            let apiKey = '';
-            let baseUrl = '8k6xv1.api-us.infobip.com';
-            let sender = '';
-
-            if (useLuis) {
-                apiKey = LUIS_KEY;
-                baseUrl = LUIS_BASE;
-                sender = LUIS_SENDER;
-            } else if (selectedClient) {
-                apiKey = selectedClient.infobip_key;
-                baseUrl = selectedClient.infobip_url || '8k6xv1.api-us.infobip.com';
-                sender = selectedClient.infobip_sender;
-            } else if (sidaoConfig) {
-                apiKey = sidaoConfig.infobip_key;
-                baseUrl = sidaoConfig.infobip_url || '8k6xv1.api-us.infobip.com';
-                sender = sidaoConfig.infobip_sender;
-            }
-
-            if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
-
+            const cleanBaseUrl = activeBaseUrl.trim() || '8k6xv1.api-us.infobip.com';
             const payload: any = {
                 category: editForm.category,
                 structure: {
@@ -228,10 +236,10 @@ const TemplateManager = () => {
                 ];
             }
 
-            const res = await fetch(`https://${baseUrl}/whatsapp/2/senders/${sender}/templates/${editingTemplate.name}`, {
+            const res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${activeSender.trim()}/templates/${editingTemplate.name}`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `App ${apiKey}`,
+                    'Authorization': `App ${activeApiKey.trim()}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
@@ -282,9 +290,8 @@ const TemplateManager = () => {
         if (!selectedTemplateForCard || !selectedCard) return;
 
         const bindingsQuery = varBindings.map((val, idx) => `var_${idx + 1}=${encodeURIComponent(val)}`).join('&');
-        const sender = useLuis ? LUIS_SENDER : (selectedClient?.infobip_sender || sidaoConfig?.infobip_sender);
         
-        window.location.href = `/dispatch?from=${sender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
+        window.location.href = `/dispatch?from=${activeSender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
     };
 
     const filteredTemplates = templates.filter(t => 
@@ -292,7 +299,12 @@ const TemplateManager = () => {
         t.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const effectiveSender = useLuis ? LUIS_SENDER : (selectedClient?.infobip_sender || sidaoConfig?.infobip_sender);
+    // Filter clients list based on search term (name or phone number)
+    const filteredClients = clients.filter(c => {
+        const nameMatch = (c.name || '').toLowerCase().includes(numberSearchTerm.toLowerCase());
+        const phoneMatch = (c.phone || '').includes(numberSearchTerm) || (c.whatsapp || '').includes(numberSearchTerm) || (c.infobip_sender || '').includes(numberSearchTerm);
+        return nameMatch || phoneMatch;
+    });
 
     return (
         <div className="crm-container" style={{ minHeight: '100vh', padding: '32px' }}>
@@ -347,57 +359,109 @@ const TemplateManager = () => {
                 </div>
             </div>
 
+            {/* Editable Credentials details panel to check for 403 errors */}
+            <div className="crm-card" style={{ padding: '24px', marginBottom: '24px', background: 'rgba(255,255,255,0.01)' }}>
+                <h3 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Credenciais Ativas de Conexão</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div>
+                        <label className="field-label">Remetente (Número do WhatsApp)</label>
+                        <input 
+                            className="field-input" 
+                            value={activeSender} 
+                            onChange={e => setActiveSender(e.target.value)} 
+                            placeholder="Ex: 5511925399038"
+                            style={{ height: '44px', background: 'rgba(0,0,0,0.2)' }}
+                        />
+                    </div>
+                    <div>
+                        <label className="field-label">Chave de API (Infobip Key)</label>
+                        <div style={{ position: 'relative' }}>
+                            <input 
+                                className="field-input" 
+                                type="password"
+                                value={activeApiKey} 
+                                onChange={e => setActiveApiKey(e.target.value)} 
+                                placeholder="App key..."
+                                style={{ height: '44px', background: 'rgba(0,0,0,0.2)', paddingRight: '40px' }}
+                            />
+                            <Key size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="field-label">URL da API (Infobip Host)</label>
+                        <input 
+                            className="field-input" 
+                            value={activeBaseUrl} 
+                            onChange={e => setActiveBaseUrl(e.target.value)} 
+                            placeholder="Ex: 8k6xv1.api-us.infobip.com"
+                            style={{ height: '44px', background: 'rgba(0,0,0,0.2)' }}
+                        />
+                    </div>
+                </div>
+            </div>
+
             <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ minWidth: '280px', opacity: useLuis ? 0.4 : 1, pointerEvents: useLuis ? 'none' : 'auto' }}>
-                    <label className="field-label" style={{ marginBottom: '8px' }}>Selecione o Cliente / Remetente Alternativo</label>
-                    <select 
-                        className="field-input" 
-                        value={selectedClient ? selectedClient.id : ''} 
-                        onChange={e => setSelectedClient(clients.find(c => String(c.id) === e.target.value))}
-                        style={{ height: '58px', background: 'var(--card-bg)' }}
-                        disabled={useLuis}
-                    >
-                        <option value="">Selecione...</option>
-                        {clients.map(c => (
-                            <option key={c.id} value={c.id}>{c.name} ({c.infobip_sender})</option>
-                        ))}
-                    </select>
+                <div style={{ display: 'flex', gap: '10px', minWidth: '350px', opacity: useLuis ? 0.4 : 1, pointerEvents: useLuis ? 'none' : 'auto', flex: 1 }}>
+                    <div style={{ flex: 1 }}>
+                        <label className="field-label" style={{ marginBottom: '8px' }}>Pesquisar Número / Cliente</label>
+                        <div style={{ position: 'relative' }}>
+                            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                            <input 
+                                className="field-input"
+                                placeholder="Buscar por número..."
+                                value={numberSearchTerm}
+                                onChange={e => setNumberSearchTerm(e.target.value)}
+                                style={{ height: '44px', paddingLeft: '38px', fontSize: '0.85rem' }}
+                                disabled={useLuis}
+                            />
+                        </div>
+                    </div>
+                    
+                    <div style={{ flex: 1.5 }}>
+                        <label className="field-label" style={{ marginBottom: '8px' }}>Selecionar Cliente</label>
+                        <select 
+                            className="field-input" 
+                            value={selectedClient ? selectedClient.id : ''} 
+                            onChange={e => setSelectedClient(clients.find(c => String(c.id) === e.target.value))}
+                            style={{ height: '44px', background: 'var(--card-bg)' }}
+                            disabled={useLuis}
+                        >
+                            <option value="">Configuração Padrão do Sidão</option>
+                            {filteredClients.map(c => (
+                                <option key={c.id} value={c.id}>{c.name} ({c.whatsapp || c.phone || 'Sem contato'})</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
-                <div style={{ flex: 1, minWidth: '250px', marginTop: '24px' }}>
+                <div style={{ minWidth: '250px', marginTop: '24px' }}>
                     <div style={{ position: 'relative' }}>
                         <Search size={20} style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
                         <input 
                             className="field-input" 
-                            placeholder="Buscar templates por nome..." 
+                            placeholder="Filtrar templates por nome..." 
                             value={searchTerm} 
                             onChange={e => setSearchTerm(e.target.value)}
-                            style={{ height: '58px', paddingLeft: '60px' }}
+                            style={{ height: '44px', paddingLeft: '60px' }}
                         />
                     </div>
                 </div>
 
                 <button 
                     onClick={fetchTemplates} 
-                    className="action-btn ghost-btn" 
-                    style={{ height: '58px', marginTop: '24px', padding: '0 20px' }}
+                    className="action-btn primary-btn" 
+                    style={{ height: '44px', marginTop: '24px', padding: '0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
                     title="Recarregar do Servidor Infobip"
                 >
-                    <RefreshCw size={20} />
+                    <RefreshCw size={18} /> CARREGAR TEMPLATES
                 </button>
             </div>
-
-            {effectiveSender && (
-                <div style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.2)', color: '#38bdf8', padding: '12px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '0.85rem', fontWeight: 800 }}>
-                    ℹ️ Remetente Ativo: {effectiveSender} ({useLuis ? 'Conta do Luiz' : selectedClient ? 'Cliente ' + selectedClient.name : 'Configuração Padrão do Sidão'})
-                </div>
-            )}
 
             {isLoading ? (
                 <div style={{ color: 'var(--text-muted)' }}>Buscando templates na Infobip...</div>
             ) : filteredTemplates.length === 0 ? (
                 <div className="crm-card" style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
-                    Nenhum template encontrado para este remetente.
+                    Nenhum template encontrado. Verifique as credenciais no painel acima e clique em "CARREGAR TEMPLATES".
                 </div>
             ) : (
                 <div className="crm-card" style={{ padding: '0', overflowX: 'auto', border: '1px solid var(--surface-border-subtle)', background: 'rgba(10,15,24,0.3)' }}>
