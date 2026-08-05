@@ -51,10 +51,14 @@ const TemplateManager = () => {
     // Global settings credentials (Sidão/Padrão)
     const [sidaoConfig, setSidaoConfig] = useState<any>(null);
 
+    // Sidão default credentials (host 8k6xv1)
+    const SIDAO_API_KEY = 'f3358659bee063a3fc2f71f6bdce8f3c-a7cd9b94-e925-415f-8a4a-6dccd1b8d1d0';
+    const SIDAO_BASE_URL = '8k6xv1.api-us.infobip.com';
+
     // Current Active Editable Credentials
     const [activeSender, setActiveSender] = useState('');
-    const [activeApiKey, setActiveApiKey] = useState('');
-    const [activeBaseUrl, setActiveBaseUrl] = useState('8k6xv1.api-us.infobip.com');
+    const [activeApiKey, setActiveApiKey] = useState(SIDAO_API_KEY);
+    const [activeBaseUrl, setActiveBaseUrl] = useState(SIDAO_BASE_URL);
 
     // Editing State
     const [editingTemplate, setEditingTemplate] = useState<InfobipTemplate | null>(null);
@@ -129,9 +133,9 @@ const TemplateManager = () => {
             const settings = await dbService.getSettings(user?.role);
             if (settings) {
                 const config = {
-                    infobip_key: settings['infobip_key'] || '',
+                    infobip_key: settings['infobip_key'] || SIDAO_API_KEY,
                     infobip_sender: settings['infobip_sender'] || '',
-                    infobip_url: settings['infobip_url'] || '8k6xv1.api-us.infobip.com'
+                    infobip_url: settings['infobip_url'] || SIDAO_BASE_URL
                 };
                 setSidaoConfig(config);
                 
@@ -151,9 +155,9 @@ const TemplateManager = () => {
         }
         setIsLoading(true);
         try {
-            const cleanBaseUrl = activeBaseUrl.trim() || '8k6xv1.api-us.infobip.com';
+            const cleanBaseUrl = SIDAO_BASE_URL;
             const response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${activeSender.trim()}/templates`, {
-                headers: { 'Authorization': `App ${activeApiKey.trim()}` }
+                headers: { 'Authorization': `App ${SIDAO_API_KEY.trim()}` }
             });
             
             if (!response.ok) {
@@ -225,10 +229,10 @@ const TemplateManager = () => {
             buttonUrl: item.button_url || ''
         });
         
-        // Load item credentials into active editable fields to allow manual correction
+        // Load item sender into active field; force Sidão host/key
         if (item.sender) setActiveSender(item.sender);
-        if (item.api_key) setActiveApiKey(item.api_key);
-        if (item.base_url) setActiveBaseUrl(item.base_url);
+        setActiveApiKey(SIDAO_API_KEY);
+        setActiveBaseUrl(SIDAO_BASE_URL);
 
         setEditModalOpen(true);
     };
@@ -272,12 +276,12 @@ const TemplateManager = () => {
     useEffect(() => {
         if (selectedClient) {
             setActiveSender(selectedClient.infobip_sender || '');
-            setActiveApiKey(selectedClient.infobip_key || '');
-            setActiveBaseUrl(selectedClient.infobip_url || '8k6xv1.api-us.infobip.com');
+            setActiveApiKey(SIDAO_API_KEY);
+            setActiveBaseUrl(SIDAO_BASE_URL);
         } else if (sidaoConfig) {
             setActiveSender(sidaoConfig.infobip_sender || '');
-            setActiveApiKey(sidaoConfig.infobip_key || '');
-            setActiveBaseUrl(sidaoConfig.infobip_url || '8k6xv1.api-us.infobip.com');
+            setActiveApiKey(sidaoConfig.infobip_key || SIDAO_API_KEY);
+            setActiveBaseUrl(SIDAO_BASE_URL);
         }
     }, [selectedClient, sidaoConfig]);
 
@@ -329,13 +333,13 @@ const TemplateManager = () => {
         if (!editingTemplate) return;
         
         let sender = activeSender;
-        let apiKey = activeApiKey;
-        let baseUrl = activeBaseUrl;
+        let apiKey = SIDAO_API_KEY;
+        let baseUrl = SIDAO_BASE_URL;
 
         if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 
         try {
-            const cleanBaseUrl = baseUrl.trim() || '8k6xv1.api-us.infobip.com';
+            const cleanBaseUrl = SIDAO_BASE_URL;
             const payload: any = {
                 category: 'UTILITY',
                 structure: {
@@ -404,8 +408,8 @@ const TemplateManager = () => {
         if (!editingTemplate) return;
 
         let sender = activeSender || (sidaoConfig && sidaoConfig.infobip_sender) || '';
-        let apiKey = activeApiKey || (sidaoConfig && sidaoConfig.infobip_key) || '';
-        let baseUrl = activeBaseUrl || (sidaoConfig && sidaoConfig.infobip_url) || '8k6xv1.api-us.infobip.com';
+        let apiKey = SIDAO_API_KEY;
+        let baseUrl = SIDAO_BASE_URL;
 
         if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 
