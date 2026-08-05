@@ -68,6 +68,7 @@ const TemplateManager = () => {
     const [transitionExcel, setTransitionExcel] = useState('');
     const [transitionImage, setTransitionImage] = useState('');
     const [transitionCardId, setTransitionCardId] = useState('');
+    const [tabCount, setTabCount] = useState('1');
 
     // Variables binding for transmission
     const [varBindings, setVarBindings] = useState<string[]>([]);
@@ -289,7 +290,6 @@ const TemplateManager = () => {
         setShowLaunchTransition(false); 
         
         try {
-            // Load ALL client submissions so admin/employee can reconcile with any active card
             const subs = await dbService.getClientSubmissions();
             const safeSubs = Array.isArray(subs) ? subs : [];
             setCards(safeSubs);
@@ -343,17 +343,20 @@ const TemplateManager = () => {
         setShowLaunchTransition(true);
     };
 
-    const handleLaunchCampaign = () => {
-        if (!selectedTemplateForCard || !selectedCard) return;
-
-        const bindingsQuery = varBindings.map((val, idx) => `var_${idx + 1}=${encodeURIComponent(val)}`).join('&');
-        const targetUrl = `/dispatch?from=${activeSender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
-        window.open(targetUrl, '_blank'); 
-    };
-
+    // Open extension by posting message to window and opening page
     const handleLaunchExtension = () => {
         if (!selectedTemplateForCard) return;
 
+        // Post message to manifest.json listener on plugesales.com
+        window.postMessage({
+            type: 'PLUG_START_AUTOMATION',
+            broadcastName: campaignName,
+            senderNumber: activeSender,
+            recipientBase: transitionExcel,
+            tabCount: parseInt(tabCount) || 1
+        }, '*');
+
+        // Open Infobip page in a new tab
         const autoUrl = `https://portal-ny2.infobip.com/broadcast/create/?auto=true&broadcastName=${encodeURIComponent(campaignName)}&senderNumber=${encodeURIComponent(activeSender)}&recipientBase=${encodeURIComponent(transitionExcel)}`;
         window.open(autoUrl, '_blank');
     };
@@ -957,6 +960,7 @@ const TemplateManager = () => {
                                         onClick={handleProceedToTransition} 
                                         className="action-btn primary-btn" 
                                         style={{ flex: 1, height: '52px', gap: '8px', fontSize: '0.95rem', cursor: 'pointer' }}
+                                        disabled={!selectedCard}
                                     >
                                         IR PARA DISPAROS <Play size={18} />
                                     </button>
@@ -967,7 +971,7 @@ const TemplateManager = () => {
                             /* STEP 2: Iniciar Transmissão Transition Screen */
                             <div className="flex-col gap-4">
                                 <div style={{ background: 'rgba(172,248,0,0.03)', border: '1px solid rgba(172,248,0,0.15)', padding: '16px', borderRadius: '12px', fontSize: '0.85rem', color: '#acf800', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    🚀 Configure os detalhes finais para enviar para a extensão ou disparar manualmente.
+                                    🚀 Tudo pronto! Clique no botão abaixo para abrir o Infobip e rodar a extensão no piloto automático.
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -1015,16 +1019,52 @@ const TemplateManager = () => {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="field-label">Link da Imagem (Mídia URL)</label>
-                                    <input 
-                                        className="field-input" 
-                                        value={transitionImage} 
-                                        onChange={e => setTransitionImage(e.target.value)} 
-                                        placeholder="URL da Imagem..."
-                                        style={{ height: '42px', background: 'rgba(0,0,0,0.2)' }}
-                                    />
+                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+                                    <div>
+                                        <label className="field-label">Link da Imagem (Mídia URL)</label>
+                                        <input 
+                                            className="field-input" 
+                                            value={transitionImage} 
+                                            onChange={e => setTransitionImage(e.target.value)} 
+                                            placeholder="URL da Imagem..."
+                                            style={{ height: '42px', background: 'rgba(0,0,0,0.2)' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">Qtd. de Abas</label>
+                                        <input 
+                                            className="field-input" 
+                                            type="number"
+                                            value={tabCount} 
+                                            onChange={e => setTabCount(e.target.value)} 
+                                            style={{ height: '42px', background: 'rgba(0,0,0,0.2)' }}
+                                            min="1"
+                                        />
+                                    </div>
                                 </div>
+
+                                {/* Dynamic Variables Display with one-click copy buttons */}
+                                {varBindings.length > 0 && (
+                                    <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                        <span style={{ fontWeight: 900, color: 'white', fontSize: '0.8rem', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Variáveis Mapeadas para Copiar:</span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            {varBindings.map((val, idx) => {
+                                                const resolvedVal = val === 'name' ? 'Coluna Nome' : val || 'Coluna Planilha';
+                                                const fieldId = `c_var_${idx + 1}`;
+                                                return (
+                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '8px' }}>
+                                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>
+                                                            Variável <strong style={{ color: 'var(--primary-color)' }}>{"{{"}{idx + 1}{"}}"}</strong>: <span style={{ color: 'white' }}>{resolvedVal}</span>
+                                                        </span>
+                                                        <button onClick={() => handleCopy(resolvedVal, fieldId)} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer', flexShrink: 0 }}>
+                                                            {copiedField === fieldId ? 'Copiado!' : 'Copiar'}
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Quick Copy Panel */}
                                 <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)', marginTop: '8px' }}>
@@ -1057,14 +1097,7 @@ const TemplateManager = () => {
                                         className="action-btn primary-btn" 
                                         style={{ flex: 1, height: '52px', gap: '8px', background: '#acf800', color: 'black', fontWeight: 900, cursor: 'pointer' }}
                                     >
-                                        INICIAR TRANSMISSÃO AUTOMÁTICA <ExternalLink size={18} />
-                                    </button>
-                                    <button 
-                                        onClick={handleLaunchCampaign} 
-                                        className="action-btn ghost-btn" 
-                                        style={{ flex: 1, height: '52px', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
-                                    >
-                                        DISPARAR VIA SISTEMA PLUG
+                                        INICIAR TRANSMISSÃO AUTOMÁTICA (EXTENSÃO) <ExternalLink size={18} />
                                     </button>
                                 </div>
                                 <button 
