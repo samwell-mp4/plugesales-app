@@ -20,7 +20,13 @@ interface ScheduledEdit {
     id: number;
     template_name: string;
     sender: string;
+    api_key?: string;
+    base_url?: string;
     category: string;
+    body_text?: string;
+    header_text?: string;
+    header_format?: string;
+    button_url?: string;
     status: string;
     error_message?: string;
     created_at: string;
@@ -72,7 +78,7 @@ const TemplateManager = () => {
     const [isLoadingQueue, setIsLoadingQueue] = useState(false);
     const [countdownText, setCountdownText] = useState('');
     const [isWindowOpen, setIsWindowOpen] = useState(false);
-    const [showQueuePanel, setShowQueuePanel] = useState(false); // Collapsible state
+    const [showQueuePanel, setShowQueuePanel] = useState(true); // Default open to see errors
 
     // Reconcile Card State
     const [selectedTemplateForCard, setSelectedTemplateForCard] = useState<InfobipTemplate | null>(null);
@@ -207,6 +213,31 @@ const TemplateManager = () => {
         } catch (e) {
             alert("Erro de conexão ao limpar histórico.");
         }
+    };
+
+    const handleEditScheduledItem = (item: ScheduledEdit) => {
+        // Mock or find original template
+        const originalTemplate = templates.find(t => t.name === item.template_name) || {
+            name: item.template_name,
+            language: 'pt_BR',
+            category: item.category,
+            status: 'APPROVED'
+        };
+        setEditingTemplate(originalTemplate);
+        setEditForm({
+            bodyText: item.body_text || '',
+            category: item.category || 'MARKETING',
+            headerText: item.header_text || '',
+            headerFormat: item.header_format || 'NONE',
+            buttonUrl: item.button_url || ''
+        });
+        
+        // Load item credentials into active editable fields to allow manual correction
+        if (item.sender) setActiveSender(item.sender);
+        if (item.api_key) setActiveApiKey(item.api_key);
+        if (item.base_url) setActiveBaseUrl(item.base_url);
+
+        setEditModalOpen(true);
     };
 
     useEffect(() => {
@@ -743,6 +774,7 @@ const TemplateManager = () => {
                                             <th style={{ padding: '12px 16px', color: 'var(--text-muted)', textAlign: 'center' }}>Status</th>
                                             <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Criado em</th>
                                             <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Atualizado em</th>
+                                            <th style={{ padding: '12px 16px', color: 'var(--text-muted)', textAlign: 'right' }}>Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -779,6 +811,17 @@ const TemplateManager = () => {
                                                     </td>
                                                     <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.created_at).toLocaleString('pt-BR')}</td>
                                                     <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.updated_at).toLocaleString('pt-BR')}</td>
+                                                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                                        {(item.status === 'ERROR' || item.status === 'PENDING') && (
+                                                            <button 
+                                                                onClick={() => handleEditScheduledItem(item)}
+                                                                className="action-btn ghost-btn animate-pulse"
+                                                                style={{ height: '30px', padding: '0 10px', fontSize: '0.7rem', borderColor: '#acf800', color: '#acf800', fontWeight: 800 }}
+                                                            >
+                                                                Corrigir / Reagendar
+                                                            </button>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             );
                                         })}
