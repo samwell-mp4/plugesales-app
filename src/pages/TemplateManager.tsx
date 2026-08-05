@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, ExternalLink, ArrowRight, Layers, Link as LinkIcon, Database, Key } from 'lucide-react';
+import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, ExternalLink, ArrowRight, Layers, Link as LinkIcon, Database, Key, Copy, Check, Filter } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 interface InfobipTemplate {
@@ -26,6 +26,9 @@ const TemplateManager = () => {
     // Filter and search states
     const [searchTerm, setSearchTerm] = useState('');
     const [numberSearchTerm, setNumberSearchTerm] = useState(''); // search clients by number
+    const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, APPROVED, PENDING, REJECTED
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(100);
 
     // Global settings credentials (Sidão/Padrão)
     const [sidaoConfig, setSidaoConfig] = useState<any>(null);
@@ -57,17 +60,24 @@ const TemplateManager = () => {
     const [cards, setCards] = useState<any[]>([]);
     const [selectedCard, setSelectedCard] = useState<any>(null);
     const [reconcileModalOpen, setReconcileModalOpen] = useState(false);
+    const [copiedField, setCopiedField] = useState<string | null>(null);
 
     // Variables binding for transmission
     const [varBindings, setVarBindings] = useState<string[]>([]);
     const [rotatorLinks, setRotatorLinks] = useState<any[]>([]);
     const [selectedRotator, setSelectedRotator] = useState<string>('');
 
+    // Inline Create Link State
+    const [showCreateLink, setShowCreateLink] = useState(false);
+    const [newLinkTitle, setNewLinkTitle] = useState('');
+    const [newLinkSlug, setNewLinkSlug] = useState('');
+    const [newLinkTarget, setNewLinkTarget] = useState('');
+    const [isCreatingLink, setIsCreatingLink] = useState(false);
+
     const loadClients = async () => {
         try {
             const res = await fetch(`/api/admin/users`);
             const data = await res.json();
-            // Show all users, but keep the filter optional
             setClients(data || []);
         } catch (err) {
             console.error("Error loading clients for templates:", err);
@@ -85,7 +95,6 @@ const TemplateManager = () => {
                 };
                 setSidaoConfig(config);
                 
-                // Set as active if Luis is not active
                 if (!useLuis) {
                     setActiveSender(config.infobip_sender);
                     setActiveApiKey(config.infobip_key);
@@ -116,6 +125,7 @@ const TemplateManager = () => {
 
             const data = await response.json();
             setTemplates(data.templates || []);
+            setCurrentPage(1); // reset to page 1 on search
         } catch (err: any) {
             console.error("Error fetching templates from Infobip:", err);
             alert(`Erro ao buscar templates: ${err.message}\nVerifique a Chave de API, Remetente e URL informados.`);
@@ -140,7 +150,6 @@ const TemplateManager = () => {
         loadRotators();
     }, []);
 
-    // Handle Switch Toggle population
     useEffect(() => {
         if (useLuis) {
             setActiveSender(LUIS_SENDER);
@@ -157,7 +166,6 @@ const TemplateManager = () => {
         }
     }, [useLuis, selectedClient, sidaoConfig]);
 
-    // Automatically trigger fetch when active credentials change
     useEffect(() => {
         if (activeApiKey && activeSender) {
             fetchTemplates();
@@ -236,7 +244,8 @@ const TemplateManager = () => {
                 ];
             }
 
-            const res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${activeSender.trim()}/templates/${editingTemplate.name}`, {
+            // High performance edit endpoint fallback handler (v2 fallback to v1 on 404)
+            let res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${activeSender.trim()}/templates/${editingTemplate.name}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `App ${activeApiKey.trim()}`,
@@ -244,6 +253,17 @@ const TemplateManager = () => {
                 },
                 body: JSON.stringify(payload)
             });
+
+            if (res.status === 404) {
+                res = await fetch(`https://${cleanBaseUrl}/whatsapp/1/senders/${activeSender.trim()}/templates/${editingTemplate.name}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `App ${activeApiKey.trim()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+            }
 
             if (res.ok) {
                 alert("Template editado e enviado para aprovação na Meta com sucesso!");
@@ -273,7 +293,6 @@ const TemplateManager = () => {
             console.error("Error loading submissions:", e);
         }
 
-        // Count variables in template body
         let bodyText = '';
         if (template.structure) bodyText = template.structure.body?.text || '';
         else if (template.components) {
@@ -294,20 +313,93 @@ const TemplateManager = () => {
         window.location.href = `/dispatch?from=${activeSender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
     };
 
-    const filteredTemplates = templates.filter(t => 
-        t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.category.toLowerCase().includes(searchTerm.toLowerCase())
+    const handleCopy = (text: string, fieldName: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopiedField(fieldName);
+        setTimeout(() => setCopiedField(null), 2000);
+    };
+
+    const handleCreateShortLink = async () => {
+        if (!newLinkTarget || !newLinkTitle) {
+            alert("Por favor, preencha o Título e a URL de Destino.");
+            return;
+        }
+        setIsCreatingLink(true);
+        try {
+            const payload = {
+                links: [{
+                    title: newLinkTitle,
+                    original_url: newLinkTarget,
+                    short_code: newLinkSlug || Math.random().toString(36).substring(2, 8)
+                }],
+                user_id: user?.id
+            };
+            const result = await dbService.createShortLink(payload);
+            if (result && !result.error) {
+                alert("Link Encurtador criado com sucesso!");
+                await loadRotators();
+                const newShortCode = result.shortUrl || result.short_code || newLinkSlug;
+                setSelectedRotator(result.original_url || newLinkTarget);
+                setShowCreateLink(false);
+                setNewLinkTitle('');
+                setNewLinkSlug('');
+                setNewLinkTarget('');
+            } else {
+                alert("Erro ao criar link: " + (result.error || "Tente outro código slug"));
+            }
+        } catch (e) {
+            alert("Erro ao criar encurtador.");
+        } finally {
+            setIsCreatingLink(false);
+        }
+    };
+
+    // Filter templates by name, category AND Status
+    const filteredTemplates = templates.filter(t => {
+        const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              t.category.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
+    // Pagination
+    const totalPages = Math.ceil(filteredTemplates.length / itemsPerPage);
+    const paginatedTemplates = filteredTemplates.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
     );
 
-    // Filter clients list based on search term (name or phone number)
     const filteredClients = clients.filter(c => {
         const nameMatch = (c.name || '').toLowerCase().includes(numberSearchTerm.toLowerCase());
         const phoneMatch = (c.phone || '').includes(numberSearchTerm) || (c.whatsapp || '').includes(numberSearchTerm) || (c.infobip_sender || '').includes(numberSearchTerm);
         return nameMatch || phoneMatch;
     });
 
+    const effectiveSender = useLuis ? LUIS_SENDER : (selectedClient?.infobip_sender || sidaoConfig?.infobip_sender);
+
     return (
         <div className="crm-container" style={{ minHeight: '100vh', padding: '32px' }}>
+            <style>{`
+                /* Visibilidade e Contraste Máximo para a Barra de Rolagem Horizontal e Vertical */
+                .visible-scrollbar::-webkit-scrollbar {
+                    width: 12px;
+                    height: 12px;
+                }
+                .visible-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 8px;
+                }
+                .visible-scrollbar::-webkit-scrollbar-thumb {
+                    background: #acf800; /* Verde Neon Plug */
+                    border-radius: 8px;
+                    border: 3px solid #090d16;
+                }
+                .visible-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #8ec700;
+                }
+            `}</style>
+
             <div className="crm-header-premium mb-8">
                 <div className="crm-title-group">
                     <div className="crm-badge-small">
@@ -359,7 +451,7 @@ const TemplateManager = () => {
                 </div>
             </div>
 
-            {/* Editable Credentials details panel to check for 403 errors */}
+            {/* Credentials parameters editable */}
             <div className="crm-card" style={{ padding: '24px', marginBottom: '24px', background: 'rgba(255,255,255,0.01)' }}>
                 <h3 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>Credenciais Ativas de Conexão</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -400,8 +492,9 @@ const TemplateManager = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '10px', minWidth: '350px', opacity: useLuis ? 0.4 : 1, pointerEvents: useLuis ? 'none' : 'auto', flex: 1 }}>
+            {/* Filters panel */}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '10px', minWidth: '350px', opacity: useLuis ? 0.4 : 1, pointerEvents: useLuis ? 'none' : 'auto', flex: 1.5 }}>
                     <div style={{ flex: 1 }}>
                         <label className="field-label" style={{ marginBottom: '8px' }}>Pesquisar Número / Cliente</label>
                         <div style={{ position: 'relative' }}>
@@ -434,15 +527,31 @@ const TemplateManager = () => {
                     </div>
                 </div>
 
-                <div style={{ minWidth: '250px', marginTop: '24px' }}>
+                <div style={{ minWidth: '180px' }}>
+                    <label className="field-label" style={{ marginBottom: '8px' }}>Status Meta</label>
+                    <select 
+                        className="field-input"
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                        style={{ height: '44px', background: 'var(--card-bg)' }}
+                    >
+                        <option value="ALL">Todos Status</option>
+                        <option value="APPROVED">APPROVED (Aprovado)</option>
+                        <option value="PENDING">PENDING (Em Análise)</option>
+                        <option value="REJECTED">REJECTED (Rejeitado)</option>
+                    </select>
+                </div>
+
+                <div style={{ flex: 1, minWidth: '220px' }}>
+                    <label className="field-label" style={{ marginBottom: '8px' }}>Buscar por Nome</label>
                     <div style={{ position: 'relative' }}>
-                        <Search size={20} style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                        <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
                         <input 
                             className="field-input" 
-                            placeholder="Filtrar templates por nome..." 
+                            placeholder="Buscar templates..." 
                             value={searchTerm} 
                             onChange={e => setSearchTerm(e.target.value)}
-                            style={{ height: '44px', paddingLeft: '60px' }}
+                            style={{ height: '44px', paddingLeft: '48px' }}
                         />
                     </div>
                 </div>
@@ -451,84 +560,119 @@ const TemplateManager = () => {
                     onClick={fetchTemplates} 
                     className="action-btn primary-btn" 
                     style={{ height: '44px', marginTop: '24px', padding: '0 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                    title="Recarregar do Servidor Infobip"
                 >
                     <RefreshCw size={18} /> CARREGAR TEMPLATES
                 </button>
             </div>
 
+            {useLuis && (
+                <div style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.2)', color: '#38bdf8', padding: '12px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '0.85rem', fontWeight: 800 }}>
+                    ℹ️ Credenciais do Luiz Ativas (Remetente: {LUIS_SENDER})
+                </div>
+            )}
+
             {isLoading ? (
                 <div style={{ color: 'var(--text-muted)' }}>Buscando templates na Infobip...</div>
-            ) : filteredTemplates.length === 0 ? (
+            ) : paginatedTemplates.length === 0 ? (
                 <div className="crm-card" style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
                     Nenhum template encontrado. Verifique as credenciais no painel acima e clique em "CARREGAR TEMPLATES".
                 </div>
             ) : (
-                <div className="crm-card" style={{ padding: '0', overflowX: 'auto', border: '1px solid var(--surface-border-subtle)', background: 'rgba(10,15,24,0.3)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
-                        <thead>
-                            <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--surface-border-subtle)' }}>
-                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Nome do Template</th>
-                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Categoria</th>
-                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Idioma</th>
-                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center' }}>Status Meta</th>
-                                <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'right' }}>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredTemplates.map(template => {
-                                let statusColor = '#f59e0b';
-                                let statusBg = 'rgba(245,158,11,0.08)';
-                                if (template.status === 'APPROVED') {
-                                    statusColor = '#acf800';
-                                    statusBg = 'rgba(172,248,0,0.08)';
-                                } else if (template.status === 'REJECTED') {
-                                    statusColor = '#ef4444';
-                                    statusBg = 'rgba(239,68,68,0.08)';
-                                }
+                <>
+                    {/* The visible-scrollbar class ensures high visibility on layout grids */}
+                    <div className="crm-card visible-scrollbar" style={{ padding: '0', overflowX: 'auto', border: '1px solid var(--surface-border-subtle)', background: 'rgba(10,15,24,0.3)', marginBottom: '24px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
+                            <thead>
+                                <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                    <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Nome do Template</th>
+                                    <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Categoria</th>
+                                    <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Idioma</th>
+                                    <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center' }}>Status Meta</th>
+                                    <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'right' }}>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedTemplates.map(template => {
+                                    let statusColor = '#f59e0b';
+                                    let statusBg = 'rgba(245,158,11,0.08)';
+                                    if (template.status === 'APPROVED') {
+                                        statusColor = '#acf800';
+                                        statusBg = 'rgba(172,248,0,0.08)';
+                                    } else if (template.status === 'REJECTED') {
+                                        statusColor = '#ef4444';
+                                        statusBg = 'rgba(239,68,68,0.08)';
+                                    }
 
-                                return (
-                                    <tr key={template.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                        <td style={{ padding: '20px 24px' }}>
-                                            <div style={{ fontWeight: 950, color: 'white', fontSize: '0.95rem' }}>{template.name}</div>
-                                        </td>
-                                        <td style={{ padding: '20px 24px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                            {template.category}
-                                        </td>
-                                        <td style={{ padding: '20px 24px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                            {template.language}
-                                        </td>
-                                        <td style={{ padding: '20px 24px', textAlign: 'center' }}>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '4px 10px', borderRadius: '8px', background: statusBg, color: statusColor, textTransform: 'uppercase', border: `1px solid ${statusColor}33` }}>
-                                                {template.status}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '20px 24px', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                <button 
-                                                    onClick={() => handleOpenEdit(template)} 
-                                                    className="action-btn ghost-btn" 
-                                                    style={{ padding: '0 14px', fontSize: '0.8rem', height: '36px', borderColor: '#38bdf8', color: '#38bdf8' }}
-                                                >
-                                                    <Edit size={14} /> EDITAR
-                                                </button>
-                                                {template.status === 'APPROVED' && (
+                                    return (
+                                        <tr key={template.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                            <td style={{ padding: '20px 24px' }}>
+                                                <div style={{ fontWeight: 950, color: 'white', fontSize: '0.95rem' }}>{template.name}</div>
+                                            </td>
+                                            <td style={{ padding: '20px 24px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                {template.category}
+                                            </td>
+                                            <td style={{ padding: '20px 24px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                {template.language}
+                                            </td>
+                                            <td style={{ padding: '20px 24px', textAlign: 'center' }}>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '4px 10px', borderRadius: '8px', background: statusBg, color: statusColor, textTransform: 'uppercase', border: `1px solid ${statusColor}33` }}>
+                                                    {template.status}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                     <button 
-                                                        onClick={() => handleOpenReconcile(template)} 
+                                                        onClick={() => handleOpenEdit(template)} 
                                                         className="action-btn ghost-btn" 
-                                                        style={{ padding: '0 14px', fontSize: '0.8rem', height: '36px', borderColor: '#acf800', color: '#acf800' }}
+                                                        style={{ padding: '0 14px', fontSize: '0.8rem', height: '36px', borderColor: '#38bdf8', color: '#38bdf8' }}
                                                     >
-                                                        <LinkIcon size={14} /> CONCILIAR CARD
+                                                        <Edit size={14} /> EDITAR
                                                     </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                                                    {template.status === 'APPROVED' && (
+                                                        <button 
+                                                            onClick={() => handleOpenReconcile(template)} 
+                                                            className="action-btn ghost-btn" 
+                                                            style={{ padding: '0 14px', fontSize: '0.8rem', height: '36px', borderColor: '#acf800', color: '#acf800' }}
+                                                        >
+                                                            <LinkIcon size={14} /> CONCILIAR CARD
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                Exibindo página <strong>{currentPage}</strong> de <strong>{totalPages}</strong> ({filteredTemplates.length} templates)
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button 
+                                    className="action-btn ghost-btn" 
+                                    style={{ height: '38px', padding: '0 16px' }}
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                >
+                                    Anterior
+                                </button>
+                                <button 
+                                    className="action-btn ghost-btn" 
+                                    style={{ height: '38px', padding: '0 16px' }}
+                                    disabled={currentPage === totalPages}
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                >
+                                    Próxima
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Edit Template Modal */}
@@ -593,7 +737,7 @@ const TemplateManager = () => {
             {/* Reconcile Card & Launch Modal */}
             {reconcileModalOpen && selectedTemplateForCard && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="crm-card" style={{ width: '100%', maxWidth: '650px', padding: '32px' }}>
+                    <div className="crm-card visible-scrollbar" style={{ width: '100%', maxWidth: '680px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>Conciliar Card e Lançar Campanha</h2>
@@ -618,37 +762,136 @@ const TemplateManager = () => {
                                 </select>
                             </div>
 
+                            {/* Beautifully Organized Card info Panel with one-click copy buttons */}
                             {selectedCard && (
-                                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem' }}>
-                                    <span style={{ fontWeight: 800, color: 'var(--primary-color)', display: 'block', marginBottom: '8px' }}>DADOS VINCULADOS DO CARD:</span>
-                                    <div>Planilha: <strong style={{ color: 'white' }}>{selectedCard.spreadsheet_url || 'Nenhuma'}</strong></div>
-                                    <div>Link de Mídia/Imagem: <strong style={{ color: 'white' }}>{selectedCard.media_url || 'Nenhuma'}</strong></div>
-                                    <div>Cópia do Anúncio: <span style={{ color: 'white', fontStyle: 'italic' }}>{selectedCard.ad_copy || 'Sem cópia'}</span></div>
+                                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    <span style={{ fontWeight: 900, color: 'var(--primary-color)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dados Vinculados do Card:</span>
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {/* Planilha link */}
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: '10px' }}>
+                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>URL da Planilha</span>
+                                                <span style={{ fontSize: '0.85rem', color: 'white', fontWeight: 700 }}>{selectedCard.spreadsheet_url || 'Nenhuma'}</span>
+                                            </div>
+                                            {selectedCard.spreadsheet_url && (
+                                                <button 
+                                                    onClick={() => handleCopy(selectedCard.spreadsheet_url, 'spreadsheet')}
+                                                    style={{ padding: '6px 12px', background: copiedField === 'spreadsheet' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'spreadsheet' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                >
+                                                    {copiedField === 'spreadsheet' ? <Check size={12} /> : <Copy size={12} />}
+                                                    {copiedField === 'spreadsheet' ? 'Copiado!' : 'Copiar'}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Media link */}
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: '10px' }}>
+                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Imagem / Mídia do Envio</span>
+                                                <span style={{ fontSize: '0.85rem', color: 'white', fontWeight: 700 }}>{selectedCard.media_url || 'Nenhuma'}</span>
+                                            </div>
+                                            {selectedCard.media_url && (
+                                                <button 
+                                                    onClick={() => handleCopy(selectedCard.media_url, 'media')}
+                                                    style={{ padding: '6px 12px', background: copiedField === 'media' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'media' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                >
+                                                    {copiedField === 'media' ? <Check size={12} /> : <Copy size={12} />}
+                                                    {copiedField === 'media' ? 'Copiado!' : 'Copiar'}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Ad Copy */}
+                                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px 14px', borderRadius: '10px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cópia do Anúncio (Ad Copy)</span>
+                                                {selectedCard.ad_copy && (
+                                                    <button 
+                                                        onClick={() => handleCopy(selectedCard.ad_copy, 'adcopy')}
+                                                        style={{ padding: '4px 8px', background: copiedField === 'adcopy' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'adcopy' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                    >
+                                                        {copiedField === 'adcopy' ? <Check size={10} /> : <Copy size={10} />}
+                                                        {copiedField === 'adcopy' ? 'Copiado!' : 'Copiar Texto'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p style={{ fontSize: '0.85rem', color: 'white', margin: 0, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{selectedCard.ad_copy || 'Sem cópia'}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
-                            <div>
-                                <label className="field-label">Selecione o Link do Encurtador/Rotador</label>
-                                <select 
-                                    className="field-input" 
-                                    value={selectedRotator}
-                                    onChange={e => setSelectedRotator(e.target.value)}
-                                    style={{ background: 'var(--card-bg)' }}
-                                >
-                                    <option value="">Selecione um link do encurtador...</option>
-                                    {rotatorLinks.map(l => (
-                                        <option key={l.id} value={l.destination_url}>{l.title} ({l.short_code})</option>
-                                    ))}
-                                </select>
+                            {/* Shortener selection with inline creation option */}
+                            <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                    <label className="field-label" style={{ margin: 0 }}>Selecione o Link do Encurtador/Rotador</label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowCreateLink(!showCreateLink)}
+                                        style={{ background: 'transparent', border: 'none', color: '#acf800', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                        <Plus size={14} /> {showCreateLink ? 'Cancelar' : 'Criar Novo Encurtador'}
+                                    </button>
+                                </div>
+
+                                {showCreateLink ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '12px' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>Criar Link Encurtador Instantâneo</span>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                            <input 
+                                                className="field-input" 
+                                                placeholder="Título do Link (Ex: WhatsApp Campanha)" 
+                                                value={newLinkTitle} 
+                                                onChange={e => setNewLinkTitle(e.target.value)}
+                                                style={{ height: '38px', fontSize: '0.8rem' }}
+                                            />
+                                            <input 
+                                                className="field-input" 
+                                                placeholder="Slug/Código (Ex: 144516)" 
+                                                value={newLinkSlug} 
+                                                onChange={e => setNewLinkSlug(e.target.value)}
+                                                style={{ height: '38px', fontSize: '0.8rem' }}
+                                            />
+                                        </div>
+                                        <input 
+                                            className="field-input" 
+                                            placeholder="URL de Destino Real (Ex: https://wa.me/...)" 
+                                            value={newLinkTarget} 
+                                            onChange={e => setNewLinkTarget(e.target.value)}
+                                            style={{ height: '38px', fontSize: '0.8rem' }}
+                                        />
+                                        <button 
+                                            onClick={handleCreateShortLink}
+                                            disabled={isCreatingLink}
+                                            style={{ height: '36px', background: '#acf800', color: 'black', border: 'none', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer' }}
+                                        >
+                                            {isCreatingLink ? 'Criando...' : 'CRIAR E SELECIONAR LINK'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <select 
+                                        className="field-input" 
+                                        value={selectedRotator}
+                                        onChange={e => setSelectedRotator(e.target.value)}
+                                        style={{ height: '44px', background: 'var(--card-bg)' }}
+                                    >
+                                        <option value="">Selecione um link do encurtador...</option>
+                                        {rotatorLinks.map(l => (
+                                            <option key={l.id} value={l.destination_url}>{l.title} ({l.short_code})</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
 
+                            {/* Bind variables premium CSS updates */}
                             {varBindings.length > 0 && (
-                                <div>
-                                    <label className="field-label" style={{ marginBottom: '12px' }}>Vincular Variáveis do Template (Body)</label>
-                                    <div className="flex flex-col gap-3">
+                                <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                    <label className="field-label" style={{ marginBottom: '16px', display: 'block' }}>Vincular Variáveis do Template (Corpo)</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         {varBindings.map((val, idx) => (
-                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary-color)', minWidth: '40px' }}>{"{{"}{idx + 1}{"}}"}:</span>
+                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(0,0,0,0.15)', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)', minWidth: '45px' }}>{"{{"}{idx + 1}{"}}"}:</span>
                                                 <select 
                                                     className="field-input"
                                                     value={val}
@@ -657,13 +900,13 @@ const TemplateManager = () => {
                                                         copy[idx] = e.target.value;
                                                         setVarBindings(copy);
                                                     }}
-                                                    style={{ flex: 1, height: '42px', fontSize: '0.85rem', background: 'var(--card-bg)' }}
+                                                    style={{ flex: 1, height: '40px', fontSize: '0.85rem', background: '#090d16', borderColor: 'rgba(255,255,255,0.1)' }}
                                                 >
-                                                    <option value="">Vincular a...</option>
-                                                    <option value="name">Nome do Cliente</option>
-                                                    <option value={selectedCard?.media_url || ''}>Link da Imagem (do Card)</option>
+                                                    <option value="">Preenchimento da Coluna da Planilha...</option>
+                                                    <option value="name">Nome do Cliente (Variável na Planilha)</option>
+                                                    <option value={selectedCard?.media_url || ''}>Link da Imagem (Mídia do Card)</option>
                                                     <option value={selectedRotator || ''}>Link do Encurtador (Selecionado acima)</option>
-                                                    <option value="custom">Preenchimento Manual / Planilha</option>
+                                                    <option value="custom">Valor Fixo Manual / Outro</option>
                                                 </select>
                                             </div>
                                         ))}
@@ -672,16 +915,22 @@ const TemplateManager = () => {
                             )}
                         </div>
 
+                        {/* Quick Copy Panel for Google Chrome Extension */}
+                        <div style={{ marginTop: '24px', background: 'rgba(172,248,0,0.04)', border: '1px dashed rgba(172,248,0,0.3)', padding: '16px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#acf800' }}>🔌 INTEGRAÇÃO COM EXTENSÃO INFOBIP</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ao clicar em Ir Para Disparos, os dados são salvos na sua área de transferência para colagem rápida. Você também pode disparar eventos para sua extensão de forma automática.</span>
+                        </div>
+
                         <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
                             <button 
                                 onClick={handleLaunchCampaign} 
                                 className="action-btn primary-btn" 
-                                style={{ flex: 1, height: '48px', gap: '8px' }}
+                                style={{ flex: 1, height: '52px', gap: '8px', fontSize: '0.95rem', cursor: 'pointer' }}
                                 disabled={!selectedCard}
                             >
-                                IR PARA DISPAROS <Play size={16} />
+                                IR PARA DISPAROS <Play size={18} />
                             </button>
-                            <button onClick={() => setReconcileModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }}>CANCELAR</button>
+                            <button onClick={() => setReconcileModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '52px' }}>CANCELAR</button>
                         </div>
                     </div>
                 </div>
