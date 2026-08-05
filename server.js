@@ -6835,6 +6835,65 @@ app.post('/api/materials/favorite', async (req, res) => {
     }
 });
 
+// --- Facebook OAuth Routes ---
+const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_CLIENT_ID || '1279053100832329';
+const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET || process.env.FACEBOOK_CLIENT_SECRET || 'a289f8162125de2b289f92501a6d47d4';
+const FACEBOOK_REDIRECT_URI = 'https://plugesales.com/api/auth/callback/facebook';
+
+app.get('/api/auth/facebook', (req, res) => {
+    const state = Math.random().toString(36).substring(7);
+    const fbAuthUrl = `https://www.facebook.com/v12.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(FACEBOOK_REDIRECT_URI)}&state=${state}&scope=email,public_profile`;
+    res.redirect(fbAuthUrl);
+});
+
+app.get('/api/auth/callback/facebook', async (req, res) => {
+    const { code } = req.query;
+    if (!code) {
+        return res.redirect('https://plugesales.com/login?error=no_code');
+    }
+
+    try {
+        const tokenUrl = `https://graph.facebook.com/v12.0/oauth/access_token?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(FACEBOOK_REDIRECT_URI)}&client_secret=${FACEBOOK_APP_SECRET}&code=${code}`;
+        const tokenRes = await fetch(tokenUrl);
+        const tokenData = await tokenRes.json();
+
+        if (tokenData.error) {
+            console.error("Facebook Token Exchange Error:", tokenData.error);
+            return res.redirect('https://plugesales.com/login?error=token_exchange_failed');
+        }
+
+        const accessToken = tokenData.access_token;
+        const profileUrl = `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`;
+        const profileRes = await fetch(profileUrl);
+        const profileData = await profileRes.json();
+
+        if (profileData.error) {
+            console.error("Facebook Profile Fetch Error:", profileData.error);
+            return res.redirect('https://plugesales.com/login?error=profile_fetch_failed');
+        }
+
+        const { id: fbId, name, email } = profileData;
+        const finalEmail = email || `${fbId}@facebook.com`;
+
+        let userRes = await pool.query('SELECT id, name, email, role, notification_number, infobip_key, infobip_sender, infobip_url FROM users WHERE email = $1', [finalEmail]);
+        let user = userRes.rows[0];
+
+        if (!user) {
+            const insertRes = await pool.query(
+                `INSERT INTO users (name, email, role, password, disparo_quantidade) 
+                 VALUES ($1, $2, 'CLIENT', $3, 0) RETURNING id, name, email, role, notification_number, infobip_key, infobip_sender, infobip_url`,
+                [name, finalEmail, `fb_${fbId}_${Math.random().toString(36).substring(4)}`]
+            );
+            user = insertRes.rows[0];
+        }
+
+        res.redirect(`https://plugesales.com/login?social_user=${encodeURIComponent(JSON.stringify(user))}`);
+    } catch (err) {
+        console.error("Error in Facebook Auth callback:", err);
+        res.redirect('https://plugesales.com/login?error=server_error');
+    }
+});
+
 // ============================================================
 // EXTERNAL ACCOUNTING API
 // ============================================================

@@ -1,13 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, ShieldCheck, Lock, User } from 'lucide-react';
 import SupremeLogo from '../components/SupremeLogo';
 
 const Login = () => {
-    const { login } = useAuth();
+    const { login, setUser } = useAuth() as any;
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const socialUserStr = params.get('social_user');
+        if (socialUserStr) {
+            try {
+                const socialUser = JSON.parse(decodeURIComponent(socialUserStr));
+                if (socialUser && socialUser.id) {
+                    setUser(socialUser);
+                    localStorage.setItem('auth_user', JSON.stringify(socialUser));
+                    if (socialUser.role === 'CLIENT') {
+                        window.location.href = '/client-dashboard';
+                    } else {
+                        window.location.href = '/';
+                    }
+                }
+            } catch (err) {
+                console.error("Error parsing social login user:", err);
+            }
+        }
+    }, [setUser]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
