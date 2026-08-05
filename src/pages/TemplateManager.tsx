@@ -328,7 +328,7 @@ const TemplateManager = () => {
 
         setEditForm({
             bodyText: bodyVal,
-            category: template.category || 'MARKETING',
+            category: 'UTILITY', // Always force UTILITY
             headerText: headText,
             headerFormat: headFormat,
             buttonUrl: btnUrl
@@ -336,14 +336,26 @@ const TemplateManager = () => {
         setEditModalOpen(true);
     };
 
+    const validateCredentials = () => {
+        // Automatically correct Luiz credentials if they type his number
+        if (activeSender.trim() === LUIS_SENDER && activeApiKey.trim() !== LUIS_KEY) {
+            setActiveApiKey(LUIS_KEY);
+            setActiveBaseUrl(LUIS_BASE);
+            alert("Aviso: Chave de API e Host corrigidos automaticamente para corresponder ao remetente do Luiz!");
+            return false;
+        }
+        return true;
+    };
+
     const handleSaveTemplate = async () => {
         if (!editingTemplate) return;
         if (!activeApiKey || !activeSender) return alert("Parâmetros do remetente ausentes.");
+        if (!validateCredentials()) return;
 
         try {
             const cleanBaseUrl = activeBaseUrl.trim() || '8k6xv1.api-us.infobip.com';
             const payload: any = {
-                category: editForm.category,
+                category: 'UTILITY',
                 structure: {
                     body: {
                         text: editForm.bodyText
@@ -407,6 +419,7 @@ const TemplateManager = () => {
     const handleScheduleTemplateEdit = async () => {
         if (!editingTemplate) return;
         if (!activeApiKey || !activeSender) return alert("Parâmetros do remetente ausentes.");
+        if (!validateCredentials()) return;
 
         setIsScheduling(true);
         try {
@@ -416,7 +429,7 @@ const TemplateManager = () => {
                 sender: activeSender,
                 api_key: activeApiKey,
                 base_url: activeBaseUrl,
-                category: editForm.category,
+                category: 'UTILITY',
                 body_text: editForm.bodyText,
                 header_text: editForm.headerText,
                 header_format: editForm.headerFormat,
@@ -584,8 +597,6 @@ const TemplateManager = () => {
         return nameMatch || phoneMatch;
     });
 
-    const effectiveSender = useLuis ? LUIS_SENDER : (selectedClient?.infobip_sender || sidaoConfig?.infobip_sender);
-
     return (
         <div className="crm-container" style={{ minHeight: '100vh', padding: '32px' }}>
             <style>{`
@@ -667,7 +678,15 @@ const TemplateManager = () => {
                         <input 
                             className="field-input" 
                             value={activeSender} 
-                            onChange={e => setActiveSender(e.target.value)} 
+                            onChange={e => {
+                                const val = e.target.value.trim();
+                                setActiveSender(val);
+                                if (val === LUIS_SENDER) {
+                                    setUseLuis(true);
+                                } else if (sidaoConfig && val === sidaoConfig.infobip_sender) {
+                                    setUseLuis(false);
+                                }
+                            }} 
                             placeholder="Ex: 5511925399038"
                             style={{ height: '44px', background: 'rgba(0,0,0,0.2)' }}
                         />
@@ -1032,11 +1051,10 @@ const TemplateManager = () => {
                                 <label className="field-label">Categoria do Template</label>
                                 <select 
                                     className="field-input" 
-                                    value={editForm.category}
-                                    onChange={e => setEditForm({...editForm, category: e.target.value})}
-                                    style={{ background: 'var(--card-bg)' }}
+                                    value="UTILITY"
+                                    disabled
+                                    style={{ background: 'var(--card-bg)', opacity: 0.7, cursor: 'not-allowed' }}
                                 >
-                                    <option value="MARKETING">MARKETING (Envio comercial)</option>
                                     <option value="UTILITY">UTILITY (Mensagens de serviço/transacionais)</option>
                                 </select>
                             </div>
