@@ -62,6 +62,13 @@ const TemplateManager = () => {
     const [reconcileModalOpen, setReconcileModalOpen] = useState(false);
     const [copiedField, setCopiedField] = useState<string | null>(null);
 
+    // Transition launch screen state
+    const [showLaunchTransition, setShowLaunchTransition] = useState(false);
+    const [campaignName, setCampaignName] = useState('');
+    const [transitionExcel, setTransitionExcel] = useState('');
+    const [transitionImage, setTransitionImage] = useState('');
+    const [transitionCardId, setTransitionCardId] = useState('');
+
     // Variables binding for transmission
     const [varBindings, setVarBindings] = useState<string[]>([]);
     const [rotatorLinks, setRotatorLinks] = useState<any[]>([]);
@@ -125,7 +132,7 @@ const TemplateManager = () => {
 
             const data = await response.json();
             setTemplates(data.templates || []);
-            setCurrentPage(1); // reset to page 1 on search
+            setCurrentPage(1);
         } catch (err: any) {
             console.error("Error fetching templates from Infobip:", err);
             alert(`Erro ao buscar templates: ${err.message}\nVerifique a Chave de API, Remetente e URL informados.`);
@@ -244,7 +251,6 @@ const TemplateManager = () => {
                 ];
             }
 
-            // High performance edit endpoint fallback handler (v2 fallback to v1 on 404)
             let res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${activeSender.trim()}/templates/${editingTemplate.name}`, {
                 method: 'PUT',
                 headers: {
@@ -281,13 +287,18 @@ const TemplateManager = () => {
     const handleOpenReconcile = async (template: InfobipTemplate) => {
         setSelectedTemplateForCard(template);
         setReconcileModalOpen(true);
+        setShowLaunchTransition(false); // Reset step to 1
         
         const targetUserId = useLuis ? (clients[0]?.id || user?.id) : (selectedClient?.id || user?.id);
         try {
             const subs = await dbService.getClientSubmissionsByUserId(targetUserId);
             setCards(subs || []);
             if (subs && subs.length > 0) {
-                setSelectedCard(subs[0]);
+                const initialCard = subs[0];
+                setSelectedCard(initialCard);
+                setTransitionExcel(initialCard.spreadsheet_url || '');
+                setTransitionImage(initialCard.media_url || '');
+                setTransitionCardId(initialCard.id || '');
             }
         } catch (e) {
             console.error("Error loading submissions:", e);
@@ -303,6 +314,28 @@ const TemplateManager = () => {
         const matchVars = bodyText.match(/\{\{\d+\}\}/g) || [];
         const uniqueVarsCount = new Set(matchVars).size;
         setVarBindings(Array(uniqueVarsCount).fill(''));
+        
+        // Default campaign name
+        setCampaignName(`${template.name} - ${new Date().toLocaleDateString('pt-BR')}`);
+    };
+
+    const handleSelectCard = (card: any) => {
+        setSelectedCard(card);
+        if (card) {
+            setTransitionExcel(card.spreadsheet_url || '');
+            setTransitionImage(card.media_url || '');
+            setTransitionCardId(card.id || '');
+            setCampaignName(`${selectedTemplateForCard?.name || 'Campanha'} - ${card.profile_name || ''}`);
+        }
+    };
+
+    // Step 2: Show transition details
+    const handleProceedToTransition = () => {
+        if (!selectedCard) {
+            alert("Por favor, selecione um Card.");
+            return;
+        }
+        setShowLaunchTransition(true);
     };
 
     const handleLaunchCampaign = () => {
@@ -311,6 +344,14 @@ const TemplateManager = () => {
         const bindingsQuery = varBindings.map((val, idx) => `var_${idx + 1}=${encodeURIComponent(val)}`).join('&');
         
         window.location.href = `/dispatch?from=${activeSender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
+    };
+
+    const handleLaunchExtension = () => {
+        if (!selectedTemplateForCard) return;
+
+        // Auto-run URL for the extension
+        const autoUrl = `https://portal-ny2.infobip.com/broadcast/create/?auto=true&broadcastName=${encodeURIComponent(campaignName)}&senderNumber=${encodeURIComponent(activeSender)}&recipientBase=${encodeURIComponent(transitionExcel)}`;
+        window.open(autoUrl, '_blank');
     };
 
     const handleCopy = (text: string, fieldName: string) => {
@@ -339,7 +380,6 @@ const TemplateManager = () => {
             if (result && !result.error) {
                 alert("Link Encurtador criado com sucesso!");
                 await loadRotators();
-                const newShortCode = result.shortUrl || result.short_code || newLinkSlug;
                 setSelectedRotator(result.original_url || newLinkTarget);
                 setShowCreateLink(false);
                 setNewLinkTitle('');
@@ -381,7 +421,6 @@ const TemplateManager = () => {
     return (
         <div className="crm-container" style={{ minHeight: '100vh', padding: '32px' }}>
             <style>{`
-                /* Visibilidade e Contraste Máximo para a Barra de Rolagem Horizontal e Vertical */
                 .visible-scrollbar::-webkit-scrollbar {
                     width: 12px;
                     height: 12px;
@@ -391,7 +430,7 @@ const TemplateManager = () => {
                     border-radius: 8px;
                 }
                 .visible-scrollbar::-webkit-scrollbar-thumb {
-                    background: #acf800; /* Verde Neon Plug */
+                    background: #acf800; 
                     border-radius: 8px;
                     border: 3px solid #090d16;
                 }
@@ -579,7 +618,6 @@ const TemplateManager = () => {
                 </div>
             ) : (
                 <>
-                    {/* The visible-scrollbar class ensures high visibility on layout grids */}
                     <div className="crm-card visible-scrollbar" style={{ padding: '0', overflowX: 'auto', border: '1px solid var(--surface-border-subtle)', background: 'rgba(10,15,24,0.3)', marginBottom: '24px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
                             <thead>
@@ -740,198 +778,302 @@ const TemplateManager = () => {
                     <div className="crm-card visible-scrollbar" style={{ width: '100%', maxWidth: '680px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>Conciliar Card e Lançar Campanha</h2>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>
+                                    {showLaunchTransition ? 'Iniciar Transmissão' : 'Conciliar Card'}
+                                </h2>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>Template: {selectedTemplateForCard.name}</p>
                             </div>
                             <button onClick={() => setReconcileModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
-                        <div className="flex-col gap-4">
-                            <div>
-                                <label className="field-label">Selecione o Card do Cliente (Upload de Contatos/Campanha)</label>
-                                <select 
-                                    className="field-input" 
-                                    value={selectedCard ? selectedCard.id : ''} 
-                                    onChange={e => setSelectedCard(cards.find(c => String(c.id) === e.target.value))}
-                                    style={{ background: 'var(--card-bg)' }}
-                                >
-                                    <option value="">Selecione um card ativo...</option>
-                                    {cards.map(c => (
-                                        <option key={c.id} value={c.id}>{c.profile_name} (DDD: {c.ddd})</option>
-                                    ))}
-                                </select>
-                            </div>
+                        {!showLaunchTransition ? (
+                            /* STEP 1: Conciliar Card */
+                            <div className="flex-col gap-4">
+                                <div>
+                                    <label className="field-label">Selecione o Card do Cliente (Upload de Contatos/Campanha)</label>
+                                    <select 
+                                        className="field-input" 
+                                        value={selectedCard ? selectedCard.id : ''} 
+                                        onChange={e => handleSelectCard(cards.find(c => String(c.id) === e.target.value))}
+                                        style={{ background: 'var(--card-bg)' }}
+                                    >
+                                        <option value="">Selecione um card ativo...</option>
+                                        {cards.map(c => (
+                                            <option key={c.id} value={c.id}>{c.profile_name} (DDD: {c.ddd})</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            {/* Beautifully Organized Card info Panel with one-click copy buttons */}
-                            {selectedCard && (
-                                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                    <span style={{ fontWeight: 900, color: 'var(--primary-color)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dados Vinculados do Card:</span>
-                                    
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {/* Planilha link */}
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: '10px' }}>
-                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>URL da Planilha</span>
-                                                <span style={{ fontSize: '0.85rem', color: 'white', fontWeight: 700 }}>{selectedCard.spreadsheet_url || 'Nenhuma'}</span>
-                                            </div>
-                                            {selectedCard.spreadsheet_url && (
-                                                <button 
-                                                    onClick={() => handleCopy(selectedCard.spreadsheet_url, 'spreadsheet')}
-                                                    style={{ padding: '6px 12px', background: copiedField === 'spreadsheet' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'spreadsheet' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                                >
-                                                    {copiedField === 'spreadsheet' ? <Check size={12} /> : <Copy size={12} />}
-                                                    {copiedField === 'spreadsheet' ? 'Copiado!' : 'Copiar'}
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {/* Media link */}
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: '10px' }}>
-                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Imagem / Mídia do Envio</span>
-                                                <span style={{ fontSize: '0.85rem', color: 'white', fontWeight: 700 }}>{selectedCard.media_url || 'Nenhuma'}</span>
-                                            </div>
-                                            {selectedCard.media_url && (
-                                                <button 
-                                                    onClick={() => handleCopy(selectedCard.media_url, 'media')}
-                                                    style={{ padding: '6px 12px', background: copiedField === 'media' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'media' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                                >
-                                                    {copiedField === 'media' ? <Check size={12} /> : <Copy size={12} />}
-                                                    {copiedField === 'media' ? 'Copiado!' : 'Copiar'}
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {/* Ad Copy */}
-                                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px 14px', borderRadius: '10px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cópia do Anúncio (Ad Copy)</span>
-                                                {selectedCard.ad_copy && (
+                                {selectedCard && (
+                                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                        <span style={{ fontWeight: 900, color: 'var(--primary-color)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dados Vinculados do Card:</span>
+                                        
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: '10px' }}>
+                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>URL da Planilha</span>
+                                                    <span style={{ fontSize: '0.85rem', color: 'white', fontWeight: 700 }}>{selectedCard.spreadsheet_url || 'Nenhuma'}</span>
+                                                </div>
+                                                {selectedCard.spreadsheet_url && (
                                                     <button 
-                                                        onClick={() => handleCopy(selectedCard.ad_copy, 'adcopy')}
-                                                        style={{ padding: '4px 8px', background: copiedField === 'adcopy' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'adcopy' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                        onClick={() => handleCopy(selectedCard.spreadsheet_url, 'spreadsheet')}
+                                                        style={{ padding: '6px 12px', background: copiedField === 'spreadsheet' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'spreadsheet' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                                                     >
-                                                        {copiedField === 'adcopy' ? <Check size={10} /> : <Copy size={10} />}
-                                                        {copiedField === 'adcopy' ? 'Copiado!' : 'Copiar Texto'}
+                                                        {copiedField === 'spreadsheet' ? <Check size={12} /> : <Copy size={12} />}
+                                                        {copiedField === 'spreadsheet' ? 'Copiado!' : 'Copiar'}
                                                     </button>
                                                 )}
                                             </div>
-                                            <p style={{ fontSize: '0.85rem', color: 'white', margin: 0, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{selectedCard.ad_copy || 'Sem cópia'}</p>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: '10px' }}>
+                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Imagem / Mídia do Envio</span>
+                                                    <span style={{ fontSize: '0.85rem', color: 'white', fontWeight: 700 }}>{selectedCard.media_url || 'Nenhuma'}</span>
+                                                </div>
+                                                {selectedCard.media_url && (
+                                                    <button 
+                                                        onClick={() => handleCopy(selectedCard.media_url, 'media')}
+                                                        style={{ padding: '6px 12px', background: copiedField === 'media' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'media' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                    >
+                                                        {copiedField === 'media' ? <Check size={12} /> : <Copy size={12} />}
+                                                        {copiedField === 'media' ? 'Copiado!' : 'Copiar'}
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px 14px', borderRadius: '10px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cópia do Anúncio (Ad Copy)</span>
+                                                    {selectedCard.ad_copy && (
+                                                        <button 
+                                                            onClick={() => handleCopy(selectedCard.ad_copy, 'adcopy')}
+                                                            style={{ padding: '4px 8px', background: copiedField === 'adcopy' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: copiedField === 'adcopy' ? '#10b981' : 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                        >
+                                                            {copiedField === 'adcopy' ? <Check size={10} /> : <Copy size={10} />}
+                                                            {copiedField === 'adcopy' ? 'Copiado!' : 'Copiar Texto'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <p style={{ fontSize: '0.85rem', color: 'white', margin: 0, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{selectedCard.ad_copy || 'Sem cópia'}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Shortener selection with inline creation option */}
-                            <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                    <label className="field-label" style={{ margin: 0 }}>Selecione o Link do Encurtador/Rotador</label>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowCreateLink(!showCreateLink)}
-                                        style={{ background: 'transparent', border: 'none', color: '#acf800', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                    >
-                                        <Plus size={14} /> {showCreateLink ? 'Cancelar' : 'Criar Novo Encurtador'}
-                                    </button>
-                                </div>
-
-                                {showCreateLink ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '12px' }}>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>Criar Link Encurtador Instantâneo</span>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Título do Link (Ex: WhatsApp Campanha)" 
-                                                value={newLinkTitle} 
-                                                onChange={e => setNewLinkTitle(e.target.value)}
-                                                style={{ height: '38px', fontSize: '0.8rem' }}
-                                            />
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Slug/Código (Ex: 144516)" 
-                                                value={newLinkSlug} 
-                                                onChange={e => setNewLinkSlug(e.target.value)}
-                                                style={{ height: '38px', fontSize: '0.8rem' }}
-                                            />
-                                        </div>
-                                        <input 
-                                            className="field-input" 
-                                            placeholder="URL de Destino Real (Ex: https://wa.me/...)" 
-                                            value={newLinkTarget} 
-                                            onChange={e => setNewLinkTarget(e.target.value)}
-                                            style={{ height: '38px', fontSize: '0.8rem' }}
-                                        />
+                                <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                        <label className="field-label" style={{ margin: 0 }}>Selecione o Link do Encurtador/Rotador</label>
                                         <button 
-                                            onClick={handleCreateShortLink}
-                                            disabled={isCreatingLink}
-                                            style={{ height: '36px', background: '#acf800', color: 'black', border: 'none', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer' }}
+                                            type="button"
+                                            onClick={() => setShowCreateLink(!showCreateLink)}
+                                            style={{ background: 'transparent', border: 'none', color: '#acf800', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                         >
-                                            {isCreatingLink ? 'Criando...' : 'CRIAR E SELECIONAR LINK'}
+                                            <Plus size={14} /> {showCreateLink ? 'Cancelar' : 'Criar Novo Encurtador'}
                                         </button>
                                     </div>
-                                ) : (
-                                    <select 
-                                        className="field-input" 
-                                        value={selectedRotator}
-                                        onChange={e => setSelectedRotator(e.target.value)}
-                                        style={{ height: '44px', background: 'var(--card-bg)' }}
-                                    >
-                                        <option value="">Selecione um link do encurtador...</option>
-                                        {rotatorLinks.map(l => (
-                                            <option key={l.id} value={l.destination_url}>{l.title} ({l.short_code})</option>
-                                        ))}
-                                    </select>
-                                )}
-                            </div>
 
-                            {/* Bind variables premium CSS updates */}
-                            {varBindings.length > 0 && (
-                                <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
-                                    <label className="field-label" style={{ marginBottom: '16px', display: 'block' }}>Vincular Variáveis do Template (Corpo)</label>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {varBindings.map((val, idx) => (
-                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(0,0,0,0.15)', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
-                                                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)', minWidth: '45px' }}>{"{{"}{idx + 1}{"}}"}:</span>
-                                                <select 
-                                                    className="field-input"
-                                                    value={val}
-                                                    onChange={e => {
-                                                        const copy = [...varBindings];
-                                                        copy[idx] = e.target.value;
-                                                        setVarBindings(copy);
-                                                    }}
-                                                    style={{ flex: 1, height: '40px', fontSize: '0.85rem', background: '#090d16', borderColor: 'rgba(255,255,255,0.1)' }}
-                                                >
-                                                    <option value="">Preenchimento da Coluna da Planilha...</option>
-                                                    <option value="name">Nome do Cliente (Variável na Planilha)</option>
-                                                    <option value={selectedCard?.media_url || ''}>Link da Imagem (Mídia do Card)</option>
-                                                    <option value={selectedRotator || ''}>Link do Encurtador (Selecionado acima)</option>
-                                                    <option value="custom">Valor Fixo Manual / Outro</option>
-                                                </select>
+                                    {showCreateLink ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '12px' }}>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'white' }}>Criar Link Encurtador Instantâneo</span>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                <input 
+                                                    className="field-input" 
+                                                    placeholder="Título do Link (Ex: WhatsApp Campanha)" 
+                                                    value={newLinkTitle} 
+                                                    onChange={e => setNewLinkTitle(e.target.value)}
+                                                    style={{ height: '38px', fontSize: '0.8rem' }}
+                                                />
+                                                <input 
+                                                    className="field-input" 
+                                                    placeholder="Slug/Código (Ex: 144516)" 
+                                                    value={newLinkSlug} 
+                                                    onChange={e => setNewLinkSlug(e.target.value)}
+                                                    style={{ height: '38px', fontSize: '0.8rem' }}
+                                                />
                                             </div>
-                                        ))}
+                                            <input 
+                                                className="field-input" 
+                                                placeholder="URL de Destino Real (Ex: https://wa.me/...)" 
+                                                value={newLinkTarget} 
+                                                onChange={e => setNewLinkTarget(e.target.value)}
+                                                style={{ height: '38px', fontSize: '0.8rem' }}
+                                            />
+                                            <button 
+                                                onClick={handleCreateShortLink}
+                                                disabled={isCreatingLink}
+                                                style={{ height: '36px', background: '#acf800', color: 'black', border: 'none', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer' }}
+                                            >
+                                                {isCreatingLink ? 'Criando...' : 'CRIAR E SELECIONAR LINK'}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select 
+                                            className="field-input" 
+                                            value={selectedRotator}
+                                            onChange={e => setSelectedRotator(e.target.value)}
+                                            style={{ height: '44px', background: 'var(--card-bg)' }}
+                                        >
+                                            <option value="">Selecione um link do encurtador...</option>
+                                            {rotatorLinks.map(l => (
+                                                <option key={l.id} value={l.destination_url}>{l.title} ({l.short_code})</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+
+                                {varBindings.length > 0 && (
+                                    <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                        <label className="field-label" style={{ marginBottom: '16px', display: 'block' }}>Vincular Variáveis do Template (Corpo)</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            {varBindings.map((val, idx) => (
+                                                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(0,0,0,0.15)', padding: '8px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)', minWidth: '45px' }}>{"{{"}{idx + 1}{"}}"}:</span>
+                                                    <select 
+                                                        className="field-input"
+                                                        value={val}
+                                                        onChange={e => {
+                                                            const copy = [...varBindings];
+                                                            copy[idx] = e.target.value;
+                                                            setVarBindings(copy);
+                                                        }}
+                                                        style={{ flex: 1, height: '40px', fontSize: '0.85rem', background: '#090d16', borderColor: 'rgba(255,255,255,0.1)' }}
+                                                    >
+                                                        <option value="">Preenchimento da Coluna da Planilha...</option>
+                                                        <option value="name">Nome do Cliente (Variável na Planilha)</option>
+                                                        <option value={selectedCard?.media_url || ''}>Link da Imagem (Mídia do Card)</option>
+                                                        <option value={selectedRotator || ''}>Link do Encurtador (Selecionado acima)</option>
+                                                        <option value="custom">Valor Fixo Manual / Outro</option>
+                                                    </select>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                                    <button 
+                                        onClick={handleProceedToTransition} 
+                                        className="action-btn primary-btn" 
+                                        style={{ flex: 1, height: '52px', gap: '8px', fontSize: '0.95rem', cursor: 'pointer' }}
+                                        disabled={!selectedCard}
+                                    >
+                                        IR PARA DISPAROS <Play size={18} />
+                                    </button>
+                                    <button onClick={() => setReconcileModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '52px' }}>CANCELAR</button>
+                                </div>
+                            </div>
+                        ) : (
+                            /* STEP 2: Iniciar Transmissão Transition Screen */
+                            <div className="flex-col gap-4">
+                                <div style={{ background: 'rgba(172,248,0,0.03)', border: '1px solid rgba(172,248,0,0.15)', padding: '16px', borderRadius: '12px', fontSize: '0.85rem', color: '#acf800', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    🚀 Configure os detalhes finais para enviar para a extensão ou disparar manualmente.
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div>
+                                        <label className="field-label">Nome da Campanha/Transmissão</label>
+                                        <input 
+                                            className="field-input" 
+                                            value={campaignName} 
+                                            onChange={e => setCampaignName(e.target.value)} 
+                                            placeholder="Ex: Campanha WhatsApp"
+                                            style={{ height: '42px', background: 'rgba(0,0,0,0.2)' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">Remetente (Número Selecionado)</label>
+                                        <input 
+                                            className="field-input" 
+                                            value={activeSender} 
+                                            disabled
+                                            style={{ height: '42px', background: 'rgba(0,0,0,0.4)', opacity: 0.7 }}
+                                        />
                                     </div>
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Quick Copy Panel for Google Chrome Extension */}
-                        <div style={{ marginTop: '24px', background: 'rgba(172,248,0,0.04)', border: '1px dashed rgba(172,248,0,0.3)', padding: '16px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#acf800' }}>🔌 INTEGRAÇÃO COM EXTENSÃO INFOBIP</span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Ao clicar em Ir Para Disparos, os dados são salvos na sua área de transferência para colagem rápida. Você também pode disparar eventos para sua extensão de forma automática.</span>
-                        </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div>
+                                        <label className="field-label">Planilha Excel (Contatos)</label>
+                                        <input 
+                                            className="field-input" 
+                                            value={transitionExcel} 
+                                            onChange={e => setTransitionExcel(e.target.value)} 
+                                            placeholder="URL da Planilha..."
+                                            style={{ height: '42px', background: 'rgba(0,0,0,0.2)' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">ID da Transmissão (Card ID)</label>
+                                        <input 
+                                            className="field-input" 
+                                            value={transitionCardId} 
+                                            onChange={e => setTransitionCardId(e.target.value)} 
+                                            placeholder="Opcional (Em branco se não registrado)..."
+                                            style={{ height: '42px', background: 'rgba(0,0,0,0.2)' }}
+                                        />
+                                    </div>
+                                </div>
 
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                            <button 
-                                onClick={handleLaunchCampaign} 
-                                className="action-btn primary-btn" 
-                                style={{ flex: 1, height: '52px', gap: '8px', fontSize: '0.95rem', cursor: 'pointer' }}
-                                disabled={!selectedCard}
-                            >
-                                IR PARA DISPAROS <Play size={18} />
-                            </button>
-                            <button onClick={() => setReconcileModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '52px' }}>CANCELAR</button>
-                        </div>
+                                <div>
+                                    <label className="field-label">Link da Imagem (Mídia URL)</label>
+                                    <input 
+                                        className="field-input" 
+                                        value={transitionImage} 
+                                        onChange={e => setTransitionImage(e.target.value)} 
+                                        placeholder="URL da Imagem..."
+                                        style={{ height: '42px', background: 'rgba(0,0,0,0.2)' }}
+                                    />
+                                </div>
+
+                                {/* Quick Copy Panel for Manual / Extension override */}
+                                <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)', marginTop: '8px' }}>
+                                    <span style={{ fontWeight: 900, color: 'white', fontSize: '0.8rem', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Painel de Cópia Rápida para Extensão:</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '8px' }}>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Nome da Campanha: <strong style={{ color: 'white' }}>{campaignName}</strong></span>
+                                            <button onClick={() => handleCopy(campaignName, 'c_camp')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>
+                                                {copiedField === 'c_camp' ? 'Copiado!' : 'Copiar'}
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '8px' }}>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Planilha Excel: <strong style={{ color: 'white' }}>{transitionExcel || 'Nenhuma'}</strong></span>
+                                            <button onClick={() => handleCopy(transitionExcel, 'c_excel')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>
+                                                {copiedField === 'c_excel' ? 'Copiado!' : 'Copiar'}
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '8px' }}>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Link da Imagem: <strong style={{ color: 'white' }}>{transitionImage || 'Nenhum'}</strong></span>
+                                            <button onClick={() => handleCopy(transitionImage, 'c_image')} style={{ border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>
+                                                {copiedField === 'c_image' ? 'Copiado!' : 'Copiar'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                                    <button 
+                                        onClick={handleLaunchExtension} 
+                                        className="action-btn primary-btn" 
+                                        style={{ flex: 1, height: '52px', gap: '8px', background: '#acf800', color: 'black', fontWeight: 900, cursor: 'pointer' }}
+                                    >
+                                        INICIAR TRANSMISSÃO AUTOMÁTICA <ExternalLink size={18} />
+                                    </button>
+                                    <button 
+                                        onClick={handleLaunchCampaign} 
+                                        className="action-btn ghost-btn" 
+                                        style={{ flex: 1, height: '52px', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
+                                    >
+                                        DISPARAR VIA SISTEMA PLUG
+                                    </button>
+                                </div>
+                                <button 
+                                    onClick={() => setShowLaunchTransition(false)} 
+                                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.8rem', cursor: 'pointer', marginTop: '8px', textAlign: 'center', width: '100%' }}
+                                >
+                                    ← Voltar para seleção do Card
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
