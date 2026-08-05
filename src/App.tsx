@@ -63,6 +63,7 @@ import FinanceRefunds from './pages/FinanceRefunds';
 import FinanceRequests from './pages/FinanceRequests';
 import FinanceInventory from './pages/FinanceInventory';
 import CollaboratorsRegistration from './pages/CollaboratorsRegistration';
+import TemplateManager from './pages/TemplateManager';
 import './index.css';
 import './crm.css';
 import './finance.css';
@@ -356,6 +357,7 @@ function AppContent() {
           <Route path="/my-wallet" element={<ProtectedRoute adminOnly={true}><MyWallet /></ProtectedRoute>} />
           <Route path="/admin/plug-cards" element={<ProtectedRoute adminOnly={true}><AdminPlugCards /></ProtectedRoute>} />
           <Route path="/employee-clients" element={<ProtectedRoute><EmployeeClients /></ProtectedRoute>} />
+          <Route path="/infobip/templates" element={<ProtectedRoute><TemplateManager /></ProtectedRoute>} />
           
           {/* Finance Module Routes */}
           <Route path="/finance/dashboard" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />

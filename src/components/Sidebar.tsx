@@ -30,7 +30,8 @@ import {
     Database,
     Smartphone,
     DollarSign,
-    Book
+    Book,
+    FileText
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -119,6 +120,7 @@ const Sidebar = () => {
                 { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE', 'CLIENT'] },
                 { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
                 { name: 'Clientes', path: '/employee-clients', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Gerenciador de Templates', path: '/infobip/templates', icon: <FileText />, roles: ['ADMIN', 'EMPLOYEE'] },
             ]
         },
         {

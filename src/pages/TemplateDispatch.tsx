@@ -120,18 +120,44 @@ const TemplateDispatch = () => {
     const autoDispatchTriggered = useRef(false);
 
     useEffect(() => {
+        const queryParams = new URLSearchParams(window.location.search);
+        const queryFrom = queryParams.get('from');
+        const queryTemplate = queryParams.get('template');
+        const queryCardId = queryParams.get('card_id');
+
+        if (queryFrom) setSenderNumbers(queryFrom);
+        if (queryTemplate) setTemplateName(queryTemplate);
+
         if (location.state?.key) setApiKey(location.state.key);
-        if (location.state?.sender) setSenderNumbers(location.state.sender);
+        if (location.state?.sender && !queryFrom) setSenderNumbers(location.state.sender);
 
         // Load settings from DB
         dbService.getSettings(user?.role).then(settings => {
             if (!location.state?.key && settings['infobip_key']) setApiKey(settings['infobip_key']);
-            if (!location.state?.sender && settings['infobip_sender']) {
+            if (!location.state?.sender && settings['infobip_sender'] && !queryFrom) {
                 setSenderNumbers(settings['infobip_sender']);
-            } else if (location.state?.sender) {
+            } else if (location.state?.sender && !queryFrom) {
                 setSenderNumbers(location.state.sender);
             }
         });
+
+        if (queryCardId && user?.id) {
+            dbService.getClientSubmissionsByUserId(user.id).then(subs => {
+                const matchedCard = subs?.find((c: any) => String(c.id) === queryCardId);
+                if (matchedCard) {
+                    if (matchedCard.media_url) {
+                        setMediaUrl(matchedCard.media_url);
+                        setHeaderType('IMAGE');
+                    }
+                    if (matchedCard.spreadsheet_url) {
+                        // Bind spreadsheet contacts
+                        setIsBulkMode(true);
+                        // Let's set receiver to spreadsheet
+                        setToNumber(matchedCard.spreadsheet_url);
+                    }
+                }
+            });
+        }
 
         // Fetch official senders removed
 
@@ -264,11 +290,15 @@ const TemplateDispatch = () => {
         if (bodyText) {
             const matches = bodyText.match(/\{\{\d+\}\}/g);
             if (matches) {
+                const queryParams = new URLSearchParams(window.location.search);
                 const uniqueIds = Array.from(new Set(matches.map(m => parseInt(m.match(/\d+/)![0]))));
-                setPlaceholders(uniqueIds.sort((a, b) => a - b).map((id, idx) => ({
-                    id: id,
-                    value: bodyExamples[idx] || `Valor ${id}`
-                })));
+                setPlaceholders(uniqueIds.sort((a, b) => a - b).map((id, idx) => {
+                    const queryVal = queryParams.get(`var_${id}`);
+                    return {
+                        id: id,
+                        value: queryVal || bodyExamples[idx] || `Valor ${id}`
+                    };
+                }));
             } else {
                 setPlaceholders([]);
             }
