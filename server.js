@@ -4652,12 +4652,11 @@ app.post('/api/templates/schedule-edit', async (req, res) => {
     if (!template_name || !sender || !api_key || !base_url || !category || !body_text) {
         return res.status(400).json({ error: 'Parâmetros obrigatórios ausentes para o agendamento.' });
     }
-
     try {
         const result = await pool.query(
             `INSERT INTO scheduled_template_edits (
                 user_id, template_name, sender, api_key, base_url, category, body_text, header_text, header_format, button_url, status
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'PENDING') RETURNING *`,
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
             [user_id || null, template_name, sender, api_key, base_url, category, body_text, header_text || '', header_format || 'NONE', button_url || '', 'PENDING']
         );
         res.json(result.rows[0]);

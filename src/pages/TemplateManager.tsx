@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, ExternalLink, ArrowRight, Layers, Link as LinkIcon, Database, Key, Copy, Check, Filter, Clock, Trash2, AlertTriangle } from 'lucide-react';
+import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, ExternalLink, ArrowRight, Layers, Link as LinkIcon, Database, Key, Copy, Check, Filter, Clock, Trash2, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 interface InfobipTemplate {
@@ -72,6 +72,7 @@ const TemplateManager = () => {
     const [isLoadingQueue, setIsLoadingQueue] = useState(false);
     const [countdownText, setCountdownText] = useState('');
     const [isWindowOpen, setIsWindowOpen] = useState(false);
+    const [showQueuePanel, setShowQueuePanel] = useState(false); // Collapsible state
 
     // Reconcile Card State
     const [selectedTemplateForCard, setSelectedTemplateForCard] = useState<InfobipTemplate | null>(null);
@@ -667,6 +668,128 @@ const TemplateManager = () => {
                 </div>
             </div>
 
+            {/* Collapsible Scheduled Queue Dashboard Log Panel */}
+            <div className="crm-card" style={{ marginBottom: '32px', padding: '20px', background: 'rgba(172,248,0,0.01)', border: '1px solid rgba(172,248,0,0.1)' }}>
+                <div 
+                    onClick={() => setShowQueuePanel(!showQueuePanel)} 
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Clock size={20} style={{ color: '#acf800' }} />
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Fila de Edições em Lote / Agendamentos
+                            </h3>
+                            <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                Clique para expandir a lista de edições programadas para a virada do lote.
+                            </p>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        {/* Countdown Badge */}
+                        <div style={{ 
+                            background: isWindowOpen ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.03)',
+                            color: isWindowOpen ? '#acf800' : 'white',
+                            border: `1px solid ${isWindowOpen ? 'rgba(172,248,0,0.2)' : 'rgba(255,255,255,0.1)'}`,
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            fontSize: '0.75rem',
+                            fontWeight: 900,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }} onClick={e => e.stopPropagation()}>
+                            <Clock size={12} className={isWindowOpen ? 'animate-pulse' : ''} />
+                            {countdownText || 'Calculando...'}
+                        </div>
+                        {showQueuePanel ? <ChevronUp size={20} style={{ opacity: 0.5 }} /> : <ChevronDown size={20} style={{ opacity: 0.5 }} />}
+                    </div>
+                </div>
+
+                {showQueuePanel && (
+                    <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '16px' }}>
+                            <button 
+                                onClick={fetchQueue} 
+                                className="action-btn ghost-btn" 
+                                style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem' }}
+                                disabled={isLoadingQueue}
+                            >
+                                <RefreshCw size={12} style={{ marginRight: '6px' }} /> Atualizar
+                            </button>
+                            <button 
+                                onClick={handleClearHistory} 
+                                className="action-btn ghost-btn" 
+                                style={{ height: '32px', padding: '0 12px', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
+                            >
+                                <Trash2 size={12} style={{ marginRight: '6px' }} /> Limpar Histórico
+                            </button>
+                        </div>
+
+                        {isLoadingQueue && scheduledEdits.length === 0 ? (
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Carregando fila...</div>
+                        ) : scheduledEdits.length === 0 ? (
+                            <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', background: 'rgba(0,0,0,0.15)', borderRadius: '12px' }}>
+                                Nenhum agendamento ativo ou histórico na fila.
+                            </div>
+                        ) : (
+                            <div className="visible-scrollbar" style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                                    <thead>
+                                        <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Template</th>
+                                            <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Remetente</th>
+                                            <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Categoria</th>
+                                            <th style={{ padding: '12px 16px', color: 'var(--text-muted)', textAlign: 'center' }}>Status</th>
+                                            <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Criado em</th>
+                                            <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Atualizado em</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {scheduledEdits.map((item) => {
+                                            let statusColor = '#3b82f6';
+                                            let statusBg = 'rgba(59,130,246,0.08)';
+                                            if (item.status === 'SUCCESS') {
+                                                statusColor = '#acf800';
+                                                statusBg = 'rgba(172,248,0,0.08)';
+                                            } else if (item.status === 'ERROR') {
+                                                statusColor = '#ef4444';
+                                                statusBg = 'rgba(239,68,68,0.08)';
+                                            } else if (item.status === 'PROCESSING') {
+                                                statusColor = '#eab308';
+                                                statusBg = 'rgba(234,179,8,0.08)';
+                                            }
+
+                                            return (
+                                                <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                                    <td style={{ padding: '12px 16px', fontWeight: 800, color: 'white' }}>{item.template_name}</td>
+                                                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{item.sender}</td>
+                                                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{item.category}</td>
+                                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                            <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '3px 8px', borderRadius: '6px', background: statusBg, color: statusColor, textTransform: 'uppercase', border: `1px solid ${statusColor}22` }}>
+                                                                {item.status}
+                                                            </span>
+                                                            {item.status === 'ERROR' && item.error_message && (
+                                                                <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', marginTop: '4px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.error_message}>
+                                                                    ⚠️ {item.error_message}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.created_at).toLocaleString('pt-BR')}</td>
+                                                    <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.updated_at).toLocaleString('pt-BR')}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
             {/* Filters panel */}
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '10px', minWidth: '350px', opacity: useLuis ? 0.4 : 1, pointerEvents: useLuis ? 'none' : 'auto', flex: 1.5 }}>
@@ -848,117 +971,6 @@ const TemplateManager = () => {
                     )}
                 </>
             )}
-
-            {/* Scheduled Queue Dashboard Log Panel */}
-            <div className="crm-card visible-scrollbar" style={{ marginTop: '40px', padding: '24px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <Clock size={18} style={{ color: 'var(--primary-color)' }} />
-                            <h2 style={{ fontSize: '1.15rem', fontWeight: 950, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fila de Edições em Lote</h2>
-                        </div>
-                        <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Edições agendadas são enviadas à Meta em massa nos primeiros 5 minutos de cada hora cheia.
-                        </p>
-                    </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        {/* Countdown Badge */}
-                        <div style={{ 
-                            background: isWindowOpen ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.03)',
-                            color: isWindowOpen ? '#acf800' : 'white',
-                            border: `1px solid ${isWindowOpen ? 'rgba(172,248,0,0.2)' : 'rgba(255,255,255,0.1)'}`,
-                            padding: '8px 16px',
-                            borderRadius: '10px',
-                            fontSize: '0.8rem',
-                            fontWeight: 900,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}>
-                            <Clock size={14} className={isWindowOpen ? 'animate-pulse' : ''} />
-                            {countdownText || 'Calculando...'}
-                        </div>
-
-                        <button 
-                            onClick={fetchQueue} 
-                            className="action-btn ghost-btn" 
-                            style={{ height: '36px', padding: '0 12px', fontSize: '0.75rem' }}
-                            disabled={isLoadingQueue}
-                        >
-                            <RefreshCw size={12} style={{ marginRight: '6px' }} /> Atualizar
-                        </button>
-                        <button 
-                            onClick={handleClearHistory} 
-                            className="action-btn ghost-btn" 
-                            style={{ height: '36px', padding: '0 12px', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
-                        >
-                            <Trash2 size={12} style={{ marginRight: '6px' }} /> Limpar Histórico
-                        </button>
-                    </div>
-                </div>
-
-                {isLoadingQueue && scheduledEdits.length === 0 ? (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Carregando fila...</div>
-                ) : scheduledEdits.length === 0 ? (
-                    <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', background: 'rgba(0,0,0,0.15)', borderRadius: '12px' }}>
-                        Nenhum agendamento ativo ou histórico na fila.
-                    </div>
-                ) : (
-                    <div className="visible-scrollbar" style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
-                            <thead>
-                                <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Template</th>
-                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Remetente</th>
-                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Categoria</th>
-                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)', textAlign: 'center' }}>Status</th>
-                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Criado em</th>
-                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Atualizado em</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {scheduledEdits.map((item) => {
-                                    let statusColor = '#3b82f6';
-                                    let statusBg = 'rgba(59,130,246,0.08)';
-                                    if (item.status === 'SUCCESS') {
-                                        statusColor = '#acf800';
-                                        statusBg = 'rgba(172,248,0,0.08)';
-                                    } else if (item.status === 'ERROR') {
-                                        statusColor = '#ef4444';
-                                        statusBg = 'rgba(239,68,68,0.08)';
-                                    } else if (item.status === 'PROCESSING') {
-                                        statusColor = '#eab308';
-                                        statusBg = 'rgba(234,179,8,0.08)';
-                                    }
-
-                                    return (
-                                        <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                                            <td style={{ padding: '12px 16px', fontWeight: 800, color: 'white' }}>{item.template_name}</td>
-                                            <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{item.sender}</td>
-                                            <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{item.category}</td>
-                                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '3px 8px', borderRadius: '6px', background: statusBg, color: statusColor, textTransform: 'uppercase', border: `1px solid ${statusColor}22` }}>
-                                                        {item.status}
-                                                    </span>
-                                                    {item.status === 'ERROR' && item.error_message && (
-                                                        <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', marginTop: '4px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.error_message}>
-                                                            ⚠️ {item.error_message}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.created_at).toLocaleString('pt-BR')}</td>
-                                            <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.updated_at).toLocaleString('pt-BR')}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
 
             {/* Edit Template Modal with full scrollbar support */}
             {editModalOpen && editingTemplate && (
