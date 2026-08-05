@@ -288,37 +288,25 @@ const TemplateManager = () => {
         setReconcileModalOpen(true);
         setShowLaunchTransition(false); 
         
-        // Safely determine targetUserId
-        let targetUserId = user?.id;
-        if (useLuis && clients.length > 0) {
-            targetUserId = clients[0]?.id || user?.id;
-        } else if (selectedClient) {
-            targetUserId = selectedClient.id || user?.id;
-        }
-
-        if (targetUserId) {
-            try {
-                const subs = await dbService.getClientSubmissionsByUserId(targetUserId);
-                const safeSubs = Array.isArray(subs) ? subs : [];
-                setCards(safeSubs);
-                if (safeSubs.length > 0) {
-                    const initialCard = safeSubs[0];
-                    setSelectedCard(initialCard);
-                    setTransitionExcel(initialCard.spreadsheet_url || '');
-                    setTransitionImage(initialCard.media_url || '');
-                    setTransitionCardId(initialCard.id || '');
-                } else {
-                    setSelectedCard(null);
-                    setTransitionExcel('');
-                    setTransitionImage('');
-                    setTransitionCardId('');
-                }
-            } catch (e) {
-                console.error("Error loading submissions:", e);
-                setCards([]);
+        try {
+            // Load ALL client submissions so admin/employee can reconcile with any active card
+            const subs = await dbService.getClientSubmissions();
+            const safeSubs = Array.isArray(subs) ? subs : [];
+            setCards(safeSubs);
+            if (safeSubs.length > 0) {
+                const initialCard = safeSubs[0];
+                setSelectedCard(initialCard);
+                setTransitionExcel(initialCard.spreadsheet_url || '');
+                setTransitionImage(initialCard.media_url || '');
+                setTransitionCardId(initialCard.id || '');
+            } else {
                 setSelectedCard(null);
+                setTransitionExcel('');
+                setTransitionImage('');
+                setTransitionCardId('');
             }
-        } else {
+        } catch (e) {
+            console.error("Error loading submissions:", e);
             setCards([]);
             setSelectedCard(null);
         }
@@ -360,7 +348,7 @@ const TemplateManager = () => {
 
         const bindingsQuery = varBindings.map((val, idx) => `var_${idx + 1}=${encodeURIComponent(val)}`).join('&');
         const targetUrl = `/dispatch?from=${activeSender}&template=${selectedTemplateForCard.name}&card_id=${selectedCard.id}&${bindingsQuery}&rotator=${encodeURIComponent(selectedRotator)}`;
-        window.open(targetUrl, '_blank'); // Open in a new tab keeping current page active
+        window.open(targetUrl, '_blank'); 
     };
 
     const handleLaunchExtension = () => {
@@ -868,11 +856,11 @@ const TemplateManager = () => {
                                                         </button>
                                                     )}
                                                 </div>
-                                            <p style={{ fontSize: '0.85rem', color: 'white', margin: 0, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{selectedCard.ad_copy || 'Sem cópia'}</p>
+                                                <p style={{ fontSize: '0.85rem', color: 'white', margin: 0, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{selectedCard.ad_copy || 'Sem cópia'}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
                                 <div style={{ background: 'rgba(255,255,255,0.01)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -969,7 +957,6 @@ const TemplateManager = () => {
                                         onClick={handleProceedToTransition} 
                                         className="action-btn primary-btn" 
                                         style={{ flex: 1, height: '52px', gap: '8px', fontSize: '0.95rem', cursor: 'pointer' }}
-                                        disabled={!selectedCard}
                                     >
                                         IR PARA DISPAROS <Play size={18} />
                                     </button>
