@@ -340,9 +340,9 @@ const TemplateManager = () => {
     const handleSaveTemplate = async () => {
         if (!editingTemplate) return;
         
-        let sender = (sidaoConfig && sidaoConfig.infobip_sender) ? sidaoConfig.infobip_sender : '5511925399038';
-        let apiKey = (sidaoConfig && sidaoConfig.infobip_key) ? sidaoConfig.infobip_key : activeApiKey;
-        let baseUrl = (sidaoConfig && sidaoConfig.infobip_url) ? sidaoConfig.infobip_url : '8k6xv1.api-us.infobip.com';
+        let sender = activeSender;
+        let apiKey = activeApiKey;
+        let baseUrl = activeBaseUrl;
 
         if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 
@@ -415,9 +415,9 @@ const TemplateManager = () => {
     const handleScheduleTemplateEdit = async () => {
         if (!editingTemplate) return;
 
-        let sender = (sidaoConfig && sidaoConfig.infobip_sender) ? sidaoConfig.infobip_sender : '5511925399038';
-        let apiKey = (sidaoConfig && sidaoConfig.infobip_key) ? sidaoConfig.infobip_key : activeApiKey;
-        let baseUrl = (sidaoConfig && sidaoConfig.infobip_url) ? sidaoConfig.infobip_url : '8k6xv1.api-us.infobip.com';
+        let sender = activeSender || (sidaoConfig && sidaoConfig.infobip_sender) || '5511925399038';
+        let apiKey = activeApiKey || (sidaoConfig && sidaoConfig.infobip_key) || '';
+        let baseUrl = activeBaseUrl || (sidaoConfig && sidaoConfig.infobip_url) || '8k6xv1.api-us.infobip.com';
 
         if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 

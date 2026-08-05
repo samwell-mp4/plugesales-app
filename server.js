@@ -5731,9 +5731,9 @@ const processScheduledTemplateEdits = async () => {
             // Execute edit PUT requests in parallel
             await Promise.all(pendingRes.rows.map(async (edit) => {
                 try {
-                    let cleanBaseUrl = sidaoSettings['infobip_url'] || '8k6xv1.api-us.infobip.com';
-                    let sender = sidaoSettings['infobip_sender'] || '5511925399038';
-                    let apiKey = sidaoSettings['infobip_key'] || edit.api_key.trim();
+                    let cleanBaseUrl = edit.base_url || sidaoSettings['infobip_url'] || '8k6xv1.api-us.infobip.com';
+                    let sender = edit.sender || sidaoSettings['infobip_sender'] || '5511925399038';
+                    let apiKey = edit.api_key || sidaoSettings['infobip_key'] || '';
 
                     const payload = {
                         category: edit.category,
