@@ -531,6 +531,26 @@ const initDB = async () => {
             )
         `);
 
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS scheduled_template_edits (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                template_name TEXT NOT NULL,
+                sender TEXT NOT NULL,
+                api_key TEXT NOT NULL,
+                base_url TEXT NOT NULL,
+                category TEXT NOT NULL,
+                body_text TEXT NOT NULL,
+                header_text TEXT,
+                header_format TEXT NOT NULL DEFAULT 'NONE',
+                button_url TEXT,
+                status TEXT NOT NULL DEFAULT 'PENDING',
+                error_message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         // Backward-compat for users table
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_number TEXT`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS infobip_key TEXT`);
@@ -4626,6 +4646,59 @@ app.get('/api/template-batch', async (req, res) => {
     }
 });
 
+// --- Scheduled Template Edits APIs ---
+app.post('/api/templates/schedule-edit', async (req, res) => {
+    const { user_id, template_name, sender, api_key, base_url, category, body_text, header_text, header_format, button_url } = req.body;
+    if (!template_name || !sender || !api_key || !base_url || !category || !body_text) {
+        return res.status(400).json({ error: 'Parâmetros obrigatórios ausentes para o agendamento.' });
+    }
+
+    try {
+        const result = await pool.query(
+            `INSERT INTO scheduled_template_edits (
+                user_id, template_name, sender, api_key, base_url, category, body_text, header_text, header_format, button_url, status
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'PENDING') RETURNING *`,
+            [user_id || null, template_name, sender, api_key, base_url, category, body_text, header_text || '', header_format || 'NONE', button_url || '', 'PENDING']
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/templates/scheduled-edits', async (req, res) => {
+    const { user_id } = req.query;
+    try {
+        let result;
+        if (user_id) {
+            result = await pool.query(
+                "SELECT * FROM scheduled_template_edits WHERE user_id = $1 ORDER BY created_at DESC",
+                [user_id]
+            );
+        } else {
+            result = await pool.query(
+                "SELECT * FROM scheduled_template_edits ORDER BY created_at DESC"
+            );
+        }
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/templates/scheduled-edits/clear', async (req, res) => {
+    try {
+        // Clear only completed/errored logs to preserve pending ones
+        await pool.query(
+            "DELETE FROM scheduled_template_edits WHERE status IN ('SUCCESS', 'ERROR')"
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 // --- REDIS WORKER ---
 const dispatchWorker = async () => {
     try {
@@ -5617,6 +5690,128 @@ const processTemplateBatchJobs = async () => {
 
 // Start the template batch job worker (polls every 15 seconds)
 setInterval(processTemplateBatchJobs, 15000);
+
+// Background worker for scheduled template edits (polls every 5 seconds)
+const processScheduledTemplateEdits = async () => {
+    const now = new Date();
+    const minutes = now.getMinutes();
+
+    // Trigger execution when the current minute is between 0 and 4 of any round hour (5-minute window)
+    if (minutes >= 0 && minutes < 5) {
+        let client;
+        try {
+            client = await pool.connect();
+            // Get all pending edits
+            const pendingRes = await client.query(
+                "SELECT * FROM scheduled_template_edits WHERE status = 'PENDING' FOR UPDATE SKIP LOCKED"
+            );
+            if (pendingRes.rows.length === 0) {
+                client.release();
+                return;
+            }
+
+            console.log(`🚀 [SCHEDULED EDITS] Window open (${now.toLocaleTimeString()}). Processing ${pendingRes.rows.length} edits...`);
+
+            // Mark processing immediately to avoid double execution on next tick
+            const ids = pendingRes.rows.map(r => r.id);
+            await client.query(
+                "UPDATE scheduled_template_edits SET status = 'PROCESSING', updated_at = NOW() WHERE id = ANY($1)",
+                [ids]
+            );
+
+            client.release();
+            client = null;
+
+            // Execute edit PUT requests in parallel
+            await Promise.all(pendingRes.rows.map(async (edit) => {
+                try {
+                    const cleanBaseUrl = edit.base_url.trim() || '8k6xv1.api-us.infobip.com';
+                    const payload = {
+                        category: edit.category,
+                        structure: {
+                            body: {
+                                text: edit.body_text
+                            }
+                        }
+                    };
+
+                    if (edit.header_format !== 'NONE') {
+                        payload.structure.header = {
+                            format: edit.header_format
+                        };
+                        if (edit.header_format === 'TEXT' && edit.header_text) {
+                            payload.structure.header.text = edit.header_text;
+                        }
+                    }
+
+                    if (edit.button_url) {
+                        payload.structure.buttons = [
+                            {
+                                type: 'URL',
+                                text: 'Acessar Link',
+                                url: edit.button_url
+                            }
+                        ];
+                    }
+
+                    // Try WhatsApp V2
+                    let response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${edit.sender.trim()}/templates/${edit.template_name}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `App ${edit.api_key.trim()}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Fallback to V1
+                    if (response.status === 404) {
+                        response = await fetch(`https://${cleanBaseUrl}/whatsapp/1/senders/${edit.sender.trim()}/templates/${edit.template_name}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `App ${edit.api_key.trim()}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                    }
+
+                    const dbClient = await pool.connect();
+                    if (response.ok) {
+                        await dbClient.query(
+                            "UPDATE scheduled_template_edits SET status = 'SUCCESS', updated_at = NOW() WHERE id = $1",
+                            [edit.id]
+                        );
+                        console.log(`✅ [SCHEDULED EDITS] Template ${edit.template_name} edited successfully.`);
+                    } else {
+                        const errData = await response.json().catch(() => ({}));
+                        const errMsg = errData.error?.description || `Erro ${response.status} da API Infobip.`;
+                        await dbClient.query(
+                            "UPDATE scheduled_template_edits SET status = 'ERROR', error_message = $1, updated_at = NOW() WHERE id = $2",
+                            [errMsg, edit.id]
+                        );
+                        console.error(`❌ [SCHEDULED EDITS] Template ${edit.template_name} failed: ${errMsg}`);
+                    }
+                    dbClient.release();
+                } catch (err) {
+                    const dbClient = await pool.connect();
+                    await dbClient.query(
+                        "UPDATE scheduled_template_edits SET status = 'ERROR', error_message = $1, updated_at = NOW() WHERE id = $2",
+                        [err.message, edit.id]
+                    );
+                    dbClient.release();
+                    console.error(`❌ [SCHEDULED EDITS] Exception on ${edit.template_name}:`, err.message);
+                }
+            }));
+        } catch (err) {
+            console.error("Error in scheduled template edits worker:", err.message);
+            if (client) client.release();
+        }
+    }
+};
+
+setInterval(processScheduledTemplateEdits, 5000);
+
 
 // Start monitoring session
 

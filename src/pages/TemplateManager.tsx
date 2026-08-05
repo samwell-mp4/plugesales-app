@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, ExternalLink, ArrowRight, Layers, Link as LinkIcon, Database, Key, Copy, Check, Filter } from 'lucide-react';
+import { FileText, Search, Settings, Save, Edit, RefreshCw, X, Plus, Play, ExternalLink, ArrowRight, Layers, Link as LinkIcon, Database, Key, Copy, Check, Filter, Clock, Trash2, AlertTriangle } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 interface InfobipTemplate {
@@ -14,6 +14,17 @@ interface InfobipTemplate {
         buttons?: any[];
     };
     components?: any[];
+}
+
+interface ScheduledEdit {
+    id: number;
+    template_name: string;
+    sender: string;
+    category: string;
+    status: string;
+    error_message?: string;
+    created_at: string;
+    updated_at: string;
 }
 
 const TemplateManager = () => {
@@ -54,6 +65,13 @@ const TemplateManager = () => {
         headerFormat: 'NONE',
         buttonUrl: ''
     });
+    const [isScheduling, setIsScheduling] = useState(false);
+
+    // Scheduled Queue Log State
+    const [scheduledEdits, setScheduledEdits] = useState<ScheduledEdit[]>([]);
+    const [isLoadingQueue, setIsLoadingQueue] = useState(false);
+    const [countdownText, setCountdownText] = useState('');
+    const [isWindowOpen, setIsWindowOpen] = useState(false);
 
     // Reconcile Card State
     const [selectedTemplateForCard, setSelectedTemplateForCard] = useState<InfobipTemplate | null>(null);
@@ -163,10 +181,67 @@ const TemplateManager = () => {
         }
     };
 
+    // Load and clear queue methods
+    const fetchQueue = async () => {
+        setIsLoadingQueue(true);
+        try {
+            const list = await dbService.getScheduledTemplateEdits(user?.role === 'CLIENT' ? user?.id : undefined);
+            setScheduledEdits(Array.isArray(list) ? list : []);
+        } catch (e) {
+            console.error("Error loading scheduled queue:", e);
+        } finally {
+            setIsLoadingQueue(false);
+        }
+    };
+
+    const handleClearHistory = async () => {
+        if (!confirm("Tem certeza que deseja limpar o histórico de edições concluídas?")) return;
+        try {
+            const res = await dbService.clearScheduledTemplateEdits();
+            if (res.success) {
+                fetchQueue();
+            } else {
+                alert("Erro ao limpar histórico.");
+            }
+        } catch (e) {
+            alert("Erro de conexão ao limpar histórico.");
+        }
+    };
+
     useEffect(() => {
         loadClients();
         loadSettings();
         loadRotators();
+        fetchQueue();
+
+        // Real-time Countdown Timer Interval (every 1s)
+        const timer = setInterval(() => {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            if (minutes >= 0 && minutes < 5) {
+                setIsWindowOpen(true);
+                const secondsRemaining = (5 * 60) - (minutes * 60 + now.getSeconds());
+                const secs = secondsRemaining % 60;
+                const mins = Math.floor(secondsRemaining / 60);
+                setCountdownText(`🚀 Janela Ativa! Envio fechando em: ${mins}m ${secs}s`);
+            } else {
+                setIsWindowOpen(false);
+                const nextHour = new Date(now);
+                nextHour.setHours(now.getHours() + 1, 0, 0, 0);
+                const diffMs = nextHour.getTime() - now.getTime();
+                const mins = Math.floor(diffMs / 60000);
+                const secs = Math.floor((diffMs % 60000) / 1000);
+                setCountdownText(`Próximo lote em: ${mins}m ${secs}s`);
+            }
+        }, 1000);
+
+        // Fetch queue logs every 10 seconds
+        const queuePoll = setInterval(fetchQueue, 10000);
+
+        return () => {
+            clearInterval(timer);
+            clearInterval(queuePoll);
+        };
     }, []);
 
     useEffect(() => {
@@ -293,6 +368,41 @@ const TemplateManager = () => {
             }
         } catch (err) {
             alert("Erro de conexão ao salvar template.");
+        }
+    };
+
+    // Add to schedule queue
+    const handleScheduleTemplateEdit = async () => {
+        if (!editingTemplate) return;
+        if (!activeApiKey || !activeSender) return alert("Parâmetros do remetente ausentes.");
+
+        setIsScheduling(true);
+        try {
+            const payload = {
+                user_id: user?.id,
+                template_name: editingTemplate.name,
+                sender: activeSender,
+                api_key: activeApiKey,
+                base_url: activeBaseUrl,
+                category: editForm.category,
+                body_text: editForm.bodyText,
+                header_text: editForm.headerText,
+                header_format: editForm.headerFormat,
+                button_url: editForm.buttonUrl
+            };
+
+            const res = await dbService.scheduleTemplateEdit(payload);
+            if (res && !res.error) {
+                alert("Alterações salvas! O template foi agendado para a fila de lote.");
+                setEditModalOpen(false);
+                fetchQueue();
+            } else {
+                alert("Erro ao agendar: " + (res.error || "Tente novamente."));
+            }
+        } catch (e) {
+            alert("Erro de conexão ao agendar.");
+        } finally {
+            setIsScheduling(false);
         }
     };
 
@@ -739,6 +849,117 @@ const TemplateManager = () => {
                 </>
             )}
 
+            {/* Scheduled Queue Dashboard Log Panel */}
+            <div className="crm-card visible-scrollbar" style={{ marginTop: '40px', padding: '24px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Clock size={18} style={{ color: 'var(--primary-color)' }} />
+                            <h2 style={{ fontSize: '1.15rem', fontWeight: 950, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fila de Edições em Lote</h2>
+                        </div>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Edições agendadas são enviadas à Meta em massa nos primeiros 5 minutos de cada hora cheia.
+                        </p>
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        {/* Countdown Badge */}
+                        <div style={{ 
+                            background: isWindowOpen ? 'rgba(172,248,0,0.1)' : 'rgba(255,255,255,0.03)',
+                            color: isWindowOpen ? '#acf800' : 'white',
+                            border: `1px solid ${isWindowOpen ? 'rgba(172,248,0,0.2)' : 'rgba(255,255,255,0.1)'}`,
+                            padding: '8px 16px',
+                            borderRadius: '10px',
+                            fontSize: '0.8rem',
+                            fontWeight: 900,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}>
+                            <Clock size={14} className={isWindowOpen ? 'animate-pulse' : ''} />
+                            {countdownText || 'Calculando...'}
+                        </div>
+
+                        <button 
+                            onClick={fetchQueue} 
+                            className="action-btn ghost-btn" 
+                            style={{ height: '36px', padding: '0 12px', fontSize: '0.75rem' }}
+                            disabled={isLoadingQueue}
+                        >
+                            <RefreshCw size={12} style={{ marginRight: '6px' }} /> Atualizar
+                        </button>
+                        <button 
+                            onClick={handleClearHistory} 
+                            className="action-btn ghost-btn" 
+                            style={{ height: '36px', padding: '0 12px', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
+                        >
+                            <Trash2 size={12} style={{ marginRight: '6px' }} /> Limpar Histórico
+                        </button>
+                    </div>
+                </div>
+
+                {isLoadingQueue && scheduledEdits.length === 0 ? (
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Carregando fila...</div>
+                ) : scheduledEdits.length === 0 ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', background: 'rgba(0,0,0,0.15)', borderRadius: '12px' }}>
+                        Nenhum agendamento ativo ou histórico na fila.
+                    </div>
+                ) : (
+                    <div className="visible-scrollbar" style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                            <thead>
+                                <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Template</th>
+                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Remetente</th>
+                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Categoria</th>
+                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)', textAlign: 'center' }}>Status</th>
+                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Criado em</th>
+                                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Atualizado em</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {scheduledEdits.map((item) => {
+                                    let statusColor = '#3b82f6';
+                                    let statusBg = 'rgba(59,130,246,0.08)';
+                                    if (item.status === 'SUCCESS') {
+                                        statusColor = '#acf800';
+                                        statusBg = 'rgba(172,248,0,0.08)';
+                                    } else if (item.status === 'ERROR') {
+                                        statusColor = '#ef4444';
+                                        statusBg = 'rgba(239,68,68,0.08)';
+                                    } else if (item.status === 'PROCESSING') {
+                                        statusColor = '#eab308';
+                                        statusBg = 'rgba(234,179,8,0.08)';
+                                    }
+
+                                    return (
+                                        <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                            <td style={{ padding: '12px 16px', fontWeight: 800, color: 'white' }}>{item.template_name}</td>
+                                            <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{item.sender}</td>
+                                            <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{item.category}</td>
+                                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '3px 8px', borderRadius: '6px', background: statusBg, color: statusColor, textTransform: 'uppercase', border: `1px solid ${statusColor}22` }}>
+                                                        {item.status}
+                                                    </span>
+                                                    {item.status === 'ERROR' && item.error_message && (
+                                                        <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', marginTop: '4px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.error_message}>
+                                                            ⚠️ {item.error_message}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.created_at).toLocaleString('pt-BR')}</td>
+                                            <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.updated_at).toLocaleString('pt-BR')}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
             {/* Edit Template Modal with full scrollbar support */}
             {editModalOpen && editingTemplate && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -790,9 +1011,29 @@ const TemplateManager = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                            <button onClick={handleSaveTemplate} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }}><Save size={18} /> SALVAR ALTERAÇÕES</button>
-                            <button onClick={() => setEditModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }}>CANCELAR</button>
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '32px', flexWrap: 'wrap' }}>
+                            <button 
+                                onClick={handleSaveTemplate} 
+                                className="action-btn primary-btn" 
+                                style={{ flex: 1, minWidth: '150px', height: '48px', gap: '8px' }}
+                            >
+                                <Save size={18} /> DISPARAR IMEDIATO
+                            </button>
+                            <button 
+                                onClick={handleScheduleTemplateEdit} 
+                                className="action-btn" 
+                                style={{ flex: 1, minWidth: '150px', height: '48px', gap: '8px', background: 'transparent', border: '1px solid var(--primary-color)', color: 'var(--primary-color)' }}
+                                disabled={isScheduling}
+                            >
+                                <Clock size={18} /> AGENDAR PARA VIRADA
+                            </button>
+                            <button 
+                                onClick={() => setEditModalOpen(false)} 
+                                className="action-btn ghost-btn" 
+                                style={{ flex: 1, minWidth: '100px', height: '48px' }}
+                            >
+                                CANCELAR
+                            </button>
                         </div>
                     </div>
                 </div>

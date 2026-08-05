@@ -1525,5 +1525,41 @@ export const dbService = {
             console.error("Error fetching template batch jobs:", err);
             return [];
         }
+    },
+    // --- Scheduled Template Edits ---
+    scheduleTemplateEdit: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/templates/schedule-edit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error scheduling template edit:", err);
+            return { error: err.message || "Erro de conexão ao agendar" };
+        }
+    },
+    getScheduledTemplateEdits: async (userId?: number) => {
+        try {
+            const url = userId ? `${API_BASE}/templates/scheduled-edits?user_id=${userId}` : `${API_BASE}/templates/scheduled-edits`;
+            const res = await fetch(url);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching scheduled template edits:", err);
+            return [];
+        }
+    },
+    clearScheduledTemplateEdits: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/templates/scheduled-edits/clear`, {
+                method: 'POST'
+            });
+            return await res.json();
+        } catch (err) {
+            console.error("Error clearing scheduled edits:", err);
+            return { error: "Erro de conexão ao limpar histórico" };
+        }
     }
 };
