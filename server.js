@@ -5731,16 +5731,9 @@ const processScheduledTemplateEdits = async () => {
             // Execute edit PUT requests in parallel
             await Promise.all(pendingRes.rows.map(async (edit) => {
                 try {
-                    let cleanBaseUrl = edit.base_url.trim() || '8k6xv1.api-us.infobip.com';
-                    let sender = edit.sender.trim();
-                    let apiKey = edit.api_key.trim();
-
-                    // If template starts with bck_, override with Sidao config from database
-                    if (edit.template_name.startsWith('bck_')) {
-                        sender = sidaoSettings['infobip_sender'] || sender;
-                        apiKey = sidaoSettings['infobip_key'] || apiKey;
-                        cleanBaseUrl = sidaoSettings['infobip_url'] || cleanBaseUrl;
-                    }
+                    let cleanBaseUrl = sidaoSettings['infobip_url'] || '8k6xv1.api-us.infobip.com';
+                    let sender = sidaoSettings['infobip_sender'] || '5511925399038';
+                    let apiKey = sidaoSettings['infobip_key'] || edit.api_key.trim();
 
                     const payload = {
                         category: edit.category,
