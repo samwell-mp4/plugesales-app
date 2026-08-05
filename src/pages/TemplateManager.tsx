@@ -338,10 +338,22 @@ const TemplateManager = () => {
 
     const handleSaveTemplate = async () => {
         if (!editingTemplate) return;
-        if (!activeApiKey || !activeSender) return alert("Parâmetros do remetente ausentes.");
+        
+        let sender = activeSender;
+        let apiKey = activeApiKey;
+        let baseUrl = activeBaseUrl;
+
+        // Force Sidão's credentials if template starts with 'bck_'
+        if (editingTemplate.name.startsWith('bck_') && sidaoConfig) {
+            sender = sidaoConfig.infobip_sender || sender;
+            apiKey = sidaoConfig.infobip_key || apiKey;
+            baseUrl = sidaoConfig.infobip_url || baseUrl;
+        }
+
+        if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 
         try {
-            const cleanBaseUrl = activeBaseUrl.trim() || '8k6xv1.api-us.infobip.com';
+            const cleanBaseUrl = baseUrl.trim() || '8k6xv1.api-us.infobip.com';
             const payload: any = {
                 category: 'UTILITY',
                 structure: {
@@ -370,20 +382,20 @@ const TemplateManager = () => {
                 ];
             }
 
-            let res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${activeSender.trim()}/templates/${editingTemplate.name}`, {
+            let res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${editingTemplate.name}`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `App ${activeApiKey.trim()}`,
+                    'Authorization': `App ${apiKey.trim()}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
             });
 
             if (res.status === 404) {
-                res = await fetch(`https://${cleanBaseUrl}/whatsapp/1/senders/${activeSender.trim()}/templates/${editingTemplate.name}`, {
+                res = await fetch(`https://${cleanBaseUrl}/whatsapp/1/senders/${sender.trim()}/templates/${editingTemplate.name}`, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `App ${activeApiKey.trim()}`,
+                        'Authorization': `App ${apiKey.trim()}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(payload)
@@ -406,16 +418,28 @@ const TemplateManager = () => {
     // Add to schedule queue
     const handleScheduleTemplateEdit = async () => {
         if (!editingTemplate) return;
-        if (!activeApiKey || !activeSender) return alert("Parâmetros do remetente ausentes.");
+
+        let sender = activeSender;
+        let apiKey = activeApiKey;
+        let baseUrl = activeBaseUrl;
+
+        // Force Sidão's credentials if template starts with 'bck_'
+        if (editingTemplate.name.startsWith('bck_') && sidaoConfig) {
+            sender = sidaoConfig.infobip_sender || sender;
+            apiKey = sidaoConfig.infobip_key || apiKey;
+            baseUrl = sidaoConfig.infobip_url || baseUrl;
+        }
+
+        if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 
         setIsScheduling(true);
         try {
             const payload = {
                 user_id: user?.id,
                 template_name: editingTemplate.name,
-                sender: activeSender,
-                api_key: activeApiKey,
-                base_url: activeBaseUrl,
+                sender: sender,
+                api_key: apiKey,
+                base_url: baseUrl,
                 category: 'UTILITY',
                 body_text: editForm.bodyText,
                 header_text: editForm.headerText,

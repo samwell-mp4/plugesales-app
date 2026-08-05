@@ -5709,6 +5709,13 @@ const processScheduledTemplateEdits = async () => {
                 return;
             }
 
+            // Query Sidao config fallback
+            const settingsRes = await client.query("SELECT * FROM settings");
+            const sidaoSettings = {};
+            settingsRes.rows.forEach(r => {
+                sidaoSettings[r.key] = r.value;
+            });
+
             console.log(`🚀 [SCHEDULED EDITS] Window open (${now.toLocaleTimeString()}). Processing ${pendingRes.rows.length} edits...`);
 
             // Mark processing immediately to avoid double execution on next tick
@@ -5724,7 +5731,17 @@ const processScheduledTemplateEdits = async () => {
             // Execute edit PUT requests in parallel
             await Promise.all(pendingRes.rows.map(async (edit) => {
                 try {
-                    const cleanBaseUrl = edit.base_url.trim() || '8k6xv1.api-us.infobip.com';
+                    let cleanBaseUrl = edit.base_url.trim() || '8k6xv1.api-us.infobip.com';
+                    let sender = edit.sender.trim();
+                    let apiKey = edit.api_key.trim();
+
+                    // If template starts with bck_, override with Sidao config from database
+                    if (edit.template_name.startsWith('bck_')) {
+                        sender = sidaoSettings['infobip_sender'] || sender;
+                        apiKey = sidaoSettings['infobip_key'] || apiKey;
+                        cleanBaseUrl = sidaoSettings['infobip_url'] || cleanBaseUrl;
+                    }
+
                     const payload = {
                         category: edit.category,
                         structure: {
@@ -5754,10 +5771,10 @@ const processScheduledTemplateEdits = async () => {
                     }
 
                     // Try WhatsApp V2
-                    let response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${edit.sender.trim()}/templates/${edit.template_name}`, {
+                    let response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${edit.template_name}`, {
                         method: 'PUT',
                         headers: {
-                            'Authorization': `App ${edit.api_key.trim()}`,
+                            'Authorization': `App ${apiKey.trim()}`,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(payload)
@@ -5765,10 +5782,10 @@ const processScheduledTemplateEdits = async () => {
 
                     // Fallback to V1
                     if (response.status === 404) {
-                        response = await fetch(`https://${cleanBaseUrl}/whatsapp/1/senders/${edit.sender.trim()}/templates/${edit.template_name}`, {
+                        response = await fetch(`https://${cleanBaseUrl}/whatsapp/1/senders/${sender.trim()}/templates/${edit.template_name}`, {
                             method: 'PUT',
                             headers: {
-                                'Authorization': `App ${edit.api_key.trim()}`,
+                                'Authorization': `App ${apiKey.trim()}`,
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify(payload)
