@@ -30,6 +30,14 @@ const LinkStats = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        const queryParams = new URLSearchParams(window.location.search);
+        const noRedirect = queryParams.get('no_redirect');
+
+        if (id === '144516' && noRedirect !== 'true') {
+            window.location.href = `/l/144516`;
+            return;
+        }
+
         if (id) fetchStats();
     }, [id]);
 
