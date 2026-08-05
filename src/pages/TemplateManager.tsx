@@ -56,12 +56,6 @@ const TemplateManager = () => {
     const [activeApiKey, setActiveApiKey] = useState('');
     const [activeBaseUrl, setActiveBaseUrl] = useState('8k6xv1.api-us.infobip.com');
 
-    // Credentials toggle (Sidão vs Luiz)
-    const [useLuis, setUseLuis] = useState(false);
-    const LUIS_KEY = '35a1621fff9a97453d02b0dbe043467e-9501a6c3-3289-4fb9-90b4-d16b18b48d47';
-    const LUIS_BASE = '4k3e4p.api-us.infobip.com';
-    const LUIS_SENDER = '5511922034701';
-
     // Editing State
     const [editingTemplate, setEditingTemplate] = useState<InfobipTemplate | null>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -141,11 +135,9 @@ const TemplateManager = () => {
                 };
                 setSidaoConfig(config);
                 
-                if (!useLuis) {
-                    setActiveSender(config.infobip_sender);
-                    setActiveApiKey(config.infobip_key);
-                    setActiveBaseUrl(config.infobip_url);
-                }
+                setActiveSender(config.infobip_sender);
+                setActiveApiKey(config.infobip_key);
+                setActiveBaseUrl(config.infobip_url);
             }
         } catch (err) {
             console.error("Error loading global settings:", err);
@@ -278,11 +270,7 @@ const TemplateManager = () => {
     }, []);
 
     useEffect(() => {
-        if (useLuis) {
-            setActiveSender(LUIS_SENDER);
-            setActiveApiKey(LUIS_KEY);
-            setActiveBaseUrl(LUIS_BASE);
-        } else if (selectedClient) {
+        if (selectedClient) {
             setActiveSender(selectedClient.infobip_sender || '');
             setActiveApiKey(selectedClient.infobip_key || '');
             setActiveBaseUrl(selectedClient.infobip_url || '8k6xv1.api-us.infobip.com');
@@ -291,7 +279,7 @@ const TemplateManager = () => {
             setActiveApiKey(sidaoConfig.infobip_key || '');
             setActiveBaseUrl(sidaoConfig.infobip_url || '8k6xv1.api-us.infobip.com');
         }
-    }, [useLuis, selectedClient, sidaoConfig]);
+    }, [selectedClient, sidaoConfig]);
 
     useEffect(() => {
         if (activeApiKey && activeSender) {
@@ -415,7 +403,7 @@ const TemplateManager = () => {
     const handleScheduleTemplateEdit = async () => {
         if (!editingTemplate) return;
 
-        let sender = activeSender || (sidaoConfig && sidaoConfig.infobip_sender) || '5511925399038';
+        let sender = activeSender || (sidaoConfig && sidaoConfig.infobip_sender) || '';
         let apiKey = activeApiKey || (sidaoConfig && sidaoConfig.infobip_key) || '';
         let baseUrl = activeBaseUrl || (sidaoConfig && sidaoConfig.infobip_url) || '8k6xv1.api-us.infobip.com';
 
@@ -627,45 +615,11 @@ const TemplateManager = () => {
                 </div>
             </div>
 
-            {/* Switch Credentials */}
+            {/* Credencial padrão (Sidão) */}
             <div className="crm-card" style={{ padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border-subtle)' }}>
                 <div>
-                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--primary-color)' }}>Selecione a Credencial de Acesso</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Escolha qual conta da Infobip você deseja gerenciar os templates</p>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                        onClick={() => setUseLuis(false)}
-                        className="action-btn"
-                        style={{ 
-                            height: '42px', 
-                            minWidth: '130px', 
-                            background: !useLuis ? 'var(--primary-color)' : 'transparent', 
-                            color: !useLuis ? 'black' : 'white',
-                            borderColor: !useLuis ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
-                            borderRadius: '10px',
-                            fontWeight: 800,
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Sidão (Padrão)
-                    </button>
-                    <button 
-                        onClick={() => setUseLuis(true)}
-                        className="action-btn"
-                        style={{ 
-                            height: '42px', 
-                            minWidth: '130px', 
-                            background: useLuis ? 'var(--primary-color)' : 'transparent', 
-                            color: useLuis ? 'black' : 'white',
-                            borderColor: useLuis ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)',
-                            borderRadius: '10px',
-                            fontWeight: 800,
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Luiz
-                    </button>
+                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--primary-color)' }}>Credencial de Acesso: Sidão (Padrão)</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>O remetente é sempre o número preenchido no campo "Remetente" abaixo.</p>
                 </div>
             </div>
 
@@ -846,7 +800,7 @@ const TemplateManager = () => {
 
             {/* Filters panel */}
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '10px', minWidth: '350px', opacity: useLuis ? 0.4 : 1, pointerEvents: useLuis ? 'none' : 'auto', flex: 1.5 }}>
+                <div style={{ display: 'flex', gap: '10px', minWidth: '350px', flex: 1.5 }}>
                     <div style={{ flex: 1 }}>
                         <label className="field-label" style={{ marginBottom: '8px' }}>Pesquisar Número / Cliente</label>
                         <div style={{ position: 'relative' }}>
@@ -857,7 +811,6 @@ const TemplateManager = () => {
                                 value={numberSearchTerm}
                                 onChange={e => setNumberSearchTerm(e.target.value)}
                                 style={{ height: '44px', paddingLeft: '38px', fontSize: '0.85rem' }}
-                                disabled={useLuis}
                             />
                         </div>
                     </div>
@@ -869,7 +822,6 @@ const TemplateManager = () => {
                             value={selectedClient ? selectedClient.id : ''} 
                             onChange={e => setSelectedClient(clients.find(c => String(c.id) === e.target.value))}
                             style={{ height: '44px', background: 'var(--card-bg)' }}
-                            disabled={useLuis}
                         >
                             <option value="">Configuração Padrão do Sidão</option>
                             {filteredClients.map(c => (
@@ -916,12 +868,6 @@ const TemplateManager = () => {
                     <RefreshCw size={18} /> CARREGAR TEMPLATES
                 </button>
             </div>
-
-            {useLuis && (
-                <div style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.2)', color: '#38bdf8', padding: '12px 20px', borderRadius: '12px', marginBottom: '24px', fontSize: '0.85rem', fontWeight: 800 }}>
-                    ℹ️ Credenciais do Luiz Ativas (Remetente: {LUIS_SENDER})
-                </div>
-            )}
 
             {isLoading ? (
                 <div style={{ color: 'var(--text-muted)' }}>Buscando templates na Infobip...</div>
