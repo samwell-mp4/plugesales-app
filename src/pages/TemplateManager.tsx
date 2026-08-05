@@ -336,21 +336,9 @@ const TemplateManager = () => {
         setEditModalOpen(true);
     };
 
-    const validateCredentials = () => {
-        // Automatically correct Luiz credentials if they type his number
-        if (activeSender.trim() === LUIS_SENDER && activeApiKey.trim() !== LUIS_KEY) {
-            setActiveApiKey(LUIS_KEY);
-            setActiveBaseUrl(LUIS_BASE);
-            alert("Aviso: Chave de API e Host corrigidos automaticamente para corresponder ao remetente do Luiz!");
-            return false;
-        }
-        return true;
-    };
-
     const handleSaveTemplate = async () => {
         if (!editingTemplate) return;
         if (!activeApiKey || !activeSender) return alert("Parâmetros do remetente ausentes.");
-        if (!validateCredentials()) return;
 
         try {
             const cleanBaseUrl = activeBaseUrl.trim() || '8k6xv1.api-us.infobip.com';
@@ -419,7 +407,6 @@ const TemplateManager = () => {
     const handleScheduleTemplateEdit = async () => {
         if (!editingTemplate) return;
         if (!activeApiKey || !activeSender) return alert("Parâmetros do remetente ausentes.");
-        if (!validateCredentials()) return;
 
         setIsScheduling(true);
         try {
@@ -678,15 +665,7 @@ const TemplateManager = () => {
                         <input 
                             className="field-input" 
                             value={activeSender} 
-                            onChange={e => {
-                                const val = e.target.value.trim();
-                                setActiveSender(val);
-                                if (val === LUIS_SENDER) {
-                                    setUseLuis(true);
-                                } else if (sidaoConfig && val === sidaoConfig.infobip_sender) {
-                                    setUseLuis(false);
-                                }
-                            }} 
+                            onChange={e => setActiveSender(e.target.value)} 
                             placeholder="Ex: 5511925399038"
                             style={{ height: '44px', background: 'rgba(0,0,0,0.2)' }}
                         />
