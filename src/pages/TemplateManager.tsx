@@ -392,27 +392,26 @@ const TemplateManager = () => {
             const isMediaHeader = ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(editForm.headerFormat);
             payload.structure.type = isMediaHeader ? 'MEDIA' : 'TEXT';
 
-            let res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${editingTemplate.name}`, {
-                method: 'PATCH',
+            // Hit the n8n webhook directly for immediate template edit
+            let res = await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/alterar-template', {
+                method: 'POST',
                 headers: {
-                    'Authorization': `App ${apiKey.trim()}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    user_id: user?.id,
+                    template_id: editingTemplate.id,
+                    template_name: editingTemplate.name,
+                    sender: sender,
+                    api_key: apiKey,
+                    base_url: baseUrl,
+                    category: 'UTILITY',
+                    body_text: editForm.bodyText,
+                    header_text: editForm.headerText,
+                    header_format: editForm.headerFormat,
+                    button_url: editForm.buttonUrl
+                })
             });
-
-            // If 404, try using the Template ID (numerical ID) on whatsapp/2/
-            if (res.status === 404 && editingTemplate.id) {
-                console.log(`[Save] Template name returned 404, attempting with Template ID: ${editingTemplate.id}`);
-                res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${editingTemplate.id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `App ${apiKey.trim()}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-            }
 
             if (res.ok) {
                 alert("Template editado e enviado para aprovação na Meta com sucesso!");

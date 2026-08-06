@@ -4664,17 +4664,6 @@ app.post('/api/templates/schedule-edit', async (req, res) => {
             [user_id || null, template_name, sender, api_key, base_url, category, body_text, header_text || '', header_format || 'NONE', button_url || '', 'PENDING']
         );
 
-        // Hit n8n webhook asynchronously from server backend
-        try {
-            fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/alterar-template', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(req.body)
-            }).catch(e => console.error("[Webhook] Background webhook error:", e.message));
-        } catch (webhookErr) {
-            console.error("[Webhook] Webhook launch failed:", webhookErr.message);
-        }
-
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
