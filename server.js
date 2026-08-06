@@ -535,6 +535,7 @@ const initDB = async () => {
             CREATE TABLE IF NOT EXISTS scheduled_template_edits (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER REFERENCES users(id),
+                template_id TEXT,
                 template_name TEXT NOT NULL,
                 sender TEXT NOT NULL,
                 api_key TEXT NOT NULL,
@@ -599,6 +600,7 @@ const initDB = async () => {
         }
         await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS summary JSONB`);
         await safeAlter(`ALTER TABLE pro_rotators ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES users(id)`);
+        await safeAlter(`ALTER TABLE scheduled_template_edits ADD COLUMN IF NOT EXISTS template_id TEXT`);
         await safeAlter(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
         await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
         await safeAlter(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`);
@@ -4652,16 +4654,16 @@ app.get('/api/template-batch', async (req, res) => {
 
 // --- Scheduled Template Edits APIs ---
 app.post('/api/templates/schedule-edit', async (req, res) => {
-    const { user_id, template_name, sender, api_key, base_url, category, body_text, header_text, header_format, button_url } = req.body;
+    const { user_id, template_id, template_name, sender, api_key, base_url, category, body_text, header_text, header_format, button_url } = req.body;
     if (!template_name || !sender || !api_key || !base_url || !category || !body_text) {
         return res.status(400).json({ error: 'Parâmetros obrigatórios ausentes para o agendamento.' });
     }
     try {
         const result = await pool.query(
             `INSERT INTO scheduled_template_edits (
-                user_id, template_name, sender, api_key, base_url, category, body_text, header_text, header_format, button_url, status
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-            [user_id || null, template_name, sender, api_key, base_url, category, body_text, header_text || '', header_format || 'NONE', button_url || '', 'PENDING']
+                user_id, template_id, template_name, sender, api_key, base_url, category, body_text, header_text, header_format, button_url, status
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+            [user_id || null, template_id || null, template_name, sender, api_key, base_url, category, body_text, header_text || '', header_format || 'NONE', button_url || '', 'PENDING']
         );
 
         res.json(result.rows[0]);
@@ -5746,9 +5748,9 @@ const processScheduledTemplateEdits = async () => {
             // Execute edit PUT requests in parallel
             await Promise.all(pendingRes.rows.map(async (edit) => {
                 try {
-                    let cleanBaseUrl = '8k6xv1.api-us.infobip.com';
-                    let sender = sidaoSettings['infobip_sender'] || '5511925399038';
-                    let apiKey = sidaoSettings['infobip_key'] || 'f3358659bee063a3fc2f71f6bdce8f3c-a7cd9b94-e925-415f-8a4a-6dccd1b8d1d0';
+                    let cleanBaseUrl = edit.base_url || '8k6xv1.api-us.infobip.com';
+                    let sender = edit.sender || sidaoSettings['infobip_sender'] || '5511925399038';
+                    let apiKey = edit.api_key || sidaoSettings['infobip_key'] || 'f3358659bee063a3fc2f71f6bdce8f3c-a7cd9b94-e925-415f-8a4a-6dccd1b8d1d0';
 
                     const bodyText = edit.body_text;
                     const varsMatches = bodyText.match(/\{\{\d+\}\}/g) || [];
@@ -5811,7 +5813,7 @@ const processScheduledTemplateEdits = async () => {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             user_id: edit.user_id,
-                            template_id: templateId,
+                            template_id: edit.template_id || templateId,
                             template_name: edit.template_name,
                             sender: sender,
                             api_key: apiKey,
