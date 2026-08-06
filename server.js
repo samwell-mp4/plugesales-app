@@ -598,6 +598,7 @@ const initDB = async () => {
             console.error('Erro ao verificar conta do Ramon:', e.message);
         }
         await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS summary JSONB`);
+        await safeAlter(`ALTER TABLE pro_rotators ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES users(id)`);
         await safeAlter(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
         await safeAlter(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS logs JSONB DEFAULT '[]'`);
         await safeAlter(`ALTER TABLE client_reports ADD COLUMN IF NOT EXISTS data JSONB`);
@@ -3576,13 +3577,13 @@ app.put('/api/shortener/:id', async (req, res) => {
 
 // --- PRO Rotator API ---
 app.post('/api/pro-links', async (req, res) => {
-    const { user_id, title, slug, targets } = req.body;
+    const { user_id, title, slug, targets, client_id } = req.body;
     try {
         const finalSlug = slug || Math.random().toString(36).substring(2, 8);
         const result = await pool.query(
-            `INSERT INTO pro_rotators (user_id, title, slug, targets) 
-             VALUES ($1, $2, $3, $4) RETURNING *`,
-            [user_id, title || 'Rotacionador sem título', finalSlug, JSON.stringify(targets)]
+            `INSERT INTO pro_rotators (user_id, title, slug, targets, client_id) 
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [user_id, title || 'Rotacionador sem título', finalSlug, JSON.stringify(targets), client_id || null]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -3597,19 +3598,21 @@ app.get('/api/pro-links', async (req, res) => {
         let result;
         if (role === 'ADMIN' || role === 'EMPLOYEE') {
             result = await pool.query(
-                `SELECT pr.*, u.name as owner_name 
+                `SELECT pr.*, u.name as owner_name, c.name as client_name 
                  FROM pro_rotators pr 
                  LEFT JOIN users u ON pr.user_id = u.id 
+                 LEFT JOIN users c ON pr.client_id = c.id
                  ORDER BY pr.created_at DESC`
             );
         } else {
             result = await pool.query(
-                `SELECT pr.*, u.name as owner_name 
+                `SELECT pr.*, u.name as owner_name, c.name as client_name 
                  FROM pro_rotators pr 
                  LEFT JOIN users u ON pr.user_id = u.id 
-                 WHERE pr.user_id = $1 
+                 LEFT JOIN users c ON pr.client_id = c.id
+                 WHERE pr.user_id = $1 OR pr.client_id = $1
                  ORDER BY pr.created_at DESC`,
-                [user_id]
+                 [user_id]
             );
         }
         res.json(result.rows);
@@ -3672,15 +3675,16 @@ app.post('/api/pro-links/bulk-reset-targets', async (req, res) => {
 
 app.put('/api/pro-links/:id', async (req, res) => {
     const { id } = req.params;
-    const { title, slug, targets } = req.body;
+    const { title, slug, targets, client_id } = req.body;
     try {
         const result = await pool.query(
             `UPDATE pro_rotators 
              SET title = COALESCE($1, title),
                  slug = COALESCE($2, slug),
-                 targets = COALESCE($3, targets)
-             WHERE id = $4 RETURNING *`,
-            [title || null, slug || null, targets ? JSON.stringify(targets) : null, id]
+                 targets = COALESCE($3, targets),
+                 client_id = COALESCE($4, client_id)
+             WHERE id = $5 RETURNING *`,
+            [title || null, slug || null, targets ? JSON.stringify(targets) : null, client_id || null, id]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Rotacionador não encontrado' });
         res.json(result.rows[0]);

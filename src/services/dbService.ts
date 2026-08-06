@@ -686,7 +686,7 @@ export const dbService = {
             return [];
         }
     },
-    createProLink: async (data: { user_id: number; title: string; slug?: string; targets: any[] }) => {
+    createProLink: async (data: { user_id: number; title: string; slug?: string; targets: any[]; client_id?: number | null }) => {
         try {
             const res = await fetch(`${API_BASE}/pro-links`, {
                 method: 'POST',
@@ -712,7 +712,7 @@ export const dbService = {
             return { error: err.message };
         }
     },
-    updateProLink: async (id: number, data: { title?: string; slug?: string; targets?: any[] }) => {
+    updateProLink: async (id: number, data: { title?: string; slug?: string; targets?: any[]; client_id?: number | null }) => {
         try {
             const res = await fetch(`${API_BASE}/pro-links/${id}`, {
                 method: 'PUT',

@@ -37,9 +37,24 @@ const LinkRotator = () => {
     const [bulkTargetWeight, setBulkTargetWeight] = useState(1);
     const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
+    const [clients, setClients] = useState<any[]>([]);
+    const [selectedClientId, setSelectedClientId] = useState<string | number>('');
+
     useEffect(() => {
-        if (user) fetchRotators();
+        if (user) {
+            fetchRotators();
+            fetchClients();
+        }
     }, [user]);
+
+    const fetchClients = async () => {
+        try {
+            const data = await dbService.getClients();
+            setClients(data || []);
+        } catch (error) {
+            console.error("Error fetching clients in LinkRotator:", error);
+        }
+    };
 
     const fetchRotators = async () => {
         setIsLoading(true);
@@ -182,12 +197,14 @@ const LinkRotator = () => {
                 user_id: user.id,
                 title: title || 'Rotacionador sem título',
                 slug: slug || undefined,
-                targets: normalizedTargets
+                targets: normalizedTargets,
+                client_id: selectedClientId ? Number(selectedClientId) : null
             });
 
             if (result && !result.error) {
                 setTitle('');
                 setSlug('');
+                setSelectedClientId('');
                 setTargets([{ url: '', weight: 1 }]);
                 fetchRotators();
             } else {
@@ -284,6 +301,21 @@ const LinkRotator = () => {
                                         onChange={e => setSlug(e.target.value)}
                                     />
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="field-label">Vincular Cliente (Opcional)</label>
+                                <select 
+                                    className="field-input"
+                                    value={selectedClientId} 
+                                    onChange={e => setSelectedClientId(e.target.value)}
+                                    style={{ background: 'var(--card-bg)' }}
+                                >
+                                    <option value="">Nenhum (Disponível para todos)</option>
+                                    {clients.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '24px' }}>
@@ -456,6 +488,14 @@ const LinkRotator = () => {
                                                         <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)', opacity: 0.2 }}></span>
                                                         <span className="info-chip" style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)' }}>
                                                             Criador: {r.owner_name}
+                                                        </span>
+                                                    </>
+                                                )}
+                                                {r.client_name && (
+                                                    <>
+                                                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)', opacity: 0.2 }}></span>
+                                                        <span className="info-chip" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8' }}>
+                                                            Cliente: {r.client_name}
                                                         </span>
                                                     </>
                                                 )}
