@@ -176,6 +176,40 @@ const TemplateBatchGenerator = () => {
         }
     };
 
+    const handleAutoGenerateRotator = async () => {
+        if (!user) return;
+        const cleanName = baseName.toLowerCase().replace(/[\s\-*]+/g, '_').replace(/[^a-z0-9_]/g, '');
+        if (!cleanName) {
+            alert("Preencha primeiro o Nome Base do Template.");
+            return;
+        }
+
+        try {
+            const finalSlug = cleanName;
+            // Create pro rotator (link rotator)
+            const res = await dbService.createProLink({
+                user_id: Number(user.id),
+                title: `Rotador ${baseName}`,
+                slug: finalSlug,
+                targets: [{ url: 'https://plugesales.com', weight: 1 }],
+                client_id: selectedClientId ? Number(selectedClientId) : null
+            });
+
+            if (res && !res.error) {
+                const protocol = window.location.protocol;
+                const host = window.location.host;
+                const fullUrl = `${protocol}//${host}/r/${finalSlug}`;
+                setButtonUrl(fullUrl);
+                alert(`Rotacionador criado com sucesso: ${fullUrl}`);
+            } else {
+                alert(res.error || "Erro ao gerar rotacionador. O slug já pode estar em uso.");
+            }
+        } catch (error: any) {
+            console.error("Error creating auto rotator:", error);
+            alert("Erro ao criar rotacionador.");
+        }
+    };
+
     const handleCreateBatch = async (e: React.FormEvent) => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
@@ -274,7 +308,6 @@ const TemplateBatchGenerator = () => {
                 setMessage({ type: 'error', text: res.error });
             } else {
                 setMessage({ type: 'success', text: `Lote iniciado com sucesso! O template base "${cleanName}" foi enviado para aprovação.` });
-                setBaseName('pagamento_confirmado_' + Date.now().toString().slice(-4));
                 fetchJobs();
             }
         } catch (err: any) {
@@ -359,7 +392,7 @@ const TemplateBatchGenerator = () => {
                                     className="field-input" 
                                     placeholder="Ex: promo_final_dia" 
                                     value={baseName}
-                                    onChange={e => setBaseName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                    onChange={e => setBaseName(e.target.value.toLowerCase().replace(/[\s\-*]+/g, '_').replace(/[^a-z0-9_]/g, ''))}
                                     required 
                                 />
                             </div>
@@ -561,6 +594,22 @@ const TemplateBatchGenerator = () => {
                                                     onChange={e => setButtonUrl(e.target.value)}
                                                     required
                                                 />
+                                                <button 
+                                                    type="button"
+                                                    onClick={handleAutoGenerateRotator}
+                                                    className="action-btn"
+                                                    style={{ 
+                                                        marginTop: '8px', 
+                                                        height: '32px', 
+                                                        padding: '0 12px', 
+                                                        fontSize: '11px', 
+                                                        background: 'rgba(172, 248, 0, 0.05)', 
+                                                        color: 'var(--primary-color)',
+                                                        border: '1px solid rgba(172,248,0,0.1)'
+                                                    }}
+                                                >
+                                                    ⚡ Gerar Link Inteligente (/r/{baseName.toLowerCase().replace(/[\s\-*]+/g, '_').replace(/[^a-z0-9_]/g, '') || 'nome_slug'})
+                                                </button>
                                             </div>
                                         )}
                                     </div>
