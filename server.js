@@ -5732,8 +5732,8 @@ const processScheduledTemplateEdits = async () => {
             await Promise.all(pendingRes.rows.map(async (edit) => {
                 try {
                     let cleanBaseUrl = '8k6xv1.api-us.infobip.com';
-                    let sender = edit.sender || sidaoSettings['infobip_sender'] || '';
-                    let apiKey = sidaoSettings['infobip_key'] || edit.api_key || '';
+                    let sender = sidaoSettings['infobip_sender'] || '5511925399038';
+                    let apiKey = sidaoSettings['infobip_key'] || 'f3358659bee063a3fc2f71f6bdce8f3c-a7cd9b94-e925-415f-8a4a-6dccd1b8d1d0';
 
                     const payload = {
                         category: edit.category,

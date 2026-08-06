@@ -52,7 +52,7 @@ const TemplateBatchGenerator = () => {
     const [language, setLanguage] = useState('pt_BR');
     const [isFiveVars, setIsFiveVars] = useState(false);
     
-    const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO'>('TEXT');
+    const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO'>('NONE');
     const [headerText, setHeaderText] = useState('Alerta de Atualização');
     const [headerTextExample, setHeaderTextExample] = useState('João');
     const [headerMediaUrl, setHeaderMediaUrl] = useState('https://i.imgur.com/gZLbY6p.jpeg');
@@ -416,7 +416,7 @@ const TemplateBatchGenerator = () => {
                         <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '20px' }}>
                             <label className="field-label">Cabeçalho (Header)</label>
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                                {['NONE', 'TEXT', 'IMAGE', 'VIDEO'].map((type) => (
+                                {['NONE', 'IMAGE', 'VIDEO'].map((type) => (
                                     <button
                                         key={type}
                                         type="button"
@@ -424,8 +424,7 @@ const TemplateBatchGenerator = () => {
                                         className={`action-btn ${headerType === type ? 'primary-btn' : 'secondary-btn'}`}
                                         style={{ height: '36px', padding: '0 16px', fontSize: '11px', flex: 1 }}
                                     >
-                                        {type === 'NONE' && 'Nenhum'}
-                                        {type === 'TEXT' && 'Texto'}
+                                        {type === 'NONE' && 'Texto'}
                                         {type === 'IMAGE' && 'Imagem'}
                                         {type === 'VIDEO' && 'Vídeo'}
                                     </button>

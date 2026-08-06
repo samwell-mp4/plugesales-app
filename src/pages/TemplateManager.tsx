@@ -54,6 +54,7 @@ const TemplateManager = () => {
     // Sidão default credentials (host 8k6xv1)
     const SIDAO_API_KEY = 'f3358659bee063a3fc2f71f6bdce8f3c-a7cd9b94-e925-415f-8a4a-6dccd1b8d1d0';
     const SIDAO_BASE_URL = '8k6xv1.api-us.infobip.com';
+    const SIDAO_SENDER = '5511925399038';
 
     // Current Active Editable Credentials
     const [activeSender, setActiveSender] = useState('');
@@ -134,7 +135,7 @@ const TemplateManager = () => {
             if (settings) {
                 const config = {
                     infobip_key: settings['infobip_key'] || SIDAO_API_KEY,
-                    infobip_sender: settings['infobip_sender'] || '',
+                    infobip_sender: settings['infobip_sender'] || SIDAO_SENDER,
                     infobip_url: settings['infobip_url'] || SIDAO_BASE_URL
                 };
                 setSidaoConfig(config);
@@ -229,8 +230,8 @@ const TemplateManager = () => {
             buttonUrl: item.button_url || ''
         });
         
-        // Load item sender into active field; force Sidão host/key
-        if (item.sender) setActiveSender(item.sender);
+        // Force Sidão sender/host/key (do not restore stale per-row credentials)
+        setActiveSender(SIDAO_SENDER);
         setActiveApiKey(SIDAO_API_KEY);
         setActiveBaseUrl(SIDAO_BASE_URL);
 
@@ -274,16 +275,11 @@ const TemplateManager = () => {
     }, []);
 
     useEffect(() => {
-        if (selectedClient) {
-            setActiveSender(selectedClient.infobip_sender || '');
-            setActiveApiKey(SIDAO_API_KEY);
-            setActiveBaseUrl(SIDAO_BASE_URL);
-        } else if (sidaoConfig) {
-            setActiveSender(sidaoConfig.infobip_sender || '');
-            setActiveApiKey(sidaoConfig.infobip_key || SIDAO_API_KEY);
-            setActiveBaseUrl(SIDAO_BASE_URL);
-        }
-    }, [selectedClient, sidaoConfig]);
+        // Always force Sidão credentials; only the sender is taken from DB setting
+        setActiveSender((sidaoConfig && sidaoConfig.infobip_sender) || SIDAO_SENDER);
+        setActiveApiKey(SIDAO_API_KEY);
+        setActiveBaseUrl(SIDAO_BASE_URL);
+    }, [sidaoConfig]);
 
     useEffect(() => {
         if (activeApiKey && activeSender) {
