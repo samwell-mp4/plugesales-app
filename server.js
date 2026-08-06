@@ -5796,7 +5796,7 @@ const processScheduledTemplateEdits = async () => {
 
                     // Try WhatsApp V2
                     let response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${edit.template_name}`, {
-                        method: 'PUT',
+                        method: 'PATCH',
                         headers: {
                             'Authorization': `App ${apiKey.trim()}`,
                             'Content-Type': 'application/json'
@@ -5808,7 +5808,7 @@ const processScheduledTemplateEdits = async () => {
                     if (response.status === 404 && templateId) {
                         console.log(`[SCHEDULED EDITS] Name failed with 404, attempting ID fallback: ${templateId}`);
                         response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${templateId}`, {
-                            method: 'PUT',
+                            method: 'PATCH',
                             headers: {
                                 'Authorization': `App ${apiKey.trim()}`,
                                 'Content-Type': 'application/json'

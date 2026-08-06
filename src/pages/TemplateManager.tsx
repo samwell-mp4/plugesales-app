@@ -379,7 +379,7 @@ const TemplateManager = () => {
             payload.structure.type = isMediaHeader ? 'MEDIA' : 'TEXT';
 
             let res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${editingTemplate.name}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: {
                     'Authorization': `App ${apiKey.trim()}`,
                     'Content-Type': 'application/json'
@@ -391,7 +391,7 @@ const TemplateManager = () => {
             if (res.status === 404 && editingTemplate.id) {
                 console.log(`[Save] Template name returned 404, attempting with Template ID: ${editingTemplate.id}`);
                 res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${editingTemplate.id}`, {
-                    method: 'PUT',
+                    method: 'PATCH',
                     headers: {
                         'Authorization': `App ${apiKey.trim()}`,
                         'Content-Type': 'application/json'
