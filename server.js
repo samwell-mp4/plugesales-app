@@ -5751,7 +5751,7 @@ const processScheduledTemplateEdits = async () => {
                                 text: bodyText,
                                 ...(varsCount > 0 ? { examples: bodyExamples } : {})
                             }
-                        } as any
+                        }
                     };
 
                     if (edit.header_format !== 'NONE') {
