@@ -5739,13 +5739,19 @@ const processScheduledTemplateEdits = async () => {
                     let sender = sidaoSettings['infobip_sender'] || '5511925399038';
                     let apiKey = sidaoSettings['infobip_key'] || 'f3358659bee063a3fc2f71f6bdce8f3c-a7cd9b94-e925-415f-8a4a-6dccd1b8d1d0';
 
+                    const bodyText = edit.body_text;
+                    const varsMatches = bodyText.match(/\{\{\d+\}\}/g) || [];
+                    const varsCount = varsMatches.length;
+                    const bodyExamples = Array.from({ length: varsCount }, (_, i) => `ex_var${i + 1}`);
+
                     const payload = {
                         category: edit.category,
                         structure: {
                             body: {
-                                text: edit.body_text
+                                text: bodyText,
+                                ...(varsCount > 0 ? { examples: bodyExamples } : {})
                             }
-                        }
+                        } as any
                     };
 
                     if (edit.header_format !== 'NONE') {
@@ -5762,10 +5768,14 @@ const processScheduledTemplateEdits = async () => {
                             {
                                 type: 'URL',
                                 text: 'Acessar Link',
-                                url: edit.button_url
+                                url: edit.button_url,
+                                example: edit.button_url
                             }
                         ];
                     }
+
+                    const isMediaHeader = ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(edit.header_format);
+                    payload.structure.type = isMediaHeader ? 'MEDIA' : 'TEXT';
 
                     // Fetch templates list first to locate the template's numerical ID
                     let templateId = null;

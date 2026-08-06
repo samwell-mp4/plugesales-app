@@ -13,6 +13,7 @@ interface InfobipTemplate {
         body?: { text: string; example?: any; examples?: any };
         header?: { format: string; text?: string; example?: any };
         buttons?: any[];
+        type?: string;
     };
     components?: any[];
 }
@@ -336,14 +337,23 @@ const TemplateManager = () => {
 
         try {
             const cleanBaseUrl = SIDAO_BASE_URL;
+            const bodyText = editForm.bodyText;
+            const varsMatches = bodyText.match(/\{\{\d+\}\}/g) || [];
+            const varsCount = varsMatches.length;
+            const bodyExamples = Array.from({ length: varsCount }, (_, i) => `ex_var${i + 1}`);
+
             const payload: any = {
                 category: 'UTILITY',
                 structure: {
                     body: {
-                        text: editForm.bodyText
+                        text: bodyText
                     }
                 }
             };
+
+            if (varsCount > 0) {
+                payload.structure.body.examples = bodyExamples;
+            }
 
             if (editForm.headerFormat !== 'NONE') {
                 payload.structure.header = {
@@ -359,10 +369,14 @@ const TemplateManager = () => {
                     {
                         type: 'URL',
                         text: 'Acessar Link',
-                        url: editForm.buttonUrl
+                        url: editForm.buttonUrl,
+                        example: editForm.buttonUrl
                     }
                 ];
             }
+
+            const isMediaHeader = ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(editForm.headerFormat);
+            payload.structure.type = isMediaHeader ? 'MEDIA' : 'TEXT';
 
             let res = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${editingTemplate.name}`, {
                 method: 'PUT',
@@ -883,6 +897,7 @@ const TemplateManager = () => {
                                 <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--surface-border-subtle)' }}>
                                     <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Nome do Template</th>
                                     <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Categoria</th>
+                                    <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Tipo</th>
                                     <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Idioma</th>
                                     <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'center' }}>Status Meta</th>
                                     <th style={{ padding: '18px 24px', fontSize: '0.75rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'right' }}>Ações</th>
@@ -900,6 +915,17 @@ const TemplateManager = () => {
                                         statusBg = 'rgba(239,68,68,0.08)';
                                     }
 
+                                    // Parse header format or type
+                                    let templateType = 'TEXT';
+                                    if (template.structure?.type) {
+                                        templateType = template.structure.type;
+                                    } else if (template.components) {
+                                        const headerComp = template.components.find((c: any) => c.type === 'HEADER');
+                                        if (headerComp) {
+                                            templateType = ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComp.format) ? 'MEDIA' : 'TEXT';
+                                        }
+                                    }
+
                                     return (
                                         <tr key={template.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                             <td style={{ padding: '20px 24px' }}>
@@ -907,6 +933,19 @@ const TemplateManager = () => {
                                             </td>
                                             <td style={{ padding: '20px 24px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                                 {template.category}
+                                            </td>
+                                            <td style={{ padding: '20px 24px', fontSize: '0.85rem' }}>
+                                                <span style={{ 
+                                                    fontSize: '0.7rem', 
+                                                    fontWeight: 900, 
+                                                    padding: '3px 8px', 
+                                                    borderRadius: '6px', 
+                                                    background: templateType === 'MEDIA' ? 'rgba(56,189,248,0.08)' : 'rgba(255,255,255,0.05)', 
+                                                    color: templateType === 'MEDIA' ? '#38bdf8' : 'var(--text-muted)',
+                                                    border: `1px solid ${templateType === 'MEDIA' ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.1)'}` 
+                                                }}>
+                                                    {templateType}
+                                                </span>
                                             </td>
                                             <td style={{ padding: '20px 24px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                                 {template.language}
