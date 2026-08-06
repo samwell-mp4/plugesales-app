@@ -157,9 +157,9 @@ const TemplateManager = () => {
         }
         setIsLoading(true);
         try {
-            const cleanBaseUrl = SIDAO_BASE_URL;
+            const cleanBaseUrl = activeBaseUrl || SIDAO_BASE_URL;
             const response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${activeSender.trim()}/templates`, {
-                headers: { 'Authorization': `App ${SIDAO_API_KEY.trim()}` }
+                headers: { 'Authorization': `App ${activeApiKey.trim()}` }
             });
             
             if (!response.ok) {
@@ -330,13 +330,13 @@ const TemplateManager = () => {
         if (!editingTemplate) return;
         
         let sender = activeSender;
-        let apiKey = SIDAO_API_KEY;
-        let baseUrl = SIDAO_BASE_URL;
+        let apiKey = activeApiKey || SIDAO_API_KEY;
+        let baseUrl = activeBaseUrl || SIDAO_BASE_URL;
 
         if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 
         try {
-            const cleanBaseUrl = SIDAO_BASE_URL;
+            const cleanBaseUrl = baseUrl;
             const bodyText = editForm.bodyText;
             const varsMatches = bodyText.match(/\{\{\d+\}\}/g) || [];
             const varsCount = varsMatches.length;
