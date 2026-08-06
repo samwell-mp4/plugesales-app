@@ -4713,6 +4713,16 @@ app.post('/api/templates/scheduled-edits/clear', async (req, res) => {
     }
 });
 
+app.delete('/api/templates/scheduled-edits/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query("DELETE FROM scheduled_template_edits WHERE id = $1", [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // --- REDIS WORKER ---
 const dispatchWorker = async () => {
@@ -5806,28 +5816,24 @@ const processScheduledTemplateEdits = async () => {
                         console.error("[SCHEDULED EDITS] Failed to fetch template ID fallback list:", listErr.message);
                     }
 
-                    // Try WhatsApp V2
-                    let response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${edit.template_name}`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Authorization': `App ${apiKey.trim()}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
+                    // Hit the n8n webhook!
+                    let response = await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/alterar-template', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: edit.user_id,
+                            template_id: templateId,
+                            template_name: edit.template_name,
+                            sender: sender,
+                            api_key: apiKey,
+                            base_url: cleanBaseUrl,
+                            category: edit.category,
+                            body_text: edit.body_text,
+                            header_text: edit.header_text,
+                            header_format: edit.header_format,
+                            button_url: edit.button_url
+                        })
                     });
-
-                    // Fallback to V2 with Template ID
-                    if (response.status === 404 && templateId) {
-                        console.log(`[SCHEDULED EDITS] Name failed with 404, attempting ID fallback: ${templateId}`);
-                        response = await fetch(`https://${cleanBaseUrl}/whatsapp/2/senders/${sender.trim()}/templates/${templateId}`, {
-                            method: 'PATCH',
-                            headers: {
-                                'Authorization': `App ${apiKey.trim()}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(payload)
-                        });
-                    }
 
                     const dbClient = await pool.connect();
                     if (response.ok) {

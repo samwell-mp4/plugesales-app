@@ -214,6 +214,20 @@ const TemplateManager = () => {
         }
     };
 
+    const handleDeleteScheduledItem = async (id: number) => {
+        if (!window.confirm("Tem certeza de que deseja excluir este agendamento da fila?")) return;
+        try {
+            const res = await dbService.deleteScheduledTemplateEdit(id);
+            if (res && !res.error) {
+                fetchQueue();
+            } else {
+                alert("Erro ao excluir: " + (res.error || "Tente novamente."));
+            }
+        } catch (e) {
+            alert("Erro de conexão ao excluir.");
+        }
+    };
+
     const handleEditScheduledItem = (item: ScheduledEdit) => {
         // Mock or find original template
         const originalTemplate = templates.find(t => t.name === item.template_name) || {
@@ -792,15 +806,24 @@ const TemplateManager = () => {
                                                     <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.created_at).toLocaleString('pt-BR')}</td>
                                                     <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(item.updated_at).toLocaleString('pt-BR')}</td>
                                                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                                        {(item.status === 'ERROR' || item.status === 'PENDING') && (
+                                                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                                            {(item.status === 'ERROR' || item.status === 'PENDING') && (
+                                                                <button 
+                                                                    onClick={() => handleEditScheduledItem(item)}
+                                                                    className="action-btn ghost-btn animate-pulse"
+                                                                    style={{ height: '30px', padding: '0 10px', fontSize: '0.7rem', borderColor: '#acf800', color: '#acf800', fontWeight: 800 }}
+                                                                >
+                                                                    Corrigir / Reagendar
+                                                                </button>
+                                                            )}
                                                             <button 
-                                                                onClick={() => handleEditScheduledItem(item)}
-                                                                className="action-btn ghost-btn animate-pulse"
-                                                                style={{ height: '30px', padding: '0 10px', fontSize: '0.7rem', borderColor: '#acf800', color: '#acf800', fontWeight: 800 }}
+                                                                onClick={() => handleDeleteScheduledItem(item.id)}
+                                                                className="action-btn ghost-btn"
+                                                                style={{ height: '30px', padding: '0 10px', fontSize: '0.7rem', borderColor: '#ef4444', color: '#ef4444', fontWeight: 800 }}
                                                             >
-                                                                Corrigir / Reagendar
+                                                                <Trash2 size={12} /> EXCLUIR
                                                             </button>
-                                                        )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );

@@ -1561,5 +1561,16 @@ export const dbService = {
             console.error("Error clearing scheduled edits:", err);
             return { error: "Erro de conexão ao limpar histórico" };
         }
+    },
+    deleteScheduledTemplateEdit: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/templates/scheduled-edits/${id}`, {
+                method: 'DELETE'
+            });
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error deleting scheduled edit:", err);
+            return { error: err.message || "Erro de conexão ao excluir" };
+        }
     }
 };
