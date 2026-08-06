@@ -418,8 +418,8 @@ const TemplateManager = () => {
         if (!editingTemplate) return;
 
         let sender = activeSender || (sidaoConfig && sidaoConfig.infobip_sender) || '';
-        let apiKey = SIDAO_API_KEY;
-        let baseUrl = SIDAO_BASE_URL;
+        let apiKey = activeApiKey || (sidaoConfig && sidaoConfig.infobip_key) || SIDAO_API_KEY;
+        let baseUrl = activeBaseUrl || (sidaoConfig && sidaoConfig.infobip_url) || SIDAO_BASE_URL;
 
         if (!apiKey || !sender) return alert("Parâmetros do remetente ausentes.");
 
@@ -427,6 +427,7 @@ const TemplateManager = () => {
         try {
             const payload = {
                 user_id: user?.id,
+                template_id: editingTemplate.id,
                 template_name: editingTemplate.name,
                 sender: sender,
                 api_key: apiKey,
@@ -440,6 +441,17 @@ const TemplateManager = () => {
 
             const res = await dbService.scheduleTemplateEdit(payload);
             if (res && !res.error) {
+                // Post to n8n webhook
+                try {
+                    await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/alterar-template', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (webhookErr) {
+                    console.error("Failed to hit n8n webhook:", webhookErr);
+                }
+
                 alert("Alterações salvas! O template foi agendado para a fila de lote.");
                 setEditModalOpen(false);
                 fetchQueue();
