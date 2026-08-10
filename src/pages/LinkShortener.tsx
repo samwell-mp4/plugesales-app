@@ -76,6 +76,7 @@ const LinkShortener = () => {
     const [isCheckingTracker, setIsCheckingTracker] = useState(false);
     const [trackerPage, setTrackerPage] = useState(1);
     const trackerPerPage = 20;
+    const [showOnlyAlerts, setShowOnlyAlerts] = useState(false);
 
     useEffect(() => {
         const active = { current: true };
@@ -175,8 +176,11 @@ const LinkShortener = () => {
     }, [user]);
 
     const trackerAlertsCount = trackerLinks.filter((l: any) => l.resolved_url_changed).length;
-    const totalTrackerPages = Math.ceil(trackerLinks.length / trackerPerPage);
-    const paginatedTrackerLinks = trackerLinks.slice((trackerPage - 1) * trackerPerPage, trackerPage * trackerPerPage);
+    const filteredTrackerLinks = showOnlyAlerts 
+        ? trackerLinks.filter((l: any) => l.resolved_url_changed) 
+        : trackerLinks;
+    const totalTrackerPages = Math.ceil(filteredTrackerLinks.length / trackerPerPage);
+    const paginatedTrackerLinks = filteredTrackerLinks.slice((trackerPage - 1) * trackerPerPage, trackerPage * trackerPerPage);
 
     const fetchLinks = async (search = debouncedSearchTerm, active = { current: true }) => {
         setIsLoading(true);
@@ -558,19 +562,35 @@ const LinkShortener = () => {
                             gap: '20px', 
                             marginBottom: '32px'
                         }}>
-                            <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div 
+                                className="glass-card" 
+                                onClick={() => { setShowOnlyAlerts(false); setTrackerPage(1); }}
+                                style={{ 
+                                    padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer',
+                                    border: !showOnlyAlerts ? '1.5px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)',
+                                    background: !showOnlyAlerts ? 'rgba(172, 248, 0, 0.03)' : 'var(--card-bg-subtle)'
+                                }}
+                            >
                                 <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
                                     <Globe size={24} />
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Rastreando</div>
+                                    <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Todos os links</div>
                                     <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
-                                        {trackerLinks.filter(l => l.tracking_enabled).length}
+                                        {trackerLinks.length}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', border: trackerAlertsCount > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--surface-border-subtle)' }}>
+                            <div 
+                                className="glass-card" 
+                                onClick={() => { setShowOnlyAlerts(!showOnlyAlerts); setTrackerPage(1); }}
+                                style={{ 
+                                    padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer',
+                                    border: showOnlyAlerts ? '2px solid #ef4444' : (trackerAlertsCount > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--surface-border-subtle)'),
+                                    background: showOnlyAlerts ? 'rgba(239, 68, 68, 0.05)' : 'var(--card-bg-subtle)'
+                                }}
+                            >
                                 <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: trackerAlertsCount > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: trackerAlertsCount > 0 ? '#ef4444' : '#3b82f6' }}>
                                     <XCircle size={24} />
                                 </div>

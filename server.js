@@ -467,6 +467,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS resolved_url_changed BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS resolved_url_changed_at TIMESTAMP`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS tracking_enabled BOOLEAN DEFAULT TRUE`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS allowed_resolved_urls JSONB DEFAULT '[]'`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_role TEXT`);
@@ -4217,8 +4218,26 @@ async function checkLinkRedirection(link) {
     try {
         const currentResolved = await resolveFinalUrl(link.original_url);
         
-        if (!link.last_resolved_url) {
-            // First time tracking, store current resolved URL
+        // Parse the allowed resolved urls array
+        let allowedUrls = [];
+        try {
+            allowedUrls = typeof link.allowed_resolved_urls === 'string' 
+                ? JSON.parse(link.allowed_resolved_urls) 
+                : (link.allowed_resolved_urls || []);
+        } catch (e) {
+            allowedUrls = [];
+        }
+
+        // Normalise strings for comparison
+        const currentNorm = currentResolved.trim().toLowerCase();
+
+        // Check if the current resolved URL is already in the allowed destinations list
+        const isAllowed = allowedUrls.some(url => url.trim().toLowerCase() === currentNorm) || 
+                          (link.last_resolved_url && link.last_resolved_url.trim().toLowerCase() === currentNorm) ||
+                          (link.original_url && link.original_url.trim().toLowerCase() === currentNorm);
+
+        if (isAllowed) {
+            // It matches an allowed rotator destination or the last resolved url. No alert.
             await pool.query(
                 `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE WHERE id = $2`,
                 [currentResolved, link.id]
@@ -4226,68 +4245,97 @@ async function checkLinkRedirection(link) {
             return { id: link.id, changed: false, resolvedUrl: currentResolved };
         }
 
-        if (currentResolved.trim().toLowerCase() !== link.last_resolved_url.trim().toLowerCase()) {
-            await pool.query(
-                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = TRUE, resolved_url_changed_at = NOW() WHERE id = $2`,
-                [currentResolved, link.id]
-            );
-
-            // Add notification alert
-            const notifyMsg = `O destino do link "${link.title || link.short_code}" foi alterado de "${link.last_resolved_url}" para "${currentResolved}"!`;
-            await pool.query(
-                `INSERT INTO notifications (user_id, title, message, type, is_read) VALUES ($1, $2, $3, $4, FALSE)`,
-                [link.user_id || null, 'Alerta de Redirecionamento', notifyMsg, 'warning']
-            );
-
-            // Trigger Webhook alert via Redis queue
+        // If it's a new destination, let's verify if it's a rotator by querying it 4 more times
+        const uniqueUrls = new Set([currentResolved]);
+        for (let i = 0; i < 4; i++) {
             try {
-                const userRes = await pool.query('SELECT name, notification_number FROM users WHERE id = $1', [link.user_id]);
-                const adminRes = await pool.query("SELECT name, notification_number FROM users WHERE role = 'ADMIN' LIMIT 5");
-                
-                const targets = [];
-                if (userRes.rows.length > 0 && userRes.rows[0].notification_number) {
-                    targets.push(userRes.rows[0]);
-                }
-                adminRes.rows.forEach(admin => {
-                    if (admin.notification_number && !targets.some(t => t.notification_number === admin.notification_number)) {
-                        targets.push(admin);
-                    }
-                });
-
-                const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/scanner-link';
-
-                for (const target of targets) {
-                    const payload = {
-                        to: target.notification_number,
-                        mensagem: `⚠️ Alerta de Redirecionamento de Link: ${link.title || link.short_code}`,
-                        detalhes: {
-                            link_id: link.id,
-                            titulo: link.title || 'Sem título',
-                            short_code: link.short_code,
-                            link_encurtador: `/l/${link.short_code}`,
-                            url_original_cadastrada: link.original_url,
-                            destino_anterior: link.last_resolved_url,
-                            novo_destino_real: currentResolved,
-                            data_alteracao: new Date().toISOString()
-                        },
-                        status: 'ALTERADO',
-                        usuario: target.name
-                    };
-                    await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));
-                    console.log(`📡 [TRACKER_NOTIFY] Sent alert to: ${target.name} (${target.notification_number})`);
-                }
-            } catch (notifyErr) {
-                console.error(`[TRACKER_NOTIFY] Error queuing webhook:`, notifyErr.message);
+                // Wait 250ms between requests to let the rotator cycle
+                await new Promise(resolve => setTimeout(resolve, 250));
+                const resolved = await resolveFinalUrl(link.original_url);
+                uniqueUrls.add(resolved);
+            } catch (e) {
+                // Ignore resolution errors during multiple attempts
             }
-
-            return { id: link.id, changed: true, oldUrl: link.last_resolved_url, newUrl: currentResolved };
-        } else {
-            await pool.query(
-                `UPDATE shortened_links SET resolved_url_changed = FALSE WHERE id = $1`,
-                [link.id]
-            );
         }
-        return { id: link.id, changed: false, resolvedUrl: currentResolved };
+
+        // If we found more than 1 unique destination, it is a rotator!
+        if (uniqueUrls.size > 1) {
+            // Update the allowed list with all discovered URLs
+            const updatedAllowed = Array.from(new Set([...allowedUrls, ...uniqueUrls]));
+            await pool.query(
+                `UPDATE shortened_links SET allowed_resolved_urls = $1, last_resolved_url = $2, resolved_url_changed = FALSE WHERE id = $3`,
+                [JSON.stringify(updatedAllowed), currentResolved, link.id]
+            );
+            console.log(`[TRACKER_ROTATOR] Auto-detected rotator for link ${link.id}. Targets: ${Array.from(uniqueUrls).join(', ')}`);
+            return { id: link.id, changed: false, resolvedUrl: currentResolved, isRotator: true, rotatorUrls: Array.from(uniqueUrls) };
+        }
+
+        // If all 5 requests returned the EXACT same URL and it's new, it is a real modification!
+        if (!link.last_resolved_url) {
+            // First time tracking, store current resolved URL and initialize allowed list
+            const initialAllowed = [currentResolved];
+            await pool.query(
+                `UPDATE shortened_links SET last_resolved_url = $1, allowed_resolved_urls = $2, resolved_url_changed = FALSE WHERE id = $3`,
+                [currentResolved, JSON.stringify(initialAllowed), link.id]
+            );
+            return { id: link.id, changed: false, resolvedUrl: currentResolved };
+        }
+
+        // Real modification detected
+        await pool.query(
+            `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = TRUE, resolved_url_changed_at = NOW() WHERE id = $2`,
+            [currentResolved, link.id]
+        );
+
+        // Add notification alert
+        const notifyMsg = `O destino do link "${link.title || link.short_code}" foi alterado de "${link.last_resolved_url}" para "${currentResolved}"!`;
+        await pool.query(
+            `INSERT INTO notifications (user_id, title, message, type, is_read) VALUES ($1, $2, $3, $4, FALSE)`,
+            [link.user_id || null, 'Alerta de Redirecionamento', notifyMsg, 'warning']
+        );
+
+        // Trigger Webhook alert via Redis queue
+        try {
+            const userRes = await pool.query('SELECT name, notification_number FROM users WHERE id = $1', [link.user_id]);
+            const adminRes = await pool.query("SELECT name, notification_number FROM users WHERE role = 'ADMIN' LIMIT 5");
+            
+            const targets = [];
+            if (userRes.rows.length > 0 && userRes.rows[0].notification_number) {
+                targets.push(userRes.rows[0]);
+            }
+            adminRes.rows.forEach(admin => {
+                if (admin.notification_number && !targets.some(t => t.notification_number === admin.notification_number)) {
+                    targets.push(admin);
+                }
+            });
+
+            const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/scanner-link';
+
+            for (const target of targets) {
+                const payload = {
+                    to: target.notification_number,
+                    mensagem: `⚠️ Alerta de Redirecionamento de Link: ${link.title || link.short_code}`,
+                    detalhes: {
+                        link_id: link.id,
+                        titulo: link.title || 'Sem título',
+                        short_code: link.short_code,
+                        link_encurtador: `/l/${link.short_code}`,
+                        url_original_cadastrada: link.original_url,
+                        destino_anterior: link.last_resolved_url,
+                        novo_destino_real: currentResolved,
+                        data_alteracao: new Date().toISOString()
+                    },
+                    status: 'ALTERADO',
+                    usuario: target.name
+                };
+                await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));
+                console.log(`📡 [TRACKER_NOTIFY] Sent alert to: ${target.name} (${target.notification_number})`);
+            }
+        } catch (notifyErr) {
+            console.error(`[TRACKER_NOTIFY] Error queuing webhook:`, notifyErr.message);
+        }
+
+        return { id: link.id, changed: true, oldUrl: link.last_resolved_url, newUrl: currentResolved };
     } catch (err) {
         console.error(`[TRACKER_CHECK] Error check link ${link.id}:`, err.message);
         return { id: link.id, error: err.message };
@@ -4298,11 +4346,11 @@ async function checkLinkRedirection(link) {
 app.get('/api/shortener/tracker/status', async (req, res) => {
     try {
         const { user_id, role } = req.query;
-        let queryStr = 'SELECT id, title, original_url, short_code, last_resolved_url, resolved_url_changed, resolved_url_changed_at, tracking_enabled FROM shortened_links';
+        let queryStr = "SELECT id, title, original_url, short_code, last_resolved_url, resolved_url_changed, resolved_url_changed_at, tracking_enabled FROM shortened_links WHERE created_at >= NOW() - INTERVAL '15 days'";
         const params = [];
 
         if (role !== 'ADMIN' && role !== 'EMPLOYEE' && user_id) {
-            queryStr += ' WHERE user_id = $1';
+            queryStr += ' AND user_id = $1';
             params.push(parseInt(user_id));
         }
 
@@ -4336,9 +4384,12 @@ app.post('/api/shortener/tracker/check', async (req, res) => {
         if (id) {
             queryStr += ' AND id = $1';
             params.push(id);
-        } else if (role !== 'ADMIN' && role !== 'EMPLOYEE' && user_id) {
-            queryStr += ' AND user_id = $1';
-            params.push(parseInt(user_id));
+        } else {
+            queryStr += " AND created_at >= NOW() - INTERVAL '15 days'";
+            if (role !== 'ADMIN' && role !== 'EMPLOYEE' && user_id) {
+                queryStr += ' AND user_id = $1';
+                params.push(parseInt(user_id));
+            }
         }
 
         const result = await pool.query(queryStr, params);
@@ -4359,7 +4410,7 @@ app.post('/api/shortener/tracker/check', async (req, res) => {
 cron.schedule('*/15 * * * *', async () => {
     console.log('[TRACKER_CRON] Running redirection check...');
     try {
-        const result = await pool.query('SELECT * FROM shortened_links WHERE tracking_enabled = TRUE');
+        const result = await pool.query("SELECT * FROM shortened_links WHERE tracking_enabled = TRUE AND created_at >= NOW() - INTERVAL '15 days'");
         for (const link of result.rows) {
             await checkLinkRedirection(link);
         }
