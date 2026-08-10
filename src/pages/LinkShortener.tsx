@@ -69,6 +69,14 @@ const LinkShortener = () => {
     const [totalCount, setTotalCount] = useState(0);
     const [linksPerPage] = useState(20);
 
+    // Link Tracker States
+    const [activeTab, setActiveTab] = useState<'shortener' | 'tracker'>('shortener');
+    const [trackerLinks, setTrackerLinks] = useState<any[]>([]);
+    const [isTrackerLoading, setIsTrackerLoading] = useState(false);
+    const [isCheckingTracker, setIsCheckingTracker] = useState(false);
+    const [trackerPage, setTrackerPage] = useState(1);
+    const trackerPerPage = 20;
+
     useEffect(() => {
         const active = { current: true };
         fetchLinks(debouncedSearchTerm, active);
@@ -119,6 +127,56 @@ const LinkShortener = () => {
             console.error("Error fetching clients:", error);
         }
     };
+
+    const fetchTrackerStatus = async () => {
+        setIsTrackerLoading(true);
+        try {
+            const data = await dbService.getTrackerStatus(user?.id, user?.role);
+            if (Array.isArray(data)) {
+                setTrackerLinks(data);
+            }
+        } catch (error) {
+            console.error("Error fetching tracker status:", error);
+        } finally {
+            setIsTrackerLoading(false);
+        }
+    };
+
+    const handleToggleTracking = async (linkId: number, enabled: boolean) => {
+        try {
+            await dbService.toggleLinkTracking(linkId, enabled);
+            fetchTrackerStatus();
+        } catch (error) {
+            alert("Erro ao alterar rastreamento.");
+        }
+    };
+
+    const handleCheckLink = async (linkId?: number) => {
+        setIsCheckingTracker(true);
+        try {
+            const result = await dbService.checkLinkRedirection(linkId, user?.id, user?.role);
+            if (result.success) {
+                alert(linkId ? "Link verificado com sucesso!" : "Todos os links foram verificados!");
+                fetchTrackerStatus();
+            } else {
+                alert("Erro ao verificar: " + (result.error || "Erro desconhecido"));
+            }
+        } catch (error) {
+            console.error("Error checking links:", error);
+        } finally {
+            setIsCheckingTracker(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user) {
+            fetchTrackerStatus();
+        }
+    }, [user]);
+
+    const trackerAlertsCount = trackerLinks.filter((l: any) => l.resolved_url_changed).length;
+    const totalTrackerPages = Math.ceil(trackerLinks.length / trackerPerPage);
+    const paginatedTrackerLinks = trackerLinks.slice((trackerPage - 1) * trackerPerPage, trackerPage * trackerPerPage);
 
     const fetchLinks = async (search = debouncedSearchTerm, active = { current: true }) => {
         setIsLoading(true);
@@ -433,7 +491,242 @@ const LinkShortener = () => {
             `}</style>
 
             <div style={{ maxWidth: '1440px', margin: '0 auto' }}>
-                 <div className="main-grid">
+                {/* Navigation Tabs */}
+                <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', borderBottom: '1px solid var(--surface-border-subtle)', paddingBottom: '12px' }}>
+                    <button 
+                        onClick={() => setActiveTab('shortener')}
+                        style={{
+                            background: 'none', border: 'none', color: activeTab === 'shortener' ? 'var(--primary-color)' : 'var(--text-muted)',
+                            fontSize: '16px', fontWeight: 900, cursor: 'pointer', padding: '8px 16px', borderBottom: activeTab === 'shortener' ? '2px solid var(--primary-color)' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Encurtador de Links
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('tracker')}
+                        style={{
+                            background: 'none', border: 'none', color: activeTab === 'tracker' ? 'var(--primary-color)' : 'var(--text-muted)',
+                            fontSize: '16px', fontWeight: 900, cursor: 'pointer', padding: '8px 16px', borderBottom: activeTab === 'tracker' ? '2px solid var(--primary-color)' : 'none',
+                            transition: 'all 0.2s',
+                            display: 'flex', alignItems: 'center', gap: '8px'
+                        }}
+                    >
+                        Rastreador de Links
+                        {trackerAlertsCount > 0 && (
+                            <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold' }}>
+                                {trackerAlertsCount}
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                {activeTab === 'tracker' ? (
+                    <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                        {/* Header Controls */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Rastreador de Redirecionamentos</h2>
+                                <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '14px' }}>
+                                    Monitore se os destinos finais dos encurtadores de seus clientes foram alterados.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button 
+                                    onClick={() => fetchTrackerStatus()} 
+                                    disabled={isTrackerLoading}
+                                    className="action-btn"
+                                    style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', color: 'var(--text-primary)' }}
+                                >
+                                    {isTrackerLoading ? 'Atualizando...' : 'Atualizar Lista'}
+                                </button>
+                                <button 
+                                    onClick={() => handleCheckLink()} 
+                                    disabled={isCheckingTracker}
+                                    className="action-btn primary-btn"
+                                >
+                                    <Zap size={16} />
+                                    {isCheckingTracker ? 'Verificando...' : 'Verificar Todos Agora'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Stats Summary Cards */}
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+                            gap: '20px', 
+                            marginBottom: '32px'
+                        }}>
+                            <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(172, 248, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
+                                    <Globe size={24} />
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Rastreando</div>
+                                    <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                                        {trackerLinks.filter(l => l.tracking_enabled).length}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', border: trackerAlertsCount > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--surface-border-subtle)' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: trackerAlertsCount > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: trackerAlertsCount > 0 ? '#ef4444' : '#3b82f6' }}>
+                                    <XCircle size={24} />
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Alertas de Alteração</div>
+                                    <div style={{ fontSize: '24px', fontWeight: 900, color: trackerAlertsCount > 0 ? '#ef4444' : 'var(--text-primary)' }}>
+                                        {trackerAlertsCount}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Alerts Banner */}
+                        {trackerAlertsCount > 0 && (
+                            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '16px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ fontWeight: 900, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <XCircle size={16} /> ATENÇÃO: Links Suspeitos Detectados!
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                                    Alguns links de destino final foram modificados em relação ao registro original ou última verificação. Verifique a lista abaixo.
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tracker Table / List */}
+                        <div className="glass-card" style={{ padding: '0px', overflow: 'hidden' }}>
+                            {isTrackerLoading ? (
+                                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Carregando dados do rastreador...</div>
+                            ) : trackerLinks.length === 0 ? (
+                                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum link encontrado para rastrear.</div>
+                            ) : (
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid var(--surface-border-subtle)', background: 'rgba(255,255,255,0.02)' }}>
+                                                <th style={{ padding: '16px 24px', fontWeight: 900, color: 'var(--text-muted)' }}>Status / Título</th>
+                                                <th style={{ padding: '16px 24px', fontWeight: 900, color: 'var(--text-muted)' }}>Link Encurtado</th>
+                                                <th style={{ padding: '16px 24px', fontWeight: 900, color: 'var(--text-muted)' }}>URL Original</th>
+                                                <th style={{ padding: '16px 24px', fontWeight: 900, color: 'var(--text-muted)' }}>Último Destino Real</th>
+                                                <th style={{ padding: '16px 24px', fontWeight: 900, color: 'var(--text-muted)' }}>Última Checagem</th>
+                                                <th style={{ padding: '16px 24px', fontWeight: 900, color: 'var(--text-muted)', textAlign: 'center' }}>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {paginatedTrackerLinks.map((link) => (
+                                                <tr key={link.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)', background: link.resolved_url_changed ? 'rgba(239, 68, 68, 0.05)' : 'none' }}>
+                                                    <td style={{ padding: '20px 24px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <span style={{ 
+                                                                display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%',
+                                                                background: !link.tracking_enabled ? '#888' : (link.resolved_url_changed ? '#ef4444' : '#acf800')
+                                                            }} />
+                                                            <div>
+                                                                <div style={{ fontWeight: 900, color: 'var(--text-primary)' }}>{link.title || 'Sem título'}</div>
+                                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {link.id}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '20px 24px' }}>
+                                                        <a 
+                                                            href={`${window.location.protocol}//${window.location.host}/l/${link.short_code}`}
+                                                            target="_blank" rel="noreferrer"
+                                                            style={{ color: 'var(--primary-color)', fontWeight: 700, textDecoration: 'none' }}
+                                                        >
+                                                            /l/{link.short_code}
+                                                        </a>
+                                                    </td>
+                                                    <td style={{ padding: '20px 24px', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={link.original_url}>
+                                                        {link.original_url}
+                                                    </td>
+                                                    <td style={{ padding: '20px 24px', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: link.resolved_url_changed ? '#ef4444' : 'var(--text-muted)' }} title={link.last_resolved_url || 'Ainda não verificado'}>
+                                                        {link.last_resolved_url || <span style={{ fontStyle: 'italic', fontSize: '12px' }}>Pendente verificação</span>}
+                                                    </td>
+                                                    <td style={{ padding: '20px 24px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                        {link.resolved_url_changed_at ? new Date(link.resolved_url_changed_at).toLocaleString('pt-BR') : 'N/A'}
+                                                    </td>
+                                                    <td style={{ padding: '20px 24px', textAlign: 'center' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={link.tracking_enabled} 
+                                                                    onChange={(e) => handleToggleTracking(link.id, e.target.checked)}
+                                                                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                                                />
+                                                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Rastrear</span>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => handleCheckLink(link.id)}
+                                                                style={{ background: 'var(--card-bg-subtle)', border: '1px solid var(--surface-border-subtle)', color: 'var(--text-primary)', borderRadius: '6px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer' }}
+                                                            >
+                                                                Verificar
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {totalTrackerPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderTop: '1px solid var(--surface-border-subtle)' }}>
+                                    <button 
+                                        disabled={trackerPage === 1}
+                                        onClick={() => { setTrackerPage(prev => Math.max(1, prev - 1)); }}
+                                        className="icon-button"
+                                        style={{ opacity: trackerPage === 1 ? 0.3 : 1, width: 'auto', padding: '0 16px' }}
+                                    >
+                                        Anterior
+                                    </button>
+                                    
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        {[...Array(totalTrackerPages)].map((_, i) => {
+                                            const p = i + 1;
+                                            if (p === 1 || p === totalTrackerPages || (p >= trackerPage - 2 && p <= trackerPage + 2)) {
+                                                return (
+                                                    <button 
+                                                        key={p}
+                                                        onClick={() => { setTrackerPage(p); }}
+                                                        className={`icon-button ${trackerPage === p ? 'active' : ''}`}
+                                                        style={{ 
+                                                            width: '36px', 
+                                                            height: '36px',
+                                                            background: trackerPage === p ? 'var(--primary-color)' : 'transparent',
+                                                            color: trackerPage === p ? 'black' : 'var(--text-primary)',
+                                                            border: trackerPage === p ? 'none' : '1px solid var(--surface-border-subtle)',
+                                                            fontWeight: 900
+                                                        }}
+                                                    >
+                                                        {p}
+                                                    </button>
+                                                );
+                                            }
+                                            if (p === trackerPage - 3 || p === trackerPage + 3) {
+                                                return <span key={p} style={{ opacity: 0.3 }}>...</span>;
+                                            }
+                                            return null;
+                                        })}
+                                    </div>
+
+                                    <button 
+                                        disabled={trackerPage === totalTrackerPages}
+                                        onClick={() => { setTrackerPage(prev => Math.min(totalTrackerPages, prev + 1)); }}
+                                        className="icon-button"
+                                        style={{ opacity: trackerPage === totalTrackerPages ? 0.3 : 1, width: 'auto', padding: '0 16px' }}
+                                    >
+                                        Próximo
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="main-grid">
                      {/* ── CREATE SECTION ── */}
                      {user?.role !== 'CLIENT' && (
                         <div className="glass-card" style={{ height: 'fit-content', position: 'sticky', top: '24px' }}>
@@ -1016,6 +1309,7 @@ const LinkShortener = () => {
                         )}
                     </div>
                 </div>
+            )}
             </div>
 
             {/* Bulk Associate Modal */}

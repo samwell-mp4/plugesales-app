@@ -463,6 +463,10 @@ const initDB = async () => {
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS target_user_id INTEGER REFERENCES users(id)`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES client_submissions(id)`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS is_bulk BOOLEAN DEFAULT FALSE`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS last_resolved_url TEXT`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS resolved_url_changed BOOLEAN DEFAULT FALSE`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS resolved_url_changed_at TIMESTAMP`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS tracking_enabled BOOLEAN DEFAULT TRUE`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_role TEXT`);
@@ -4167,6 +4171,201 @@ app.get('/r/:slug', async (req, res) => {
     } catch (err) {
         console.error('PRO Redirect Error:', err);
         res.redirect('/?error=server_error');
+    }
+});
+
+// --- Link Redirect Tracker Helper and APIs ---
+
+// Helper function to resolve final URL after redirects
+async function resolveFinalUrl(targetUrl) {
+    if (!targetUrl) return '';
+    let url = targetUrl.trim();
+    if (!/^https?:\/\//i.test(url)) {
+        url = `https://${url}`;
+    }
+    try {
+        const response = await fetch(url, {
+            method: 'HEAD',
+            redirect: 'follow',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+            },
+            signal: AbortSignal.timeout(6000)
+        });
+        return response.url;
+    } catch (err) {
+        // Fallback to GET
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                redirect: 'follow',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+                },
+                signal: AbortSignal.timeout(6000)
+            });
+            return response.url;
+        } catch (e2) {
+            console.error(`[TRACKER_RESOLVE] Error resolving ${url}:`, e2.message);
+            throw new Error(`Inalcançável: ${e2.message}`);
+        }
+    }
+}
+
+// Function to check one specific link
+async function checkLinkRedirection(link) {
+    try {
+        const currentResolved = await resolveFinalUrl(link.original_url);
+        
+        if (!link.last_resolved_url) {
+            // First time tracking, store current resolved URL
+            await pool.query(
+                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE WHERE id = $2`,
+                [currentResolved, link.id]
+            );
+            return { id: link.id, changed: false, resolvedUrl: currentResolved };
+        }
+
+        if (currentResolved.trim().toLowerCase() !== link.last_resolved_url.trim().toLowerCase()) {
+            await pool.query(
+                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = TRUE, resolved_url_changed_at = NOW() WHERE id = $2`,
+                [currentResolved, link.id]
+            );
+
+            // Add notification alert
+            const notifyMsg = `O destino do link "${link.title || link.short_code}" foi alterado de "${link.last_resolved_url}" para "${currentResolved}"!`;
+            await pool.query(
+                `INSERT INTO notifications (user_id, title, message, type, is_read) VALUES ($1, $2, $3, $4, FALSE)`,
+                [link.user_id || null, 'Alerta de Redirecionamento', notifyMsg, 'warning']
+            );
+
+            // Trigger Webhook alert via Redis queue
+            try {
+                const userRes = await pool.query('SELECT name, notification_number FROM users WHERE id = $1', [link.user_id]);
+                const adminRes = await pool.query("SELECT name, notification_number FROM users WHERE role = 'ADMIN' LIMIT 5");
+                
+                const targets = [];
+                if (userRes.rows.length > 0 && userRes.rows[0].notification_number) {
+                    targets.push(userRes.rows[0]);
+                }
+                adminRes.rows.forEach(admin => {
+                    if (admin.notification_number && !targets.some(t => t.notification_number === admin.notification_number)) {
+                        targets.push(admin);
+                    }
+                });
+
+                const targetUrl = 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/scanner-link';
+
+                for (const target of targets) {
+                    const payload = {
+                        to: target.notification_number,
+                        mensagem: `⚠️ Alerta de Redirecionamento de Link: ${link.title || link.short_code}`,
+                        detalhes: {
+                            link_id: link.id,
+                            titulo: link.title || 'Sem título',
+                            short_code: link.short_code,
+                            link_encurtador: `/l/${link.short_code}`,
+                            url_original_cadastrada: link.original_url,
+                            destino_anterior: link.last_resolved_url,
+                            novo_destino_real: currentResolved,
+                            data_alteracao: new Date().toISOString()
+                        },
+                        status: 'ALTERADO',
+                        usuario: target.name
+                    };
+                    await redisClient.lPush('webhook_queue', JSON.stringify({ targetUrl, payload, timestamp: new Date().toISOString() }));
+                    console.log(`📡 [TRACKER_NOTIFY] Sent alert to: ${target.name} (${target.notification_number})`);
+                }
+            } catch (notifyErr) {
+                console.error(`[TRACKER_NOTIFY] Error queuing webhook:`, notifyErr.message);
+            }
+
+            return { id: link.id, changed: true, oldUrl: link.last_resolved_url, newUrl: currentResolved };
+        } else {
+            await pool.query(
+                `UPDATE shortened_links SET resolved_url_changed = FALSE WHERE id = $1`,
+                [link.id]
+            );
+        }
+        return { id: link.id, changed: false, resolvedUrl: currentResolved };
+    } catch (err) {
+        console.error(`[TRACKER_CHECK] Error check link ${link.id}:`, err.message);
+        return { id: link.id, error: err.message };
+    }
+}
+
+// 1. GET alerts / tracker status
+app.get('/api/shortener/tracker/status', async (req, res) => {
+    try {
+        const { user_id, role } = req.query;
+        let queryStr = 'SELECT id, title, original_url, short_code, last_resolved_url, resolved_url_changed, resolved_url_changed_at, tracking_enabled FROM shortened_links';
+        const params = [];
+
+        if (role !== 'ADMIN' && role !== 'EMPLOYEE' && user_id) {
+            queryStr += ' WHERE user_id = $1';
+            params.push(parseInt(user_id));
+        }
+
+        queryStr += ' ORDER BY created_at DESC';
+
+        const result = await pool.query(queryStr, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2. Toggle tracking enabled/disabled
+app.post('/api/shortener/tracker/toggle', async (req, res) => {
+    const { id, enabled } = req.body;
+    try {
+        await pool.query('UPDATE shortened_links SET tracking_enabled = $1 WHERE id = $2', [enabled, id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 3. Trigger manual check
+app.post('/api/shortener/tracker/check', async (req, res) => {
+    const { id, user_id, role } = req.body;
+    try {
+        let queryStr = 'SELECT * FROM shortened_links WHERE tracking_enabled = TRUE';
+        const params = [];
+
+        if (id) {
+            queryStr += ' AND id = $1';
+            params.push(id);
+        } else if (role !== 'ADMIN' && role !== 'EMPLOYEE' && user_id) {
+            queryStr += ' AND user_id = $1';
+            params.push(parseInt(user_id));
+        }
+
+        const result = await pool.query(queryStr, params);
+        const checks = [];
+
+        for (const link of result.rows) {
+            const checkResult = await checkLinkRedirection(link);
+            checks.push(checkResult);
+        }
+
+        res.json({ success: true, checks });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. Cron Job for checking all links every 15 minutes
+cron.schedule('*/15 * * * *', async () => {
+    console.log('[TRACKER_CRON] Running redirection check...');
+    try {
+        const result = await pool.query('SELECT * FROM shortened_links WHERE tracking_enabled = TRUE');
+        for (const link of result.rows) {
+            await checkLinkRedirection(link);
+        }
+        console.log(`[TRACKER_CRON] Finished checking ${result.rows.length} links.`);
+    } catch (err) {
+        console.error('[TRACKER_CRON] Error running cron:', err.message);
     }
 });
 

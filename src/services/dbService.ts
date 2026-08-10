@@ -672,6 +672,47 @@ export const dbService = {
             return { error: err.message };
         }
     },
+    getTrackerStatus: async (userId?: number, role?: string) => {
+        try {
+            const params = new URLSearchParams();
+            if (userId) params.append('user_id', userId.toString());
+            if (role) params.append('role', role);
+            const res = await fetch(`${API_BASE}/shortener/tracker/status?${params.toString()}`);
+            if (!res.ok) throw new Error("Erro ao buscar status do rastreador");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching tracker status:", err);
+            return [];
+        }
+    },
+    toggleLinkTracking: async (id: number, enabled: boolean) => {
+        try {
+            const res = await fetch(`${API_BASE}/shortener/tracker/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, enabled })
+            });
+            if (!res.ok) throw new Error("Erro ao alterar status de rastreamento");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error toggling link tracking:", err);
+            return { error: err.message };
+        }
+    },
+    checkLinkRedirection: async (id?: number, userId?: number, role?: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/shortener/tracker/check`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, user_id: userId, role })
+            });
+            if (!res.ok) throw new Error("Erro ao forçar checagem de link");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error checking link redirection:", err);
+            return { error: err.message };
+        }
+    },
     // --- PRO Rotator ---
     getProLinks: async (userId: number, role?: string) => {
         try {
