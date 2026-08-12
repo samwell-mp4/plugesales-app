@@ -3566,15 +3566,23 @@ app.put('/api/shortener/:id', async (req, res) => {
     const { id } = req.params;
     const { target_user_id, client_id, title, original_url } = req.body;
     try {
-        const result = await pool.query(
-            `UPDATE shortened_links 
-             SET target_user_id = COALESCE($1, target_user_id),
-                 client_id = COALESCE($2, client_id),
-                 title = COALESCE($3, title),
-                 original_url = COALESCE($4, original_url)
-             WHERE id = $5 RETURNING *`,
-            [target_user_id || null, client_id || null, title || null, original_url || null, id]
-        );
+        let queryText = `
+            UPDATE shortened_links 
+            SET target_user_id = COALESCE($1, target_user_id),
+                client_id = COALESCE($2, client_id),
+                title = COALESCE($3, title)
+        `;
+        const params = [target_user_id || null, client_id || null, title || null];
+
+        if (original_url) {
+            queryText += `, original_url = $4, last_resolved_url = NULL, resolved_url_changed = FALSE, allowed_resolved_urls = '[]'::jsonb`;
+            params.push(original_url);
+        }
+
+        queryText += ` WHERE id = $${params.length + 1} RETURNING *`;
+        params.push(id);
+
+        const result = await pool.query(queryText, params);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Link não encontrado' });
         res.json(result.rows[0]);
     } catch (err) {
@@ -4189,7 +4197,10 @@ async function resolveFinalUrl(targetUrl) {
             method: 'HEAD',
             redirect: 'follow',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             },
             signal: AbortSignal.timeout(6000)
         });
@@ -4201,7 +4212,10 @@ async function resolveFinalUrl(targetUrl) {
                 method: 'GET',
                 redirect: 'follow',
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                 },
                 signal: AbortSignal.timeout(6000)
             });
@@ -4233,11 +4247,10 @@ async function checkLinkRedirection(link) {
 
         // Check if the current resolved URL is already in the allowed destinations list
         const isAllowed = allowedUrls.some(url => url.trim().toLowerCase() === currentNorm) || 
-                          (link.last_resolved_url && link.last_resolved_url.trim().toLowerCase() === currentNorm) ||
                           (link.original_url && link.original_url.trim().toLowerCase() === currentNorm);
 
         if (isAllowed) {
-            // It matches an allowed rotator destination or the last resolved url. No alert.
+            // It matches an allowed destination. Clear alert.
             await pool.query(
                 `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE WHERE id = $2`,
                 [currentResolved, link.id]
@@ -4245,12 +4258,47 @@ async function checkLinkRedirection(link) {
             return { id: link.id, changed: false, resolvedUrl: currentResolved };
         }
 
-        // If it's a new destination, let's verify if it's a rotator by querying it 4 more times
+        // If it's a new destination and we already know this link is a rotator (has multiple allowed URLs),
+        // we can be more lenient. We will check up to 10 times to see if we can hit any of the already allowed URLs.
+        if (allowedUrls.length > 1) {
+            let foundExistingAllowed = false;
+            const newlyDiscovered = new Set([currentResolved]);
+
+            for (let i = 0; i < 10; i++) {
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    const resolved = await resolveFinalUrl(link.original_url);
+                    newlyDiscovered.add(resolved);
+                    
+                    const resolvedNorm = resolved.trim().toLowerCase();
+                    // If this resolved URL matches any of the previously allowed ones, it's still the same rotator!
+                    if (allowedUrls.some(url => url.trim().toLowerCase() === resolvedNorm)) {
+                        foundExistingAllowed = true;
+                        break;
+                    }
+                } catch (e) {
+                    // Ignore transient resolution errors
+                }
+            }
+
+            if (foundExistingAllowed) {
+                // Yes, it is still the same rotator! Add the new URL to the allowed list to avoid repeating this check.
+                const updatedAllowed = Array.from(new Set([...allowedUrls, ...newlyDiscovered]));
+                await pool.query(
+                    `UPDATE shortened_links SET allowed_resolved_urls = $1, last_resolved_url = $2, resolved_url_changed = FALSE WHERE id = $3`,
+                    [JSON.stringify(updatedAllowed), currentResolved, link.id]
+                );
+                console.log(`[TRACKER_ROTATOR] Added new rotator destination to whitelist for link ${link.id}: ${currentResolved}`);
+                return { id: link.id, changed: false, resolvedUrl: currentResolved };
+            }
+        }
+
+        // If it's not a known rotator, or the 10 checks didn't match any allowed URLs, let's verify if it's a rotator by querying it 7 more times
         const uniqueUrls = new Set([currentResolved]);
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 7; i++) {
             try {
-                // Wait 250ms between requests to let the rotator cycle
-                await new Promise(resolve => setTimeout(resolve, 250));
+                // Wait 100ms between requests to let the rotator cycle
+                await new Promise(resolve => setTimeout(resolve, 100));
                 const resolved = await resolveFinalUrl(link.original_url);
                 uniqueUrls.add(resolved);
             } catch (e) {
@@ -4270,7 +4318,7 @@ async function checkLinkRedirection(link) {
             return { id: link.id, changed: false, resolvedUrl: currentResolved, isRotator: true, rotatorUrls: Array.from(uniqueUrls) };
         }
 
-        // If all 5 requests returned the EXACT same URL and it's new, it is a real modification!
+        // If all requests returned the EXACT same URL and it's new, it is a real modification!
         if (!link.last_resolved_url) {
             // First time tracking, store current resolved URL and initialize allowed list
             const initialAllowed = [currentResolved];
@@ -4281,7 +4329,7 @@ async function checkLinkRedirection(link) {
             return { id: link.id, changed: false, resolvedUrl: currentResolved };
         }
 
-        // Real modification detected
+        // Real modification detected (consistent new destination, not whitelisted)
         await pool.query(
             `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = TRUE, resolved_url_changed_at = NOW() WHERE id = $2`,
             [currentResolved, link.id]
