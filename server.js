@@ -468,6 +468,45 @@ const initDB = async () => {
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS resolved_url_changed_at TIMESTAMP`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS tracking_enabled BOOLEAN DEFAULT TRUE`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS allowed_resolved_urls JSONB DEFAULT '[]'`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS tracking_mode TEXT DEFAULT 'LEARNING'`);
+        try {
+            await client.query(`
+                DELETE FROM shortened_links a
+                USING shortened_links b
+                WHERE a.id < b.id AND a.short_code = b.short_code
+            `);
+            await client.query(`ALTER TABLE shortened_links DROP CONSTRAINT IF EXISTS unique_short_code`);
+            await client.query(`ALTER TABLE shortened_links ADD CONSTRAINT unique_short_code UNIQUE (short_code)`);
+        } catch (err) {
+            console.error('Migration error: Failed to apply unique constraint on short_code:', err.message);
+        }
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS redirect_destinations (
+                id SERIAL PRIMARY KEY,
+                shortened_link_id INTEGER REFERENCES shortened_links(id) ON DELETE CASCADE,
+                destination_url TEXT NOT NULL,
+                normalized_url TEXT NOT NULL,
+                first_seen_at TIMESTAMP DEFAULT NOW(),
+                last_seen_at TIMESTAMP DEFAULT NOW(),
+                total_hits INTEGER DEFAULT 1,
+                percentage_estimate NUMERIC(5,2) DEFAULT 0.0,
+                is_authorized BOOLEAN DEFAULT TRUE,
+                confidence_score INTEGER DEFAULT 100
+            )
+        `);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS redirect_events (
+                id SERIAL PRIMARY KEY,
+                shortened_link_id INTEGER REFERENCES shortened_links(id) ON DELETE CASCADE,
+                event_type TEXT NOT NULL,
+                old_destination TEXT,
+                new_destination TEXT,
+                confidence INTEGER,
+                score INTEGER,
+                created_at TIMESTAMP DEFAULT NOW(),
+                metadata JSONB
+            )
+        `);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS sender_number TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_by TEXT`);
         await client.query(`ALTER TABLE client_submissions ADD COLUMN IF NOT EXISTS submitted_role TEXT`);
@@ -3575,8 +3614,16 @@ app.put('/api/shortener/:id', async (req, res) => {
         const params = [target_user_id || null, client_id || null, title || null];
 
         if (original_url) {
-            queryText += `, original_url = $4, last_resolved_url = NULL, resolved_url_changed = FALSE, allowed_resolved_urls = '[]'::jsonb`;
+            queryText += `, original_url = $4, last_resolved_url = NULL, resolved_url_changed = FALSE, tracking_mode = 'LEARNING'`;
             params.push(original_url);
+            
+            // Delete old whitelists for this link so it starts learning new targets
+            await pool.query('DELETE FROM redirect_destinations WHERE shortened_link_id = $1', [id]);
+            await pool.query(
+                `INSERT INTO redirect_events (shortened_link_id, event_type, metadata) 
+                 VALUES ($1, 'MANUAL_OVERRIDE', $2)`,
+                [id, JSON.stringify({ action: 'TARGET_URL_UPDATED', new_url: original_url })]
+            );
         }
 
         queryText += ` WHERE id = $${params.length + 1} RETURNING *`;
@@ -4227,30 +4274,82 @@ async function resolveFinalUrl(targetUrl) {
     }
 }
 
+function normalizeDestination(rawUrl) {
+    if (!rawUrl) return '';
+    try {
+        let urlStr = rawUrl.trim();
+        if (!/^https?:\/\//i.test(urlStr)) {
+            urlStr = `https://${urlStr}`;
+        }
+        const parsed = new URL(urlStr);
+        let hostname = parsed.hostname.toLowerCase();
+        let pathname = parsed.pathname;
+        if (pathname.endsWith('/') && pathname.length > 1) {
+            pathname = pathname.slice(0, -1);
+        }
+        // Normalize wa.me / WhatsApp links specifically
+        if (hostname === 'wa.me' || hostname === 'api.whatsapp.com' || hostname.includes('web.whatsapp.com')) {
+            const phone = pathname.replace(/^\/send\/?/i, '').replace(/^\//, '');
+            const textParam = parsed.searchParams.get('text') || '';
+            return `wa.me/${phone}${textParam ? '?text=' + encodeURIComponent(textParam) : ''}`;
+        }
+        
+        // General URL: remove common tracking query params
+        const cleanParams = new URLSearchParams();
+        const ignoreParams = ['fbclid', 'gclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'ref'];
+        parsed.searchParams.forEach((val, key) => {
+            if (!ignoreParams.includes(key.toLowerCase())) {
+                cleanParams.append(key, val);
+            }
+        });
+        
+        let search = cleanParams.toString();
+        return `${hostname}${pathname}${search ? '?' + search : ''}`;
+    } catch (e) {
+        return rawUrl.trim().toLowerCase().replace(/\/$/, '');
+    }
+}
+
+// Function to check one specific link
 // Function to check one specific link
 async function checkLinkRedirection(link) {
     try {
         const currentResolved = await resolveFinalUrl(link.original_url);
-        
-        // Parse the allowed resolved urls array
-        let allowedUrls = [];
-        try {
-            allowedUrls = typeof link.allowed_resolved_urls === 'string' 
-                ? JSON.parse(link.allowed_resolved_urls) 
-                : (link.allowed_resolved_urls || []);
-        } catch (e) {
-            allowedUrls = [];
-        }
+        const normResolved = normalizeDestination(currentResolved);
 
-        // Normalise strings for comparison
-        const currentNorm = currentResolved.trim().toLowerCase();
+        // Fetch authorized destinations for this link
+        const authDestsRes = await pool.query(
+            'SELECT * FROM redirect_destinations WHERE shortened_link_id = $1 AND is_authorized = TRUE',
+            [link.id]
+        );
+        const authDests = authDestsRes.rows;
 
-        // Check if the current resolved URL is already in the allowed destinations list
-        const isAllowed = allowedUrls.some(url => url.trim().toLowerCase() === currentNorm) || 
-                          (link.original_url && link.original_url.trim().toLowerCase() === currentNorm);
+        // Check if the current resolved URL is whitelisted
+        const isAllowed = authDests.some(d => d.normalized_url === normResolved) || 
+                          (link.original_url && normalizeDestination(link.original_url) === normResolved);
 
         if (isAllowed) {
-            // It matches an allowed destination. Clear alert.
+            // It matches an authorized destination. Clear alert.
+            await pool.query(
+                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE WHERE id = $2`,
+                [currentResolved, link.id]
+            );
+            // Increment hits for this destination
+            await pool.query(
+                `UPDATE redirect_destinations SET total_hits = total_hits + 1, last_seen_at = NOW() WHERE shortened_link_id = $1 AND normalized_url = $2`,
+                [link.id, normResolved]
+            );
+            return { id: link.id, changed: false, resolvedUrl: currentResolved };
+        }
+
+        // If not allowed, check the current tracking mode
+        if (link.tracking_mode === 'LEARNING') {
+            // In learning mode, we automatically authorize new destinations
+            await pool.query(
+                `INSERT INTO redirect_destinations (shortened_link_id, destination_url, normalized_url, is_authorized, confidence_score, total_hits) 
+                 VALUES ($1, $2, $3, TRUE, 100, 1)`,
+                [link.id, currentResolved, normResolved]
+            );
             await pool.query(
                 `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE WHERE id = $2`,
                 [currentResolved, link.id]
@@ -4258,81 +4357,76 @@ async function checkLinkRedirection(link) {
             return { id: link.id, changed: false, resolvedUrl: currentResolved };
         }
 
-        // If it's a new destination and we already know this link is a rotator (has multiple allowed URLs),
-        // we can be more lenient. We will check up to 10 times to see if we can hit any of the already allowed URLs.
-        if (allowedUrls.length > 1) {
-            let foundExistingAllowed = false;
-            const newlyDiscovered = new Set([currentResolved]);
-
-            for (let i = 0; i < 10; i++) {
-                try {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    const resolved = await resolveFinalUrl(link.original_url);
-                    newlyDiscovered.add(resolved);
-                    
-                    const resolvedNorm = resolved.trim().toLowerCase();
-                    // If this resolved URL matches any of the previously allowed ones, it's still the same rotator!
-                    if (allowedUrls.some(url => url.trim().toLowerCase() === resolvedNorm)) {
-                        foundExistingAllowed = true;
-                        break;
-                    }
-                } catch (e) {
-                    // Ignore transient resolution errors
-                }
-            }
-
-            if (foundExistingAllowed) {
-                // Yes, it is still the same rotator! Add the new URL to the allowed list to avoid repeating this check.
-                const updatedAllowed = Array.from(new Set([...allowedUrls, ...newlyDiscovered]));
-                await pool.query(
-                    `UPDATE shortened_links SET allowed_resolved_urls = $1, last_resolved_url = $2, resolved_url_changed = FALSE WHERE id = $3`,
-                    [JSON.stringify(updatedAllowed), currentResolved, link.id]
-                );
-                console.log(`[TRACKER_ROTATOR] Added new rotator destination to whitelist for link ${link.id}: ${currentResolved}`);
-                return { id: link.id, changed: false, resolvedUrl: currentResolved };
-            }
-        }
-
-        // If it's not a known rotator, or the 10 checks didn't match any allowed URLs, let's verify if it's a rotator by querying it 7 more times
-        const uniqueUrls = new Set([currentResolved]);
-        for (let i = 0; i < 7; i++) {
+        // For SINGLE or ROTATOR modes, let's verify if the destination changes are persistent or part of a rotator
+        const checksCount = link.tracking_mode === 'SINGLE' ? 3 : 6;
+        const observations = [currentResolved];
+        for (let i = 0; i < checksCount; i++) {
             try {
-                // Wait 100ms between requests to let the rotator cycle
                 await new Promise(resolve => setTimeout(resolve, 100));
                 const resolved = await resolveFinalUrl(link.original_url);
-                uniqueUrls.add(resolved);
+                observations.push(resolved);
             } catch (e) {
-                // Ignore resolution errors during multiple attempts
+                // Ignore transient errors during check loop
             }
         }
 
-        // If we found more than 1 unique destination, it is a rotator!
-        if (uniqueUrls.size > 1) {
-            // Update the allowed list with all discovered URLs
-            const updatedAllowed = Array.from(new Set([...allowedUrls, ...uniqueUrls]));
-            await pool.query(
-                `UPDATE shortened_links SET allowed_resolved_urls = $1, last_resolved_url = $2, resolved_url_changed = FALSE WHERE id = $3`,
-                [JSON.stringify(updatedAllowed), currentResolved, link.id]
-            );
-            console.log(`[TRACKER_ROTATOR] Auto-detected rotator for link ${link.id}. Targets: ${Array.from(uniqueUrls).join(', ')}`);
-            return { id: link.id, changed: false, resolvedUrl: currentResolved, isRotator: true, rotatorUrls: Array.from(uniqueUrls) };
-        }
+        // Analyze observation distribution
+        const obsNorms = observations.map(o => normalizeDestination(o));
 
-        // If all requests returned the EXACT same URL and it's new, it is a real modification!
-        if (!link.last_resolved_url) {
-            // First time tracking, store current resolved URL and initialize allowed list
-            const initialAllowed = [currentResolved];
+        // Check if any of the authorized destinations appeared during these checks
+        const sawAuthorized = obsNorms.some(obsNorm => authDests.some(d => d.normalized_url === obsNorm));
+
+        if (link.tracking_mode === 'ROTATOR' && sawAuthorized) {
+            // The rotator is still running and hitting authorized destinations, but we hit a new target!
+            // We register this new target as a candidate instead of raising an immediate fraud alert.
+            for (const obs of observations) {
+                const normObs = normalizeDestination(obs);
+                const isObsAuth = authDests.some(d => d.normalized_url === normObs);
+                if (!isObsAuth) {
+                    await pool.query(
+                        `INSERT INTO redirect_destinations (shortened_link_id, destination_url, normalized_url, is_authorized, confidence_score, total_hits)
+                         VALUES ($1, $2, $3, FALSE, 30, 1)
+                         ON CONFLICT DO NOTHING`,
+                        [link.id, obs, normObs]
+                    );
+                    // Increment hit counts
+                    await pool.query(
+                        `UPDATE redirect_destinations SET total_hits = total_hits + 1, last_seen_at = NOW() WHERE shortened_link_id = $1 AND normalized_url = $2`,
+                        [link.id, normObs]
+                    );
+                }
+            }
+            // Clear alert since authorized targets are still active
             await pool.query(
-                `UPDATE shortened_links SET last_resolved_url = $1, allowed_resolved_urls = $2, resolved_url_changed = FALSE WHERE id = $3`,
-                [currentResolved, JSON.stringify(initialAllowed), link.id]
+                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE WHERE id = $2`,
+                [currentResolved, link.id]
             );
             return { id: link.id, changed: false, resolvedUrl: currentResolved };
         }
 
-        // Real modification detected (consistent new destination, not whitelisted)
+        // If none of the authorized destinations appeared, and it is a persistent change to a new destination:
+        // Mark alert
         await pool.query(
             `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = TRUE, resolved_url_changed_at = NOW() WHERE id = $2`,
             [currentResolved, link.id]
+        );
+
+        // Add candidate destinations to the DB
+        for (const obs of observations) {
+            const normObs = normalizeDestination(obs);
+            await pool.query(
+                `INSERT INTO redirect_destinations (shortened_link_id, destination_url, normalized_url, is_authorized, confidence_score, total_hits)
+                 VALUES ($1, $2, $3, FALSE, 10, 1)
+                 ON CONFLICT DO NOTHING`,
+                [link.id, obs, normObs]
+            );
+        }
+
+        // Log redirection event
+        await pool.query(
+            `INSERT INTO redirect_events (shortened_link_id, event_type, old_destination, new_destination, metadata) 
+             VALUES ($1, 'DESTINATION_CHANGED', $2, $3, $4)`,
+            [link.id, link.last_resolved_url, currentResolved, JSON.stringify({ mode: link.tracking_mode, observations })]
         );
 
         // Add notification alert
@@ -4456,13 +4550,30 @@ app.post('/api/shortener/tracker/check', async (req, res) => {
 
 // 4. Cron Job for checking all links every 15 minutes
 cron.schedule('*/15 * * * *', async () => {
-    console.log('[TRACKER_CRON] Running redirection check...');
+    console.log('[TRACKER_CRON] Running adaptive redirection check...');
     try {
         const result = await pool.query("SELECT * FROM shortened_links WHERE tracking_enabled = TRUE AND created_at >= NOW() - INTERVAL '15 days'");
+        let checkedCount = 0;
+        
         for (const link of result.rows) {
+            // Adaptive Check Interval:
+            // 1. If it's currently flagged as changed/alert, we check it every loop to see if it returned to normal.
+            // 2. If it's in LEARNING mode, check every loop to learn destinations quickly.
+            // 3. If it's a stable SINGLE or ROTATOR link (no alerts), we only check it every second loop (50% chance).
+            const isStable = !link.resolved_url_changed && link.tracking_mode !== 'LEARNING';
+            if (isStable) {
+                // Skip checking 50% of the time to distribute server load
+                if (Math.random() > 0.5) {
+                    continue;
+                }
+            }
+            
             await checkLinkRedirection(link);
+            checkedCount++;
+            // Small throttle between links (100ms) to avoid request bursts on third-party servers
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
-        console.log(`[TRACKER_CRON] Finished checking ${result.rows.length} links.`);
+        console.log(`[TRACKER_CRON] Adaptive scan finished. Checked ${checkedCount}/${result.rows.length} links.`);
     } catch (err) {
         console.error('[TRACKER_CRON] Error running cron:', err.message);
     }
@@ -4550,6 +4661,69 @@ app.get('/l/:shortCode', async (req, res) => {
                 );
             } catch (err) {
                 console.error("Error tracking click:", err);
+            }
+
+            // Asynchronous Click Observation Logger
+            if (link.tracking_enabled) {
+                try {
+                    const currentResolved = await resolveFinalUrl(link.original_url);
+                    const normResolved = normalizeDestination(currentResolved);
+
+                    // Check if normalized url exists in redirect_destinations
+                    const destCheck = await pool.query(
+                        'SELECT * FROM redirect_destinations WHERE shortened_link_id = $1 AND normalized_url = $2',
+                        [link.id, normResolved]
+                    );
+
+                    if (destCheck.rows.length > 0) {
+                        // Update hits and last seen
+                        await pool.query(
+                            'UPDATE redirect_destinations SET total_hits = total_hits + 1, last_seen_at = NOW(), destination_url = $1 WHERE id = $2',
+                            [currentResolved, destCheck.rows[0].id]
+                        );
+                    } else {
+                        // New destination discovered
+                        const isAuthorized = (link.tracking_mode === 'LEARNING');
+                        await pool.query(
+                            `INSERT INTO redirect_destinations (shortened_link_id, destination_url, normalized_url, is_authorized, confidence_score, total_hits) 
+                             VALUES ($1, $2, $3, $4, $5, 1)`,
+                            [link.id, currentResolved, normResolved, isAuthorized, isAuthorized ? 100 : 10]
+                        );
+
+                        await pool.query(
+                            `INSERT INTO redirect_events (shortened_link_id, event_type, new_destination, metadata) 
+                             VALUES ($1, 'DESTINATION_DISCOVERED', $2, $3)`,
+                            [link.id, currentResolved, JSON.stringify({ source: 'CLICK_OBSERVATION', tracking_mode: link.tracking_mode })]
+                        );
+                    }
+
+                    // Update percentages estimate
+                    const totalHitsRes = await pool.query('SELECT SUM(total_hits) as total FROM redirect_destinations WHERE shortened_link_id = $1', [link.id]);
+                    const totalHits = parseInt(totalHitsRes.rows[0].total) || 1;
+                    await pool.query(
+                        `UPDATE redirect_destinations 
+                         SET percentage_estimate = ROUND((total_hits::numeric / $1::numeric) * 100, 2) 
+                         WHERE shortened_link_id = $2`,
+                        [totalHits, link.id]
+                    );
+
+                    // Learning phase transition check
+                    if (link.tracking_mode === 'LEARNING' && totalHits >= 20) {
+                        const destsRes = await pool.query('SELECT * FROM redirect_destinations WHERE shortened_link_id = $1', [link.id]);
+                        let newMode = 'SINGLE';
+                        if (destsRes.rows.length > 1) {
+                            newMode = 'ROTATOR';
+                        }
+                        await pool.query('UPDATE shortened_links SET tracking_mode = $1 WHERE id = $2', [newMode, link.id]);
+                        await pool.query(
+                            `INSERT INTO redirect_events (shortened_link_id, event_type, metadata) 
+                             VALUES ($1, 'LINK_CLASSIFIED', $2)`,
+                            [link.id, JSON.stringify({ mode: newMode, total_hits: totalHits })]
+                        );
+                    }
+                } catch (obsErr) {
+                    console.error(`[TRACKER_OBSERVATION_ERROR] Link ${link.id}:`, obsErr.message);
+                }
             }
         })();
 
