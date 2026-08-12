@@ -469,6 +469,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS tracking_enabled BOOLEAN DEFAULT TRUE`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS allowed_resolved_urls JSONB DEFAULT '[]'`);
         await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS tracking_mode TEXT DEFAULT 'LEARNING'`);
+        await client.query(`ALTER TABLE shortened_links ADD COLUMN IF NOT EXISTS manual_tracking BOOLEAN DEFAULT FALSE`);
         try {
             await client.query(`
                 DELETE FROM shortened_links a
@@ -4232,6 +4233,14 @@ app.get('/r/:slug', async (req, res) => {
 
 // --- Link Redirect Tracker Helper and APIs ---
 
+let globalScanStatus = {
+    isScanning: false,
+    progress: 0,
+    currentLink: '',
+    lastScanFinishedAt: null,
+    nextScanScheduledAt: Date.now() + 5 * 60 * 1000
+};
+
 // Helper function to resolve final URL after redirects
 async function resolveFinalUrl(targetUrl) {
     if (!targetUrl) return '';
@@ -4482,7 +4491,7 @@ async function checkLinkRedirection(link) {
 app.get('/api/shortener/tracker/status', async (req, res) => {
     try {
         const { user_id, role } = req.query;
-        let queryStr = "SELECT id, title, original_url, short_code, last_resolved_url, resolved_url_changed, resolved_url_changed_at, tracking_enabled FROM shortened_links WHERE created_at >= NOW() - INTERVAL '15 days'";
+        let queryStr = "SELECT id, title, original_url, short_code, last_resolved_url, resolved_url_changed, resolved_url_changed_at, tracking_enabled, target_user_id, manual_tracking, tracking_mode FROM shortened_links WHERE (created_at >= NOW() - INTERVAL '7 days' OR manual_tracking = TRUE)";
         const params = [];
 
         if (role !== 'ADMIN' && role !== 'EMPLOYEE' && user_id) {
@@ -4499,18 +4508,23 @@ app.get('/api/shortener/tracker/status', async (req, res) => {
     }
 });
 
-// 2. Toggle tracking enabled/disabled
 app.post('/api/shortener/tracker/toggle', async (req, res) => {
     const { id, enabled } = req.body;
     try {
-        await pool.query('UPDATE shortened_links SET tracking_enabled = $1 WHERE id = $2', [enabled, id]);
+        await pool.query('UPDATE shortened_links SET tracking_enabled = $1, manual_tracking = $1 WHERE id = $2', [enabled, id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// 3. Trigger manual check
+app.get('/api/shortener/tracker/scan-progress', (req, res) => {
+    res.json({
+        ...globalScanStatus,
+        timeRemaining: Math.max(0, globalScanStatus.nextScanScheduledAt - Date.now())
+    });
+});
+
 app.post('/api/shortener/tracker/check', async (req, res) => {
     const { id, user_id, role } = req.body;
     try {
@@ -4521,7 +4535,7 @@ app.post('/api/shortener/tracker/check', async (req, res) => {
             queryStr += ' AND id = $1';
             params.push(id);
         } else {
-            queryStr += " AND created_at >= NOW() - INTERVAL '15 days'";
+            queryStr += " AND (created_at >= NOW() - INTERVAL '7 days' OR manual_tracking = TRUE)";
             if (role !== 'ADMIN' && role !== 'EMPLOYEE' && user_id) {
                 queryStr += ' AND user_id = $1';
                 params.push(parseInt(user_id));
@@ -4531,13 +4545,28 @@ app.post('/api/shortener/tracker/check', async (req, res) => {
         const result = await pool.query(queryStr, params);
         const checks = [];
 
-        for (const link of result.rows) {
+        if (result.rows.length > 0) {
+            globalScanStatus.isScanning = true;
+            globalScanStatus.progress = 0;
+        }
+
+        for (let idx = 0; idx < result.rows.length; idx++) {
+            const link = result.rows[idx];
+            globalScanStatus.currentLink = link.title || link.short_code;
+            globalScanStatus.progress = Math.round((idx / result.rows.length) * 100);
+
             const checkResult = await checkLinkRedirection(link);
             checks.push(checkResult);
         }
 
+        globalScanStatus.isScanning = false;
+        globalScanStatus.progress = 100;
+        globalScanStatus.currentLink = '';
+        globalScanStatus.lastScanFinishedAt = new Date().toISOString();
+
         res.json({ success: true, checks });
     } catch (err) {
+        globalScanStatus.isScanning = false;
         res.status(500).json({ error: err.message });
     }
 });
@@ -4545,16 +4574,39 @@ app.post('/api/shortener/tracker/check', async (req, res) => {
 // 4. Cron Job for checking all links every 5 minutes
 cron.schedule('*/5 * * * *', async () => {
     console.log('[TRACKER_CRON] Running adaptive redirection check...');
+    globalScanStatus.nextScanScheduledAt = Date.now() + 5 * 60 * 1000;
     try {
-        const result = await pool.query("SELECT * FROM shortened_links WHERE tracking_enabled = TRUE AND created_at >= NOW() - INTERVAL '15 days'");
+        // Query click spikes (10+ clicks in the last hour) to prioritize them
+        const spikesRes = await pool.query(`
+            SELECT link_id, COUNT(*) as click_count 
+            FROM link_clicks 
+            WHERE timestamp >= NOW() - INTERVAL '1 hour' 
+            GROUP BY link_id 
+            HAVING COUNT(*) >= 10
+        `);
+        const spikeLinkIds = new Set(spikesRes.rows.map(r => r.link_id));
+
+        const result = await pool.query("SELECT * FROM shortened_links WHERE tracking_enabled = TRUE AND (created_at >= NOW() - INTERVAL '7 days' OR manual_tracking = TRUE)");
         let checkedCount = 0;
+
+        if (result.rows.length > 0) {
+            globalScanStatus.isScanning = true;
+            globalScanStatus.progress = 0;
+        }
         
-        for (const link of result.rows) {
+        for (let idx = 0; idx < result.rows.length; idx++) {
+            const link = result.rows[idx];
+            globalScanStatus.currentLink = link.title || link.short_code;
+            globalScanStatus.progress = Math.round((idx / result.rows.length) * 100);
+
             // Adaptive Check Interval:
-            // 1. If it's currently flagged as changed/alert, we check it every loop to see if it returned to normal.
-            // 2. If it's in LEARNING mode, check every loop to learn destinations quickly.
-            // 3. If it's a stable SINGLE or ROTATOR link (no alerts), we only check it every second loop (50% chance).
-            const isStable = !link.resolved_url_changed && link.tracking_mode !== 'LEARNING';
+            // 1. If currently flagged as changed/alert, we check every loop.
+            // 2. If in LEARNING mode, check every loop.
+            // 3. If it has a click burst (active traffic spike), check every loop.
+            // 4. If stable SINGLE/ROTATOR with no traffic, skip check 50% of the time.
+            const hasClickBurst = spikeLinkIds.has(link.id);
+            const isStable = !link.resolved_url_changed && link.tracking_mode !== 'LEARNING' && !hasClickBurst;
+            
             if (isStable) {
                 // Skip checking 50% of the time to distribute server load
                 if (Math.random() > 0.5) {
@@ -4567,8 +4619,15 @@ cron.schedule('*/5 * * * *', async () => {
             // Small throttle between links (100ms) to avoid request bursts on third-party servers
             await new Promise(resolve => setTimeout(resolve, 100));
         }
+        
+        globalScanStatus.isScanning = false;
+        globalScanStatus.progress = 100;
+        globalScanStatus.currentLink = '';
+        globalScanStatus.lastScanFinishedAt = new Date().toISOString();
+        
         console.log(`[TRACKER_CRON] Adaptive scan finished. Checked ${checkedCount}/${result.rows.length} links.`);
     } catch (err) {
+        globalScanStatus.isScanning = false;
         console.error('[TRACKER_CRON] Error running cron:', err.message);
     }
 });

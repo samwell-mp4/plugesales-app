@@ -713,6 +713,16 @@ export const dbService = {
             return { error: err.message };
         }
     },
+    getTrackerScanProgress: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/shortener/tracker/scan-progress`);
+            if (!res.ok) throw new Error("Erro ao buscar progresso do escaneamento");
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching scan progress:", err);
+            return null;
+        }
+    },
     // --- PRO Rotator ---
     getProLinks: async (userId: number, role?: string) => {
         try {

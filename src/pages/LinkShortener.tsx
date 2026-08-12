@@ -77,6 +77,9 @@ const LinkShortener = () => {
     const [trackerPage, setTrackerPage] = useState(1);
     const trackerPerPage = 20;
     const [showOnlyAlerts, setShowOnlyAlerts] = useState(false);
+    const [scanProgress, setScanProgress] = useState<any>(null);
+    const [trackerSearchTerm, setTrackerSearchTerm] = useState('');
+    const [trackerFilterClientId, setTrackerFilterClientId] = useState('');
 
     useEffect(() => {
         const active = { current: true };
@@ -175,10 +178,42 @@ const LinkShortener = () => {
         }
     }, [user]);
 
+    useEffect(() => {
+        let interval: any = null;
+        if (user) {
+            const fetchProgress = async () => {
+                try {
+                    const data = await dbService.getTrackerScanProgress();
+                    if (data) {
+                        setScanProgress(data);
+                    }
+                } catch (e) {
+                    console.error("Error polling scan progress:", e);
+                }
+            };
+            fetchProgress();
+            interval = setInterval(fetchProgress, 2000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [user]);
+
     const trackerAlertsCount = trackerLinks.filter((l: any) => l.resolved_url_changed).length;
-    const filteredTrackerLinks = showOnlyAlerts 
-        ? trackerLinks.filter((l: any) => l.resolved_url_changed) 
-        : trackerLinks;
+    const filteredTrackerLinks = trackerLinks.filter((l: any) => {
+        if (showOnlyAlerts && !l.resolved_url_changed) return false;
+        if (trackerSearchTerm) {
+            const query = trackerSearchTerm.toLowerCase();
+            const titleMatch = l.title && l.title.toLowerCase().includes(query);
+            const codeMatch = l.short_code && l.short_code.toLowerCase().includes(query);
+            const urlMatch = l.original_url && l.original_url.toLowerCase().includes(query);
+            if (!titleMatch && !codeMatch && !urlMatch) return false;
+        }
+        if (trackerFilterClientId) {
+            if (l.target_user_id !== parseInt(trackerFilterClientId)) return false;
+        }
+        return true;
+    });
     const totalTrackerPages = Math.ceil(filteredTrackerLinks.length / trackerPerPage);
     const paginatedTrackerLinks = filteredTrackerLinks.slice((trackerPage - 1) * trackerPerPage, trackerPage * trackerPerPage);
 
@@ -555,6 +590,33 @@ const LinkShortener = () => {
                             </div>
                         </div>
 
+                        {/* Scan Progress Bar & Info */}
+                        {scanProgress && (scanProgress.isScanning || isCheckingTracker) && (
+                            <div className="glass-card" style={{ padding: '16px', marginBottom: '24px', border: '1px solid var(--primary-color)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--primary-color)' }}>
+                                        {scanProgress.isScanning ? 'Varredura automática em andamento...' : 'Varredura manual em andamento...'}
+                                    </span>
+                                    <span style={{ fontSize: '14px', fontWeight: 900 }}>{scanProgress.progress}%</span>
+                                </div>
+                                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+                                    <div style={{ width: `${scanProgress.progress}%`, height: '100%', background: 'var(--primary-color)', transition: 'width 0.3s ease' }} />
+                                </div>
+                                {scanProgress.currentLink && (
+                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                        Escaneando agora: <strong style={{ color: 'var(--text-primary)' }}>{scanProgress.currentLink}</strong>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Countdown until next scan */}
+                        {scanProgress && !scanProgress.isScanning && !isCheckingTracker && (
+                            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px', background: 'rgba(255,255,255,0.02)', padding: '8px 16px', borderRadius: '8px', display: 'inline-block' }}>
+                                Próxima varredura automática em: <strong>{Math.floor(scanProgress.timeRemaining / 60000)}m {Math.floor((scanProgress.timeRemaining % 60000) / 1000)}s</strong>
+                            </div>
+                        )}
+
                         {/* Stats Summary Cards */}
                         <div style={{ 
                             display: 'grid', 
@@ -601,6 +663,35 @@ const LinkShortener = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Filters & Search */}
+                        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1, minWidth: '240px' }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar por código, título ou link original..."
+                                    value={trackerSearchTerm}
+                                    onChange={(e) => { setTrackerSearchTerm(e.target.value); setTrackerPage(1); }}
+                                    className="form-control"
+                                    style={{ width: '100%' }}
+                                />
+                            </div>
+                            {user?.role !== 'CLIENT' && (
+                                <div style={{ width: '200px' }}>
+                                    <select
+                                        value={trackerFilterClientId}
+                                        onChange={(e) => { setTrackerFilterClientId(e.target.value); setTrackerPage(1); }}
+                                        className="form-control"
+                                        style={{ width: '100%' }}
+                                    >
+                                        <option value="">Todos os Clientes</option>
+                                        {clients.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                         </div>
 
                         {/* Alerts Banner */}
