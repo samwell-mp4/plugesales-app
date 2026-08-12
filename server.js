@@ -4312,6 +4312,7 @@ function normalizeDestination(rawUrl) {
 
 // Function to check one specific link
 // Function to check one specific link
+// Function to check one specific link
 async function checkLinkRedirection(link) {
     try {
         const currentResolved = await resolveFinalUrl(link.original_url);
@@ -4323,6 +4324,20 @@ async function checkLinkRedirection(link) {
             [link.id]
         );
         const authDests = authDestsRes.rows;
+
+        // First check initialization
+        if (authDests.length === 0) {
+            await pool.query(
+                `INSERT INTO redirect_destinations (shortened_link_id, destination_url, normalized_url, is_authorized, confidence_score, total_hits) 
+                 VALUES ($1, $2, $3, TRUE, 100, 1)`,
+                [link.id, currentResolved, normResolved]
+            );
+            await pool.query(
+                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE, tracking_mode = 'LEARNING' WHERE id = $2`,
+                [currentResolved, link.id]
+            );
+            return { id: link.id, changed: false, resolvedUrl: currentResolved };
+        }
 
         // Check if the current resolved URL is whitelisted
         const isAllowed = authDests.some(d => d.normalized_url === normResolved) || 
@@ -4342,23 +4357,8 @@ async function checkLinkRedirection(link) {
             return { id: link.id, changed: false, resolvedUrl: currentResolved };
         }
 
-        // If not allowed, check the current tracking mode
-        if (link.tracking_mode === 'LEARNING') {
-            // In learning mode, we automatically authorize new destinations
-            await pool.query(
-                `INSERT INTO redirect_destinations (shortened_link_id, destination_url, normalized_url, is_authorized, confidence_score, total_hits) 
-                 VALUES ($1, $2, $3, TRUE, 100, 1)`,
-                [link.id, currentResolved, normResolved]
-            );
-            await pool.query(
-                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE WHERE id = $2`,
-                [currentResolved, link.id]
-            );
-            return { id: link.id, changed: false, resolvedUrl: currentResolved };
-        }
-
-        // For SINGLE or ROTATOR modes, let's verify if the destination changes are persistent or part of a rotator
-        const checksCount = link.tracking_mode === 'SINGLE' ? 3 : 6;
+        // Destination is not in whitelist. Let's do multiple checks to verify if it rotates or if it was permanently replaced
+        const checksCount = (link.tracking_mode === 'ROTATOR') ? 6 : 4;
         const observations = [currentResolved];
         for (let i = 0; i < checksCount; i++) {
             try {
@@ -4366,52 +4366,46 @@ async function checkLinkRedirection(link) {
                 const resolved = await resolveFinalUrl(link.original_url);
                 observations.push(resolved);
             } catch (e) {
-                // Ignore transient errors during check loop
+                // Ignore transient errors
             }
         }
 
-        // Analyze observation distribution
+        // Analyze observations
         const obsNorms = observations.map(o => normalizeDestination(o));
-
-        // Check if any of the authorized destinations appeared during these checks
         const sawAuthorized = obsNorms.some(obsNorm => authDests.some(d => d.normalized_url === obsNorm));
 
-        if (link.tracking_mode === 'ROTATOR' && sawAuthorized) {
-            // The rotator is still running and hitting authorized destinations, but we hit a new target!
-            // We register this new target as a candidate instead of raising an immediate fraud alert.
+        if (sawAuthorized) {
+            // It rotates! Some checks hit authorized URLs, and others hit the new URL.
+            // We authorize the new URL and transition tracking mode if needed.
+            const newMode = (link.tracking_mode === 'SINGLE' || link.tracking_mode === 'LEARNING') ? 'ROTATOR' : link.tracking_mode;
+            
             for (const obs of observations) {
                 const normObs = normalizeDestination(obs);
                 const isObsAuth = authDests.some(d => d.normalized_url === normObs);
                 if (!isObsAuth) {
                     await pool.query(
                         `INSERT INTO redirect_destinations (shortened_link_id, destination_url, normalized_url, is_authorized, confidence_score, total_hits)
-                         VALUES ($1, $2, $3, FALSE, 30, 1)
+                         VALUES ($1, $2, $3, TRUE, 80, 1)
                          ON CONFLICT DO NOTHING`,
                         [link.id, obs, normObs]
                     );
-                    // Increment hit counts
-                    await pool.query(
-                        `UPDATE redirect_destinations SET total_hits = total_hits + 1, last_seen_at = NOW() WHERE shortened_link_id = $1 AND normalized_url = $2`,
-                        [link.id, normObs]
-                    );
                 }
             }
-            // Clear alert since authorized targets are still active
+
             await pool.query(
-                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE WHERE id = $2`,
-                [currentResolved, link.id]
+                `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = FALSE, tracking_mode = $2 WHERE id = $3`,
+                [currentResolved, newMode, link.id]
             );
             return { id: link.id, changed: false, resolvedUrl: currentResolved };
         }
 
-        // If none of the authorized destinations appeared, and it is a persistent change to a new destination:
-        // Mark alert
+        // Fraud detected: The original whitelisted targets never appeared. It has been replaced!
         await pool.query(
             `UPDATE shortened_links SET last_resolved_url = $1, resolved_url_changed = TRUE, resolved_url_changed_at = NOW() WHERE id = $2`,
             [currentResolved, link.id]
         );
 
-        // Add candidate destinations to the DB
+        // Add candidate destinations as unauthorized candidates
         for (const obs of observations) {
             const normObs = normalizeDestination(obs);
             await pool.query(
@@ -4548,8 +4542,8 @@ app.post('/api/shortener/tracker/check', async (req, res) => {
     }
 });
 
-// 4. Cron Job for checking all links every 15 minutes
-cron.schedule('*/15 * * * *', async () => {
+// 4. Cron Job for checking all links every 5 minutes
+cron.schedule('*/5 * * * *', async () => {
     console.log('[TRACKER_CRON] Running adaptive redirection check...');
     try {
         const result = await pool.query("SELECT * FROM shortened_links WHERE tracking_enabled = TRUE AND created_at >= NOW() - INTERVAL '15 days'");
