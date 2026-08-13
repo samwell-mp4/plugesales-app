@@ -29,7 +29,7 @@ import { useNavigate } from 'react-router-dom';
 const ClientDashboard = () => {
     const { user, setUser, logout } = useAuth() as any;
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'submissions' | 'links' | 'activity' | 'referrals'>('submissions');
+    const [activeTab, setActiveTab] = useState<'submissions' | 'links' | 'activity' | 'referrals' | 'finance'>('submissions');
     const [submissions, setSubmissions] = useState<any[]>([]);
     const [sales, setSales] = useState<any[]>([]);
     const [clientProfile, setClientProfile] = useState<any>(user);
@@ -531,6 +531,7 @@ const ClientDashboard = () => {
                     <button className={`nav-tab ${activeTab === 'links' ? 'active' : ''}`} onClick={() => setActiveTab('links')}>MEUS LINKS</button>
                     <button className={`nav-tab ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => setActiveTab('activity')}>REGISTRO DE ATIVIDADE</button>
                     <button className={`nav-tab ${activeTab === 'referrals' ? 'active' : ''}`} onClick={() => setActiveTab('referrals')}>INDICAÇÕES</button>
+                    <button className={`nav-tab ${activeTab === 'finance' ? 'active' : ''}`} onClick={() => setActiveTab('finance')}>RECARGAS & FINANCEIRO</button>
                 </div>
 
                 <div className="control-card" style={{ animationDelay: '0.4s', padding: '24px' }}>
@@ -824,6 +825,66 @@ const ClientDashboard = () => {
                                             </div>
                                         );
                                     })
+                                )}
+                            </div>
+                        </div>
+                    ) : activeTab === 'finance' ? (
+                        <div style={{ animation: 'fadeInUp 0.4s ease-out' }}>
+                            <div className="crm-card" style={{ padding: '32px' }}>
+                                <h3 style={{ margin: '0 0 24px 0', fontSize: '1.25rem', fontWeight: 900 }}>Histórico de Recargas / Compras</h3>
+
+                                {sales.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                        Nenhuma recarga ou compra registrada.
+                                    </div>
+                                ) : (
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table className="crm-table" style={{ width: '100%' }}>
+                                            <thead>
+                                                <tr style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                                    <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'left' }}>DATA</th>
+                                                    <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'left' }}>QUANTIDADE</th>
+                                                    <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'left' }}>UNITÁRIO</th>
+                                                    <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'left' }}>TOTAL</th>
+                                                    <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'left' }}>COMPROVANTE</th>
+                                                    <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>STATUS</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {sales.map(sale => (
+                                                    <tr key={sale.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                                        <td style={{ padding: '12px', fontSize: '13px' }}>{new Date(sale.sale_date).toLocaleDateString()}</td>
+                                                        <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold' }}>{sale.quantity_hired.toLocaleString()} créditos</td>
+                                                        <td style={{ padding: '12px', fontSize: '13px' }}>R$ {sale.unit_value}</td>
+                                                        <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-color)' }}>R$ {parseFloat(sale.total_value).toFixed(2)}</td>
+                                                        <td style={{ padding: '12px', fontSize: '13px' }}>
+                                                            {sale.receipt_url ? (
+                                                                <a 
+                                                                    href={sale.receipt_url} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer" 
+                                                                    style={{ color: '#acf800', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'underline' }}
+                                                                >
+                                                                    Ver Comprovante <ExternalLink size={12} />
+                                                                </a>
+                                                            ) : (
+                                                                <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Não enviado</span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ padding: '12px', fontSize: '13px', textAlign: 'center' }}>
+                                                            <span className="status-badge-premium" style={{
+                                                                '--bg': sale.payment_status === 'RECEBIDO' ? 'rgba(74, 222, 128, 0.05)' : 'rgba(245, 158, 11, 0.05)',
+                                                                '--color': sale.payment_status === 'RECEBIDO' ? '#4ade80' : '#f59e0b',
+                                                                '--border': sale.payment_status === 'RECEBIDO' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(245, 158, 11, 0.2)'
+                                                            } as any}>
+                                                                {sale.payment_status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 )}
                             </div>
                         </div>

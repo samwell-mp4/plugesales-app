@@ -1836,7 +1836,8 @@ app.post('/api/finance/sales', async (req, res) => {
             quantity_hired, unit_value, total_value, sale_date,
             salesperson_id, payment_status, payment_competence,
             commission_status, commission_value,
-            quantity_delivered, used_value, remaining_balance, discount_applied
+            quantity_delivered, used_value, remaining_balance, discount_applied,
+            receipt_url, payment_receipt_url
         } = req.body;
 
         const query = `
@@ -1845,8 +1846,9 @@ app.post('/api/finance/sales', async (req, res) => {
                 quantity_hired, unit_value, total_value, sale_date,
                 salesperson_id, payment_status, payment_competence,
                 commission_status, commission_value,
-                quantity_delivered, used_value, remaining_balance, discount_applied
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                quantity_delivered, used_value, remaining_balance, discount_applied,
+                receipt_url, payment_receipt_url
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
         `;
         const params = [
@@ -1856,7 +1858,9 @@ app.post('/api/finance/sales', async (req, res) => {
             commission_status || 'PREVISTA', commission_value || 0,
             quantity_delivered || 0, used_value || 0, 
             remaining_balance !== undefined ? remaining_balance : total_value, 
-            discount_applied || 0
+            discount_applied || 0,
+            receipt_url || null,
+            payment_receipt_url || receipt_url || null
         ];
 
         const result = await pool.query(query, params);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, Clock, CheckCircle2, ShieldCheck, Edit, Trash2, Key, Search, DollarSign, Plus, Minus, Coins, Zap, User, Link as LinkIcon, RefreshCw, X, Filter } from 'lucide-react';
+import { Users, Clock, CheckCircle2, ShieldCheck, Edit, Trash2, Key, Search, DollarSign, Plus, Minus, Coins, Zap, User, Link as LinkIcon, RefreshCw, X, Filter, ExternalLink } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 const EmployeeClients = () => {
@@ -33,6 +33,14 @@ const EmployeeClients = () => {
     // Modal to create sale directly
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
     const [selectedClientForSale, setSelectedClientForSale] = useState<any>(null);
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [uploadingReceipt, setUploadingReceipt] = useState(false);
+
+    // Client Dashboard states
+    const [selectedClientForDashboard, setSelectedClientForDashboard] = useState<any | null>(null);
+    const [dashboardSales, setDashboardSales] = useState<any[]>([]);
+    const [dashboardSubmissions, setDashboardSubmissions] = useState<any[]>([]);
+    const [loadingDashboard, setLoadingDashboard] = useState(false);
     const [saleForm, setSaleForm] = useState({
         package_hired: 'Disparos',
         quantity_hired: 1000,
@@ -223,8 +231,55 @@ const EmployeeClients = () => {
         }
     };
 
+    const openClientDashboard = async (client: any) => {
+        setSelectedClientForDashboard(client);
+        setLoadingDashboard(true);
+        try {
+            const [salesData, subsData] = await Promise.all([
+                dbService.getFinanceSales({ userId: client.id, role: 'CLIENT' }),
+                dbService.getClientSubmissionsByUserId(client.id)
+            ]);
+            setDashboardSales(salesData || []);
+            setDashboardSubmissions(subsData || []);
+        } catch (error) {
+            console.error("Error loading client dashboard data:", error);
+        } finally {
+            setLoadingDashboard(false);
+        }
+    };
+
     const handleCreateSale = async () => {
         try {
+            let receiptUrl = '';
+            if (receiptFile) {
+                setUploadingReceipt(true);
+                try {
+                    const formData = new FormData();
+                    formData.append('file', receiptFile);
+                    const uploadRes = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (uploadRes.ok) {
+                        const uploadData = await uploadRes.json();
+                        receiptUrl = uploadData.fileUrl;
+                    } else {
+                        alert("Falha ao enviar comprovante de pagamento.");
+                        setUploadingReceipt(false);
+                        return;
+                    }
+                } catch (err) {
+                    alert("Erro de conexão ao enviar comprovante.");
+                    setUploadingReceipt(false);
+                    return;
+                } finally {
+                    setUploadingReceipt(false);
+                }
+            } else {
+                alert("Por favor, envie o comprovante de pagamento.");
+                return;
+            }
+
             const saleData = {
                 client_name: selectedClientForSale.name,
                 client_cpf_cnpj: selectedClientForSale.document_number || '',
@@ -238,14 +293,19 @@ const EmployeeClients = () => {
                 payment_status: saleForm.payment_status,
                 payment_competence: new Date().toISOString().slice(0, 7),
                 commission_status: 'PREVISTA',
-                commission_value: saleForm.quantity_hired * (parseFloat(String(selectedClientForSale.comissao_vendedor || '0').replace(',', '.')) || 0)
+                commission_value: saleForm.quantity_hired * (parseFloat(String(selectedClientForSale.comissao_vendedor || '0').replace(',', '.')) || 0),
+                receipt_url: receiptUrl
             };
 
             const res = await dbService.saveFinanceSale(saleData);
             if (!res.error) {
                 alert("Venda criada com sucesso!");
                 setIsSaleModalOpen(false);
+                setReceiptFile(null);
                 loadClients();
+                if (selectedClientForDashboard && selectedClientForDashboard.id === selectedClientForSale.id) {
+                    openClientDashboard(selectedClientForDashboard);
+                }
             } else {
                 alert("Erro ao criar venda: " + res.error);
             }
@@ -440,6 +500,13 @@ const EmployeeClients = () => {
                                                 </>
                                             ) : (
                                                 <>
+                                                    <button 
+                                                        onClick={() => openClientDashboard(client)} 
+                                                        className="action-btn primary-btn" 
+                                                        style={{ padding: '0 14px', fontSize: '0.8rem', height: '36px', background: 'var(--primary-gradient)', color: 'black' }}
+                                                    >
+                                                        DASHBOARD
+                                                    </button>
                                                     <button 
                                                         onClick={() => {
                                                             setSelectedClientForSale(client);
@@ -688,6 +755,16 @@ const EmployeeClients = () => {
                                     <option value="INADIMPLENTE">INADIMPLENTE</option>
                                 </select>
                             </div>
+                            <div>
+                                <label className="field-label">Comprovante de Pagamento (Obrigatório)</label>
+                                <input 
+                                    type="file" 
+                                    className="field-input" 
+                                    onChange={e => setReceiptFile(e.target.files?.[0] || null)} 
+                                    accept="image/*,application/pdf"
+                                    disabled={uploadingReceipt}
+                                />
+                            </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
@@ -759,6 +836,199 @@ const EmployeeClients = () => {
                             <button onClick={() => setIsCardModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }}>CANCELAR</button>
                         </div>
                     </div>
+                </div>
+            )}
+            {/* --- CLIENT DASHBOARD OVERLAY --- */}
+            {selectedClientForDashboard && (
+                <div style={{ 
+                    position: 'fixed', 
+                    inset: 0, 
+                    background: 'rgba(5,8,15,0.95)', 
+                    backdropFilter: 'blur(15px)', 
+                    zIndex: 9990, 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    padding: '40px',
+                    overflowY: 'auto'
+                }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', borderBottom: '1px solid var(--surface-border-subtle)', paddingBottom: '20px' }}>
+                        <div>
+                            <div className="crm-badge-small" style={{ marginBottom: '8px' }}>DASHBOARD DO CLIENTE</div>
+                            <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 950 }}>{selectedClientForDashboard.name}</h2>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                {selectedClientForDashboard.email} • {selectedClientForDashboard.whatsapp || selectedClientForDashboard.phone}
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => setSelectedClientForDashboard(null)} 
+                            className="action-btn ghost-btn" 
+                            style={{ width: '48px', height: '48px', borderRadius: '24px', padding: 0 }}
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {loadingDashboard ? (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                            Carregando dados da dashboard...
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+                            {/* Summary Cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                                <div className="crm-card" style={{ padding: '24px' }}>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>SALDO DE CRÉDITOS</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 950, color: '#acf800' }}>
+                                        {(selectedClientForDashboard.disparo_quantidade || 0).toLocaleString()}
+                                    </h3>
+                                </div>
+                                <div className="crm-card" style={{ padding: '24px' }}>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>PREÇO POR CRÉDITO</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 950 }}>
+                                        R$ {selectedClientForDashboard.preco_vendido || '0.20'}
+                                    </h3>
+                                </div>
+                                <div className="crm-card" style={{ padding: '24px' }}>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>TOTAL DE DISPAROS ENVIADOS</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 950, color: '#38bdf8' }}>
+                                        {dashboardSubmissions.length} Campanhas
+                                    </h3>
+                                </div>
+                                <div className="crm-card" style={{ padding: '24px' }}>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>VALOR TOTAL INVESTIDO</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 950, color: 'var(--primary-color)' }}>
+                                        R$ {dashboardSales.reduce((acc, s) => acc + parseFloat(s.total_value || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </h3>
+                                </div>
+                            </div>
+
+                            {/* Main content grid split */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
+                                {/* Histórico de Recargas / Vendas */}
+                                <div className="crm-card" style={{ padding: '32px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900 }}>Histórico de Recargas (Financeiro)</h3>
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedClientForSale(selectedClientForDashboard);
+                                                setSaleForm(prev => ({ ...prev, unit_value: parseFloat(selectedClientForDashboard.preco_vendido) || 0.20 }));
+                                                setIsSaleModalOpen(true);
+                                            }} 
+                                            className="action-btn primary-btn"
+                                            style={{ height: '38px', fontSize: '0.8rem', padding: '0 16px' }}
+                                        >
+                                            REGISTRAR COMPRA (NOVA VENDA)
+                                        </button>
+                                    </div>
+
+                                    {dashboardSales.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                            Nenhum registro de compra/recarga para este cliente.
+                                        </div>
+                                    ) : (
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table className="crm-table" style={{ width: '100%' }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>DATA</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>QUANTIDADE</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>UNITÁRIO</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>TOTAL</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>COMPROVANTE</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>STATUS PAGAMENTO</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {dashboardSales.map(sale => (
+                                                        <tr key={sale.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                                            <td style={{ padding: '12px', fontSize: '13px' }}>{new Date(sale.sale_date).toLocaleDateString()}</td>
+                                                            <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold' }}>{sale.quantity_hired.toLocaleString()} créditos</td>
+                                                            <td style={{ padding: '12px', fontSize: '13px' }}>R$ {sale.unit_value}</td>
+                                                            <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-color)' }}>R$ {parseFloat(sale.total_value).toFixed(2)}</td>
+                                                            <td style={{ padding: '12px', fontSize: '13px' }}>
+                                                                {sale.receipt_url ? (
+                                                                    <a 
+                                                                        href={sale.receipt_url} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer" 
+                                                                        style={{ color: '#acf800', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'underline' }}
+                                                                    >
+                                                                        Ver Comprovante <ExternalLink size={12} />
+                                                                    </a>
+                                                                ) : (
+                                                                    <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Não enviado</span>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '12px', fontSize: '13px' }}>
+                                                                <span className="status-badge-premium" style={{
+                                                                    '--bg': sale.payment_status === 'RECEBIDO' ? 'rgba(74, 222, 128, 0.05)' : 'rgba(245, 158, 11, 0.05)',
+                                                                    '--color': sale.payment_status === 'RECEBIDO' ? '#4ade80' : '#f59e0b',
+                                                                    '--border': sale.payment_status === 'RECEBIDO' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(245, 158, 11, 0.2)'
+                                                                } as any}>
+                                                                    {sale.payment_status}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Histórico de Campanhas / Disparos */}
+                                <div className="crm-card" style={{ padding: '32px' }}>
+                                    <h3 style={{ margin: '0 0 24px 0', fontSize: '1.25rem', fontWeight: 900 }}>Histórico de Campanhas (Disparos)</h3>
+                                    
+                                    {dashboardSubmissions.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                            Nenhuma campanha de disparos registrada.
+                                        </div>
+                                    ) : (
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table className="crm-table" style={{ width: '100%' }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>ID / CAMPANHA</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>DATA DE ENVIO</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>NÚMERO REMETENTE</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>CUSTO (DISPAROS)</th>
+                                                        <th style={{ padding: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>STATUS</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {dashboardSubmissions.map(sub => (
+                                                        <tr key={sub.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
+                                                            <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold' }}>
+                                                                #{sub.id} - {sub.profile_name || 'Sem nome'}
+                                                            </td>
+                                                            <td style={{ padding: '12px', fontSize: '13px' }}>
+                                                                {sub.dispatch_date || new Date(sub.created_at).toLocaleDateString()}
+                                                            </td>
+                                                            <td style={{ padding: '12px', fontSize: '13px' }}>{sub.sender_number || 'Padrão'}</td>
+                                                            <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold' }}>
+                                                                {sub.credits_deducted || sub.disparo_quantidade || 0} disparos
+                                                            </td>
+                                                            <td style={{ padding: '12px', fontSize: '13px' }}>
+                                                                <span className="status-badge-premium" style={{
+                                                                    '--bg': sub.status === 'APROVADO' || sub.status === 'GERADO' ? 'rgba(74, 222, 128, 0.05)' : 'rgba(245, 158, 11, 0.05)',
+                                                                    '--color': sub.status === 'APROVADO' || sub.status === 'GERADO' ? '#4ade80' : '#f59e0b',
+                                                                    '--border': sub.status === 'APROVADO' || sub.status === 'GERADO' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(245, 158, 11, 0.2)'
+                                                                } as any}>
+                                                                    {sub.status}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
