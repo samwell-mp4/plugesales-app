@@ -113,9 +113,31 @@ const CollaboratorsRegistration = () => {
         }
     };
 
-    const handleSelectCollaborator = (collab: any) => {
+    const handleSelectCollaborator = async (collab: any) => {
+        const numericId = parseInt(String(collab.id).replace('pg_', ''));
+        let pgFinanceData = { monthly_receivable: 0, pix_key: '' };
+        if (!isNaN(numericId)) {
+            try {
+                const currentMonth = new Date().toLocaleString('pt-BR', { month: 'long' });
+                const currentYear = new Date().getFullYear();
+                const competence = `${currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}/${currentYear}`;
+                const data = await dbService.getMyCompetence(numericId, competence);
+                if (data && !data.error) {
+                    pgFinanceData = {
+                        monthly_receivable: data.monthly_receivable,
+                        pix_key: data.pix_key
+                    };
+                }
+            } catch (err) {
+                console.error("Error loading collaborator PG finance details:", err);
+            }
+        }
         setSelectedCollab(collab);
-        setFormData(collab);
+        setFormData({
+            ...collab,
+            monthly_receivable: pgFinanceData.monthly_receivable || collab.monthly_receivable || 0,
+            pix_key: pgFinanceData.pix_key || collab.pix_key || ''
+        });
         setView('detail');
         setActiveTab('cadastro');
         fetchHistory(collab);
@@ -180,6 +202,11 @@ const CollaboratorsRegistration = () => {
                 
                 const { error } = await supabase.from('collaborators').insert([{ ...payload, id: pgData.id }]);
                 if (!error) {
+                    await dbService.updateProfileReceivable({
+                        userId: pgData.id,
+                        monthlyReceivable: parseFloat(payload.monthly_receivable || 0),
+                        pixKey: payload.pix_key || ''
+                    });
                     alert(`Colaborador cadastrado! ID Landing Page gerado automaticamente: ${pgData.id}`);
                     setView('list');
                 } else {
@@ -195,6 +222,11 @@ const CollaboratorsRegistration = () => {
             const numericId = parseInt(String(selectedCollab.id).replace('pg_', ''));
             const { error } = await supabase.from('collaborators').insert([{ ...payload, id: numericId }]);
             if (!error) {
+                await dbService.updateProfileReceivable({
+                    userId: numericId,
+                    monthlyReceivable: parseFloat(payload.monthly_receivable || 0),
+                    pixKey: payload.pix_key || ''
+                });
                 alert('Colaborador atualizado com sucesso (movido para Supabase)!');
                 setView('list');
             } else {
@@ -204,6 +236,14 @@ const CollaboratorsRegistration = () => {
             delete payload.sys_password;
             const { error } = await supabase.from('collaborators').update(payload).eq('id', selectedCollab.id);
             if (!error) {
+                const numericId = parseInt(String(selectedCollab.id).replace('pg_', ''));
+                if (!isNaN(numericId)) {
+                    await dbService.updateProfileReceivable({
+                        userId: numericId,
+                        monthlyReceivable: parseFloat(payload.monthly_receivable || 0),
+                        pixKey: payload.pix_key || ''
+                    });
+                }
                 alert('Colaborador atualizado com sucesso!');
                 setSelectedCollab(formData);
             } else {
@@ -528,9 +568,13 @@ const CollaboratorsRegistration = () => {
                                             <option value="Salário" className="bg-[#111]">Salário</option>
                                         </select>
                                     </div>
-                                    <div className="space-y-2 lg:col-span-4">
+                                    <div className="space-y-2 lg:col-span-2">
                                         <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Chave PIX</label>
                                         <input type="text" className="input-field-premium" value={formData.pix_key || ''} onChange={e => setFormData({...formData, pix_key: e.target.value})} />
+                                    </div>
+                                    <div className="space-y-2 lg:col-span-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Valor Fixo Mensal a Receber (R$)</label>
+                                        <input type="number" step="0.01" className="input-field-premium" value={formData.monthly_receivable || ''} onChange={e => setFormData({...formData, monthly_receivable: e.target.value})} placeholder="Ex: 5000.00" />
                                     </div>
                                 </div>
                             </div>

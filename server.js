@@ -2280,6 +2280,243 @@ app.post('/api/admin/update-password', async (req, res) => {
     }
 });
 
+// --- Employee Financial Management Area (Meu Perfil) ---
+
+// 1. Get competence summary for logged-in user
+app.get('/api/finance/my-competence', async (req, res) => {
+    const { userId, competence } = req.query;
+    if (!userId || !competence) {
+        return res.status(400).json({ error: 'userId e competence são obrigatórios.' });
+    }
+    try {
+        // Get user configuration
+        const userRes = await pool.query('SELECT monthly_receivable, pix_key FROM users WHERE id = $1', [userId]);
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+        const { monthly_receivable, pix_key } = userRes.rows[0];
+
+        // Get approved advances sum
+        const approvedRes = await pool.query(
+            "SELECT COALESCE(SUM(value), 0) as total_advanced FROM advance_requests WHERE user_id = $1 AND competence = $2 AND status = 'Aprovado'",
+            [userId, competence]
+        );
+        const total_advanced = parseFloat(approvedRes.rows[0].total_advanced);
+
+        // Check if there is a pending request
+        const pendingRes = await pool.query(
+            "SELECT id FROM advance_requests WHERE user_id = $1 AND competence = $2 AND status = 'Pendente' LIMIT 1",
+            [userId, competence]
+        );
+        const has_pending = pendingRes.rows.length > 0;
+
+        // Get invoice (NF) URL
+        const nfRes = await pool.query(
+            "SELECT nf_url, nf_uploaded_at FROM employee_competences WHERE user_id = $1 AND competence = $2",
+            [userId, competence]
+        );
+        const nf_url = nfRes.rows.length > 0 ? nfRes.rows[0].nf_url : null;
+        const nf_uploaded_at = nfRes.rows.length > 0 ? nfRes.rows[0].nf_uploaded_at : null;
+
+        res.json({
+            monthly_receivable: parseFloat(monthly_receivable || 0),
+            pix_key: pix_key || '',
+            total_advanced,
+            remaining_balance: parseFloat(monthly_receivable || 0) - total_advanced,
+            has_pending,
+            nf_url,
+            nf_uploaded_at
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2. Request advance
+app.post('/api/finance/request-advance', async (req, res) => {
+    const { userId, competence, value, pix_key } = req.body;
+    if (!userId || !competence || !value || !pix_key) {
+        return res.status(400).json({ error: 'Faltam dados obrigatórios.' });
+    }
+    const reqVal = parseFloat(value);
+    if (isNaN(reqVal) || reqVal <= 0) {
+        return res.status(400).json({ error: 'Valor do adiantamento inválido.' });
+    }
+    try {
+        // Check pending requests
+        const pendingRes = await pool.query(
+            "SELECT id FROM advance_requests WHERE user_id = $1 AND status = 'Pendente'",
+            [userId]
+        );
+        if (pendingRes.rows.length > 0) {
+            return res.status(400).json({ error: 'Você já possui uma solicitação de adiantamento pendente.' });
+        }
+
+        // Check user receivable and calculate remaining balance
+        const userRes = await pool.query('SELECT monthly_receivable FROM users WHERE id = $1', [userId]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        const monthly_receivable = parseFloat(userRes.rows[0].monthly_receivable || 0);
+
+        const approvedRes = await pool.query(
+            "SELECT COALESCE(SUM(value), 0) as total_advanced FROM advance_requests WHERE user_id = $1 AND competence = $2 AND status = 'Aprovado'",
+            [userId, competence]
+        );
+        const total_advanced = parseFloat(approvedRes.rows[0].total_advanced);
+        const remaining_balance = monthly_receivable - total_advanced;
+
+        if (reqVal > remaining_balance) {
+            return res.status(400).json({ error: `Valor solicitado excede o saldo disponível de R$ ${remaining_balance.toFixed(2)}.` });
+        }
+
+        // Insert
+        const insertRes = await pool.query(
+            `INSERT INTO advance_requests (user_id, competence, value, pix_key, status) 
+             VALUES ($1, $2, $3, $4, 'Pendente') RETURNING *`,
+            [userId, competence, reqVal, pix_key]
+        );
+
+        res.json({ success: true, request: insertRes.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 3. Get history of requests for user
+app.get('/api/finance/my-requests', async (req, res) => {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId é obrigatório.' });
+    try {
+        const result = await pool.query(
+            'SELECT * FROM advance_requests WHERE user_id = $1 ORDER BY created_at DESC',
+            [userId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. Save Invoice (NF) URL
+app.post('/api/finance/upload-nf', async (req, res) => {
+    const { userId, competence, nfUrl } = req.body;
+    if (!userId || !competence || !nfUrl) {
+        return res.status(400).json({ error: 'Faltam dados obrigatórios.' });
+    }
+    try {
+        await pool.query(
+            `INSERT INTO employee_competences (user_id, competence, nf_url, nf_uploaded_at)
+             VALUES ($1, $2, $3, NOW())
+             ON CONFLICT (user_id, competence)
+             DO UPDATE SET nf_url = EXCLUDED.nf_url, nf_uploaded_at = NOW()`,
+            [userId, competence, nfUrl]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 5. Admin: Get all pending requests
+app.get('/api/finance/admin/pending-requests', async (req, res) => {
+    try {
+        const query = `
+            SELECT r.*, u.name as collaborator_name, u.monthly_receivable,
+                   COALESCE((SELECT SUM(v.value) FROM advance_requests v WHERE v.user_id = r.user_id AND v.competence = r.competence AND v.status = 'Aprovado'), 0) as total_advanced
+            FROM advance_requests r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.status = 'Pendente'
+            ORDER BY r.created_at ASC
+        `;
+        const result = await pool.query(query);
+        // Map to include remaining balance
+        const mapped = result.rows.map(row => {
+            const receivable = parseFloat(row.monthly_receivable || 0);
+            const advanced = parseFloat(row.total_advanced || 0);
+            return {
+                ...row,
+                value: parseFloat(row.value),
+                monthly_receivable: receivable,
+                total_advanced: advanced,
+                remaining_balance: receivable - advanced
+            };
+        });
+        res.json(mapped);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 6. Admin: Respond to request (Approve/Reject)
+app.post('/api/finance/admin/respond-request', async (req, res) => {
+    const { requestId, status, justification } = req.body;
+    if (!requestId || !status) {
+        return res.status(400).json({ error: 'requestId e status são obrigatórios.' });
+    }
+    if (status === 'Rejeitado' && !justification) {
+        return res.status(400).json({ error: 'Justificativa é obrigatória ao rejeitar uma solicitação.' });
+    }
+    try {
+        await pool.query(
+            'UPDATE advance_requests SET status = $1, justification = $2, responded_at = NOW() WHERE id = $3',
+            [status, justification || null, requestId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 7. Admin: Get competence spreadsheet
+app.get('/api/finance/admin/competences-spreadsheet', async (req, res) => {
+    const { competence } = req.query;
+    if (!competence) return res.status(400).json({ error: 'competence é obrigatório.' });
+    try {
+        const query = `
+            SELECT u.id, u.name, u.monthly_receivable, u.pix_key,
+                   COALESCE((SELECT SUM(v.value) FROM advance_requests v WHERE v.user_id = u.id AND v.competence = $1 AND v.status = 'Aprovado'), 0) as total_advanced,
+                   (SELECT nf_url FROM employee_competences ec WHERE ec.user_id = u.id AND ec.competence = $1 LIMIT 1) as nf_url,
+                   (SELECT nf_uploaded_at FROM employee_competences ec WHERE ec.user_id = u.id AND ec.competence = $1 LIMIT 1) as nf_uploaded_at
+            FROM users u
+            WHERE u.role = 'EMPLOYEE' OR u.role = 'ADMIN' OR u.role = 'CONTABILIDADE'
+            ORDER BY u.name ASC
+        `;
+        const result = await pool.query(query, [competence]);
+        const data = result.rows.map(r => {
+            const recVal = parseFloat(r.monthly_receivable || 0);
+            const advVal = parseFloat(r.total_advanced || 0);
+            return {
+                id: r.id,
+                name: r.name,
+                monthly_receivable: recVal,
+                total_advanced: advVal,
+                net_receivable: recVal - advVal,
+                nf_url: r.nf_url,
+                nf_uploaded_at: r.nf_uploaded_at,
+                pix_key: r.pix_key || ''
+            };
+        });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 8. Admin: Update user's monthly receivable and pix_key
+app.post('/api/finance/admin/update-profile-receivable', async (req, res) => {
+    const { userId, monthlyReceivable, pixKey } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId é obrigatório.' });
+    try {
+        await pool.query(
+            'UPDATE users SET monthly_receivable = $1, pix_key = COALESCE($2, pix_key) WHERE id = $3',
+            [monthlyReceivable !== undefined ? parseFloat(monthlyReceivable) : 0, pixKey || null, userId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 // Settings
 app.get('/api/settings', async (req, res) => {
     try {

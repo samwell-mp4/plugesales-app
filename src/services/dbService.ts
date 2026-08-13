@@ -868,6 +868,119 @@ export const dbService = {
         }
     },
 
+    // --- Employee Financial Management Area (Meu Perfil) ---
+    getMyCompetence: async (userId: number, competence: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/my-competence?userId=${userId}&competence=${encodeURIComponent(competence)}`);
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro ao obter dados da competência.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error fetching my competence:", err);
+            return { error: err.message };
+        }
+    },
+    requestAdvance: async (data: { userId: number; competence: string; value: number; pix_key: string }) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/request-advance`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro ao solicitar adiantamento.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error requesting advance:", err);
+            return { error: err.message };
+        }
+    },
+    getMyRequests: async (userId: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/my-requests?userId=${userId}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching my requests:", err);
+            return [];
+        }
+    },
+    uploadNf: async (data: { userId: number; competence: string; nfUrl: string }) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/upload-nf`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro ao registrar Nota Fiscal.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error uploading NF details:", err);
+            return { error: err.message };
+        }
+    },
+    getPendingRequests: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/admin/pending-requests`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching pending requests:", err);
+            return [];
+        }
+    },
+    respondRequest: async (data: { requestId: number; status: 'Aprovado' | 'Rejeitado'; justification?: string }) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/admin/respond-request`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro ao responder à solicitação.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error responding to request:", err);
+            return { error: err.message };
+        }
+    },
+    getCompetencesSpreadsheet: async (competence: string) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/admin/competences-spreadsheet?competence=${encodeURIComponent(competence)}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) {
+            console.error("Error fetching competences spreadsheet:", err);
+            return [];
+        }
+    },
+    updateProfileReceivable: async (data: { userId: number; monthlyReceivable: number; pixKey?: string }) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/admin/update-profile-receivable`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro ao atualizar dados financeiros do perfil.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error updating profile receivable:", err);
+            return { error: err.message };
+        }
+    },
+
     getTeam: async () => {
         try {
             const res = await fetch(`${API_BASE}/users/team`);
