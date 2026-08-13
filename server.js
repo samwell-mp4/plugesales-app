@@ -1837,7 +1837,7 @@ app.post('/api/finance/sales', async (req, res) => {
             salesperson_id, payment_status, payment_competence,
             commission_status, commission_value,
             quantity_delivered, used_value, remaining_balance, discount_applied,
-            receipt_url, payment_receipt_url
+            receipt_url, payment_receipt_url, report_url, notes
         } = req.body;
 
         const query = `
@@ -1847,8 +1847,8 @@ app.post('/api/finance/sales', async (req, res) => {
                 salesperson_id, payment_status, payment_competence,
                 commission_status, commission_value,
                 quantity_delivered, used_value, remaining_balance, discount_applied,
-                receipt_url, payment_receipt_url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+                receipt_url, payment_receipt_url, report_url, notes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
             RETURNING *
         `;
         const params = [
@@ -1860,7 +1860,9 @@ app.post('/api/finance/sales', async (req, res) => {
             remaining_balance !== undefined ? remaining_balance : total_value, 
             discount_applied || 0,
             receipt_url || null,
-            payment_receipt_url || receipt_url || null
+            payment_receipt_url || receipt_url || null,
+            report_url || null,
+            notes || null
         ];
 
         const result = await pool.query(query, params);

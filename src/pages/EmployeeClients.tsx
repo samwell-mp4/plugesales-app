@@ -89,6 +89,25 @@ const EmployeeClients = () => {
         notes: ''
     });
 
+    // Link existing card states
+    const [allSubmissionsList, setAllSubmissionsList] = useState<any[]>([]);
+    const [subSearchQuery, setSubSearchQuery] = useState('');
+    const [linkCardMode, setLinkCardMode] = useState<'EXISTING' | 'CREATE'>('EXISTING');
+    const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('');
+
+    // Nova Venda delivery method states
+    const [deliveryMethod, setDeliveryMethod] = useState<'MANUAL' | 'CARD' | 'REPORT'>('MANUAL');
+    const [selectedCardForDelivery, setSelectedCardForDelivery] = useState<string>('');
+    const [reportFile, setReportFile] = useState<File | null>(null);
+    const [uploadingReport, setUploadingReport] = useState(false);
+    const [tempQuantityDelivered, setTempQuantityDelivered] = useState<number>(0);
+    const [saleNotes, setSaleNotes] = useState('');
+
+    // Quick credit upload & notes states
+    const [creditReceiptFile, setCreditReceiptFile] = useState<File | null>(null);
+    const [uploadingCreditReceipt, setUploadingCreditReceipt] = useState(false);
+    const [creditNotes, setCreditNotes] = useState('');
+
     const loadClients = async () => {
         setIsLoading(true);
         try {
@@ -320,6 +339,52 @@ const EmployeeClients = () => {
         }
     };
 
+    const openLinkCardModal = async (client: any) => {
+        setSelectedClientForCard(client);
+        setLinkCardMode('EXISTING');
+        setSubSearchQuery('');
+        setSelectedSubmissionId('');
+        setIsCardModalOpen(true);
+        try {
+            const res = await fetch('/api/client-submissions');
+            if (res.ok) {
+                const data = await res.json();
+                setAllSubmissionsList(data || []);
+            }
+        } catch (err) {
+            console.error("Error fetching submissions for link:", err);
+        }
+    };
+
+    const handleLinkExistingCard = async () => {
+        if (!selectedSubmissionId || !selectedClientForCard) return alert("Selecione um card para vincular.");
+        setSubmitting(true);
+        try {
+            const res = await fetch(`/api/client-submissions/${selectedSubmissionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    user_id: selectedClientForCard.id,
+                    assigned_to: selectedClientForCard.seller_name || user?.name || 'Admin'
+                })
+            });
+            if (res.ok) {
+                alert("Card vinculado com sucesso!");
+                setIsCardModalOpen(false);
+                loadClients();
+                if (selectedClientForDashboard && selectedClientForDashboard.id === selectedClientForCard.id) {
+                    openClientDashboard(selectedClientForDashboard);
+                }
+            } else {
+                alert("Erro ao vincular card.");
+            }
+        } catch (err) {
+            alert("Erro de conexão ao vincular card.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const handleQuickCreditOp = async () => {
         if (!selectedClientForCredit) return;
         const currentCredits = selectedClientForCredit.disparo_quantidade || 0;
@@ -331,7 +396,50 @@ const EmployeeClients = () => {
 
         const newCredits = creditOpType === 'ADD' ? currentCredits + opAmount : Math.max(0, currentCredits - opAmount);
 
+        setSubmitting(true);
         try {
+            let receiptUrl = '';
+            if (creditOpType === 'ADD' && creditReceiptFile) {
+                setUploadingCreditReceipt(true);
+                try {
+                    const formData = new FormData();
+                    formData.append('file', creditReceiptFile);
+                    const uploadRes = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (uploadRes.ok) {
+                        const uploadData = await uploadRes.json();
+                        receiptUrl = uploadData.fileUrl;
+                    }
+                } catch (err) {
+                    console.error("Error uploading credit receipt:", err);
+                } finally {
+                    setUploadingCreditReceipt(false);
+                }
+            }
+
+            // Save transaction record in finance_sales!
+            const saleData = {
+                client_name: selectedClientForCredit.name,
+                client_cpf_cnpj: selectedClientForCredit.document_number || '',
+                client_contact: selectedClientForCredit.whatsapp || selectedClientForCredit.phone || '',
+                package_hired: creditOpType === 'ADD' ? 'Ajuste Saldo: Adicionar' : 'Ajuste Saldo: Descontar',
+                quantity_hired: opAmount,
+                unit_value: 0,
+                total_value: 0,
+                sale_date: new Date().toISOString(),
+                salesperson_id: user?.id,
+                payment_status: 'RECEBIDO',
+                payment_competence: new Date().toISOString().slice(0, 7),
+                commission_status: 'PREVISTA',
+                commission_value: 0,
+                receipt_url: receiptUrl || null,
+                notes: creditNotes || null
+            };
+            await dbService.saveFinanceSale(saleData);
+
+            // Update user balance
             const res = await fetch(`/api/users/${selectedClientForCredit.id}/commercial`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -343,16 +451,24 @@ const EmployeeClients = () => {
                     disparo_quantidade: newCredits
                 })
             });
+
             if (res.ok) {
                 alert(`Saldo atualizado com sucesso! Novo saldo: ${newCredits}`);
                 setIsCreditQuickModalOpen(false);
                 setCreditOpAmount(0);
+                setCreditNotes('');
+                setCreditReceiptFile(null);
                 loadClients();
+                if (selectedClientForDashboard && selectedClientForDashboard.id === selectedClientForCredit.id) {
+                    openClientDashboard(selectedClientForDashboard);
+                }
             } else {
                 alert("Erro ao atualizar saldo de créditos.");
             }
         } catch (err) {
             alert("Erro ao salvar dados de créditos.");
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -407,6 +523,37 @@ const EmployeeClients = () => {
                 return;
             }
 
+            let reportUrl = '';
+            if (deliveryMethod === 'REPORT' && reportFile) {
+                setUploadingReport(true);
+                try {
+                    const formData = new FormData();
+                    formData.append('file', reportFile);
+                    const uploadRes = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (uploadRes.ok) {
+                        const uploadData = await uploadRes.json();
+                        reportUrl = uploadData.fileUrl;
+                    } else {
+                        alert("Falha ao enviar relatório.");
+                        setUploadingReport(false);
+                        return;
+                    }
+                } catch (err) {
+                    alert("Erro de conexão ao enviar relatório.");
+                    setUploadingReport(false);
+                    return;
+                } finally {
+                    setUploadingReport(false);
+                }
+            }
+
+            const finalQuantityDelivered = deliveryMethod === 'CARD' 
+                ? (allSubmissionsList.find(s => String(s.id) === selectedCardForDelivery)?.credits_deducted || 0)
+                : tempQuantityDelivered;
+
             const saleData = {
                 client_name: selectedClientForSale.name,
                 client_cpf_cnpj: selectedClientForSale.document_number || '',
@@ -421,14 +568,35 @@ const EmployeeClients = () => {
                 payment_competence: new Date().toISOString().slice(0, 7),
                 commission_status: 'PREVISTA',
                 commission_value: saleForm.quantity_hired * (parseFloat(String(selectedClientForSale.comissao_vendedor || '0').replace(',', '.')) || 0),
-                receipt_url: receiptUrl
+                receipt_url: receiptUrl,
+                report_url: reportUrl || null,
+                notes: saleNotes || null,
+                quantity_delivered: finalQuantityDelivered
             };
 
             const res = await dbService.saveFinanceSale(saleData);
             if (!res.error) {
-                alert("Venda criada com sucesso!");
+                // Update client balance automatically!
+                const currentCredits = selectedClientForSale.disparo_quantidade || 0;
+                const newCredits = currentCredits + saleForm.quantity_hired;
+                await fetch(`/api/users/${selectedClientForSale.id}/commercial`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        pacote: selectedClientForSale.pacote || 'Avulso', 
+                        preco_vendido: selectedClientForSale.preco_vendido || '0.20', 
+                        comissao_vendedor: selectedClientForSale.comissao_vendedor || '0.05',
+                        seller_name: selectedClientForSale.seller_name || '',
+                        disparo_quantidade: newCredits
+                    })
+                });
+
+                alert("Venda criada e saldo de créditos do cliente atualizado com sucesso!");
                 setIsSaleModalOpen(false);
                 setReceiptFile(null);
+                setReportFile(null);
+                setSaleNotes('');
+                setTempQuantityDelivered(0);
                 loadClients();
                 if (selectedClientForDashboard && selectedClientForDashboard.id === selectedClientForSale.id) {
                     openClientDashboard(selectedClientForDashboard);
@@ -783,11 +951,39 @@ const EmployeeClients = () => {
                                     } créditos
                                 </div>
                             </div>
+
+                            {creditOpType === 'ADD' && (
+                                <div style={{ gridColumn: 'span 2' }}>
+                                    <label className="field-label">Comprovante de Pagamento (Opcional)</label>
+                                    <input 
+                                        type="file" 
+                                        className="field-input" 
+                                        onChange={e => setCreditReceiptFile(e.target.files?.[0] || null)} 
+                                        accept="image/*,application/pdf"
+                                        disabled={uploadingCreditReceipt}
+                                    />
+                                </div>
+                            )}
+
+                            <div style={{ gridColumn: 'span 2' }}>
+                                <label className="field-label">Observações / Motivo do Ajuste</label>
+                                <textarea 
+                                    className="field-input" 
+                                    value={creditNotes} 
+                                    onChange={e => setCreditNotes(e.target.value)} 
+                                    placeholder="Escreva o motivo da alteração manual de saldo..."
+                                    style={{ height: '60px', padding: '12px', resize: 'vertical' }}
+                                />
+                            </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                            <button onClick={handleQuickCreditOp} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }}>CONFIRMAR</button>
-                            <button onClick={() => setIsCreditQuickModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }}>CANCELAR</button>
+                            <button onClick={handleQuickCreditOp} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }} disabled={submitting}>CONFIRMAR</button>
+                            <button onClick={() => {
+                                setIsCreditQuickModalOpen(false);
+                                setCreditNotes('');
+                                setCreditReceiptFile(null);
+                            }} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }} disabled={submitting}>CANCELAR</button>
                         </div>
                     </div>
                 </div>
@@ -930,6 +1126,67 @@ const EmployeeClients = () => {
                                     R$ {(saleForm.quantity_hired * saleForm.unit_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
                             </div>
+                            
+                            <div>
+                                <label className="field-label">Método de Créditos Entregues</label>
+                                <select 
+                                    className="field-input" 
+                                    value={deliveryMethod} 
+                                    onChange={e => {
+                                        setDeliveryMethod(e.target.value as any);
+                                        if (e.target.value === 'MANUAL') setTempQuantityDelivered(0);
+                                    }}
+                                    style={{ background: 'var(--card-bg)' }}
+                                >
+                                    <option value="MANUAL">Digitar Manualmente</option>
+                                    <option value="CARD">Puxar do Card (Campanha)</option>
+                                    <option value="REPORT">Enviar Relatório (Upload)</option>
+                                </select>
+                            </div>
+
+                            {deliveryMethod === 'MANUAL' && (
+                                <div>
+                                    <label className="field-label">Quantidade de Créditos Entregue</label>
+                                    <input type="number" className="field-input" value={tempQuantityDelivered === 0 ? '' : tempQuantityDelivered} onChange={e => setTempQuantityDelivered(parseInt(e.target.value) || 0)} placeholder="Ex: 850" />
+                                </div>
+                            )}
+
+                            {deliveryMethod === 'CARD' && (
+                                <div>
+                                    <label className="field-label">Selecionar Card do Cliente</label>
+                                    <select 
+                                        className="field-input" 
+                                        value={selectedCardForDelivery} 
+                                        onChange={e => {
+                                            setSelectedCardForDelivery(e.target.value);
+                                            const card = allSubmissionsList.find(s => String(s.id) === e.target.value);
+                                            if (card) {
+                                                setTempQuantityDelivered(card.credits_deducted || card.disparo_quantidade || 0);
+                                            }
+                                        }}
+                                        style={{ background: 'var(--card-bg)' }}
+                                    >
+                                        <option value="">Selecione...</option>
+                                        {allSubmissionsList.filter(s => s.user_id === selectedClientForSale?.id).map(s => (
+                                            <option key={s.id} value={s.id}>{s.profile_name} ({s.credits_deducted || s.disparo_quantidade || 0} disparos)</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {deliveryMethod === 'REPORT' && (
+                                <div>
+                                    <label className="field-label">Relatório de Disparos (.csv, .xlsx)</label>
+                                    <input 
+                                        type="file" 
+                                        className="field-input" 
+                                        onChange={e => setReportFile(e.target.files?.[0] || null)} 
+                                        accept=".csv,.xlsx,.xls"
+                                        disabled={uploadingReport}
+                                    />
+                                </div>
+                            )}
+
                             <div style={{ gridColumn: 'span 2' }}>
                                 <label className="field-label">Comprovante de Pagamento (Obrigatório)</label>
                                 <input 
@@ -940,11 +1197,28 @@ const EmployeeClients = () => {
                                     disabled={uploadingReceipt}
                                 />
                             </div>
+
+                            <div style={{ gridColumn: 'span 2' }}>
+                                <label className="field-label">Observações da Venda</label>
+                                <textarea 
+                                    className="field-input" 
+                                    value={saleNotes} 
+                                    onChange={e => setSaleNotes(e.target.value)} 
+                                    placeholder="Dados adicionais, anotações de faturamento..."
+                                    style={{ height: '60px', padding: '12px', resize: 'vertical' }}
+                                />
+                            </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                            <button onClick={handleCreateSale} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }}>GERAR VENDA</button>
-                            <button onClick={() => setIsSaleModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }}>CANCELAR</button>
+                            <button onClick={handleCreateSale} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }} disabled={uploadingReceipt || uploadingReport}>GERAR VENDA</button>
+                            <button onClick={() => {
+                                setIsSaleModalOpen(false);
+                                setReceiptFile(null);
+                                setReportFile(null);
+                                setSaleNotes('');
+                                setTempQuantityDelivered(0);
+                            }} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }} disabled={uploadingReceipt || uploadingReport}>CANCELAR</button>
                         </div>
                     </div>
                 </div>
@@ -955,61 +1229,144 @@ const EmployeeClients = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                     <div className="crm-card" style={{ width: '100%', maxWidth: '650px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>Vincular Novo Card / Submissão</h2>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>Vincular Card / Submissão</h2>
                             <button onClick={() => setIsCardModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
-                        
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                            Cria um card de campanha (submissão) no funil para o cliente <strong style={{ color: 'white' }}>{selectedClientForCard?.name}</strong>.
-                        </p>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', background: 'rgba(255,255,255,0.02)', padding: '6px', borderRadius: '12px' }}>
+                            <button 
+                                type="button"
+                                className={`action-btn ${linkCardMode === 'EXISTING' ? 'primary-btn' : 'ghost-btn'}`}
+                                onClick={() => setLinkCardMode('EXISTING')}
+                                style={{ flex: 1, height: '40px', fontSize: '0.8rem' }}
+                            >
+                                Vincular Existente
+                            </button>
+                            <button 
+                                type="button"
+                                className={`action-btn ${linkCardMode === 'CREATE' ? 'primary-btn' : 'ghost-btn'}`}
+                                onClick={() => setLinkCardMode('CREATE')}
+                                style={{ flex: 1, height: '40px', fontSize: '0.8rem' }}
+                            >
+                                Criar Novo Card
+                            </button>
+                        </div>
+
+                        {linkCardMode === 'EXISTING' ? (
                             <div>
-                                <label className="field-label">Nome da Campanha / Perfil</label>
-                                <input className="field-input" value={cardForm.profile_name} onChange={e => setCardForm({...cardForm, profile_name: e.target.value})} placeholder="Ex: Campanha WhatsApp" />
-                            </div>
-                            <div>
-                                <label className="field-label">DDD</label>
-                                <input className="field-input" value={cardForm.ddd} onChange={e => setCardForm({...cardForm, ddd: e.target.value})} placeholder="Ex: 11" />
-                            </div>
-                            <div>
-                                <label className="field-label">Tipo de Template</label>
-                                <select 
-                                    className="field-input"
-                                    value={cardForm.template_type}
-                                    onChange={e => setCardForm({...cardForm, template_type: e.target.value})}
-                                    style={{ background: 'var(--card-bg)' }}
-                                >
-                                    <option value="none">Nenhum</option>
-                                    <option value="text">Texto</option>
-                                    <option value="image">Imagem</option>
-                                    <option value="video">Vídeo</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="field-label">URL da Mídia (opcional)</label>
-                                <input className="field-input" value={cardForm.media_url} onChange={e => setCardForm({...cardForm, media_url: e.target.value})} placeholder="https://..." />
-                            </div>
-                            <div style={{ gridColumn: 'span 2' }}>
-                                <label className="field-label">Texto / Cópia do Anúncio</label>
-                                <textarea 
+                                <label className="field-label">Buscar Card / Campanha do Operacional</label>
+                                <input 
                                     className="field-input" 
-                                    value={cardForm.ad_copy} 
-                                    onChange={e => setCardForm({...cardForm, ad_copy: e.target.value})} 
-                                    placeholder="Mensagem a disparar..."
-                                    style={{ height: '80px', padding: '12px', resize: 'vertical' }}
+                                    value={subSearchQuery} 
+                                    onChange={e => setSubSearchQuery(e.target.value)} 
+                                    placeholder="Digite o nome da campanha ou ID..."
+                                    style={{ marginBottom: '16px' }}
                                 />
-                            </div>
-                            <div style={{ gridColumn: 'span 2' }}>
-                                <label className="field-label">Link do Botão</label>
-                                <input className="field-input" value={cardForm.button_link} onChange={e => setCardForm({...cardForm, button_link: e.target.value})} placeholder="https://wa.me/..." />
-                            </div>
-                        </div>
 
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                            <button onClick={handleCreateCard} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }}>CRIAR E VINCULAR CARD</button>
-                            <button onClick={() => setIsCardModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }}>CANCELAR</button>
-                        </div>
+                                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', background: 'rgba(0,0,0,0.2)' }}>
+                                    {allSubmissionsList.filter(s => 
+                                        (s.profile_name || '').toLowerCase().includes(subSearchQuery.toLowerCase()) ||
+                                        String(s.id).includes(subSearchQuery)
+                                    ).length === 0 ? (
+                                        <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                            Nenhum card operacional disponível encontrado.
+                                        </div>
+                                    ) : (
+                                        allSubmissionsList.filter(s => 
+                                            (s.profile_name || '').toLowerCase().includes(subSearchQuery.toLowerCase()) ||
+                                            String(s.id).includes(subSearchQuery)
+                                        ).map(s => {
+                                            const isSelected = selectedSubmissionId === String(s.id);
+                                            const alreadyAssigned = s.user_id ? `(Atribuído ID: ${s.user_id})` : '';
+                                            return (
+                                                <div 
+                                                    key={s.id} 
+                                                    onClick={() => setSelectedSubmissionId(String(s.id))}
+                                                    style={{ 
+                                                        padding: '12px 16px', 
+                                                        borderBottom: '1px solid rgba(255,255,255,0.03)', 
+                                                        cursor: 'pointer',
+                                                        background: isSelected ? 'rgba(172,248,0,0.1)' : 'transparent',
+                                                        color: isSelected ? '#acf800' : 'white',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        fontSize: '0.85rem'
+                                                    }}
+                                                >
+                                                    <div>
+                                                        <strong>#{s.id} - {s.profile_name}</strong>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '10px' }}>{s.sender_number || 'Sem remetente'}</span>
+                                                    </div>
+                                                    <span style={{ fontSize: '0.75rem', color: s.user_id ? '#f59e0b' : '#10b981' }}>
+                                                        {alreadyAssigned || 'Disponível'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                                    <button onClick={handleLinkExistingCard} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }} disabled={submitting}>VINCULAR CARD SELECIONADO</button>
+                                    <button onClick={() => setIsCardModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }} disabled={submitting}>CANCELAR</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                                    Cria um card de campanha (submissão) no funil para o cliente <strong style={{ color: 'white' }}>{selectedClientForCard?.name}</strong>.
+                                </p>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div>
+                                        <label className="field-label">Nome da Campanha / Perfil</label>
+                                        <input className="field-input" value={cardForm.profile_name} onChange={e => setCardForm({...cardForm, profile_name: e.target.value})} placeholder="Ex: Campanha WhatsApp" />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">DDD</label>
+                                        <input className="field-input" value={cardForm.ddd} onChange={e => setCardForm({...cardForm, ddd: e.target.value})} placeholder="Ex: 11" />
+                                    </div>
+                                    <div>
+                                        <label className="field-label">Tipo de Template</label>
+                                        <select 
+                                            className="field-input"
+                                            value={cardForm.template_type}
+                                            onChange={e => setCardForm({...cardForm, template_type: e.target.value})}
+                                            style={{ background: 'var(--card-bg)' }}
+                                        >
+                                            <option value="none">Nenhum</option>
+                                            <option value="text">Texto</option>
+                                            <option value="image">Imagem</option>
+                                            <option value="video">Vídeo</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="field-label">URL da Mídia (opcional)</label>
+                                        <input className="field-input" value={cardForm.media_url} onChange={e => setCardForm({...cardForm, media_url: e.target.value})} placeholder="https://..." />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label className="field-label">Texto / Cópia do Anúncio</label>
+                                        <textarea 
+                                            className="field-input" 
+                                            value={cardForm.ad_copy} 
+                                            onChange={e => setCardForm({...cardForm, ad_copy: e.target.value})} 
+                                            placeholder="Mensagem a disparar..."
+                                            style={{ height: '80px', padding: '12px', resize: 'vertical' }}
+                                        />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label className="field-label">Link do Botão</label>
+                                        <input className="field-input" value={cardForm.button_link} onChange={e => setCardForm({...cardForm, button_link: e.target.value})} placeholder="https://wa.me/..." />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                                    <button onClick={handleCreateCard} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }} disabled={submitting}>CRIAR E VINCULAR CARD</button>
+                                    <button onClick={() => setIsCardModalOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }} disabled={submitting}>CANCELAR</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

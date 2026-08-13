@@ -119,7 +119,7 @@ const Sidebar = () => {
                 { name: 'Dashboard Client', path: '/client-dashboard', icon: <LayoutDashboard />, role: 'CLIENT' },
                 { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE', 'CLIENT'] },
                 { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
-                { name: 'Clientes', path: '/employee-clients', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Clientes', path: '/employee-clients', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'CONTABILIDADE'] },
                 { name: 'Gerenciador de Templates', path: '/infobip/templates', icon: <FileText />, roles: ['ADMIN', 'EMPLOYEE'] },
             ]
         },
