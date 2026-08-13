@@ -63,6 +63,7 @@ import FinanceRefunds from './pages/FinanceRefunds';
 import FinanceRequests from './pages/FinanceRequests';
 import FinanceInventory from './pages/FinanceInventory';
 import CollaboratorsRegistration from './pages/CollaboratorsRegistration';
+import CentralCollaborators from './pages/CentralCollaborators';
 import TemplateManager from './pages/TemplateManager';
 import TermsOfUse from './pages/TermsOfUse';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -374,6 +375,7 @@ function AppContent() {
           <Route path="/finance/requests" element={<ProtectedRoute><FinanceRequests /></ProtectedRoute>} />
           <Route path="/finance/inventory" element={<ProtectedRoute><FinanceInventory /></ProtectedRoute>} />
           <Route path="/collaborators/register" element={<ProtectedRoute><CollaboratorsRegistration /></ProtectedRoute>} />
+          <Route path="/finance/collaborators-hub" element={<ProtectedRoute><CentralCollaborators /></ProtectedRoute>} />
 
           {/* External Public Views (Micro-apps) */}
           <Route path="/bio/:slug" element={<SmartBioView />} />

@@ -2282,6 +2282,26 @@ app.post('/api/admin/update-password', async (req, res) => {
 
 // --- Employee Financial Management Area (Meu Perfil) ---
 
+// Webhook Helper to send notifications to n8n / WhatsApp
+async function sendAccountingNotification(actionType, actionDescription, whatsappMessage, data) {
+    try {
+        const payload = {
+            action_type: actionType,
+            action_description: actionDescription,
+            whatsapp_message: whatsappMessage,
+            data
+        };
+        await fetch('https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/contabilidade_notificacao', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        console.log(`[WEBHOOK] Notificação de contabilidade enviada: ${actionType}`);
+    } catch (err) {
+        console.error('[WEBHOOK ERROR] Erro ao enviar webhook de contabilidade:', err.message);
+    }
+}
+
 // 1. Get competence summary for logged-in user
 app.get('/api/finance/my-competence', async (req, res) => {
     const { userId, competence } = req.query;
@@ -2375,6 +2395,25 @@ app.post('/api/finance/request-advance', async (req, res) => {
             [userId, competence, reqVal, pix_key]
         );
 
+        const userNameRes = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
+        const userName = userNameRes.rows[0]?.name || 'Colaborador';
+        const newRemaining = remaining_balance - reqVal;
+
+        const waMsg = `*Nova Solicitação de Adiantamento!* 💸\n\n` +
+                      `👤 *Colaborador:* ${userName}\n` +
+                      `📅 *Competência:* ${competence}\n` +
+                      `💰 *Valor Solicitado:* R$ ${reqVal.toFixed(2)}\n` +
+                      `💳 *Chave PIX:* ${pix_key}\n` +
+                      `📉 *Saldo Restante:* R$ ${newRemaining.toFixed(2)}\n\n` +
+                      `Acesse o painel financeiro para avaliar a solicitação.`;
+
+        sendAccountingNotification(
+            "Solicitação de Adiantamento",
+            `Colaborador ${userName} solicitou R$ ${reqVal.toFixed(2)} de adiantamento.`,
+            waMsg,
+            { userId, competence, value: reqVal, pix_key, remaining_balance: newRemaining }
+        );
+
         res.json({ success: true, request: insertRes.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2416,7 +2455,7 @@ app.post('/api/finance/upload-nf', async (req, res) => {
     }
 });
 
-// 5. Admin: Get all pending requests
+// 5. Admin: Get all requests (formerly pending-requests)
 app.get('/api/finance/admin/pending-requests', async (req, res) => {
     try {
         const query = `
@@ -2424,8 +2463,7 @@ app.get('/api/finance/admin/pending-requests', async (req, res) => {
                    COALESCE((SELECT SUM(v.value) FROM advance_requests v WHERE v.user_id = r.user_id AND v.competence = r.competence AND v.status = 'Aprovado'), 0) as total_advanced
             FROM advance_requests r
             JOIN users u ON r.user_id = u.id
-            WHERE r.status = 'Pendente'
-            ORDER BY r.created_at ASC
+            ORDER BY r.created_at DESC
         `;
         const result = await pool.query(query);
         // Map to include remaining balance
@@ -2456,10 +2494,58 @@ app.post('/api/finance/admin/respond-request', async (req, res) => {
         return res.status(400).json({ error: 'Justificativa é obrigatória ao rejeitar uma solicitação.' });
     }
     try {
+        // Load details for webhook notification
+        const reqDetails = await pool.query(`
+            SELECT r.*, u.name as collaborator_name, u.monthly_receivable,
+                   (SELECT COALESCE(SUM(v.value), 0) FROM advance_requests v WHERE v.user_id = r.user_id AND v.competence = r.competence AND v.status = 'Aprovado') as total_advanced
+            FROM advance_requests r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.id = $1
+        `, [requestId]);
+
         await pool.query(
             'UPDATE advance_requests SET status = $1, justification = $2, responded_at = NOW() WHERE id = $3',
             [status, justification || null, requestId]
         );
+
+        if (reqDetails.rows.length > 0) {
+            const requestInfo = reqDetails.rows[0];
+            const valueNum = parseFloat(requestInfo.value);
+            const monthlyReceivable = parseFloat(requestInfo.monthly_receivable || 0);
+            const totalAdvanced = parseFloat(requestInfo.total_advanced || 0);
+            
+            let remaining = monthlyReceivable - totalAdvanced;
+            if (status === 'Aprovado') {
+                remaining = remaining - valueNum;
+            }
+            
+            let waMsg = '';
+            if (status === 'Aprovado') {
+                waMsg = `*Adiantamento Aprovado!* ✅\n\n` +
+                        `Olá, *${requestInfo.collaborator_name}*,\n` +
+                        `Sua solicitação de adiantamento foi aprovada e enviada para pagamento.\n\n` +
+                        `📅 *Competência:* ${requestInfo.competence}\n` +
+                        `💰 *Valor:* R$ ${valueNum.toFixed(2)}\n` +
+                        `🔑 *PIX:* ${requestInfo.pix_key}\n` +
+                        `📉 *Seu Saldo Restante:* R$ ${remaining.toFixed(2)}\n\n` +
+                        `Obrigado!`;
+            } else {
+                waMsg = `*Adiantamento Rejeitado!* ❌\n\n` +
+                        `Olá, *${requestInfo.collaborator_name}*,\n` +
+                        `Sua solicitação de adiantamento de R$ ${valueNum.toFixed(2)} foi rejeitada pela contabilidade.\n\n` +
+                        `📅 *Competência:* ${requestInfo.competence}\n` +
+                        `⚠️ *Motivo:* ${justification || 'Não informado'}\n\n` +
+                        `Por favor, entre em contato com o financeiro se tiver dúvidas.`;
+            }
+            
+            sendAccountingNotification(
+                status === 'Aprovado' ? "Adiantamento Aprovado" : "Adiantamento Rejeitado",
+                `Adiantamento de R$ ${valueNum.toFixed(2)} para ${requestInfo.collaborator_name} foi ${status.toLowerCase()}.`,
+                waMsg,
+                { ...requestInfo, status, remaining_balance: remaining }
+            );
+        }
+
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
