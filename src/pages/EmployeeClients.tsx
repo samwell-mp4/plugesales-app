@@ -35,18 +35,45 @@ const EmployeeClients = () => {
     const [selectedClientForSale, setSelectedClientForSale] = useState<any>(null);
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [uploadingReceipt, setUploadingReceipt] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     // Client Dashboard states
     const [selectedClientForDashboard, setSelectedClientForDashboard] = useState<any | null>(null);
     const [dashboardSales, setDashboardSales] = useState<any[]>([]);
     const [dashboardSubmissions, setDashboardSubmissions] = useState<any[]>([]);
     const [loadingDashboard, setLoadingDashboard] = useState(false);
+
+    // Pagination states
+    const [clientsPage, setClientsPage] = useState(1);
+    const [salesPage, setSalesPage] = useState(1);
+    const [subsPage, setSubsPage] = useState(1);
+    const ITEMS_PER_PAGE = 5;
+
+    // Reset client page on search/filter changes
+    useEffect(() => {
+        setClientsPage(1);
+    }, [searchTerm, filterSeller, filterPacote, activeTab]);
     const [saleForm, setSaleForm] = useState({
         package_hired: 'Disparos',
         quantity_hired: 1000,
         unit_value: 0.20,
         salesperson_id: '',
         payment_status: 'PENDENTE'
+    });
+
+    // Manual client registration state
+    const [isManualRegisterOpen, setIsManualRegisterOpen] = useState(false);
+    const [manualForm, setManualForm] = useState({
+        name: '',
+        email: '',
+        password: '',
+        whatsapp: '',
+        document_number: '',
+        preco_vendido: '0.20',
+        comissao_vendedor: '0.05',
+        disparo_quantidade: 1000,
+        pacote: 'Avulso',
+        seller_name: ''
     });
 
     // Modal to create card/submission directly
@@ -90,6 +117,104 @@ const EmployeeClients = () => {
             loadClients();
         }
     }, [user?.name]);
+
+    const handleGenerateInvite = async () => {
+        try {
+            const res = await fetch('/api/invites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ created_by: user?.id })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const inviteUrl = `${window.location.origin}/news-clients/${data.code}`;
+                navigator.clipboard.writeText(inviteUrl);
+                alert(`Convite gerado e copiado para a área de transferência!\n\nLink: ${inviteUrl}\n\nVálido por 24 horas.`);
+            } else {
+                alert('Erro ao gerar convite.');
+            }
+        } catch (err) {
+            alert('Erro de conexão ao gerar convite.');
+        }
+    };
+
+    const handleManualRegister = async () => {
+        if (!manualForm.name || !manualForm.email || !manualForm.password) {
+            alert("Nome, email e senha são obrigatórios!");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            // Step 1: Generate invite code
+            const inviteRes = await fetch('/api/invites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ created_by: user?.id })
+            });
+            if (!inviteRes.ok) throw new Error("Falha ao criar convite de segurança.");
+            const inviteData = await inviteRes.json();
+            const inviteCode = inviteData.code;
+
+            // Step 2: Register user (role = WAITING_APPROVAL)
+            const registerRes = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: manualForm.name,
+                    email: manualForm.email,
+                    password: manualForm.password,
+                    whatsapp: manualForm.whatsapp || null,
+                    phone: manualForm.whatsapp || null,
+                    document_number: manualForm.document_number || null,
+                    invite_code: inviteCode
+                })
+            });
+            if (!registerRes.ok) {
+                const errData = await registerRes.json();
+                throw new Error(errData.error || "Falha ao registrar cliente.");
+            }
+            const newUser = await registerRes.json();
+
+            // Step 3: Approve user access with commercial settings
+            const approveRes = await fetch(`/api/users/${newUser.id}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    seller_name: manualForm.seller_name || user?.name || '',
+                    pacote: manualForm.pacote || 'Avulso',
+                    preco_vendido: manualForm.preco_vendido || '0.20',
+                    comissao_vendedor: manualForm.comissao_vendedor || '0.05',
+                    disparo_quantidade: manualForm.disparo_quantidade || 0
+                })
+            });
+
+            if (approveRes.ok) {
+                alert("Cliente registrado e ativado com sucesso!");
+                setIsManualRegisterOpen(false);
+                setManualForm({
+                    name: '',
+                    email: '',
+                    password: '',
+                    whatsapp: '',
+                    document_number: '',
+                    preco_vendido: '0.20',
+                    comissao_vendedor: '0.05',
+                    disparo_quantidade: 1000,
+                    pacote: 'Avulso',
+                    seller_name: ''
+                });
+                loadClients();
+            } else {
+                const errData = await approveRes.json();
+                throw new Error(errData.error || "Falha ao aprovar comercialmente.");
+            }
+        } catch (err: any) {
+            alert("Erro: " + err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const handleApprove = async (client: any) => {
         try {
@@ -233,6 +358,8 @@ const EmployeeClients = () => {
 
     const openClientDashboard = async (client: any) => {
         setSelectedClientForDashboard(client);
+        setSalesPage(1);
+        setSubsPage(1);
         setLoadingDashboard(true);
         try {
             const [salesData, subsData] = await Promise.all([
@@ -358,12 +485,32 @@ const EmployeeClients = () => {
 
     return (
         <div className="crm-container" style={{ minHeight: '100vh', padding: '32px' }}>
-            <div className="crm-header-premium mb-8">
+            <div className="crm-header-premium mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div className="crm-title-group">
                     <div className="crm-badge-small">
                         <Users size={12} /> CENTRAL DE CLIENTES E CONTROLE FINANCEIRO
                     </div>
                     <h1 className="crm-main-title">Gerenciamento de Clientes</h1>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button 
+                        onClick={handleGenerateInvite} 
+                        className="action-btn ghost-btn" 
+                        style={{ height: '44px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px', borderColor: '#acf800', color: '#acf800' }}
+                    >
+                        <User size={15} /> GERAR CONVITE CLIENTE
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setManualForm(prev => ({ ...prev, seller_name: user?.name || '' }));
+                            setIsManualRegisterOpen(true);
+                        }} 
+                        className="action-btn primary-btn" 
+                        style={{ height: '44px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', background: 'var(--primary-gradient)', color: 'black' }}
+                    >
+                        <Plus size={16} /> REGISTRAR MANUALMENTE
+                    </button>
                 </div>
             </div>
 
@@ -551,25 +698,50 @@ const EmployeeClients = () => {
                             ))}
                         </tbody>
                     </table>
+                    
+                    {/* Pagination Controls for Clients */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '0 24px', flexWrap: 'wrap', gap: '10px' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                            Mostrando {Math.min(filteredList.length, (clientsPage - 1) * 10 + 1)}-{Math.min(filteredList.length, clientsPage * 10)} de {filteredList.length} clientes
+                        </span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                                disabled={clientsPage === 1}
+                                onClick={() => setClientsPage(p => Math.max(1, p - 1))}
+                                className="action-btn ghost-btn"
+                                style={{ height: '36px', padding: '0 16px', fontSize: '0.8rem' }}
+                            >
+                                Anterior
+                            </button>
+                            <button 
+                                disabled={clientsPage * 10 >= filteredList.length}
+                                onClick={() => setClientsPage(p => p + 1)}
+                                className="action-btn ghost-btn"
+                                style={{ height: '36px', padding: '0 16px', fontSize: '0.8rem' }}
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
             {/* Quick Credit Add/Remove Modal */}
             {isCreditQuickModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="crm-card" style={{ width: '100%', maxWidth: '460px', padding: '32px' }}>
+                    <div className="crm-card" style={{ width: '100%', maxWidth: '600px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h2 style={{ fontSize: '1.25rem', fontWeight: 950 }}>Adicionar / Descontar Créditos</h2>
                             <button onClick={() => setIsCreditQuickModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                            Cliente: <strong style={{ color: 'white' }}>{selectedClientForCredit?.name}</strong> <br />
-                            Saldo Atual: <strong style={{ color: '#acf800' }}>{(selectedClientForCredit?.disparo_quantidade || 0).toLocaleString()} créditos</strong>
+                             Cliente: <strong style={{ color: 'white' }}>{selectedClientForCredit?.name}</strong> <br />
+                             Saldo Atual: <strong style={{ color: '#acf800' }}>{(selectedClientForCredit?.disparo_quantidade || 0).toLocaleString()} créditos</strong>
                         </p>
 
-                        <div className="flex-col gap-4">
-                            <div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            <div style={{ gridColumn: 'span 2' }}>
                                 <label className="field-label">Tipo de Operação</label>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <button 
@@ -591,7 +763,7 @@ const EmployeeClients = () => {
                                 </div>
                             </div>
 
-                            <div>
+                            <div style={{ gridColumn: 'span 2' }}>
                                 <label className="field-label">Quantidade de Créditos</label>
                                 <input 
                                     type="number" 
@@ -602,7 +774,7 @@ const EmployeeClients = () => {
                                 />
                             </div>
 
-                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', marginTop: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ gridColumn: 'span 2', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Projeção do Novo Saldo:</span>
                                 <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'white', marginTop: '4px' }}>
                                     {creditOpType === 'ADD' 
@@ -624,12 +796,15 @@ const EmployeeClients = () => {
             {/* Edit / Configuration Modal */}
             {editModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="crm-card" style={{ width: '100%', maxWidth: '500px', padding: '32px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 950, marginBottom: '24px' }}>
-                            {editMode === 'COMMERCIAL' ? 'Configuração Comercial (Venda/Créditos)' : editMode === 'BASIC' ? 'Dados Básicos' : 'Alterar Senha'}
-                        </h2>
+                    <div className="crm-card" style={{ width: '100%', maxWidth: '650px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>
+                                {editMode === 'COMMERCIAL' ? 'Configuração Comercial (Venda/Créditos)' : editMode === 'BASIC' ? 'Dados Básicos' : 'Alterar Senha'}
+                            </h2>
+                            <button onClick={() => setEditModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
                         
-                        <div className="flex-col gap-4">
+                        <div style={{ display: 'grid', gridTemplateColumns: editMode === 'PASSWORD' ? '1fr' : '1fr 1fr', gap: '16px' }}>
                             {editMode === 'COMMERCIAL' && (
                                 <>
                                     <div>
@@ -658,7 +833,7 @@ const EmployeeClients = () => {
                                             ))}
                                         </select>
                                     </div>
-                                    <div>
+                                    <div style={{ gridColumn: 'span 2' }}>
                                         <label className="field-label">Pacote / Plano</label>
                                         <input className="field-input" value={editForm.pacote} onChange={e => setEditForm({...editForm, pacote: e.target.value})} />
                                     </div>
@@ -675,7 +850,7 @@ const EmployeeClients = () => {
                                         <label className="field-label">Email</label>
                                         <input className="field-input" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} />
                                     </div>
-                                    <div>
+                                    <div style={{ gridColumn: 'span 2' }}>
                                         <label className="field-label">WhatsApp / Telefone</label>
                                         <input className="field-input" value={editForm.whatsapp} onChange={e => setEditForm({...editForm, whatsapp: e.target.value})} />
                                     </div>
@@ -703,9 +878,9 @@ const EmployeeClients = () => {
             {/* Direct Sale Modal */}
             {isSaleModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="crm-card" style={{ width: '100%', maxWidth: '500px', padding: '32px' }}>
+                    <div className="crm-card" style={{ width: '100%', maxWidth: '650px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950 }}>Nova Venda Direta</h2>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>Nova Venda Direta</h2>
                             <button onClick={() => setIsSaleModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         
@@ -713,7 +888,7 @@ const EmployeeClients = () => {
                             Você está registrando uma nova venda de créditos para o cliente <strong style={{ color: 'white' }}>{selectedClientForSale?.name}</strong>.
                         </p>
 
-                        <div className="flex-col gap-4">
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div>
                                 <label className="field-label">Quantidade de Créditos (Hired)</label>
                                 <input type="number" className="field-input" value={saleForm.quantity_hired} onChange={e => setSaleForm({...saleForm, quantity_hired: parseInt(e.target.value) || 0})} />
@@ -721,12 +896,6 @@ const EmployeeClients = () => {
                             <div>
                                 <label className="field-label">Preço Unitário (R$)</label>
                                 <input className="field-input" value={saleForm.unit_value} onChange={e => setSaleForm({...saleForm, unit_value: parseFloat(e.target.value) || 0})} />
-                            </div>
-                            <div>
-                                <label className="field-label">Valor Total</label>
-                                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-color)', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
-                                    R$ {(saleForm.quantity_hired * saleForm.unit_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </div>
                             </div>
                             <div>
                                 <label className="field-label">Vendedor do Lançamento</label>
@@ -755,7 +924,13 @@ const EmployeeClients = () => {
                                     <option value="INADIMPLENTE">INADIMPLENTE</option>
                                 </select>
                             </div>
-                            <div>
+                            <div style={{ gridColumn: 'span 2' }}>
+                                <label className="field-label">Valor Total</label>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-color)', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                                    R$ {(saleForm.quantity_hired * saleForm.unit_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </div>
+                            </div>
+                            <div style={{ gridColumn: 'span 2' }}>
                                 <label className="field-label">Comprovante de Pagamento (Obrigatório)</label>
                                 <input 
                                     type="file" 
@@ -778,9 +953,9 @@ const EmployeeClients = () => {
             {/* Link Card Modal */}
             {isCardModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="crm-card" style={{ width: '100%', maxWidth: '500px', padding: '32px' }}>
+                    <div className="crm-card" style={{ width: '100%', maxWidth: '650px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950 }}>Vincular Novo Card / Submissão</h2>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>Vincular Novo Card / Submissão</h2>
                             <button onClick={() => setIsCardModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         
@@ -788,7 +963,7 @@ const EmployeeClients = () => {
                             Cria um card de campanha (submissão) no funil para o cliente <strong style={{ color: 'white' }}>{selectedClientForCard?.name}</strong>.
                         </p>
 
-                        <div className="flex-col gap-4">
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div>
                                 <label className="field-label">Nome da Campanha / Perfil</label>
                                 <input className="field-input" value={cardForm.profile_name} onChange={e => setCardForm({...cardForm, profile_name: e.target.value})} placeholder="Ex: Campanha WhatsApp" />
@@ -815,7 +990,7 @@ const EmployeeClients = () => {
                                 <label className="field-label">URL da Mídia (opcional)</label>
                                 <input className="field-input" value={cardForm.media_url} onChange={e => setCardForm({...cardForm, media_url: e.target.value})} placeholder="https://..." />
                             </div>
-                            <div>
+                            <div style={{ gridColumn: 'span 2' }}>
                                 <label className="field-label">Texto / Cópia do Anúncio</label>
                                 <textarea 
                                     className="field-input" 
@@ -825,7 +1000,7 @@ const EmployeeClients = () => {
                                     style={{ height: '80px', padding: '12px', resize: 'vertical' }}
                                 />
                             </div>
-                            <div>
+                            <div style={{ gridColumn: 'span 2' }}>
                                 <label className="field-label">Link do Botão</label>
                                 <input className="field-input" value={cardForm.button_link} onChange={e => setCardForm({...cardForm, button_link: e.target.value})} placeholder="https://wa.me/..." />
                             </div>
@@ -940,7 +1115,7 @@ const EmployeeClients = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {dashboardSales.map(sale => (
+                                                    {dashboardSales.slice((salesPage - 1) * ITEMS_PER_PAGE, salesPage * ITEMS_PER_PAGE).map(sale => (
                                                         <tr key={sale.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
                                                             <td style={{ padding: '12px', fontSize: '13px' }}>{new Date(sale.sale_date).toLocaleDateString()}</td>
                                                             <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold' }}>{sale.quantity_hired.toLocaleString()} créditos</td>
@@ -975,6 +1150,32 @@ const EmployeeClients = () => {
                                             </table>
                                         </div>
                                     )}
+
+                                    {dashboardSales.length > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                Mostrando {Math.min(dashboardSales.length, (salesPage - 1) * ITEMS_PER_PAGE + 1)}-{Math.min(dashboardSales.length, salesPage * ITEMS_PER_PAGE)} de {dashboardSales.length}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button 
+                                                    disabled={salesPage === 1}
+                                                    onClick={() => setSalesPage(p => Math.max(1, p - 1))}
+                                                    className="action-btn ghost-btn"
+                                                    style={{ height: '32px', padding: '0 12px', fontSize: '11px' }}
+                                                >
+                                                    Anterior
+                                                </button>
+                                                <button 
+                                                    disabled={salesPage * ITEMS_PER_PAGE >= dashboardSales.length}
+                                                    onClick={() => setSalesPage(p => p + 1)}
+                                                    className="action-btn ghost-btn"
+                                                    style={{ height: '32px', padding: '0 12px', fontSize: '11px' }}
+                                                >
+                                                    Próxima
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Histórico de Campanhas / Disparos */}
@@ -998,7 +1199,7 @@ const EmployeeClients = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {dashboardSubmissions.map(sub => (
+                                                    {dashboardSubmissions.slice((subsPage - 1) * ITEMS_PER_PAGE, subsPage * ITEMS_PER_PAGE).map(sub => (
                                                         <tr key={sub.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
                                                             <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold' }}>
                                                                 #{sub.id} - {sub.profile_name || 'Sem nome'}
@@ -1025,10 +1226,106 @@ const EmployeeClients = () => {
                                             </table>
                                         </div>
                                     )}
+
+                                    {dashboardSubmissions.length > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                Mostrando {Math.min(dashboardSubmissions.length, (subsPage - 1) * ITEMS_PER_PAGE + 1)}-{Math.min(dashboardSubmissions.length, subsPage * ITEMS_PER_PAGE)} de {dashboardSubmissions.length}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button 
+                                                    disabled={subsPage === 1}
+                                                    onClick={() => setSubsPage(p => Math.max(1, p - 1))}
+                                                    className="action-btn ghost-btn"
+                                                    style={{ height: '32px', padding: '0 12px', fontSize: '11px' }}
+                                                >
+                                                    Anterior
+                                                </button>
+                                                <button 
+                                                    disabled={subsPage * ITEMS_PER_PAGE >= dashboardSubmissions.length}
+                                                    onClick={() => setSubsPage(p => p + 1)}
+                                                    className="action-btn ghost-btn"
+                                                    style={{ height: '32px', padding: '0 12px', fontSize: '11px' }}
+                                                >
+                                                    Próxima
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Manual Register Modal */}
+            {isManualRegisterOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="crm-card" style={{ width: '100%', maxWidth: '650px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 950, margin: 0 }}>Registrar Cliente Manualmente</h2>
+                            <button onClick={() => setIsManualRegisterOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <label className="field-label">Nome Completo (Obrigatório)</label>
+                                <input className="field-input" value={manualForm.name} onChange={e => setManualForm({...manualForm, name: e.target.value})} placeholder="Nome do cliente" />
+                            </div>
+                            <div>
+                                <label className="field-label">Email (Obrigatório)</label>
+                                <input className="field-input" value={manualForm.email} onChange={e => setManualForm({...manualForm, email: e.target.value})} placeholder="email@exemplo.com" />
+                            </div>
+                            <div>
+                                <label className="field-label">Senha (Obrigatório)</label>
+                                <input className="field-input" type="password" value={manualForm.password} onChange={e => setManualForm({...manualForm, password: e.target.value})} placeholder="Senha inicial" />
+                            </div>
+                            <div>
+                                <label className="field-label">WhatsApp / Telefone</label>
+                                <input className="field-input" value={manualForm.whatsapp} onChange={e => setManualForm({...manualForm, whatsapp: e.target.value})} placeholder="DDD + Número" />
+                            </div>
+                            <div>
+                                <label className="field-label">Documento CPF / CNPJ</label>
+                                <input className="field-input" value={manualForm.document_number} onChange={e => setManualForm({...manualForm, document_number: e.target.value})} placeholder="Somente números" />
+                            </div>
+                            <div>
+                                <label className="field-label">Preço Vendido (Crédito)</label>
+                                <input className="field-input" value={manualForm.preco_vendido} onChange={e => setManualForm({...manualForm, preco_vendido: e.target.value})} placeholder="Ex: 0.20" />
+                            </div>
+                            <div>
+                                <label className="field-label">Comissão do Vendedor (Unitário)</label>
+                                <input className="field-input" value={manualForm.comissao_vendedor} onChange={e => setManualForm({...manualForm, comissao_vendedor: e.target.value})} placeholder="Ex: 0.05" />
+                            </div>
+                            <div>
+                                <label className="field-label">Créditos Iniciais</label>
+                                <input type="number" className="field-input" value={manualForm.disparo_quantidade} onChange={e => setManualForm({...manualForm, disparo_quantidade: parseInt(e.target.value) || 0})} />
+                            </div>
+                            <div>
+                                <label className="field-label">Pacote / Plano</label>
+                                <input className="field-input" value={manualForm.pacote} onChange={e => setManualForm({...manualForm, pacote: e.target.value})} placeholder="Ex: Premium" />
+                            </div>
+                            <div>
+                                <label className="field-label">Vendedor do Lançamento</label>
+                                <select 
+                                    className="field-input"
+                                    value={manualForm.seller_name}
+                                    onChange={e => setManualForm({...manualForm, seller_name: e.target.value})}
+                                    style={{ background: 'var(--card-bg)' }}
+                                >
+                                    <option value="">Nenhum</option>
+                                    {salespeople.map(sp => (
+                                        <option key={sp.id} value={sp.name}>{sp.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                            <button onClick={handleManualRegister} className="action-btn primary-btn" style={{ flex: 1, height: '48px' }} disabled={submitting}>REGISTRAR E APROVAR</button>
+                            <button onClick={() => setIsManualRegisterOpen(false)} className="action-btn ghost-btn" style={{ flex: 1, height: '48px' }} disabled={submitting}>CANCELAR</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
