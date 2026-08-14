@@ -2569,7 +2569,7 @@ app.get('/api/finance/admin/competences-spreadsheet', async (req, res) => {
                    (SELECT nf_url FROM employee_competences ec WHERE ec.user_id = u.id AND ec.competence = $1 LIMIT 1) as nf_url,
                    (SELECT nf_uploaded_at FROM employee_competences ec WHERE ec.user_id = u.id AND ec.competence = $1 LIMIT 1) as nf_uploaded_at
             FROM users u
-            WHERE u.role = 'EMPLOYEE' OR u.role = 'ADMIN' OR u.role = 'CONTABILIDADE'
+            WHERE u.role = 'EMPLOYEE' OR u.role = 'ADMIN' OR u.role = 'CONTABILIDADE' OR u.role = 'VENDEDOR'
             ORDER BY u.name ASC
         `;
         const result = await pool.query(query, [competence]);

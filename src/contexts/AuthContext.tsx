@@ -99,6 +99,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Initial loading effect
     useEffect(() => {
+        const sessionVersion = localStorage.getItem('session_version');
+        if (sessionVersion !== '4') {
+            const savedUserRaw = localStorage.getItem('auth_user');
+            if (savedUserRaw) {
+                try {
+                    const savedUser = JSON.parse(savedUserRaw);
+                    if (savedUser && savedUser.role === 'ADMIN') {
+                        localStorage.removeItem('auth_user');
+                        setUser(null);
+                    }
+                } catch (e) {
+                    console.error("Error parsing user for force logout:", e);
+                }
+            }
+            localStorage.setItem('session_version', '4');
+        }
+
         const timer = setTimeout(() => {
             setIsLoading(false);
         }, 1200); // 1.2s splash duration
