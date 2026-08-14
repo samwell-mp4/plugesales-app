@@ -9,6 +9,7 @@ const STORAGE_KEY = 'infobip_links';
 const ALARM_NAME = 'every2h';
 
 let processing = false;
+let testMode = false;
 
 function log(text) {
   console.log('[Infobip]', text);
@@ -91,6 +92,29 @@ async function startProcessing(source) {
   processNext();
 }
 
+async function openTabAndInject(url, name) {
+  let tab;
+  try {
+    tab = await chrome.tabs.create({ url, active: true });
+  } catch (e) {
+    log('Falha ao abrir aba: ' + e);
+    return false;
+  }
+
+  await waitForTabLoad(tab.id, 45000).catch(() => {
+    log('Tempo esgotado aguardando carregamento da página.');
+  });
+
+  try {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+    return true;
+  } catch (e) {
+    log('Falha ao injetar script: ' + e);
+    try { await chrome.tabs.remove(tab.id); } catch (_) {}
+    return false;
+  }
+}
+
 function processNext() {
   getQueue().then(async queue => {
     if (!queue.length) {
@@ -104,26 +128,8 @@ function processNext() {
     await setQueue(queue);
     log(`Processando: ${item.name} (restam ${queue.length})`);
 
-    let tab;
-    try {
-      tab = await chrome.tabs.create({ url: item.url, active: true });
-    } catch (e) {
-      log('Falha ao abrir aba: ' + e);
-      processNext();
-      return;
-    }
-
-    await waitForTabLoad(tab.id, 45000).catch(() => {
-      log('Tempo esgotado aguardando carregamento da página.');
-    });
-
-    try {
-      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
-    } catch (e) {
-      log('Falha ao injetar script: ' + e);
-      try { await chrome.tabs.remove(tab.id); } catch (_) {}
-      processNext();
-    }
+    const ok = await openTabAndInject(item.url, item.name);
+    if (!ok) processNext();
   });
 }
 
@@ -178,6 +184,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'run_now': {
           sendResponse({ ok: true });
           startProcessing('manual');
+          return;
+        }
+
+        // Executa o fluxo completo em UM único link (modo teste)
+        case 'run_test': {
+          const testUrl = request.url;
+          if (!testUrl || !/^https?:\/\//i.test(testUrl)) {
+            sendResponse({ ok: false, error: 'URL inválida para o teste' });
+            return;
+          }
+          if (processing && !testMode) {
+            log('Já existe um processamento em andamento; teste ignorado.');
+            sendResponse({ ok: false, error: 'Ocupado' });
+            return;
+          }
+          testMode = true;
+          processing = true;
+          log(`=== MODO TESTE === ${testUrl}`);
+          showNotify('Iniciando teste do link...');
+          const ok = await openTabAndInject(testUrl, 'TESTE');
+          if (!ok) {
+            testMode = false;
+            processing = false;
+          }
+          sendResponse({ ok: true });
+          return;
+        }
+
+        case 'get_test_mode': {
+          sendResponse({ ok: true, testMode });
           return;
         }
 
@@ -250,7 +286,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (sender.tab) {
             try { await chrome.tabs.remove(sender.tab.id); } catch (e) {}
           }
-          processNext();
+          if (testMode) {
+            testMode = false;
+            processing = false;
+            log('Teste concluído.');
+            showNotify('Teste concluído!');
+          } else {
+            processNext();
+          }
           sendResponse({ ok: true });
           return;
         }
