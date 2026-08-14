@@ -111,7 +111,7 @@ const EmployeeClients = () => {
     const loadClients = async () => {
         setIsLoading(true);
         try {
-            const sellerFilter = user?.role === 'ADMIN' ? '' : `seller_name=${encodeURIComponent(user?.name || '')}`;
+            const sellerFilter = (user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE') ? '' : `seller_name=${encodeURIComponent(user?.name || '')}`;
             const [pendingRes, approvedRes, peopleData] = await Promise.all([
                 fetch(`/api/users/pending?${sellerFilter}`),
                 fetch(`/api/admin/users?${sellerFilter}`),

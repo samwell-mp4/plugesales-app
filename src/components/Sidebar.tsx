@@ -106,7 +106,6 @@ const Sidebar = () => {
         {
             id: 'OPERACIONAL',
             label: 'OPERACIONAL',
-            excludeRole: 'CONTABILIDADE',
             items: [
                 { name: 'Contas & Monitor', path: '/accounts', icon: <Activity />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
                 { name: 'Criar Template', path: '/templates', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },

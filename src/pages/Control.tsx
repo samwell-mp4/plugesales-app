@@ -3,11 +3,12 @@ import {
     ShieldCheck, MessageSquare, Send, Activity,
     ChevronRight, User, Link as LinkIcon,
     Search, LayoutDashboard, Clock, AlertCircle, CheckCircle2,
-    Users, ShieldAlert, Zap, Upload, Sparkles, Image as ImageIcon
+    Users, ShieldAlert, Zap, Upload, Sparkles, Image as ImageIcon, X
 } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
+import { supabase } from '../lib/supabase';
 
 const Control = () => {
     const { user: currentUser } = useAuth();
@@ -23,6 +24,65 @@ const Control = () => {
     const [activeTab, setActiveTab] = useState<'MONITOR' | 'USUARIOS' | 'BLOG' | 'CLIENTES_PENDENTES'>('MONITOR');
     const [searchTerm, setSearchTerm] = useState('');
     const [userSearchTerm, setUserSearchTerm] = useState('');
+
+    // User Creation states
+    const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+    const [newUserForm, setNewUserForm] = useState({ name: '', email: '', password: '', role: 'EMPLOYEE', phone: '' });
+    const [creatingUser, setCreatingUser] = useState(false);
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newUserForm.name || !newUserForm.email || !newUserForm.password) {
+            alert("Nome, email e senha são obrigatórios.");
+            return;
+        }
+        setCreatingUser(true);
+        try {
+            // 1. Postgres native user
+            const pgRes = await fetch('/api/admin/employees', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newUserForm.name,
+                    email: newUserForm.email,
+                    password: newUserForm.password,
+                    phone: newUserForm.phone || null,
+                    role: newUserForm.role
+                })
+            });
+            const pgData = await pgRes.json();
+            if (!pgRes.ok) throw new Error(pgData.error || 'Erro ao criar usuário no banco Postgres.');
+
+            // 2. Supabase profile
+            if (newUserForm.role === 'VENDEDOR' || newUserForm.role === 'EMPLOYEE') {
+                const sbRole = newUserForm.role === 'VENDEDOR' ? 'Vendedor' : 'Colaborador';
+                const { error: sbError } = await supabase.from('collaborators').insert([{
+                    id: pgData.id,
+                    full_name: newUserForm.name,
+                    email: newUserForm.email,
+                    phone: newUserForm.phone || null,
+                    role: sbRole
+                }]);
+                if (sbError) {
+                    console.error("Erro ao registrar colaborador no Supabase:", sbError.message);
+                }
+            }
+
+            alert("Usuário criado com sucesso!");
+            setIsCreateUserOpen(false);
+            setNewUserForm({ name: '', email: '', password: '', role: 'EMPLOYEE', phone: '' });
+            
+            // Reload user list
+            if (activeTab === 'USUARIOS') {
+                const data = await dbService.getAllUsers();
+                setUsers(data);
+            }
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setCreatingUser(false);
+        }
+    };
     const [blogPosts, setBlogPosts] = useState<any[]>([]);
     const [isBlogLoading, setIsBlogLoading] = useState(false);
     const [aiHtmlInput, setAiHtmlInput] = useState('');
@@ -518,8 +578,17 @@ const Control = () => {
                             <h2 style={{ fontSize: '1.75rem', fontWeight: 950, margin: 0, letterSpacing: '-0.5px' }}>Gestão de Acessos</h2>
                             <p style={{ margin: '8px 0 0', color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 700 }}>Gerenciamento Central de Credenciais</p>
                         </div>
-                        <div className="status-badge-premium" style={{ padding: '10px 24px', fontSize: '12px', background: 'rgba(172, 248, 0, 0.05)', color: '#acf800' }}>
-                            {users.length} USUÁRIOS ATIVOS
+                        <div className="flex items-center gap-4">
+                            <div className="status-badge-premium" style={{ padding: '10px 24px', fontSize: '12px', background: 'rgba(172, 248, 0, 0.05)', color: '#acf800' }}>
+                                {users.length} USUÁRIOS ATIVOS
+                            </div>
+                            <button 
+                                onClick={() => setIsCreateUserOpen(true)}
+                                className="action-btn primary-btn" 
+                                style={{ height: '42px', padding: '0 24px', background: 'var(--primary-color)', color: 'black', fontWeight: 900, border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                <Users size={16} /> Novo Usuário
+                            </button>
                         </div>
                     </div>
 
@@ -770,6 +839,48 @@ const Control = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isCreateUserOpen && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(0,0,0,0.9)', backdropFilter: 'none' }}>
+                    <div className="bg-[#090d16] border border-white/10 rounded-3xl w-full max-w-md shadow-2xl relative flex flex-col max-h-[90vh] m-auto" style={{ opacity: 1 }}>
+                        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
+                            <h2 className="text-xl font-bold text-white">Criar Novo Usuário</h2>
+                            <button onClick={() => setIsCreateUserOpen(false)} className="text-white/50 hover:text-white"><X size={24} /></button>
+                        </div>
+                        <form onSubmit={handleCreateUser} className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Nome Completo *</label>
+                                <input required type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", padding: "12px", width: "100%" }} value={newUserForm.name} onChange={e => setNewUserForm({...newUserForm, name: e.target.value})} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">E-mail de Acesso *</label>
+                                <input required type="email" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", padding: "12px", width: "100%" }} value={newUserForm.email} onChange={e => setNewUserForm({...newUserForm, email: e.target.value})} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Senha Inicial *</label>
+                                <input required type="password" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", padding: "12px", width: "100%" }} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Telefone (WhatsApp)</label>
+                                <input type="text" className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", padding: "12px", width: "100%" }} value={newUserForm.phone} onChange={e => setNewUserForm({...newUserForm, phone: e.target.value})} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Nível de Acesso (Perfil) *</label>
+                                <select required className="input-field w-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", color: "white", padding: "12px", width: "100%" }} value={newUserForm.role} onChange={e => setNewUserForm({...newUserForm, role: e.target.value})}>
+                                    <option value="EMPLOYEE" className="bg-[#111]">Colaborador (EMPLOYEE)</option>
+                                    <option value="VENDEDOR" className="bg-[#111]">Vendedor (VENDEDOR)</option>
+                                    <option value="ADMIN" className="bg-[#111]">Administrador (ADMIN)</option>
+                                    <option value="CONTABILIDADE" className="bg-[#111]">Contabilidade (CONTABILIDADE)</option>
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button type="button" onClick={() => setIsCreateUserOpen(false)} style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "14px", padding: "12px 20px", fontWeight: 900, cursor: "pointer" }}>Cancelar</button>
+                                <button type="submit" style={{ background: "var(--primary-color)", color: "black", border: "none", borderRadius: "14px", padding: "12px 20px", fontWeight: 900, cursor: "pointer" }} disabled={creatingUser}>{creatingUser ? 'Criando...' : 'Cadastrar Usuário'}</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
