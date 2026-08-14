@@ -623,17 +623,43 @@ const Control = () => {
                                         <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 700 }}>{u.email}</span>
                                     </div>
                                 </div>
-                                <button 
-                                    className="action-btn ghost-btn w-full" 
-                                    style={{ height: '48px', fontSize: '10px' }}
-                                    onClick={async () => {
-                                        const pass = window.prompt(`Nova senha para ${u.name}:`);
-                                        if (pass) {
-                                            const res = await dbService.adminUpdatePassword(u.id, pass);
-                                            alert(res.error ? `Erro: ${res.error}` : 'Credenciais atualizadas com sucesso!');
-                                        }
-                                    }}
-                                >ALTERAR CREDENCIAIS</button>
+                                <div className="flex gap-2 w-full">
+                                    <button 
+                                        className="action-btn ghost-btn flex-1" 
+                                        style={{ height: '48px', fontSize: '10px' }}
+                                        onClick={async () => {
+                                            const pass = window.prompt(`Nova senha para ${u.name}:`);
+                                            if (pass) {
+                                                const res = await dbService.adminUpdatePassword(u.id, pass);
+                                                alert(res.error ? `Erro: ${res.error}` : 'Credenciais atualizadas com sucesso!');
+                                            }
+                                        }}
+                                    >
+                                        ALTERAR SENHA
+                                    </button>
+                                    <button 
+                                        className="action-btn ghost-btn flex-1" 
+                                        style={{ height: '48px', fontSize: '10px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                                        onClick={async () => {
+                                            if (window.confirm(`Deseja realmente excluir o usuário ${u.name}?`)) {
+                                                const res = await dbService.deleteUser(u.id);
+                                                if (res && res.error) {
+                                                    alert(`Erro ao excluir: ${res.error}`);
+                                                } else {
+                                                    if (u.role === 'VENDEDOR' || u.role === 'EMPLOYEE') {
+                                                        const { error } = await supabase.from('collaborators').delete().eq('id', u.id);
+                                                        if (error) console.error("Error deleting supabase collaborator:", error);
+                                                    }
+                                                    alert('Usuário excluído com sucesso!');
+                                                    const data = await dbService.getAllUsers();
+                                                    setUsers(data);
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        EXCLUIR USUÁRIO
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

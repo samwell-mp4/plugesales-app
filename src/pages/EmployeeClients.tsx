@@ -121,8 +121,8 @@ const EmployeeClients = () => {
             const pendingData = await pendingRes.json();
             const approvedData = await approvedRes.json();
             
-            setPendingClients(pendingData);
-            setApprovedClients(approvedData);
+            setPendingClients(pendingData.filter((u: any) => u.role === 'CLIENT' || u.role === 'ASSINATURA_BASICA'));
+            setApprovedClients(approvedData.filter((u: any) => u.role === 'CLIENT' || u.role === 'ASSINATURA_BASICA'));
             setSalespeople(peopleData);
         } catch (err) {
             console.error("Error loading clients:", err);

@@ -146,7 +146,6 @@ const Sidebar = () => {
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Controle de Estoque', path: '/finance/inventory', icon: <Database />, roles: ['ADMIN', 'COZINHEIRA'] },
-                { name: 'Colaboradores', path: '/collaborators/register', icon: <User />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Central Colaboradores', path: '/finance/collaborators-hub', icon: <Layers />, roles: ['ADMIN', 'CONTABILIDADE'] }
             ]
         },
@@ -296,7 +295,7 @@ const Sidebar = () => {
                         { icon: <LayoutDashboard />, path: '/finance/dashboard' },
                         { icon: <FileSpreadsheet />, path: '/finance/payables' },
                         { icon: <MessageSquare />, path: '/finance/requests' },
-                        { icon: <User />, path: '/collaborators/register' }
+                        { icon: <Layers />, path: '/finance/collaborators-hub' }
                     ]
                     : [
                         { icon: <LayoutDashboard />, path: '/upload' },

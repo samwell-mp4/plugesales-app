@@ -850,6 +850,19 @@ export const dbService = {
             return [];
         }
     },
+    deleteUser: async (id: number) => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/users/${id}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Erro ao excluir usuário no banco nativo.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error(err);
+            return { error: err.message };
+        }
+    },
     adminUpdatePassword: async (userId: number, newPassword: string) => {
         try {
             const res = await fetch(`${API_BASE}/admin/update-password`, {

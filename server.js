@@ -2231,6 +2231,17 @@ app.post('/api/admin/employees', async (req, res) => {
     }
 });
 
+// Admin: Excluir usuário nativo
+app.delete('/api/admin/users/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM users WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Admin: Criar novo Cliente
 app.post('/api/admin/clients', async (req, res) => {
     const { name, email, password, phone, whatsapp, document_type, document_number, seller_name, pacote, preco_vendido, comissao_vendedor, disparo_quantidade } = req.body;
