@@ -287,7 +287,8 @@ const FinanceRequests = () => {
 
     const pendingReqs = filtered.filter(r => r.status === 'Pendente');
     const approvedReqs = filtered.filter(r => r.status === 'Aprovada');
-    const historyReqs = filtered.filter(r => r.status === 'Finalizada' || r.status === 'Cancelada');
+    const finishedReqs = filtered.filter(r => r.status === 'Finalizada');
+    const cancelledReqs = filtered.filter(r => r.status === 'Cancelada');
 
     const renderCard = (req: RequestModel) => (
         <div key={req.id} onClick={() => handleOpenDetails(req)} style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-5 cursor-pointer hover:border-primary-color transition-colors group">
@@ -362,15 +363,15 @@ const FinanceRequests = () => {
             {!loading && (
                 <>
                     {isAccountingOrAdmin ? (
-                        /* Painel da Contabilidade / Kanban em Colunas */
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        /* Painel da Contabilidade / Kanban em 4 Colunas */
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(260px, 1fr))', gap: '20px', width: '100%', overflowX: 'auto', paddingBottom: '20px' }}>
                             {/* Coluna 1: Pendentes */}
-                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '24px' }}>
-                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.85rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '20px' }}>
+                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.8rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>PENDENTES</span>
                                     <span style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', padding: '2px 8px', borderRadius: '8px', fontSize: '11px' }}>{pendingReqs.length}</span>
                                 </h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '65vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
                                     {pendingReqs.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>Nenhuma pendência</div>
                                     ) : (
@@ -380,12 +381,12 @@ const FinanceRequests = () => {
                             </div>
 
                             {/* Coluna 2: Aprovadas */}
-                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '24px' }}>
-                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.85rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>APROVADAS (A PAGAR)</span>
+                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '20px' }}>
+                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.8rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>APROVADAS</span>
                                     <span style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', padding: '2px 8px', borderRadius: '8px', fontSize: '11px' }}>{approvedReqs.length}</span>
                                 </h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '65vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
                                     {approvedReqs.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>Nenhuma aprovada</div>
                                     ) : (
@@ -394,24 +395,39 @@ const FinanceRequests = () => {
                                 </div>
                             </div>
 
-                            {/* Coluna 3: Histórico */}
-                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '24px' }}>
-                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.85rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>HISTÓRICO / FINALIZADAS</span>
-                                    <span style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: '8px', fontSize: '11px' }}>{historyReqs.length}</span>
+                            {/* Coluna 3: Finalizadas */}
+                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '20px' }}>
+                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.8rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>FINALIZADAS</span>
+                                    <span style={{ background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '2px 8px', borderRadius: '8px', fontSize: '11px' }}>{finishedReqs.length}</span>
                                 </h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '65vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
-                                    {historyReqs.length === 0 ? (
-                                        <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>Histórico vazio</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
+                                    {finishedReqs.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>Nenhuma finalizada</div>
                                     ) : (
-                                        historyReqs.map(renderCard)
+                                        finishedReqs.map(renderCard)
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Coluna 4: Canceladas */}
+                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '20px' }}>
+                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.8rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>CANCELADAS</span>
+                                    <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '2px 8px', borderRadius: '8px', fontSize: '11px' }}>{cancelledReqs.length}</span>
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
+                                    {cancelledReqs.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>Nenhuma cancelada</div>
+                                    ) : (
+                                        cancelledReqs.map(renderCard)
                                     )}
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        /* Lista Padrão de Solicitações do Funcionário */
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        /* Lista Padrão de Solicitações do Funcionário em 4 Colunas */
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                             {filtered.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', gridColumn: '1 / -1' }}>
                                     Você não possui solicitações registradas.
