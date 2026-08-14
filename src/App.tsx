@@ -205,7 +205,7 @@ function AppContent() {
     '/template-batch'
   ];
 
-  const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA' || user?.role === 'VENDEDOR' || user?.role === 'COZINHEIRA';
+  const isRestrictedRole = user?.role === 'CLIENT' || user?.role === 'ASSINATURA_BASICA' || user?.role === 'COZINHEIRA';
   
   if (isRestrictedRole && adminOnlyRoutes.some(route => {
     // Special case for COZINHEIRA: They can ONLY access finance dashboard and inventory

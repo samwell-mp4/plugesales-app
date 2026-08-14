@@ -9,10 +9,29 @@ const STORAGE_KEY = 'infobip_links';
 const ALARM_NAME = 'every2h';
 
 let processing = false;
-let testMode = false;
+let keepAliveId = null;
+
+// ---------- helpers de estado (storage.session sobrevive ao encerramento do SW) ----------
+
+function sGet(key, def) {
+  return new Promise(resolve => {
+    chrome.storage.session.get(key, d => resolve(d[key] !== undefined ? d[key] : def));
+  });
+}
+
+function sSet(key, val) {
+  return chrome.storage.session.set({ [key]: val });
+}
 
 function log(text) {
   console.log('[Infobip]', text);
+  try {
+    const entry = `${new Date().toLocaleTimeString()} - ${text}`;
+    chrome.storage.local.get({ ib_status: 'Nenhuma execução ainda.', ib_logs: [] }, d => {
+      const logs = (d.ib_logs || []).concat(entry).slice(-30);
+      chrome.storage.local.set({ ib_status: entry, ib_logs: logs });
+    });
+  } catch (e) {}
   try {
     chrome.runtime.sendMessage({ action: 'log', text }).catch(() => {});
   } catch (e) {}
@@ -55,6 +74,21 @@ function timestamp() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
 }
 
+// Mantém o service worker acordado enquanto houver processamento
+function startKeepAlive() {
+  stopKeepAlive();
+  keepAliveId = setInterval(async () => {
+    try { await chrome.runtime.getPlatformInfo(); } catch (e) {}
+  }, 15000);
+}
+
+function stopKeepAlive() {
+  if (keepAliveId) {
+    clearInterval(keepAliveId);
+    keepAliveId = null;
+  }
+}
+
 // ---------------- Timer ----------------
 
 function ensureTimer() {
@@ -78,15 +112,24 @@ chrome.alarms.onAlarm.addListener(async alarm => {
 // ---------------- Fila de processamento ----------------
 
 async function startProcessing(source) {
-  if (processing) return;
+  const busy = await sGet('processing', false);
+  if (busy) {
+    log('Já existe um processamento em andamento.');
+    return;
+  }
+  await sSet('processing', true);
   processing = true;
+
   const links = await getQueue();
   if (!links.length) {
+    await sSet('processing', false);
     processing = false;
     log('Nenhum link salvo para processar.');
     showNotify('Nenhum link salvo. Cole os links no popup e clique em Salvar.');
     return;
   }
+
+  startKeepAlive();
   log(`Iniciando processamento (${source}). ${links.length} link(s) na fila.`);
   showNotify(`Iniciando processamento de ${links.length} link(s)...`);
   processNext();
@@ -101,12 +144,12 @@ async function openTabAndInject(url, name) {
     return false;
   }
 
-  await waitForTabLoad(tab.id, 45000).catch(() => {
-    log('Tempo esgotado aguardando carregamento da página.');
-  });
+  await waitForTabLoad(tab.id, 45000);
+  if (!tab) return false;
 
   try {
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+    log('Script injetado na página.');
     return true;
   } catch (e) {
     log('Falha ao injetar script: ' + e);
@@ -115,10 +158,27 @@ async function openTabAndInject(url, name) {
   }
 }
 
+// Polling com chamadas de API em voo mantém o service worker vivo
+async function waitForTabLoad(tabId, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (tab && tab.status === 'complete') return true;
+    } catch (e) {
+      return false;
+    }
+    await new Promise(r => setTimeout(r, 1200));
+  }
+  return false;
+}
+
 function processNext() {
   getQueue().then(async queue => {
     if (!queue.length) {
+      await sSet('processing', false);
       processing = false;
+      stopKeepAlive();
       log('Todos os links foram processados.');
       showNotify('Processamento concluído!');
       return;
@@ -130,26 +190,6 @@ function processNext() {
 
     const ok = await openTabAndInject(item.url, item.name);
     if (!ok) processNext();
-  });
-}
-
-function waitForTabLoad(tabId, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    let done = false;
-    const finish = ok => {
-      if (done) return;
-      done = true;
-      chrome.tabs.onUpdated.removeListener(listener);
-      ok ? resolve() : reject(new Error('timeout'));
-    };
-    const listener = (id, info) => {
-      if (id === tabId && info.status === 'complete') finish(true);
-    };
-    chrome.tabs.onUpdated.addListener(listener);
-    chrome.tabs.get(tabId, tab => {
-      if (tab && tab.status === 'complete') finish(true);
-    });
-    setTimeout(() => finish(false), timeoutMs);
   });
 }
 
@@ -172,11 +212,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'get_links': {
           const links = await getQueue();
           const alarm = await getAlarm(ALARM_NAME);
+          const local = await new Promise(res =>
+            chrome.storage.local.get(['ib_status', 'ib_logs'], res)
+          );
           sendResponse({
             ok: true,
             links,
             timerOn: !!alarm,
-            nextRun: alarm ? new Date(alarm.scheduledTime).toLocaleString() : null
+            nextRun: alarm ? new Date(alarm.scheduledTime).toLocaleString() : null,
+            lastStatus: local.ib_status || null,
+            logs: local.ib_logs || []
           });
           return;
         }
@@ -194,26 +239,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ ok: false, error: 'URL inválida para o teste' });
             return;
           }
-          if (processing && !testMode) {
-            log('Já existe um processamento em andamento; teste ignorado.');
-            sendResponse({ ok: false, error: 'Ocupado' });
+          const busy = await sGet('processing', false);
+          const wasTest = await sGet('test_mode', false);
+          if (busy && !wasTest) {
+            sendResponse({ ok: false, error: 'Já existe um processamento em andamento.' });
             return;
           }
-          testMode = true;
+          await sSet('test_mode', true);
+          await sSet('processing', true);
           processing = true;
+          startKeepAlive();
           log(`=== MODO TESTE === ${testUrl}`);
           showNotify('Iniciando teste do link...');
+
           const ok = await openTabAndInject(testUrl, 'TESTE');
           if (!ok) {
-            testMode = false;
+            await sSet('test_mode', false);
+            await sSet('processing', false);
             processing = false;
+            stopKeepAlive();
+            log('Falha ao iniciar o teste.');
           }
           sendResponse({ ok: true });
           return;
         }
 
         case 'get_test_mode': {
-          sendResponse({ ok: true, testMode });
+          const isTest = await sGet('test_mode', false);
+          sendResponse({ ok: true, testMode: !!isTest });
           return;
         }
 
@@ -245,7 +298,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           try {
             await chrome.tabs.update(sender.tab.id, { active: true });
             await chrome.windows.update(sender.tab.windowId, { focused: true });
-            const dataUrl = await chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' });
+            let dataUrl;
+            try {
+              dataUrl = await chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' });
+            } catch (e) {
+              dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
+            }
             sendResponse({ ok: true, dataUrl });
           } catch (e) {
             sendResponse({ ok: false, error: String(e) });
@@ -254,21 +312,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         case 'save_screenshot': {
-          const filename = `infobip_${safeName(request.name)}_${timestamp()}.png`;
+          // O Chrome só aceita caminho RELATIVO à pasta padrão de downloads.
+          // A subpasta "disparo" é criada automaticamente.
+          const filename = `disparo/infobip_${safeName(request.name)}_${timestamp()}.png`;
           try {
             let blobUrl = null;
             try {
               const blob = await (await fetch(request.dataUrl)).blob();
               blobUrl = URL.createObjectURL(blob);
             } catch (e) {}
-            await chrome.downloads.download({
+            const downloadId = await chrome.downloads.download({
               url: blobUrl || request.dataUrl,
               filename,
               saveAs: false,
               conflictAction: 'uniquify'
             });
             if (blobUrl) setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
-            log(`Screenshot salvo: ${filename}`);
+
+            // Descobre o caminho absoluto onde o arquivo realmente foi salvo
+            try {
+              const items = await chrome.downloads.search({ id: downloadId });
+              if (items && items[0]) {
+                log(`Screenshot salvo em: ${items[0].filename}`);
+              } else {
+                log(`Screenshot salvo: ${filename}`);
+              }
+            } catch (e) {
+              log(`Screenshot salvo: ${filename}`);
+            }
           } catch (e) {
             log('Falha ao salvar screenshot: ' + e);
           }
@@ -286,9 +357,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (sender.tab) {
             try { await chrome.tabs.remove(sender.tab.id); } catch (e) {}
           }
-          if (testMode) {
-            testMode = false;
+          const wasTest = await sGet('test_mode', false);
+          if (wasTest) {
+            await sSet('test_mode', false);
+            await sSet('processing', false);
             processing = false;
+            stopKeepAlive();
             log('Teste concluído.');
             showNotify('Teste concluído!');
           } else {

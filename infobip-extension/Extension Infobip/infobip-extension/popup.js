@@ -77,6 +77,12 @@ async function refreshStatus() {
     }
     $('status').innerText = parts.join(' ');
     $('timerBtn').innerText = resp.timerOn ? 'Desativar Timer (2h)' : 'Ativar Timer (2h)';
+
+    if (resp.logs && resp.logs.length) {
+      $('log').innerText = resp.logs.slice().reverse().join('\n');
+    } else if (resp.lastStatus) {
+      $('log').innerText = resp.lastStatus;
+    }
   } catch (e) {
     $('status').innerText = 'Sem resposta do background.';
   }

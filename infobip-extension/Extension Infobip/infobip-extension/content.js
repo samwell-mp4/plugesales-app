@@ -3,6 +3,7 @@
 // 1) Lê a página e verifica se PENDENTES está zerado (= 0)
 // 2) Se = 0, tira screenshot da página inteira
 // 3) Clica em "Obter relatório" e confirma o popup
+// Mostra um painel de progresso no canto da própria página.
 // ============================================================
 
 (() => {
@@ -11,17 +12,49 @@
 
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+  // ---------- Painel de progresso na página ----------
+  function createUI() {
+    if (document.getElementById('ib-ui-box')) return document.getElementById('ib-ui-box');
+    const box = document.createElement('div');
+    box.id = 'ib-ui-box';
+    box.style.cssText =
+      'position:fixed;bottom:16px;right:16px;z-index:999999;max-width:300px;' +
+      'background:rgba(20,24,33,.95);color:#fff;padding:10px 12px;border-radius:8px;' +
+      'font:12px/1.5 sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.4);';
+    box.innerHTML =
+      '<div style="font-weight:700;margin-bottom:4px">Infobip Automator</div>' +
+      '<div id="ib-ui-msg">Iniciando...</div>';
+    document.documentElement.appendChild(box);
+    return box;
+  }
+
+  function setUI(text) {
+    try {
+      const box = createUI();
+      const msg = document.getElementById('ib-ui-msg');
+      if (msg) msg.textContent = text;
+    } catch (e) {}
+  }
+
   function log(text) {
+    console.log('[Infobip]', text);
+    setUI(text);
     try { chrome.runtime.sendMessage({ action: 'log', text }).catch(() => {}); } catch (e) {}
   }
 
-  function sendMsg(message) {
+  function sendMsg(message, timeoutMs = 15000) {
     return new Promise(resolve => {
+      let settled = false;
+      const done = val => { if (!settled) { settled = true; resolve(val); } };
       try {
-        chrome.runtime.sendMessage(message, resp => resolve(resp));
+        chrome.runtime.sendMessage(message, resp => {
+          if (chrome.runtime.lastError) { done(null); return; }
+          done(resp);
+        });
       } catch (e) {
-        resolve(null);
+        done(null);
       }
+      setTimeout(() => done(null), timeoutMs);
     });
   }
 
@@ -42,37 +75,56 @@
     });
   }
 
+  // ---------- Leitura de Pendentes ----------
+  function numberNearLabel(t) {
+    let m = t.match(/pendente[s]?[^\d]{0,25}?\(?\s*(\d+)/i);
+    if (m) return parseInt(m[1], 10);
+    m = t.match(/\(?\s*(\d+)\s*\)?[^\d]{0,15}pendente[s]?/i);
+    if (m) return parseInt(m[1], 10);
+    return null;
+  }
+
   function readPendentes() {
+    const labelRe = /pendente|pending/i;
+
+    // 1) elementos cujo texto contém "pendente/pending"
     const matches = [];
-    const els = Array.from(document.querySelectorAll('body *'));
-    for (const el of els) {
+    for (const el of Array.from(document.querySelectorAll('body *'))) {
+      if (el.children.length > 5) continue; // ignora containers gigantes
       const t = (el.innerText || '').trim();
-      if (!t || !/pendent/i.test(t)) continue;
+      if (!t || !labelRe.test(t)) continue;
       matches.push({ el, t, len: t.length });
     }
-
-    // os elementos mais específicos (menor texto) primeiro
     matches.sort((a, b) => a.len - b.len);
 
     for (const m of matches) {
-      const t = m.t;
-      let mm = t.match(/pendente[s]?[^\d]*\(?\s*(\d+)/i);
-      if (mm) return parseInt(mm[1], 10);
-      mm = t.match(/\(?\s*(\d+)\s*\)?[^\d]{0,15}pendente[s]?/i);
-      if (mm) return parseInt(mm[1], 10);
+      const n = numberNearLabel(m.t);
+      if (n !== null) return n;
     }
 
-    // fallback: elementos cujos atributos/filtros contenham "pendent"
+    // 2) label separado do número (ex.: <span>Pendentes</span><span>0</span>)
+    for (const el of Array.from(document.querySelectorAll('span, div, td, li, strong, b, badge'))) {
+      const txt = (el.innerText || '').trim();
+      if (!/^\d+$/.test(txt)) continue;
+      const parent = el.parentElement;
+      if (parent && labelRe.test(parent.innerText || '')) return parseInt(txt, 10);
+    }
+
+    // 3) fallback por atributos/classe contendo "pendent"
     const byAttr = Array.from(document.querySelectorAll(
       '[class*="pendent" i], [id*="pendent" i], [title*="pendent" i], [aria-label*="pendent" i], [data-tag*="pendent" i]'
     ));
     for (const el of byAttr) {
-      const txt = (el.innerText || '').trim();
-      let mm = txt.match(/(\d+)/);
-      if (mm) return parseInt(mm[1], 10);
+      const n = numberNearLabel(el.innerText || '');
+      if (n !== null) return n;
+      const m = (el.innerText || '').match(/(\d+)/);
+      if (m) return parseInt(m[1], 10);
+      const at = (el.getAttribute('title') || '') + ' ' + (el.getAttribute('aria-label') || '');
+      const m2 = at.match(/(\d+)/);
+      if (m2) return parseInt(m2[1], 10);
     }
 
-    return null; // não conseguiu detectar
+    return null;
   }
 
   async function readPendentesWithRetry(maxSeconds) {
@@ -108,6 +160,7 @@
       for (let i = 0; i < steps; i++) {
         window.scrollTo(0, i * winH);
         await wait(500);
+        setUI(`Capturando tela... (${i + 1}/${steps})`);
         const resp = await sendMsg({ action: 'capture_viewport' });
         if (!resp || !resp.ok || !resp.dataUrl) throw new Error('captura do viewport falhou');
         images.push(await loadImage(resp.dataUrl));
@@ -133,21 +186,21 @@
   }
 
   async function run() {
+    setUI('Carregando script...');
+
     // Descobre se está em modo teste (execução de URL única do botão "Testar")
     let isTest = false;
-    try {
-      const r = await sendMsg({ action: 'get_test_mode' });
-      isTest = !!(r && r.testMode);
-    } catch (e) {}
+    const r = await sendMsg({ action: 'get_test_mode' });
+    isTest = !!(r && r.testMode);
 
     log(`Iniciando automação da página: ${pageName}${isTest ? ' (TESTE)' : ''}`);
 
     // 1) Espera a página carregar (botão + status de pendentes)
-    let ready = false;
     for (let i = 0; i < 60; i++) {
       const hasBtn = !!findButtonByText('Obter relatório');
       const hasPend = readPendentes() !== null;
-      if (hasBtn && hasPend) { ready = true; break; }
+      setUI(`Aguardando carregamento... (${i + 1}s) Botão: ${hasBtn ? 'sim' : 'não'} | Pendentes: ${hasPend ? 'ok' : '...'}`);
+      if (hasBtn && hasPend) break;
       await wait(1000);
     }
 
@@ -156,6 +209,7 @@
       log('Botão "Obter relatório" não encontrado. Pulando.');
       await sendMsg({ action: 'report_skipped', name: pageName, count: '?' });
       await sendMsg({ action: 'close_tab_and_next' });
+      setTimeout(() => setUI('Concluído: botão não encontrado.'), 1500);
       return;
     }
 
@@ -179,6 +233,7 @@
 
       await sendMsg({ action: 'report_skipped', name: pageName, count: pendentes === null ? '?' : pendentes });
       await sendMsg({ action: 'close_tab_and_next' });
+      setTimeout(() => setUI('Concluído: leitura de pendentes.'), 1500);
       return;
     }
 
@@ -187,13 +242,15 @@
     const dataUrl = await captureFullPage();
     if (dataUrl) {
       log('Enviando screenshot para download...');
-      await sendMsg({ action: 'save_screenshot', dataUrl, name: pageName });
+      const r2 = await sendMsg({ action: 'save_screenshot', dataUrl, name: pageName });
+      void r2;
     } else {
       log('Falha ao capturar screenshot, seguindo para o relatório.');
     }
 
     // 4) Clica em "Obter relatório"
     log('Clicando em "Obter relatório"...');
+    setUI('Clicando em "Obter relatório"...');
     btnObter.click();
     await wait(1500);
 
@@ -221,6 +278,7 @@
 
     await wait(5000);
     log('Concluído, fechando aba.');
+    setUI('Finalizando...');
     await sendMsg({ action: 'close_tab_and_next' });
   }
 

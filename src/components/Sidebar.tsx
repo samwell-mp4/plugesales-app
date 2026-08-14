@@ -119,7 +119,7 @@ const Sidebar = () => {
                 { name: 'Dashboard Client', path: '/client-dashboard', icon: <LayoutDashboard />, role: 'CLIENT' },
                 { name: 'Monitor de Banco', path: '/crm/n8n-monitor', icon: <Database />, roles: ['ADMIN', 'EMPLOYEE', 'CLIENT'] },
                 { name: 'Relatórios', path: '/client-reports', icon: <FileSpreadsheet />, role: 'CLIENT' },
-                { name: 'Clientes', path: '/employee-clients', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'CONTABILIDADE'] },
+                { name: 'Clientes', path: '/employee-clients', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'CONTABILIDADE', 'VENDEDOR'] },
                 { name: 'Gerenciador de Templates', path: '/infobip/templates', icon: <FileText />, roles: ['ADMIN', 'EMPLOYEE'] },
             ]
         },
@@ -127,9 +127,9 @@ const Sidebar = () => {
             id: 'CRM',
             label: 'CRM E GESTÃO',
             items: [
-                { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'INFLUENCER'] },
+                { name: 'Clientes & Funil', path: '/crm/funil', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'INFLUENCER', 'VENDEDOR'] },
                 { name: 'Central Fluxo Leads', path: '/crm/fluxo-leads', icon: <Activity />, role: 'ADMIN' },
-                { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar />, roles: ['ADMIN', 'EMPLOYEE'] },
+                { name: 'Gestão Consultiva', path: '/crm/consultiva', icon: <Calendar />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR'] },
             ]
         },
         {
@@ -170,9 +170,9 @@ const Sidebar = () => {
             id: 'PRODUTIVIDADE',
             label: 'PRODUTIVIDADE VENDAS',
             items: [
-                { name: 'Central Materiais', path: '/productivity/materials', icon: <Layers />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
-                { name: 'Smart Bio', path: '/productivity/smart-bio', icon: <Smartphone />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
-                { name: 'Cartão Digital', path: '/productivity/digital-card', icon: <CreditCard />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA'] },
+                { name: 'Central Materiais', path: '/productivity/materials', icon: <Layers />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA', 'VENDEDOR'] },
+                { name: 'Smart Bio', path: '/productivity/smart-bio', icon: <Smartphone />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA', 'VENDEDOR'] },
+                { name: 'Cartão Digital', path: '/productivity/digital-card', icon: <CreditCard />, roles: ['ADMIN', 'EMPLOYEE', 'ASSINATURA_BASICA', 'VENDEDOR'] },
             ]
         },
         {
