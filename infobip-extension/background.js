@@ -135,17 +135,22 @@ async function startProcessing(source) {
   processNext();
 }
 
-async function openTabAndInject(url, name) {
+async function openTabAndInject(url, name, isTest) {
+  // Em modo teste, marca a URL para o content.js saber (sem depender de estado)
+  let finalUrl = url;
+  if (isTest) {
+    finalUrl = url.split('#')[0] + '#ibtest';
+  }
+
   let tab;
   try {
-    tab = await chrome.tabs.create({ url, active: true });
+    tab = await chrome.tabs.create({ url: finalUrl, active: true });
   } catch (e) {
     log('Falha ao abrir aba: ' + e);
     return false;
   }
 
   await waitForTabLoad(tab.id, 45000);
-  if (!tab) return false;
 
   try {
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
@@ -153,6 +158,7 @@ async function openTabAndInject(url, name) {
     return true;
   } catch (e) {
     log('Falha ao injetar script: ' + e);
+    showNotify('Falha ao injetar o script na página: ' + String(e).slice(0, 120));
     try { await chrome.tabs.remove(tab.id); } catch (_) {}
     return false;
   }
@@ -188,7 +194,7 @@ function processNext() {
     await setQueue(queue);
     log(`Processando: ${item.name} (restam ${queue.length})`);
 
-    const ok = await openTabAndInject(item.url, item.name);
+    const ok = await openTabAndInject(item.url, item.name, false);
     if (!ok) processNext();
   });
 }
@@ -239,20 +245,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ ok: false, error: 'URL inválida para o teste' });
             return;
           }
-          const busy = await sGet('processing', false);
-          const wasTest = await sGet('test_mode', false);
-          if (busy && !wasTest) {
-            sendResponse({ ok: false, error: 'Já existe um processamento em andamento.' });
-            return;
-          }
+          // Limpa qualquer processamento antigo que tenha ficado pendurado
+          await sSet('processing', false);
           await sSet('test_mode', true);
-          await sSet('processing', true);
           processing = true;
           startKeepAlive();
           log(`=== MODO TESTE === ${testUrl}`);
           showNotify('Iniciando teste do link...');
 
-          const ok = await openTabAndInject(testUrl, 'TESTE');
+          const ok = await openTabAndInject(testUrl, 'TESTE', true);
           if (!ok) {
             await sSet('test_mode', false);
             await sSet('processing', false);
@@ -348,7 +349,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         case 'report_skipped': {
-          log(`[PULADO] ${request.name || '?'}: Pendentes = ${request.count ?? '?'} (diferente de 0). Relatório NÃO gerado.`);
+          const name = request.name || '?';
+          const count = request.count ?? '?';
+          log(`[PULADO] ${name}: Pendentes = ${count} (diferente de 0). Relatório NÃO gerado.`);
+          const isTestNow = await sGet('test_mode', false);
+          if (isTestNow) {
+            showNotify(`Teste: ${name} pulado (Pendentes = ${count}).`);
+          }
           sendResponse({ ok: true });
           return;
         }

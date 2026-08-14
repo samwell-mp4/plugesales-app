@@ -2215,14 +2215,14 @@ app.get('/api/employees', async (req, res) => {
 
 // Admin: Criar novo Employee e retornar ID
 app.post('/api/admin/employees', async (req, res) => {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, role } = req.body;
     if (!name || !email || !password) {
         return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
     }
     try {
         const result = await pool.query(
             'INSERT INTO users (name, email, password, phone, role) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [name, email, password, phone || null, 'EMPLOYEE']
+            [name, email, password, phone || null, role || 'EMPLOYEE']
         );
         res.json({ success: true, id: result.rows[0].id });
     } catch (err) {

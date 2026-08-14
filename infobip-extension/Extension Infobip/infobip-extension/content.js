@@ -75,7 +75,7 @@
     });
   }
 
-  // ---------- Leitura de Pendentes ----------
+  // ---------- Leitura de Pendentes (otimizada com TreeWalker) ----------
   function numberNearLabel(t) {
     let m = t.match(/pendente[s]?[^\d]{0,25}?\(?\s*(\d+)/i);
     if (m) return parseInt(m[1], 10);
@@ -86,38 +86,49 @@
 
   function readPendentes() {
     const labelRe = /pendente|pending/i;
+    const MAX_TEXT = 120;
 
-    // 1) elementos cujo texto contém "pendente/pending"
-    const matches = [];
-    for (const el of Array.from(document.querySelectorAll('body *'))) {
-      if (el.children.length > 5) continue; // ignora containers gigantes
-      const t = (el.innerText || '').trim();
-      if (!t || !labelRe.test(t)) continue;
-      matches.push({ el, t, len: t.length });
+    // 1) varre os nós de texto procurando "pendente/pending" (rápido)
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const seen = new Set();
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const t = (node.nodeValue || '').trim();
+      if (!labelRe.test(t)) continue;
+
+      let el = node.parentElement;
+      for (let up = 0; up < 3 && el; up++) {
+        if (seen.has(el)) break;
+        seen.add(el);
+        const elText = (el.innerText || '').trim();
+        if (elText.length <= MAX_TEXT) {
+          const n = numberNearLabel(elText);
+          if (n !== null) return n;
+        }
+        el = el.parentElement;
+      }
     }
-    matches.sort((a, b) => a.len - b.len);
 
-    for (const m of matches) {
-      const n = numberNearLabel(m.t);
-      if (n !== null) return n;
-    }
-
-    // 2) label separado do número (ex.: <span>Pendentes</span><span>0</span>)
-    for (const el of Array.from(document.querySelectorAll('span, div, td, li, strong, b, badge'))) {
+    // 2) número isolado com irmão/pai contendo "pendente"
+    for (const el of Array.from(document.querySelectorAll('span, div, td, li, strong, b'))) {
       const txt = (el.innerText || '').trim();
       if (!/^\d+$/.test(txt)) continue;
       const parent = el.parentElement;
-      if (parent && labelRe.test(parent.innerText || '')) return parseInt(txt, 10);
+      if (parent) {
+        const pt = (parent.innerText || '').trim();
+        if (pt.length <= MAX_TEXT && labelRe.test(pt)) return parseInt(txt, 10);
+      }
     }
 
     // 3) fallback por atributos/classe contendo "pendent"
-    const byAttr = Array.from(document.querySelectorAll(
+    const byAttr = document.querySelectorAll(
       '[class*="pendent" i], [id*="pendent" i], [title*="pendent" i], [aria-label*="pendent" i], [data-tag*="pendent" i]'
-    ));
+    );
     for (const el of byAttr) {
-      const n = numberNearLabel(el.innerText || '');
+      const elText = (el.innerText || '').trim();
+      const n = numberNearLabel(elText);
       if (n !== null) return n;
-      const m = (el.innerText || '').match(/(\d+)/);
+      const m = elText.match(/(\d+)/);
       if (m) return parseInt(m[1], 10);
       const at = (el.getAttribute('title') || '') + ' ' + (el.getAttribute('aria-label') || '');
       const m2 = at.match(/(\d+)/);
@@ -188,10 +199,13 @@
   async function run() {
     setUI('Carregando script...');
 
-    // Descobre se está em modo teste (execução de URL única do botão "Testar")
-    let isTest = false;
-    const r = await sendMsg({ action: 'get_test_mode' });
-    isTest = !!(r && r.testMode);
+    // Descobre se está em modo teste: marcado na URL (#ibtest) pelo background
+    // e, como reforço, consulta o background.
+    let isTest = (location.hash || '').indexOf('ibtest') !== -1;
+    if (!isTest) {
+      const r = await sendMsg({ action: 'get_test_mode' });
+      isTest = !!(r && r.testMode);
+    }
 
     log(`Iniciando automação da página: ${pageName}${isTest ? ' (TESTE)' : ''}`);
 
@@ -207,7 +221,19 @@
     const btnObter = findButtonByText('Obter relatório');
     if (!btnObter) {
       log('Botão "Obter relatório" não encontrado. Pulando.');
-      await sendMsg({ action: 'report_skipped', name: pageName, count: '?' });
+
+      // No modo teste, mesmo sem o botão, tira o print para validar a captura
+      if (isTest) {
+        log('Modo TESTE: capturando screenshot mesmo assim.');
+        const dataUrl = await captureFullPage();
+        if (dataUrl) {
+          await sendMsg({ action: 'save_screenshot', dataUrl, name: pageName + '_TESTE' });
+        } else {
+          log('Falha ao capturar screenshot.');
+        }
+      }
+
+      await sendMsg({ action: 'report_skipped', name: pageName, count: 'botao-nao-encontrado' });
       await sendMsg({ action: 'close_tab_and_next' });
       setTimeout(() => setUI('Concluído: botão não encontrado.'), 1500);
       return;

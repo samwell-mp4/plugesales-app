@@ -190,7 +190,8 @@ const CollaboratorsRegistration = () => {
                         name: payload.full_name,
                         email: payload.email,
                         password: payload.sys_password,
-                        phone: payload.phone
+                        phone: payload.phone,
+                        role: payload.sys_role || 'EMPLOYEE'
                     })
                 });
                 const pgData = await pgRes.json();
@@ -199,6 +200,7 @@ const CollaboratorsRegistration = () => {
                 // 2. Registrar no Supabase com o ID (e como "Landing Page ID")
                 delete payload.id;
                 delete payload.sys_password;
+                delete payload.sys_role;
                 
                 const { error } = await supabase.from('collaborators').insert([{ ...payload, id: pgData.id }]);
                 if (!error) {
@@ -510,6 +512,14 @@ const CollaboratorsRegistration = () => {
                                         <input required type="email" className="input-field-premium" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
                                     </div>
                                     
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1">Nível de Acesso (Perfil) *</label>
+                                        <select required className="input-field-premium" value={formData.sys_role || 'EMPLOYEE'} onChange={e => setFormData({...formData, sys_role: e.target.value})}>
+                                            <option value="EMPLOYEE" className="bg-[#111]">Colaborador (EMPLOYEE)</option>
+                                            <option value="VENDEDOR" className="bg-[#111]">Vendedor (VENDEDOR)</option>
+                                        </select>
+                                    </div>
+
                                     {view === 'create' ? (
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1 text-primary-color">Senha Inicial de Acesso *</label>
@@ -517,10 +527,19 @@ const CollaboratorsRegistration = () => {
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1 text-primary-color">ID Landing Page</label>
-                                            <div className="input-field-premium bg-primary-color/10 border-primary-color/30 text-primary-color flex items-center justify-between">
-                                                <span>{String(selectedCollab?.id).replace('pg_', '')}</span>
-                                                <span className="text-[10px] bg-primary-color text-black px-2 py-1 rounded font-black">/landing{String(selectedCollab?.id).replace('pg_', '')}</span>
+                                            <label className="text-xs font-bold text-white/60 uppercase tracking-widest ml-1 text-primary-color">Página de Vendas / Landing Page</label>
+                                            <div className="input-field-premium bg-primary-color/10 border-primary-color/30 text-primary-color flex items-center justify-between gap-2">
+                                                <span className="truncate text-xs font-bold">{`${window.location.origin}/landing${String(selectedCollab?.id).replace('pg_', '')}`}</span>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`${window.location.origin}/landing${String(selectedCollab?.id).replace('pg_', '')}`);
+                                                        alert('Link da Landing Page copiado!');
+                                                    }}
+                                                    className="text-[10px] bg-primary-color text-black px-2 py-1 rounded font-black hover:opacity-80 flex-shrink-0"
+                                                >
+                                                    Copiar Link
+                                                </button>
                                             </div>
                                         </div>
                                     )}
