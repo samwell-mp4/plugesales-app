@@ -239,8 +239,8 @@ const LinkRotator = () => {
         alert("Link copiado para o clipboard!");
     };
 
-    const calculatePercentage = (weight: number) => {
-        const total = targets.reduce((sum, t) => sum + (Number(t.weight) || 1), 0);
+    const calculatePercentage = (weight: number, targetsList = targets) => {
+        const total = targetsList.reduce((sum, t) => sum + (Number(t.weight) || 1), 0);
         return total === 0 ? "0.0" : ((weight / total) * 100).toFixed(1);
     };
 
@@ -516,7 +516,7 @@ const LinkRotator = () => {
                                             <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                                 {r.targets?.map((t: any, i: number) => (
                                                     <div key={i} title={t.url} style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--surface-border-subtle)', borderRadius: '12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                        <span style={{ fontWeight: 950, color: 'var(--primary-color)' }}>%{calculatePercentage(t.weight)}</span>
+                                                        <span style={{ fontWeight: 950, color: 'var(--primary-color)' }}>%{calculatePercentage(t.weight, r.targets || [])}</span>
                                                         <span style={{ opacity: 0.4, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 700 }}>{t.url}</span>
                                                     </div>
                                                 ))}
