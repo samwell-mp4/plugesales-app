@@ -101,7 +101,7 @@ const CentralCollaborators = () => {
 
     // Inline edit triggers
     const startEditing = (collab: any) => {
-        setEditingId(collab.user_id);
+        setEditingId(collab.id);
         setTempReceivable(collab.monthly_receivable.toString());
         setTempPix(collab.pix_key || '');
     };
@@ -140,7 +140,7 @@ const CentralCollaborators = () => {
     const openCollabModal = (collab: any) => {
         setSelectedCollab(collab);
         // Filter requests related to this collaborator
-        const filteredReqs = requests.filter(r => r.user_id === collab.user_id);
+        const filteredReqs = requests.filter(r => r.user_id === collab.id);
         setCollabRequests(filteredReqs);
     };
 
@@ -163,9 +163,9 @@ const CentralCollaborators = () => {
                 setRequests(reqData || []);
                 
                 // Update active modal info
-                const updatedCollab = spreadData.find((c: any) => c.user_id === selectedCollab.user_id);
+                const updatedCollab = spreadData.find((c: any) => c.id === selectedCollab.id);
                 if (updatedCollab) setSelectedCollab(updatedCollab);
-                setCollabRequests(reqData.filter((r: any) => r.user_id === selectedCollab.user_id));
+                setCollabRequests(reqData.filter((r: any) => r.user_id === selectedCollab.id));
             }
         } catch (err: any) {
             alert(err.message);
@@ -182,12 +182,12 @@ const CentralCollaborators = () => {
         let matchesStatus = true;
         if (statusFilter === 'PENDING') {
             // Has pending requests or pending NF
-            const hasPendingReq = requests.some(r => r.user_id === c.user_id && r.status === 'Pendente');
+            const hasPendingReq = requests.some(r => r.user_id === c.id && r.status === 'Pendente');
             const hasPendingNf = !c.nf_url;
             matchesStatus = hasPendingReq || hasPendingNf;
         } else if (statusFilter === 'COMPLETED') {
             // All adiantamentos processed and NF uploaded
-            const noPendingReq = !requests.some(r => r.user_id === c.user_id && r.status === 'Pendente');
+            const noPendingReq = !requests.some(r => r.user_id === c.id && r.status === 'Pendente');
             const nfUploaded = !!c.nf_url;
             matchesStatus = noPendingReq && nfUploaded;
         } else if (statusFilter === 'NO_PIX') {
@@ -369,12 +369,12 @@ const CentralCollaborators = () => {
                                 </thead>
                                 <tbody>
                                     {filteredCollaborators.map(c => {
-                                        const isEditing = editingId === c.user_id;
-                                        const userPendingReqs = requests.filter(r => r.user_id === c.user_id && r.status === 'Pendente');
+                                        const isEditing = editingId === c.id;
+                                        const userPendingReqs = requests.filter(r => r.user_id === c.id && r.status === 'Pendente');
                                         
                                         return (
                                             <tr 
-                                                key={c.user_id} 
+                                                key={c.id} 
                                                 style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}
                                                 className="hover-card"
                                             >
@@ -441,7 +441,7 @@ const CentralCollaborators = () => {
                                                         {isEditing ? (
                                                             <>
                                                                 <button 
-                                                                    onClick={() => saveInlineEdit(c.user_id)}
+                                                                    onClick={() => saveInlineEdit(c.id)}
                                                                     className="action-btn primary-btn"
                                                                     style={{ padding: '6px 10px', height: '30px' }}
                                                                     disabled={submitting}

@@ -110,7 +110,9 @@ const FinanceSales = () => {
         quantity_delivered: 0,
         used_value: 0,
         remaining_balance: 0,
-        discount_applied: 0
+        discount_applied: 0,
+        receipt_url: '',
+        report_url: ''
     });
     const [clientBalance, setClientBalance] = useState(0);
     const [useClientBalance, setUseClientBalance] = useState(false);
@@ -244,7 +246,9 @@ const FinanceSales = () => {
             quantity_delivered: sale.quantity_delivered || 0,
             used_value: sale.used_value || 0,
             remaining_balance: sale.remaining_balance !== undefined ? sale.remaining_balance : sale.total_value,
-            discount_applied: sale.discount_applied || 0
+            discount_applied: sale.discount_applied || 0,
+            receipt_url: sale.receipt_url || '',
+            report_url: sale.report_url || ''
         });
         setClientBalance(0);
         setUseClientBalance(false);
@@ -279,7 +283,9 @@ const FinanceSales = () => {
             quantity_delivered: 0,
             used_value: 0,
             remaining_balance: 0,
-            discount_applied: 0
+            discount_applied: 0,
+            receipt_url: '',
+            report_url: ''
         });
         setClientBalance(0);
         setUseClientBalance(false);
@@ -1126,6 +1132,50 @@ const FinanceSales = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Anexar Comprovante na Venda */}
+                                    <div className="pt-4 border-t border-white/5 mt-4">
+                                        <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <Upload size={14} /> COMPROVANTE DE PAGAMENTO
+                                        </h3>
+                                        <div className="flex gap-4 items-center">
+                                            <input 
+                                                type="file" 
+                                                id="sale-receipt-upload"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    setUploadingReceipt(999999);
+                                                    try {
+                                                        const fileData = new FormData();
+                                                        fileData.append('file', file);
+                                                        const uploadRes = await fetch('/api/upload', {
+                                                            method: 'POST',
+                                                            body: fileData
+                                                        });
+                                                        if (uploadRes.ok) {
+                                                            const uploadData = await uploadRes.json();
+                                                            setFormData(prev => ({ ...prev, receipt_url: uploadData.fileUrl }));
+                                                            alert("Comprovante anexado com sucesso!");
+                                                        } else {
+                                                            alert("Falha ao enviar comprovante.");
+                                                        }
+                                                    } catch (err) {
+                                                        console.error("Error uploading sale receipt:", err);
+                                                    } finally {
+                                                        setUploadingReceipt(null);
+                                                    }
+                                                }}
+                                                style={{ display: 'none' }}
+                                            />
+                                            <label 
+                                                htmlFor="sale-receipt-upload" 
+                                                style={{ background: 'rgba(172, 248, 0, 0.1)', border: '1px solid rgba(172, 248, 0, 0.2)', color: 'var(--primary-color)', borderRadius: '12px', padding: '12px 16px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}
+                                            >
+                                                {uploadingReceipt === 999999 ? 'ENVIANDO...' : formData.receipt_url ? 'COMPROVANTE ANEXADO ✓' : 'ANEXAR COMPROVANTE'}
+                                            </label>
+                                        </div>
+                                    </div>
 
                                     {clientBalance > 0 && !editingSale && (
                                         <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(250, 204, 21, 0.05)', border: '1px solid rgba(250, 204, 21, 0.2)', borderRadius: '16px' }}>

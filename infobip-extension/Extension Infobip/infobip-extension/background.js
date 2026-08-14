@@ -1,15 +1,20 @@
 // ============================================================
 // Infobip Report Automator - Background Service Worker
-// Recebe links salvos no popup, roda via timer (a cada 2 horas)
-// ou manualmente. Abre cada link, verifica Pendentes = 0,
-// tira screenshot da página inteira e clica em "Obter relatório".
+// Funcionalidades:
+// 1) Fila de links salvos (manual) processada na hora ou via timer de 2h
+// 2) Modo teste (URL única sempre com print)
+// 3) Integração n8n: busca pedidos pendentes (link + telefone) via
+//    Webhook GET, processa cada um e envia o resultado (screenshot +
+//    status + telefone) para o Webhook POST (que dispara o WhatsApp).
 // ============================================================
 
 const STORAGE_KEY = 'infobip_links';
 const ALARM_NAME = 'every2h';
+const POLL_ALARM = 'poll_n8n';
 
 let processing = false;
 let keepAliveId = null;
+let currentShotDataUrl = null;
 
 // ---------- helpers de estado (storage.session sobrevive ao encerramento do SW) ----------
 
@@ -21,6 +26,18 @@ function sGet(key, def) {
 
 function sSet(key, val) {
   return chrome.storage.session.set({ [key]: val });
+}
+
+function getN8nConfig() {
+  return new Promise(resolve => {
+    chrome.storage.local.get({
+      ib_fetch_url: '',
+      ib_post_url: 'https://plug-sales-dispatch-app-n8n-2.hx8235.easypanel.host/webhook/notifcation-whatsapp-relatorio',
+      ib_poll_enabled: false,
+      ib_poll_min: 5,
+      ib_last_poll: ''
+    }, resolve);
+  });
 }
 
 function log(text) {
@@ -68,6 +85,17 @@ function safeName(s) {
   return clean || 'relatorio';
 }
 
+// Aceita "https://link" ou "https://link | 5511999999999"
+function parseLinkWithPhone(text) {
+  const parts = String(text).split('|');
+  const url = (parts[0] || '').trim();
+  const phone = parts.length > 1 ? (parts[1] || '').trim() : '';
+  if (!/^https?:\/\//i.test(url)) return null;
+  const m = url.match(/\/([^/?]+)\/?(\?|$)/);
+  const name = m ? decodeURIComponent(m[1]) : url;
+  return { url, phone, name };
+}
+
 function timestamp() {
   const d = new Date();
   const pad = n => String(n).padStart(2, '0');
@@ -89,7 +117,16 @@ function stopKeepAlive() {
   }
 }
 
-// ---------------- Timer ----------------
+async function setBusy(busy) {
+  await sSet('processing', busy);
+  processing = busy;
+  if (!busy) {
+    stopKeepAlive();
+    currentShotDataUrl = null;
+  }
+}
+
+// ---------------- Timers ----------------
 
 function ensureTimer() {
   chrome.alarms.get(ALARM_NAME, alarm => {
@@ -99,39 +136,54 @@ function ensureTimer() {
   });
 }
 
-chrome.runtime.onInstalled.addListener(ensureTimer);
-chrome.runtime.onStartup.addListener(ensureTimer);
+async function ensurePollAlarm() {
+  await chrome.alarms.clear(POLL_ALARM);
+  const cfg = await getN8nConfig();
+  if (cfg.ib_poll_enabled && cfg.ib_fetch_url) {
+    const min = Math.max(1, parseInt(cfg.ib_poll_min, 10) || 5);
+    chrome.alarms.create(POLL_ALARM, { delayInMinutes: min, periodInMinutes: min });
+  }
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  ensureTimer();
+  ensurePollAlarm();
+});
+chrome.runtime.onStartup.addListener(() => {
+  ensureTimer();
+  ensurePollAlarm();
+});
 
 chrome.alarms.onAlarm.addListener(async alarm => {
   if (alarm.name === ALARM_NAME) {
-    log('Timer de 2h disparado. Iniciando processamento.');
+    log('Timer de 2h disparado.');
+    runN8nPoll();
     startProcessing('timer');
+  } else if (alarm.name === POLL_ALARM) {
+    runN8nPoll();
   }
 });
 
-// ---------------- Fila de processamento ----------------
+// ---------------- Fila de processamento (pipeline único) ----------------
 
 async function startProcessing(source) {
   const busy = await sGet('processing', false);
   if (busy) {
-    log('Já existe um processamento em andamento.');
+    log(`(${source}) Já existe um processamento em andamento.`);
     return;
   }
-  await sSet('processing', true);
-  processing = true;
+  await setBusy(true);
+  startKeepAlive();
 
   const links = await getQueue();
   if (!links.length) {
-    await sSet('processing', false);
-    processing = false;
-    log('Nenhum link salvo para processar.');
-    showNotify('Nenhum link salvo. Cole os links no popup e clique em Salvar.');
+    await setBusy(false);
+    log('Nenhum link na fila.');
     return;
   }
 
-  startKeepAlive();
-  log(`Iniciando processamento (${source}). ${links.length} link(s) na fila.`);
-  showNotify(`Iniciando processamento de ${links.length} link(s)...`);
+  log(`Iniciando processamento (${source}). ${links.length} item(ns) na fila.`);
+  if (source !== 'n8n') showNotify(`Iniciando processamento de ${links.length} item(ns)...`);
   processNext();
 }
 
@@ -182,21 +234,132 @@ async function waitForTabLoad(tabId, timeoutMs) {
 function processNext() {
   getQueue().then(async queue => {
     if (!queue.length) {
-      await sSet('processing', false);
-      processing = false;
-      stopKeepAlive();
-      log('Todos os links foram processados.');
+      await setBusy(false);
+      log('Todos os itens foram processados.');
       showNotify('Processamento concluído!');
       return;
     }
 
     const item = queue.shift();
     await setQueue(queue);
+    await sSet('ib_current', item);
+    await sSet('ib_status', 'gerado');
+    await sSet('ib_count', '');
     log(`Processando: ${item.name} (restam ${queue.length})`);
 
     const ok = await openTabAndInject(item.url, item.name, false);
-    if (!ok) processNext();
+    if (!ok) {
+      finishItem(item);
+      processNext();
+    }
   });
+}
+
+function finishItem(item) {
+  // limpa referência do item atual (a postagem é feita no close_tab_and_next)
+  sSet('ib_current', null);
+  sSet('ib_status', 'gerado');
+  sSet('ib_count', '');
+  currentShotDataUrl = null;
+}
+
+// ---------------- Integração n8n ----------------
+
+function normalizeJob(j) {
+  const url = j.link || j.url || j.Url || j.Link;
+  const phone = String(j.telefone || j.phone || j.celular || j.whatsapp || j.Phone || '').trim();
+  const jobId = j.id !== undefined && j.id !== null ? j.id : (j.ID !== undefined ? j.ID : null);
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  const m = url.match(/\/([^/?]+)\/?(\?|$)/);
+  const base = m ? decodeURIComponent(m[1]).slice(0, 40) : 'pedido';
+  const name = `n8n_${base}${phone ? '_' + phone : ''}`;
+  return { url, phone, jobId, name };
+}
+
+async function enqueueN8nJobs(items) {
+  const queue = await getQueue();
+  const existing = new Set(queue.map(q => q.url + '|' + q.phone));
+  const fresh = items.filter(i => !existing.has(i.url + '|' + i.phone));
+  if (!fresh.length) {
+    log('Pedidos já estão na fila ou foram processados.');
+    return;
+  }
+  await setQueue(queue.concat(fresh));
+  log(`${fresh.length} pedido(s) adicionado(s) à fila.`);
+  startProcessing('n8n');
+}
+
+async function runN8nPoll() {
+  const cfg = await getN8nConfig();
+  if (!cfg.ib_fetch_url || !/^https?:\/\//i.test(cfg.ib_fetch_url)) {
+    log('URL de busca de pedidos do n8n não configurada.');
+    return;
+  }
+  try {
+    log('Buscando pedidos pendentes no n8n...');
+    const resp = await fetch(cfg.ib_fetch_url, { method: 'GET' });
+    if (!resp.ok) {
+      log('Falha ao buscar pedidos do n8n: HTTP ' + resp.status);
+      return;
+    }
+    const data = await resp.json();
+    let jobs = Array.isArray(data) ? data : (data.jobs || data.data || data.pedidos || []);
+    const items = (Array.isArray(jobs) ? jobs : []).map(normalizeJob).filter(Boolean);
+    const cfg2 = await getN8nConfig();
+    const stamp = `${new Date().toLocaleTimeString()} - ${items.length} pedido(s)`;
+    await chrome.storage.local.set({
+      ib_last_poll: items.length ? stamp : `${new Date().toLocaleTimeString()} - 0 pedidos`
+    });
+    if (!items.length) {
+      log('Nenhum pedido pendente no n8n.');
+      return;
+    }
+    log(`${items.length} pedido(s) novo(s) encontrado(s).`);
+    await enqueueN8nJobs(items);
+  } catch (e) {
+    log('Erro ao buscar pedidos do n8n: ' + e);
+  }
+}
+
+async function postResultToN8n(item) {
+  const cfg = await getN8nConfig();
+  if (!cfg.ib_post_url || !/^https?:\/\//i.test(cfg.ib_post_url)) {
+    log('URL de envio de resultado do n8n não configurada.');
+    return;
+  }
+  const status = (await sGet('ib_status', 'gerado')) === 'pulado' ? 'pulado' : 'gerado';
+  const detalhe = await sGet('ib_count', '');
+
+  try {
+    const form = new FormData();
+    form.append('telefone', item.phone || '');
+    form.append('link', item.url || '');
+    form.append('nome', item.name || 'relatorio');
+    form.append('status', status);
+    form.append('detalhe', String(detalhe || (status === 'gerado' ? 'relatório gerado' : '')));
+    if (item.jobId !== undefined && item.jobId !== null) {
+      form.append('processo_id', String(item.jobId));
+    }
+    if (status === 'gerado' && currentShotDataUrl) {
+      try {
+        const blob = await (await fetch(currentShotDataUrl)).blob();
+        form.append('screenshot', blob, 'screenshot.png');
+      } catch (e) {}
+    }
+
+    const resp = await fetch(cfg.ib_post_url, { method: 'POST', body: form });
+    const respText = await resp.text().catch(() => '');
+    log(`POST ao webhook: HTTP ${resp.status}${item.phone ? ' -> tel ' + item.phone : ''} (${status})`);
+    if (!respText) {
+      log('webhook respondeu vazio (ok).');
+    } else {
+      log('Resposta do webhook: ' + respText.slice(0, 200));
+    }
+    showNotify(`n8n: ${resp.ok ? 'enviado' : 'FALHOU'} (${status}${item.phone ? ' - ' + item.phone : ''})`);
+  } catch (e) {
+    log('Falha ao enviar resultado ao n8n: ' + e);
+  }
+  currentShotDataUrl = null;
 }
 
 // ---------------- Mensagens ----------------
@@ -207,7 +370,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       switch (request.action) {
 
         case 'save_links': {
-          const links = request.links || [];
+          const links = [];
+          for (const raw of request.links || []) {
+            const item = typeof raw === 'string'
+              ? parseLinkWithPhone(raw)
+              : raw;
+            if (item && item.url) links.push(item);
+          }
           await setQueue(links);
           ensureTimer();
           log(`${links.length} link(s) salvos.`);
@@ -218,6 +387,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'get_links': {
           const links = await getQueue();
           const alarm = await getAlarm(ALARM_NAME);
+          const cfg = await getN8nConfig();
           const local = await new Promise(res =>
             chrome.storage.local.get(['ib_status', 'ib_logs'], res)
           );
@@ -227,7 +397,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             timerOn: !!alarm,
             nextRun: alarm ? new Date(alarm.scheduledTime).toLocaleString() : null,
             lastStatus: local.ib_status || null,
-            logs: local.ib_logs || []
+            logs: local.ib_logs || [],
+            n8n: {
+              fetchUrl: cfg.ib_fetch_url,
+              postUrl: cfg.ib_post_url,
+              pollEnabled: cfg.ib_poll_enabled,
+              pollMin: cfg.ib_poll_min,
+              lastPoll: cfg.ib_last_poll
+            }
           });
           return;
         }
@@ -245,20 +422,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ ok: false, error: 'URL inválida para o teste' });
             return;
           }
-          // Limpa qualquer processamento antigo que tenha ficado pendurado
-          await sSet('processing', false);
+          const busy = await sGet('processing', false);
+          const wasTest = await sGet('test_mode', false);
+          if (busy && !wasTest) {
+            sendResponse({ ok: false, error: 'Já existe um processamento em andamento.' });
+            return;
+          }
+          const testPhone = (request.phone || '').trim();
+          await sSet('ib_current', { url: testUrl, phone: testPhone, name: 'TESTE' });
           await sSet('test_mode', true);
-          processing = true;
+          await setBusy(true);
           startKeepAlive();
-          log(`=== MODO TESTE === ${testUrl}`);
+          log(`=== MODO TESTE === ${testUrl}${testPhone ? ' | tel ' + testPhone : ''}`);
           showNotify('Iniciando teste do link...');
 
           const ok = await openTabAndInject(testUrl, 'TESTE', true);
           if (!ok) {
             await sSet('test_mode', false);
-            await sSet('processing', false);
-            processing = false;
-            stopKeepAlive();
+            await setBusy(false);
             log('Falha ao iniciar o teste.');
           }
           sendResponse({ ok: true });
@@ -281,6 +462,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             log('Timer ativado (a cada 2 horas).');
           }
           sendResponse({ ok: true });
+          return;
+        }
+
+        case 'save_n8n_config': {
+          await chrome.storage.local.set({
+            ib_fetch_url: (request.fetchUrl || '').trim(),
+            ib_post_url: (request.postUrl || '').trim(),
+            ib_poll_enabled: !!request.pollEnabled,
+            ib_poll_min: parseInt(request.pollMin, 10) || 5
+          });
+          await ensurePollAlarm();
+          const cfg = await getN8nConfig();
+          const pollState = cfg.ib_poll_enabled ? `busca automática a cada ${cfg.ib_poll_min} min` : 'busca automática desativada';
+          log(`n8n configurado (buscar: ${cfg.ib_fetch_url ? 'ok' : 'vazio'} | enviar: ${cfg.ib_post_url ? 'ok' : 'vazio'} | ${pollState}).`);
+          sendResponse({ ok: true });
+          return;
+        }
+
+        case 'run_poll': {
+          sendResponse({ ok: true });
+          runN8nPoll();
           return;
         }
 
@@ -313,8 +515,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         case 'save_screenshot': {
-          // O Chrome só aceita caminho RELATIVO à pasta padrão de downloads.
-          // A subpasta "disparo" é criada automaticamente.
           const filename = `disparo/infobip_${safeName(request.name)}_${timestamp()}.png`;
           try {
             let blobUrl = null;
@@ -330,7 +530,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
             if (blobUrl) setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
 
-            // Descobre o caminho absoluto onde o arquivo realmente foi salvo
+            // Guarda para envio ao n8n (e descobre o caminho salvo)
+            currentShotDataUrl = request.dataUrl;
             try {
               const items = await chrome.downloads.search({ id: downloadId });
               if (items && items[0]) {
@@ -349,6 +550,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         case 'report_skipped': {
+          await sSet('ib_status', 'pulado');
+          await sSet('ib_count', (request.count ?? '').toString());
           const name = request.name || '?';
           const count = request.count ?? '?';
           log(`[PULADO] ${name}: Pendentes = ${count} (diferente de 0). Relatório NÃO gerado.`);
@@ -364,17 +567,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (sender.tab) {
             try { await chrome.tabs.remove(sender.tab.id); } catch (e) {}
           }
+
+          const item = await sGet('ib_current', null);
           const wasTest = await sGet('test_mode', false);
+
+          // Se houver telefone, envia o resultado ao webhook do n8n
+          if (item && item.phone) {
+            await postResultToN8n(item);
+          } else {
+            const status = await sGet('ib_status', 'gerado');
+            log(
+              status === 'pulado'
+                ? 'Item pulado (sem telefone) - nada enviado ao webhook.'
+                : 'Relatório gerado, mas SEM TELEFONE - nada enviado ao webhook. Use "link | telefone" ou confira o webhook de busca.'
+            );
+          }
+
           if (wasTest) {
             await sSet('test_mode', false);
-            await sSet('processing', false);
-            processing = false;
-            stopKeepAlive();
+            await setBusy(false);
             log('Teste concluído.');
             showNotify('Teste concluído!');
-          } else {
-            processNext();
+            sendResponse({ ok: true });
+            return;
           }
+
+          finishItem(item);
+          processNext();
           sendResponse({ ok: true });
           return;
         }

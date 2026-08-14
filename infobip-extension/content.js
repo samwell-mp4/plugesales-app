@@ -263,24 +263,13 @@
       return;
     }
 
-    // 3) Pendentes zerados -> tira screenshot da página inteira
-    log('Pendentes = 0. Capturando screenshot...');
-    const dataUrl = await captureFullPage();
-    if (dataUrl) {
-      log('Enviando screenshot para download...');
-      const r2 = await sendMsg({ action: 'save_screenshot', dataUrl, name: pageName });
-      void r2;
-    } else {
-      log('Falha ao capturar screenshot, seguindo para o relatório.');
-    }
-
-    // 4) Clica em "Obter relatório"
-    log('Clicando em "Obter relatório"...');
+    // 3) Pendentes zerados -> clica em "Obter relatório"
+    log('Pendentes = 0. Clicando em "Obter relatório"...');
     setUI('Clicando em "Obter relatório"...');
     btnObter.click();
     await wait(1500);
 
-    // 5) Confirma o popup
+    // 4) Confirma o popup
     let btnConfirmar = null;
     for (let i = 0; i < 20; i++) {
       btnConfirmar =
@@ -288,7 +277,7 @@
         findButtonByText('Exportar') ||
         findButtonByText('Baixar') ||
         findButtonByText('Confirmar') ||
-        findButtonByText('Cancelar');
+        findButtonByText('OK');
       if (btnConfirmar && btnConfirmar.offsetParent !== null) break;
       await wait(1000);
     }
@@ -302,7 +291,22 @@
       log('Popup de confirmação não encontrado.');
     }
 
-    await wait(5000);
+    // 5) Aguarda o relatório ser gerado e então tira o print
+    log('Aguardando geração do relatório...');
+    setUI('Aguardando geração do relatório...');
+    await wait(8000);
+
+    log('Relatório gerado. Capturando screenshot...');
+    setUI('Capturando screenshot do relatório...');
+    const dataUrl = await captureFullPage();
+    if (dataUrl) {
+      log('Enviando screenshot para download...');
+      await sendMsg({ action: 'save_screenshot', dataUrl, name: pageName });
+    } else {
+      log('Falha ao capturar screenshot.');
+    }
+
+    await wait(2000);
     log('Concluído, fechando aba.');
     setUI('Finalizando...');
     await sendMsg({ action: 'close_tab_and_next' });
