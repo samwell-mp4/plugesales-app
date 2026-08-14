@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Plus, X, MessageSquare, Paperclip, Send, Clock, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, X, MessageSquare, Paperclip, Send, Clock, CheckCircle2, DollarSign, LayoutDashboard } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
 import { useAuth } from '../contexts/AuthContext';
 import { sendAccountingNotification } from '../services/webhookService';
+import { dbService } from '../services/dbService';
 
 interface RequestModel {
     id: number;
@@ -30,6 +31,8 @@ const FinanceRequests = () => {
     const { user } = useAuth();
     const [requests, setRequests] = useState<RequestModel[]>([]);
     const [loading, setLoading] = useState(false);
+    const [userFinanceData, setUserFinanceData] = useState<any | null>(null);
+    const [searchText, setSearchText] = useState('');
     
     // Create Modal
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -42,11 +45,34 @@ const FinanceRequests = () => {
     const [responses, setResponses] = useState<ResponseModel[]>([]);
     const [newMessage, setNewMessage] = useState('');
 
+    const formatCurrency = (val: number | string) => {
+        const num = typeof val === 'string' ? parseFloat(val) : val;
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num || 0);
+    };
+
+    const loadUserFinanceData = async () => {
+        if (!user || !user.id || (user.role !== 'EMPLOYEE' && user.role !== 'VENDEDOR')) return;
+        try {
+            const date = new Date();
+            const months = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            const competenceStr = `${months[date.getMonth()]}/${date.getFullYear()}`;
+            const data = await dbService.getMyCompetence(user.id as number, competenceStr);
+            if (data && !data.error) {
+                setUserFinanceData(data);
+            }
+        } catch (err) {
+            console.error("Error loading user finance competence:", err);
+        }
+    };
+
     const fetchRequests = async () => {
         setLoading(true);
         let query = supabase.from('finance_requests').select('*').order('created_at', { ascending: false });
         
-        if (user?.role === 'EMPLOYEE') {
+        if (user?.role === 'EMPLOYEE' || user?.role === 'VENDEDOR') {
             query = query.eq('requester', user.name);
         }
 
@@ -57,7 +83,8 @@ const FinanceRequests = () => {
 
     useEffect(() => {
         fetchRequests();
-    }, []);
+        loadUserFinanceData();
+    }, [user]);
 
     const fetchResponses = async (reqId: number) => {
         const { data } = await supabase.from('finance_request_responses').select('*').eq('request_id', reqId).order('created_at', { ascending: true });
@@ -248,6 +275,42 @@ const FinanceRequests = () => {
         setIsFinishing(true);
     };
 
+    const isAccountingOrAdmin = user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE';
+    const filtered = requests.filter(req => {
+        const term = searchText.toLowerCase();
+        return (
+            (req.requester || '').toLowerCase().includes(term) ||
+            (req.type || '').toLowerCase().includes(term) ||
+            (req.notes || '').toLowerCase().includes(term)
+        );
+    });
+
+    const pendingReqs = filtered.filter(r => r.status === 'Pendente');
+    const approvedReqs = filtered.filter(r => r.status === 'Aprovada');
+    const historyReqs = filtered.filter(r => r.status === 'Finalizada' || r.status === 'Cancelada');
+
+    const renderCard = (req: RequestModel) => (
+        <div key={req.id} onClick={() => handleOpenDetails(req)} style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-5 cursor-pointer hover:border-primary-color transition-colors group">
+            <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-2">
+                    <MessageSquare size={14} className="text-primary-color" />
+                    <span className="font-bold text-white text-xs">{req.type}</span>
+                </div>
+                <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-lg ${req.status === 'Finalizada' ? 'bg-primary-color/10 text-primary-color' : req.status === 'Aprovada' ? 'bg-green-500/10 text-green-500' : req.status === 'Cancelada' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-400/10 text-yellow-400'}`}>
+                    {req.status}
+                </span>
+            </div>
+            <p className="text-xs text-white/50 mb-4 line-clamp-2">{req.notes}</p>
+            {req.value ? <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)' }}>{formatCurrency(req.value)}</p> : null}
+            <div className="flex justify-between items-center pt-3 border-t border-white/5">
+                <span className="text-[10px] text-white/40">{new Date(req.created_at).toLocaleDateString()}</span>
+                {isAccountingOrAdmin && (
+                    <span className="text-[10px] font-black text-[#acf800] uppercase tracking-wider">Solicitado por: {req.requester}</span>
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <div className="finance-page animate-fade-in p-4 md:p-10 pb-20 md:pb-20">
             <style>{`
@@ -264,30 +327,101 @@ const FinanceRequests = () => {
                 </button>
             </header>
 
+            {/* Estatísticas do Funcionário (Somente para colaboradores e vendedores) */}
+            {userFinanceData && (user?.role === 'EMPLOYEE' || user?.role === 'VENDEDOR') && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border-subtle)', borderRadius: '20px', padding: '20px' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '11px', display: 'block', textTransform: 'uppercase', fontWeight: 800 }}>Mensal RH</span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 950, color: 'white', display: 'block', marginTop: '6px' }}>{formatCurrency(userFinanceData.monthly_receivable)}</span>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border-subtle)', borderRadius: '20px', padding: '20px' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '11px', display: 'block', textTransform: 'uppercase', fontWeight: 800 }}>Total Adiantado</span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 950, color: '#f59e0b', display: 'block', marginTop: '6px' }}>{formatCurrency(userFinanceData.total_advanced)}</span>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border-subtle)', borderRadius: '20px', padding: '20px' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '11px', display: 'block', textTransform: 'uppercase', fontWeight: 800 }}>Saldo Restante</span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 950, color: 'var(--primary-color)', display: 'block', marginTop: '6px' }}>{formatCurrency(userFinanceData.monthly_receivable - userFinanceData.total_advanced)}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Barra de Filtro de Busca */}
+            <div className="search-group" style={{ position: 'relative', marginBottom: '32px', maxWidth: '400px' }}>
+                <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                <input 
+                    className="field-input"
+                    placeholder="Buscar solicitações..."
+                    style={{ width: '100%', paddingLeft: '48px', height: '48px' }}
+                    value={searchText}
+                    onChange={e => setSearchText(e.target.value)}
+                />
+            </div>
+
             {loading && <SupremeLoading />}
 
             {!loading && (
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {requests.map(req => (
-                        <div key={req.id} onClick={() => handleOpenDetails(req)} style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "24px", backdropFilter: "blur(20px)" }} className=" p-6 cursor-pointer hover:border-primary-color transition-colors group">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex items-center gap-2">
-                                    <MessageSquare size={16} className="text-primary-color" />
-                                    <span className="font-bold text-white text-sm">{req.type}</span>
+                <>
+                    {isAccountingOrAdmin ? (
+                        /* Painel da Contabilidade / Kanban em Colunas */
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Coluna 1: Pendentes */}
+                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '24px' }}>
+                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.85rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>PENDENTES</span>
+                                    <span style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', padding: '2px 8px', borderRadius: '8px', fontSize: '11px' }}>{pendingReqs.length}</span>
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '65vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
+                                    {pendingReqs.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>Nenhuma pendência</div>
+                                    ) : (
+                                        pendingReqs.map(renderCard)
+                                    )}
                                 </div>
-                                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-lg ${req.status === 'Finalizada' ? 'bg-primary-color/10 text-primary-color' : 'bg-yellow-400/10 text-yellow-400'}`}>
-                                    {req.status}
-                                </span>
                             </div>
-                            <p className="text-xs text-white/50 mb-6 line-clamp-2">{req.notes}</p>
-                            {req.value ? <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-color)' }}>R$ {req.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p> : null}
-                            <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                                <span className="text-xs text-white/40">{new Date(req.created_at).toLocaleDateString()}</span>
-                                <span className="text-xs font-bold text-white/80 group-hover:text-primary-color transition-colors">Ver Detalhes &rarr;</span>
+
+                            {/* Coluna 2: Aprovadas */}
+                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '24px' }}>
+                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.85rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>APROVADAS (A PAGAR)</span>
+                                    <span style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', padding: '2px 8px', borderRadius: '8px', fontSize: '11px' }}>{approvedReqs.length}</span>
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '65vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
+                                    {approvedReqs.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>Nenhuma aprovada</div>
+                                    ) : (
+                                        approvedReqs.map(renderCard)
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Coluna 3: Histórico */}
+                            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--surface-border-subtle)', borderRadius: '24px', padding: '24px' }}>
+                                <h3 style={{ margin: '0 0 20px 0', fontSize: '0.85rem', fontWeight: 950, color: 'var(--text-primary)', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>HISTÓRICO / FINALIZADAS</span>
+                                    <span style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: '8px', fontSize: '11px' }}>{historyReqs.length}</span>
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '65vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
+                                    {historyReqs.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>Histórico vazio</div>
+                                    ) : (
+                                        historyReqs.map(renderCard)
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    ))}
-                </div>
+                    ) : (
+                        /* Lista Padrão de Solicitações do Funcionário */
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filtered.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', gridColumn: '1 / -1' }}>
+                                    Você não possui solicitações registradas.
+                                </div>
+                            ) : (
+                                filtered.map(renderCard)
+                            )}
+                        </div>
+                    )}
+                </>
             )}
 
             {isCreateOpen && (
