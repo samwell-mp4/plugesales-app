@@ -457,9 +457,9 @@ const RotatorDetails = () => {
                                             type="text"
                                             value={t.url}
                                             onChange={e => {
-                                                const newTargets = [...editTargets];
-                                                newTargets[idx].url = e.target.value;
-                                                setEditTargets(newTargets);
+                                                setEditTargets(prev => prev.map((item, idx2) => 
+                                                    idx2 === idx ? { ...item, url: e.target.value } : item
+                                                ));
                                             }}
                                             placeholder="https://wa.me/5511999999999"
                                             style={{ flex: 1, height: '36px', background: 'var(--bg-primary)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', padding: '0 12px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' }}
@@ -472,9 +472,9 @@ const RotatorDetails = () => {
                                                 max="100"
                                                 value={t.weight}
                                                 onChange={e => {
-                                                    const newTargets = [...editTargets];
-                                                    newTargets[idx].weight = parseInt(e.target.value) || 1;
-                                                    setEditTargets(newTargets);
+                                                    setEditTargets(prev => prev.map((item, idx2) => 
+                                                        idx2 === idx ? { ...item, weight: parseInt(e.target.value) || 1 } : item
+                                                    ));
                                                 }}
                                                 style={{ width: '50px', height: '36px', background: 'var(--bg-primary)', border: '1px solid var(--surface-border-subtle)', borderRadius: '10px', textAlign: 'center', color: 'var(--text-primary)', outline: 'none', fontWeight: 700 }}
                                             />

@@ -166,8 +166,12 @@ const LinkRotator = () => {
     };
 
     const handleTargetChange = (index: number, field: string, value: any) => {
-        const newTargets = [...targets];
-        (newTargets[index] as any)[field] = value;
+        const newTargets = targets.map((t, idx) => {
+            if (idx === index) {
+                return { ...t, [field]: field === 'weight' ? (parseInt(value) || 1) : value };
+            }
+            return t;
+        });
         setTargets(newTargets);
     };
 
@@ -348,19 +352,27 @@ const LinkRotator = () => {
                                                     </button>
                                                 )}
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <input 
                                                     type="range"
                                                     min="1"
                                                     max="100"
-                                                    className="w-full"
-                                                    style={{ accentColor: 'var(--primary-color)' }}
+                                                    style={{ flex: 1, accentColor: 'var(--primary-color)' }}
                                                     value={target.weight}
                                                     onChange={e => handleTargetChange(idx, 'weight', e.target.value)}
                                                 />
-                                                <div style={{ textAlign: 'right', minWidth: '60px' }}>
-                                                    <div style={{ fontSize: '14px', fontWeight: 950, color: 'var(--primary-color)' }}>{calculatePercentage(target.weight)}%</div>
-                                                    <div style={{ fontSize: '9px', fontWeight: 800, opacity: 0.5 }}>PESO</div>
+                                                <input 
+                                                    type="number"
+                                                    min="1"
+                                                    max="100"
+                                                    className="field-input"
+                                                    style={{ width: '65px', height: '36px', textAlign: 'center', fontSize: '13px', padding: 0 }}
+                                                    value={target.weight}
+                                                    onChange={e => handleTargetChange(idx, 'weight', e.target.value)}
+                                                />
+                                                <div style={{ textAlign: 'right', minWidth: '55px' }}>
+                                                    <div style={{ fontSize: '13px', fontWeight: 950, color: 'var(--primary-color)' }}>{calculatePercentage(target.weight)}%</div>
+                                                    <div style={{ fontSize: '8px', fontWeight: 800, opacity: 0.5 }}>PESO</div>
                                                 </div>
                                             </div>
                                         </div>
