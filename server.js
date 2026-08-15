@@ -1888,8 +1888,43 @@ app.get('/api/finance/sales/balance/:clientName', async (req, res) => {
 
 app.post('/api/finance/sales/rollover', async (req, res) => {
     try {
-        const { client_name } = req.body;
-        await pool.query(`UPDATE finance_sales SET balance_rolled_over = true WHERE client_name = $1 AND balance_rolled_over = false`, [client_name]);
+        const { client_name, amount } = req.body;
+        if (amount !== undefined && amount > 0) {
+            const salesResult = await pool.query(
+                `SELECT id, remaining_balance FROM finance_sales 
+                 WHERE client_name = $1 AND balance_rolled_over = false AND remaining_balance > 0 
+                 ORDER BY sale_date ASC`, 
+                [client_name]
+            );
+            
+            let remainingDeduct = Number(amount);
+            for (const row of salesResult.rows) {
+                const saleId = row.id;
+                const rem = Number(row.remaining_balance);
+                if (remainingDeduct <= 0) break;
+                
+                if (rem <= remainingDeduct) {
+                    await pool.query(
+                        `UPDATE finance_sales 
+                         SET remaining_balance = 0, balance_rolled_over = true 
+                         WHERE id = $1`, 
+                        [saleId]
+                    );
+                    remainingDeduct -= rem;
+                } else {
+                    await pool.query(
+                        `UPDATE finance_sales 
+                         SET remaining_balance = remaining_balance - $1 
+                         WHERE id = $2`, 
+                        [remainingDeduct, saleId]
+                    );
+                    remainingDeduct = 0;
+                    break;
+                }
+            }
+        } else {
+            await pool.query(`UPDATE finance_sales SET remaining_balance = 0, balance_rolled_over = true WHERE client_name = $1 AND balance_rolled_over = false`, [client_name]);
+        }
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -1616,12 +1616,12 @@ export const dbService = {
             return 0;
         }
     },
-    rolloverClientBalance: async (clientName: string) => {
+    rolloverClientBalance: async (clientName: string, amount?: number) => {
         try {
             const res = await fetch(`${API_BASE}/finance/sales/rollover`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ client_name: clientName })
+                body: JSON.stringify({ client_name: clientName, amount })
             });
             return await res.json();
         } catch (err) {

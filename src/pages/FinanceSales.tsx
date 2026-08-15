@@ -176,15 +176,24 @@ const FinanceSales = () => {
                 const finalUnit = name === 'unit_value' ? parseFloat(value) || 0 : newData.unit_value;
                 const finalDelivered = name === 'quantity_delivered' ? parseInt(value) || 0 : newData.quantity_delivered;
 
-                newData.total_value = finalDelivered * finalUnit;
-                newData.used_value = finalDelivered * finalUnit;
+                const clientObj = dbClients.find(c => c.name === newData.client_name);
+                const currentCredits = clientObj ? (clientObj.disparo_quantidade || 0) : 0;
+                
+                let billedQuantity = 0;
+                if (currentCredits > 0) {
+                    billedQuantity = Math.max(0, finalDelivered - currentCredits);
+                } else {
+                    billedQuantity = finalDelivered;
+                }
+
+                newData.total_value = billedQuantity * finalUnit;
+                newData.used_value = billedQuantity * finalUnit;
                 newData.remaining_balance = 0;
                 
-                const clientObj = dbClients.find(c => c.name === newData.client_name);
                 const commPerUnit = clientObj ? parseFloat(String(clientObj.comissao_vendedor || '0').replace(',', '.')) || 0 : 0;
                 
                 if (commPerUnit > 0) {
-                    newData.commission_value = finalDelivered * commPerUnit;
+                    newData.commission_value = billedQuantity * commPerUnit;
                 } else {
                     const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
                     if (sp) {
@@ -200,10 +209,20 @@ const FinanceSales = () => {
         e.preventDefault();
         setIsSaving(true);
         try {
+            const clientObj = dbClients.find(c => c.name === formData.client_name);
+            const currentCredits = clientObj ? (clientObj.disparo_quantidade || 0) : 0;
+
+            let billedQuantity = 0;
+            if (currentCredits > 0) {
+                billedQuantity = Math.max(0, formData.quantity_delivered - currentCredits);
+            } else {
+                billedQuantity = formData.quantity_delivered;
+            }
+
             let discount = 0;
             if (useClientBalance && clientBalance > 0 && !editingSale) {
                 discount = Math.min(clientBalance, formData.total_value);
-                await dbService.rolloverClientBalance(formData.client_name);
+                await dbService.rolloverClientBalance(formData.client_name, discount);
             }
             
             const dataToSave = { 
@@ -212,16 +231,12 @@ const FinanceSales = () => {
                 discount_applied: discount
             };
             
-            // Se for novo e usou saldo todo, total_value pode ser usado para bater, ou mantemos total e o discount abatido.
-            // O sistema trata o total a pagar como total_value - discount.
-            
             await dbService.saveFinanceSale(dataToSave);
             
             // Sync client credits balance
-            const clientObj = dbClients.find(c => c.name === formData.client_name);
             if (clientObj) {
-                const currentCredits = clientObj.disparo_quantidade || 0;
-                const newCredits = currentCredits - (formData.quantity_delivered || 0);
+                const isPaid = formData.payment_status === 'RECEBIDO' || (useClientBalance && clientBalance > 0);
+                const newCredits = currentCredits - (formData.quantity_delivered || 0) + (isPaid ? billedQuantity : 0);
                 await fetch(`/api/users/${clientObj.id}/commercial`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
