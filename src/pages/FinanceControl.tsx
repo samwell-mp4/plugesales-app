@@ -18,6 +18,10 @@ const FinanceControl = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'LANCAMENTOS' | 'CLIENTES'>('LANCAMENTOS');
 
+    // Paginação
+    const [salesPage, setSalesPage] = useState(1);
+    const [clientsPage, setClientsPage] = useState(1);
+
     const [editingSale, setEditingSale] = useState<any>(null);
     const [editingClient, setEditingClient] = useState<any>(null);
 
@@ -107,6 +111,14 @@ const FinanceControl = () => {
         (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.phone || '').includes(searchTerm)
     );
+
+    const salesLimit = 10;
+    const totalSalesPages = Math.ceil(filteredSales.length / salesLimit);
+    const slicedSales = filteredSales.slice((salesPage - 1) * salesLimit, salesPage * salesLimit);
+
+    const clientsLimit = 10;
+    const totalClientsPages = Math.ceil(filteredClients.length / clientsLimit);
+    const slicedClients = filteredClients.slice((clientsPage - 1) * clientsLimit, clientsPage * clientsLimit);
 
     const totalFiltered = filteredSales.reduce((acc, curr) => acc + parseFloat(curr.total_value), 0);
     const totalReceived = filteredSales.filter(s => s.payment_status === 'RECEBIDO').reduce((acc, curr) => acc + parseFloat(curr.total_value), 0);
@@ -296,9 +308,9 @@ const FinanceControl = () => {
                             <tbody>
                                 {isLoading ? (
                                     <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px' }}><RefreshCw className="animate-spin mx-auto text-primary-color" /></td></tr>
-                                ) : filteredSales.length === 0 ? (
+                                ) : slicedSales.length === 0 ? (
                                     <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUM LANÇAMENTO</td></tr>
-                                ) : filteredSales.map((sale) => {
+                                ) : slicedSales.map((sale) => {
                                     const comisVendedor = parseFloat(String(sale.comissao_vendedor || '0').replace(',', '.'));
                                     const valComissao = (sale.quantity_hired || 0) * comisVendedor;
                                     return (
@@ -376,9 +388,9 @@ const FinanceControl = () => {
                         <tbody>
                             {isLoading ? (
                                 <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px' }}><RefreshCw className="animate-spin mx-auto text-primary-color" /></td></tr>
-                            ) : filteredClients.length === 0 ? (
+                            ) : slicedClients.length === 0 ? (
                                 <tr><td colSpan={6} style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUM CLIENTE ENCONTRADO</td></tr>
-                            ) : filteredClients.map((client) => (
+                            ) : slicedClients.map((client) => (
                                 <tr key={client.id}>
                                     <td>
                                         <div className="flex flex-col">

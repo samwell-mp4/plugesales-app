@@ -11,6 +11,8 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
     const [payables, setPayables] = useState<any[]>([]);
     const [refunds, setRefunds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [payablesPage, setPayablesPage] = useState(1);
+    const [refundsPage, setRefundsPage] = useState(1);
 
     const [filterStatus, setFilterStatus] = useState('Pendente');
     const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
@@ -333,7 +335,7 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                         </div>
                         <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
                             {payables.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.4)' }}>Nenhuma conta encontrada.</div>}
-                            {payables.map(p => {
+                            {payables.slice((payablesPage - 1) * 5, payablesPage * 5).map(p => {
                                 const daysLeft = getDaysLeft(p.due_date);
                                 const isOverdue = daysLeft < 0 && p.status !== 'Paga';
                                 return (
@@ -383,7 +385,7 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                         </div>
                         <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
                             {refunds.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.4)' }}>Nenhum reembolso encontrado.</div>}
-                            {refunds.map(r => (
+                            {refunds.slice((refundsPage - 1) * 5, refundsPage * 5).map(r => (
                                 <div key={r.id} className="grid-row">
                                     <div>
                                         <h4 style={{ margin: '0 0 4px 0', fontWeight: 800, color: 'white', fontSize: '0.9rem' }}>{r.requester}</h4>

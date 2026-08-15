@@ -63,6 +63,7 @@ const FinancePayables = () => {
         responsible: user?.name || ''
     });
     const [uploading, setUploading] = useState(false);
+    const [page, setPage] = useState(1);
     const [fileUrl, setFileUrl] = useState('');
 
     const fetchData = async () => {
@@ -319,7 +320,7 @@ const FinancePayables = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {payables.map(p => (
+                                {payables.slice((page - 1) * 10, page * 10).map(p => (
                                     <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s' }}
                                         onMouseEnter={e => rowBgHover(e, true)}
                                         onMouseLeave={e => rowBgHover(e, false)}>

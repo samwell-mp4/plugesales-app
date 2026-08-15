@@ -16,6 +16,10 @@ const FinanceCommissions = () => {
     const [editingCommission, setEditingCommission] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
     
+    // Filtros e paginação
+    const [statusFilter, setStatusFilter] = useState<'TODOS' | 'PREVISTA' | 'PAGA'>('TODOS');
+    const [salesPages, setSalesPages] = useState<Record<number, number>>({});
+    
     // Upload de comprovante
     const [saleToPay, setSaleToPay] = useState<any>(null);
     const [uploadingReceipt, setUploadingReceipt] = useState(false);
@@ -166,10 +170,41 @@ const FinanceCommissions = () => {
                 </div>
             </header>
 
+            <div className="flex gap-2 mb-6">
+                {(['TODOS', 'PREVISTA', 'PAGA'] as const).map(f => (
+                    <button
+                        key={f}
+                        onClick={() => {
+                            setStatusFilter(f);
+                            setSalesPages({});
+                        }}
+                        style={{
+                            background: statusFilter === f ? 'var(--primary-color)' : 'rgba(255,255,255,0.03)',
+                            border: '1px solid ' + (statusFilter === f ? 'var(--primary-color)' : 'rgba(255,255,255,0.08)'),
+                            color: statusFilter === f ? '#000' : '#fff',
+                            borderRadius: '12px',
+                            padding: '8px 16px',
+                            fontWeight: 800,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {f === 'TODOS' ? 'TODAS' : f === 'PREVISTA' ? 'PENDENTES' : 'PAGAS'}
+                    </button>
+                ))}
+            </div>
+
             <div className="flex flex-col gap-12">
                 {salespeople.map((person) => {
                     const stats = calculateCommissionStats(person.id);
                     if (stats.count === 0 && !isAdmin) return null;
+
+                    const personSales = sales.filter(s => s.salesperson_id === person.id && (statusFilter === 'TODOS' || s.commission_status === statusFilter));
+                    const itemsPerPage = 5;
+                    const currentPage = salesPages[person.id] || 1;
+                    const totalPages = Math.ceil(personSales.length / itemsPerPage);
+                    const slicedSales = personSales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
                     return (
                         <div key={person.id} className="bg-white/[0.01] p-6 rounded-[24px] border border-white/5">
@@ -209,7 +244,7 @@ const FinanceCommissions = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {sales.filter(s => s.salesperson_id === person.id).map((sale) => (
+                                        {slicedSales.map((sale) => (
                                             <tr key={sale.id}>
                                                 <td style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{sale.payment_competence || new Date(sale.sale_date).toLocaleDateString('pt-BR')}</td>
                                                 <td>
@@ -269,12 +304,34 @@ const FinanceCommissions = () => {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {sales.filter(s => s.salesperson_id === person.id).length === 0 && (
+                                        {slicedSales.length === 0 && (
                                             <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUMA COMISSÃO REGISTRADA</td></tr>
                                         )}
                                     </tbody>
                                 </table>
                             </div>
+
+                            {totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', padding: '0 8px' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800 }}>PÁGINA {currentPage} DE {totalPages}</span>
+                                    <div className="flex gap-2">
+                                        <button
+                                            disabled={currentPage === 1}
+                                            onClick={() => setSalesPages(prev => ({ ...prev, [person.id]: currentPage - 1 }))}
+                                            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 16px', color: 'white', fontWeight: 800, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.75rem', opacity: currentPage === 1 ? 0.3 : 1 }}
+                                        >
+                                            Anterior
+                                        </button>
+                                        <button
+                                            disabled={currentPage === totalPages}
+                                            onClick={() => setSalesPages(prev => ({ ...prev, [person.id]: currentPage + 1 }))}
+                                            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 16px', color: 'white', fontWeight: 800, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.75rem', opacity: currentPage === totalPages ? 0.3 : 1 }}
+                                        >
+                                            Próxima
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     );
                 })}

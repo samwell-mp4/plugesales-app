@@ -30,6 +30,7 @@ const FinanceSuppliers = () => {
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState<Partial<Supplier>>({});
+    const [page, setPage] = useState(1);
 
     const fetchSuppliers = async () => {
         setLoading(true);
@@ -47,6 +48,10 @@ const FinanceSuppliers = () => {
     useEffect(() => {
         fetchSuppliers();
     }, []);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -133,7 +138,11 @@ const FinanceSuppliers = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredSuppliers.map(s => (
+                        {(() => {
+                            const suppliersLimit = 10;
+                            const totalPages = Math.ceil(filteredSuppliers.length / suppliersLimit);
+                            const slicedSuppliers = filteredSuppliers.slice((page - 1) * suppliersLimit, page * suppliersLimit);
+                            return slicedSuppliers.map(s => (
                             <tr key={s.id} style={{ ...rowStyle, transition: 'background 0.2s', cursor: 'pointer' }} onClick={() => handleEdit(s)} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                                 <td style={cellStyle}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -161,7 +170,8 @@ const FinanceSuppliers = () => {
                                     </div>
                                 </td>
                             </tr>
-                        ))}
+                        ));
+                        })()}
                         {filteredSuppliers.length === 0 && (
                             <tr>
                                 <td colSpan={4} style={{ padding: '48px 24px', textAlign: 'center' as const, color: 'rgba(255,255,255,0.4)' }}>
@@ -172,6 +182,31 @@ const FinanceSuppliers = () => {
                     </tbody>
                 </table>
             </div>
+            {(() => {
+                const suppliersLimit = 10;
+                const totalPages = Math.ceil(filteredSuppliers.length / suppliersLimit);
+                return totalPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', padding: '0 8px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800 }}>PÁGINA {page} DE {totalPages}</span>
+                        <div className="flex gap-2">
+                            <button
+                                disabled={page === 1}
+                                onClick={() => setPage(prev => prev - 1)}
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 16px', color: 'white', fontWeight: 800, cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: '0.75rem', opacity: page === 1 ? 0.3 : 1 }}
+                            >
+                                Anterior
+                            </button>
+                            <button
+                                disabled={page === totalPages}
+                                onClick={() => setPage(prev => prev + 1)}
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 16px', color: 'white', fontWeight: 800, cursor: page === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.75rem', opacity: page === totalPages ? 0.3 : 1 }}
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {isModalOpen && createPortal(
                 <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', padding: '5vh 16px', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', overflowY: 'auto' }}>

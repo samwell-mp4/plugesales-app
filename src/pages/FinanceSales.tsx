@@ -217,6 +217,25 @@ const FinanceSales = () => {
             // O sistema trata o total a pagar como total_value - discount.
             
             await dbService.saveFinanceSale(dataToSave);
+            
+            // Sync client credits balance
+            const clientObj = dbClients.find(c => c.name === formData.client_name);
+            if (clientObj) {
+                const currentCredits = clientObj.disparo_quantidade || 0;
+                const newCredits = currentCredits + (formData.quantity_hired || 0) - (formData.quantity_delivered || 0);
+                await fetch(`/api/users/${clientObj.id}/commercial`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        pacote: clientObj.pacote || 'Avulso', 
+                        preco_vendido: clientObj.preco_vendido || '0.20', 
+                        comissao_vendedor: clientObj.comissao_vendedor || '0.05',
+                        seller_name: clientObj.seller_name || '',
+                        disparo_quantidade: newCredits
+                    })
+                });
+            }
+
             setIsModalOpen(false);
             resetForm();
             fetchData();
@@ -959,6 +978,25 @@ const FinanceSales = () => {
                                                         <option key={c.id} value={c.name} style={{ background: '#0a0f18' }}>{c.name} ({c.email})</option>
                                                     ))}
                                                 </select>
+                                                {formData.client_name && (
+                                                    <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800 }}>SALDO DE DISPAROS ATUAL:</span>
+                                                             <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 900 }}>
+                                                                 {(() => {
+                                                                     const c = dbClients.find(cl => cl.name === formData.client_name);
+                                                                     return c ? (c.disparo_quantidade || 0).toLocaleString('pt-BR') : '0';
+                                                                 })()} disparos
+                                                             </span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800 }}>SALDO FINANCEIRO DISPONÍVEL:</span>
+                                                             <span style={{ fontSize: '0.75rem', color: '#facc15', fontWeight: 900 }}>
+                                                                 R$ {clientBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                             </span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <button 
                                                     type="button" 
                                                     onClick={() => setIsRegisteringClient(true)}
@@ -1126,9 +1164,60 @@ const FinanceSales = () => {
                                                     <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Quantidade Entregue (Relatório)</label>
                                                     <input type="number" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="quantity_delivered" value={formData.quantity_delivered} onChange={handleInputChange} />
                                                 </div>
-                                                <button type="button" style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', color: '#38bdf8', borderRadius: '12px', padding: '12px 16px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <Upload size={16} /> ANEXAR RELATÓRIO
-                                                </button>
+                                                <input 
+                                                    type="file" 
+                                                    id="sale-report-upload"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        setUploadingReceipt(888888);
+                                                        try {
+                                                            const buffer = await file.arrayBuffer();
+                                                            const wb = XLSX.read(buffer, { type: 'array' });
+                                                            const ws = wb.Sheets[wb.SheetNames[0]];
+                                                            const rawData = XLSX.utils.sheet_to_json(ws);
+                                                            
+                                                            const summary = {
+                                                                total: rawData.length,
+                                                                delivered: rawData.filter((r: any) => {
+                                                                    const statusVal = String(r.Status || r.status || r.STATUS || '').toLowerCase();
+                                                                    return statusVal.includes('delivered') || statusVal.includes('entregue') || statusVal.includes('sucesso') || statusVal.includes('enviado');
+                                                                }).length
+                                                            };
+
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                quantity_delivered: summary.delivered
+                                                            }));
+
+                                                            const fileData = new FormData();
+                                                            fileData.append('file', file);
+                                                            const uploadRes = await fetch('/api/upload', {
+                                                                method: 'POST',
+                                                                body: fileData
+                                                            });
+                                                            if (uploadRes.ok) {
+                                                                const uploadData = await uploadRes.json();
+                                                                setFormData(prev => ({ ...prev, report_url: uploadData.fileUrl }));
+                                                                alert(`Relatório anexado! Total de disparos entregues: ${summary.delivered}`);
+                                                            } else {
+                                                                alert("Falha ao salvar relatório no servidor.");
+                                                            }
+                                                        } catch (err) {
+                                                            console.error("Error parsing/uploading report:", err);
+                                                            alert("Erro ao ler/processar arquivo Excel.");
+                                                        } finally {
+                                                            setUploadingReceipt(null);
+                                                        }
+                                                    }}
+                                                    style={{ display: 'none' }}
+                                                />
+                                                <label 
+                                                    htmlFor="sale-report-upload" 
+                                                    style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', color: '#38bdf8', borderRadius: '12px', padding: '12px 16px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                >
+                                                    <Upload size={16} /> {uploadingReceipt === 888888 ? 'PROCESSANDO...' : formData.report_url ? 'RELATÓRIO ANEXADO ✓' : 'ANEXAR RELATÓRIO'}
+                                                </label>
                                             </div>
                                         </div>
                                     )}
