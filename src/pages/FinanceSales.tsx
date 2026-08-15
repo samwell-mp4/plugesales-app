@@ -1301,6 +1301,24 @@ const FinanceSales = () => {
                                         </div>
                                     )}
 
+                                    {formData.client_name && (
+                                        <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Projeção Pós-Venda</span>
+                                            <div className="flex justify-between items-center border-t border-white/5 pt-2">
+                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800 }}>Saldo de Disparos Restante:</span>
+                                                <span style={{ fontSize: '0.85rem', color: ((dbClients.find(c => c.name === formData.client_name)?.disparo_quantidade || 0) - (formData.quantity_delivered || 0)) < 0 ? '#ef4444' : '#38bdf8', fontWeight: 900 }}>
+                                                    {((dbClients.find(c => c.name === formData.client_name)?.disparo_quantidade || 0) - (formData.quantity_delivered || 0)).toLocaleString('pt-BR')} disparos
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800 }}>Saldo Financeiro Restante:</span>
+                                                <span style={{ fontSize: '0.85rem', color: '#facc15', fontWeight: 900 }}>
+                                                    R$ {(clientBalance - (useClientBalance ? Math.min(clientBalance, formData.total_value) : 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div style={{ padding: '24px', background: 'rgba(172, 248, 0, 0.08)', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.15)', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', boxShadow: '0 10px 30px rgba(172, 248, 0, 0.1)' }}>
                                         <div className="flex justify-between items-center">
                                             <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Faturamento Bruto</span>
