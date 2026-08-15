@@ -487,6 +487,13 @@ const ClientDashboard = () => {
                     </div>
                 </div>
 
+                {clientProfile?.disparo_quantidade < 0 && (
+                    <div style={{ padding: '16px 24px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: '#f87171', fontWeight: 700 }}>
+                        <XCircle size={20} />
+                        <span>Atenção: Seu saldo de disparos está negativo ({clientProfile.disparo_quantidade.toLocaleString()} disparos). Por favor, regularize com a administração para evitar a suspensão de novos envios.</span>
+                    </div>
+                )}
+
                 <div className="stats-wrapper" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '24px' }}>
                     <div className="control-card" style={{ display: 'flex', alignItems: 'center', gap: '20px', animationDelay: '0.1s' }}>
                         <div className="stat-icon-container" style={{ width: 52, height: 52, borderRadius: '16px', background: 'rgba(172,248,0,0.1)', border: '1px solid rgba(172,248,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#acf800', flexShrink: 0 }}>

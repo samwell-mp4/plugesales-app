@@ -13,6 +13,7 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
     const [loading, setLoading] = useState(true);
     const [payablesPage, setPayablesPage] = useState(1);
     const [refundsPage, setRefundsPage] = useState(1);
+    const [negativeClients, setNegativeClients] = useState<any[]>([]);
 
     const [filterStatus, setFilterStatus] = useState('Pendente');
     const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
@@ -83,6 +84,9 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
 
         allRefunds.sort((a, b) => new Date(b.request_date).getTime() - new Date(a.request_date).getTime());
         setRefunds(allRefunds);
+
+        const { data: negData } = await supabase.from('users').select('name, disparo_quantidade').lt('disparo_quantidade', 0);
+        if (negData) setNegativeClients(negData);
 
         setLoading(false);
     };
@@ -251,6 +255,22 @@ export const FinanceDashboardAccounting = ({ user: _user }: { user: any }) => {
                     {isExporting ? 'EXPORTANDO...' : 'EXPORTAR DADOS (n8n)'}
                 </button>
             </header>
+
+            {negativeClients.length > 0 && (
+                <div style={{ padding: '16px 24px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '20px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px', color: '#f87171' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800 }}>
+                        <AlertCircle size={18} />
+                        <span>ALERTA DE CONTROLE FINANCEIRO: CLIENTES COM SALDO NEGATIVO</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingLeft: '26px' }}>
+                        {negativeClients.map(c => (
+                            <span key={c.name} style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '4px 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700 }}>
+                                {c.name}: <strong style={{ color: 'white' }}>{c.disparo_quantidade}</strong> disparos
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-wrap gap-4 mb-8">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

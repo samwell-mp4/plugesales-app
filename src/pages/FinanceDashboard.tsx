@@ -13,6 +13,7 @@ const FinanceDashboard = () => {
     const { user } = useAuth();
     const [sales, setSales] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [negativeClients, setNegativeClients] = useState<any[]>([]);
 
     useEffect(() => {
         if (user?.role !== 'CONTABILIDADE') {
@@ -29,6 +30,10 @@ const FinanceDashboard = () => {
         try {
             const data = await dbService.getFinanceSales({ userId: user?.id, role: user?.role });
             setSales(data);
+            
+            const clients = await dbService.getClients();
+            const neg = clients.filter((c: any) => (c.disparo_quantidade || 0) < 0);
+            setNegativeClients(neg);
         } catch (err) {
             console.error(err);
         } finally {
@@ -154,6 +159,22 @@ const FinanceDashboard = () => {
                     </button>
                 </div>
             </header>
+
+            {negativeClients.length > 0 && (
+                <div style={{ padding: '16px 24px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '20px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px', color: '#f87171' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800 }}>
+                        <AlertCircle size={18} />
+                        <span>ALERTA DE CONTROLE FINANCEIRO: CLIENTES COM SALDO NEGATIVO</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingLeft: '26px' }}>
+                        {negativeClients.map(c => (
+                            <span key={c.name} style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '4px 10px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700 }}>
+                                {c.name}: <strong style={{ color: 'white' }}>{c.disparo_quantidade}</strong> disparos
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="stats-grid-finance">
                 {metrics.map((m, i) => (

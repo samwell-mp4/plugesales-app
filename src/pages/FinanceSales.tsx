@@ -173,19 +173,18 @@ const FinanceSales = () => {
             }
 
             if (name === 'quantity_hired' || name === 'unit_value' || name === 'quantity_delivered' || name === 'salesperson_id' || name === 'client_name') {
-                const finalQty = name === 'quantity_hired' ? parseInt(value) || 0 : newData.quantity_hired;
                 const finalUnit = name === 'unit_value' ? parseFloat(value) || 0 : newData.unit_value;
                 const finalDelivered = name === 'quantity_delivered' ? parseInt(value) || 0 : newData.quantity_delivered;
 
-                newData.total_value = finalQty * finalUnit;
+                newData.total_value = finalDelivered * finalUnit;
                 newData.used_value = finalDelivered * finalUnit;
-                newData.remaining_balance = newData.total_value - newData.used_value;
+                newData.remaining_balance = 0;
                 
                 const clientObj = dbClients.find(c => c.name === newData.client_name);
                 const commPerUnit = clientObj ? parseFloat(String(clientObj.comissao_vendedor || '0').replace(',', '.')) || 0 : 0;
                 
                 if (commPerUnit > 0) {
-                    newData.commission_value = finalQty * commPerUnit;
+                    newData.commission_value = finalDelivered * commPerUnit;
                 } else {
                     const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
                     if (sp) {
@@ -222,7 +221,7 @@ const FinanceSales = () => {
             const clientObj = dbClients.find(c => c.name === formData.client_name);
             if (clientObj) {
                 const currentCredits = clientObj.disparo_quantidade || 0;
-                const newCredits = currentCredits + (formData.quantity_hired || 0) - (formData.quantity_delivered || 0);
+                const newCredits = currentCredits - (formData.quantity_delivered || 0);
                 await fetch(`/api/users/${clientObj.id}/commercial`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -979,7 +978,7 @@ const FinanceSales = () => {
                                                     ))}
                                                 </select>
                                                 {formData.client_name && (
-                                                    <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                                    <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800 }}>SALDO DE DISPAROS ATUAL:</span>
                                                              <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 900 }}>
@@ -990,11 +989,31 @@ const FinanceSales = () => {
                                                              </span>
                                                         </div>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800 }}>PACOTE CONTRATADO:</span>
+                                                             <span style={{ fontSize: '0.75rem', color: 'white', fontWeight: 900 }}>
+                                                                 {formData.package_hired || 'Avulso'}
+                                                             </span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800 }}>SALDO FINANCEIRO DISPONÍVEL:</span>
                                                              <span style={{ fontSize: '0.75rem', color: '#facc15', fontWeight: 900 }}>
                                                                  R$ {clientBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                                              </span>
                                                         </div>
+                                                        {(() => {
+                                                            const c = dbClients.find(cl => cl.name === formData.client_name);
+                                                            const currentCredits = c ? c.disparo_quantidade || 0 : 0;
+                                                            const delivered = parseInt(String(formData.quantity_delivered || 0)) || 0;
+                                                            if (delivered > currentCredits) {
+                                                                return (
+                                                                    <div style={{ marginTop: '6px', padding: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171' }}>
+                                                                        <AlertCircle size={14} />
+                                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>Aviso: Cliente ficará negativado em {Math.abs(currentCredits - delivered).toLocaleString('pt-BR')} disparos!</span>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
                                                     </div>
                                                 )}
                                                 <button 
@@ -1110,27 +1129,13 @@ const FinanceSales = () => {
                                 {/* Coluna Direita: Produto e Financeiro */}
                                 <div className="space-y-6">
                                     <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <Package size={14} /> DETALHES DO PACOTE
+                                        <Package size={14} /> ACORDO COMERCIAL
                                     </h3>
-                                    <div>
-                                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Pacote Contratado</label>
-                                        <select className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="package_hired" value={formData.package_hired} onChange={handleInputChange} required>
-                                            <option value="" style={{ background: '#0a0f18' }}>Selecione o plano...</option>
-                                            <option value="Starter" style={{ background: '#0a0f18' }}>Starter (10k disparos)</option>
-                                            <option value="Growth" style={{ background: '#0a0f18' }}>Growth (50k disparos)</option>
-                                            <option value="Enterprise" style={{ background: '#0a0f18' }}>Enterprise (250k disparos)</option>
-                                            <option value="Custom" style={{ background: '#0a0f18' }}>Personalizado / Consultoria</option>
-                                        </select>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Quantidade</label>
-                                            <input type="number" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="quantity_hired" value={formData.quantity_hired} onChange={handleInputChange} required />
-                                        </div>
-                                        <div>
-                                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Valor Unitário (R$)</label>
-                                            <input type="number" step="0.01" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="unit_value" value={formData.unit_value} onChange={handleInputChange} required />
-                                        </div>
+                                    <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800 }}>VALOR UNITÁRIO ACORDADO:</span>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: 900 }}>
+                                            R$ {(formData.unit_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </span>
                                     </div>
 
                                     <div className="pt-4">
