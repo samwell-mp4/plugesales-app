@@ -983,7 +983,7 @@ const ClientExternalForm = () => {
                                                         const v5 = v[4] || '{{5}}';
 
                                                         if (e.target.checked) {
-                                                            ad.ad_copy = `Olá ${v1} \n\nEstamos informando ${v2}\n\n${v3}\n\n${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
+                                                            ad.ad_copy = `Olá ${v1}, tudo bem? \n\nEstamos passando por aqui para informar que ${v2}.\n\nMais detalhes: ${v3}\n\nObservação importante: ${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
                                                         } else {
                                                             ad.ad_copy = `Olá ${v1}\n\nEstamos informando ${v2}\n\n${v3}\n\nPara ${v4} Clique no botão abaixo!`;
                                                         }
@@ -1093,7 +1093,7 @@ const ClientExternalForm = () => {
                                                                         const v5 = v[4] || '{{5}}';
 
                                                                         if (ad.showFifthVariable) {
-                                                                            ad.ad_copy = `Olá ${v1} \n\nEstamos informando ${v2}\n\n${v3}\n\n${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
+                                                                            ad.ad_copy = `Olá ${v1}, tudo bem? \n\nEstamos passando por aqui para informar que ${v2}.\n\nMais detalhes: ${v3}\n\nObservação importante: ${v4}\n\nPara ${v5}, clique no botão abaixo 👇`;
                                                                         } else {
                                                                             ad.ad_copy = `Olá ${v1}\n\nEstamos informando ${v2}\n\n${v3}\n\nPara ${v4} Clique no botão abaixo!`;
                                                                         }

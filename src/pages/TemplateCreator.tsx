@@ -32,9 +32,9 @@ interface CampaignBatch {
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
 const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!';
-const LEANDRO_BODY_5 = 'Olá {{1}} \n\nEstamos informando {{2}}\n\n{{3}}\n\n{{4}}\n\nPara {{5}}, clique no botão abaixo 👇';
+const LEANDRO_BODY_5 = 'Olá {{1}}, tudo bem? \n\nEstamos passando por aqui para informar que {{2}}.\n\nMais detalhes: {{3}}\n\nObservação importante: {{4}}\n\nPara {{5}}, clique no botão abaixo 👇';
 const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that: {{2}}\n\n{{3}}\n\nTo {{4}} Click the button below!';
-const LEANDRO_BODY_5_EN = 'Hello {{1}}!\n\nWe inform you that {{2}}\n\n{{3}}\n\n{{4}}\n\nTo {{5}}, click the button below 👇';
+const LEANDRO_BODY_5_EN = 'Hello {{1}}, how are you doing? \n\nWe are reaching out to inform you that {{2}}.\n\nMore details: {{3}}\n\nImportant note: {{4}}\n\nTo {{5}}, please click the button below 👇';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
