@@ -19,8 +19,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
 // --- LEANDRO STANDARD CONSTANTS ---
-const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!';
-const LEANDRO_BODY_5 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\n{{4}}\n\nPara {{5}} Clique no botão abaixo!';
+const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\nPara {{4}} Clique no botão abaixo!';
+const LEANDRO_BODY_5 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}} Clique no botão abaixo!';
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
     "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}

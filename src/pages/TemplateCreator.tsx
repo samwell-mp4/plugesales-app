@@ -31,8 +31,8 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
-const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!';
-const LEANDRO_BODY_5 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\n{{4}}\n\nPara {{5}} Clique no botão abaixo!';
+const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\nPara {{4}} Clique no botão abaixo!';
+const LEANDRO_BODY_5 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\n{{4}}.\n\nPara {{5}} Clique no botão abaixo!';
 const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that: {{2}}\n\n{{3}}\n\nTo {{4}} Click the button below!';
 const LEANDRO_BODY_5_EN = 'Hello {{1}}, how are you doing? \n\nWe are reaching out to inform you that {{2}}.\n\nMore details: {{3}}\n\nImportant note: {{4}}\n\nTo {{5}}, please click the button below 👇';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
@@ -238,8 +238,8 @@ const TemplateCreator = () => {
     const rowsPerPage = 10;
     const abortRef = useRef(false);
     const progressContainerRef = useRef<HTMLDivElement>(null);
-    const [enableCustomVariables, setEnableCustomVariables] = useState(false);
-    const [enableBulkCustomVariables, setEnableBulkCustomVariables] = useState(false);
+    const [enableCustomVariables, setEnableCustomVariables] = useState(true);
+    const [enableBulkCustomVariables, setEnableBulkCustomVariables] = useState(true);
 
     // --- CUSTOM CONFIRM MODAL (replaces window.confirm which is blocked on mobile) ---
     const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
@@ -1523,8 +1523,8 @@ const TemplateCreator = () => {
                                                 }
                                             } else {
                                                 const defaultText = selectedPayloadLanguage === 'en_US'
-                                                    ? 'Hi {{1}} We inform you that {{2}}\n\n{{3}}\n\nTo {{4}}, click the button below 👇'
-                                                    : 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}\n\nPara {{4}} Clique no botão abaixo!';
+                                                    ? 'Hi {{1}} We inform you that {{2}}\n\n{{3}}.\n\nTo {{4}}, click the button below 👇'
+                                                    : 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\nPara {{4}} Clique no botão abaixo!';
                                                 _setBodyText(defaultText);
                                                 if (variablesExample.length > 4) {
                                                     _setVariablesExample(variablesExample.slice(0, 4));
