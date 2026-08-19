@@ -194,26 +194,17 @@ const FinanceSales = () => {
 
             if (name === 'quantity_hired' || name === 'unit_value' || name === 'quantity_delivered' || name === 'salesperson_id' || name === 'client_name') {
                 const finalUnit = name === 'unit_value' ? parseFloat(value) || 0 : newData.unit_value;
+                const finalHired = name === 'quantity_hired' ? parseInt(value) || 0 : newData.quantity_hired;
                 const finalDelivered = name === 'quantity_delivered' ? parseInt(value) || 0 : newData.quantity_delivered;
 
-                const clientObj = dbClients.find(c => c.name === newData.client_name);
-                const currentCredits = clientObj ? (clientObj.disparo_quantidade || 0) : 0;
-                
-                let billedQuantity = 0;
-                if (currentCredits > 0) {
-                    billedQuantity = Math.max(0, finalDelivered - currentCredits);
-                } else {
-                    billedQuantity = finalDelivered;
-                }
-
-                newData.total_value = billedQuantity * finalUnit;
-                newData.used_value = billedQuantity * finalUnit;
+                newData.total_value = finalHired * finalUnit;
+                newData.used_value = finalDelivered * finalUnit; // just for reference if needed
                 newData.remaining_balance = 0;
                 
                 const commPerUnit = getCommissionForPrice(finalUnit);
                 
                 if (commPerUnit > 0) {
-                    newData.commission_value = billedQuantity * commPerUnit;
+                    newData.commission_value = finalHired * commPerUnit;
                 } else {
                     const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
                     if (sp) {
@@ -232,13 +223,6 @@ const FinanceSales = () => {
             const clientObj = dbClients.find(c => c.name === formData.client_name);
             const currentCredits = clientObj ? (clientObj.disparo_quantidade || 0) : 0;
 
-            let billedQuantity = 0;
-            if (currentCredits > 0) {
-                billedQuantity = Math.max(0, formData.quantity_delivered - currentCredits);
-            } else {
-                billedQuantity = formData.quantity_delivered;
-            }
-
             let discount = 0;
             if (useClientBalance && clientBalance > 0 && !editingSale) {
                 discount = Math.min(clientBalance, formData.total_value);
@@ -256,7 +240,9 @@ const FinanceSales = () => {
             // Sync client credits balance
             if (clientObj) {
                 const isPaid = formData.payment_status === 'RECEBIDO' || (useClientBalance && clientBalance > 0);
-                const newCredits = currentCredits - (formData.quantity_delivered || 0) + (isPaid ? billedQuantity : 0);
+                const addedCredits = isPaid ? (formData.quantity_hired || 0) : 0;
+                const newCredits = currentCredits + addedCredits - (formData.quantity_delivered || 0);
+                
                 await fetch(`/api/users/${clientObj.id}/commercial`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -1038,12 +1024,14 @@ const FinanceSales = () => {
                                                         {(() => {
                                                             const c = dbClients.find(cl => cl.name === formData.client_name);
                                                             const currentCredits = c ? c.disparo_quantidade || 0 : 0;
-                                                            const delivered = parseInt(String(formData.quantity_delivered || 0)) || 0;
-                                                            if (delivered > currentCredits) {
+                                                            const isPaid = formData.payment_status === 'RECEBIDO' || (useClientBalance && clientBalance > 0);
+                                                            const added = isPaid ? (parseInt(String(formData.quantity_hired)) || 0) : 0;
+                                                            const delivered = parseInt(String(formData.quantity_delivered)) || 0;
+                                                            if (delivered > currentCredits + added) {
                                                                 return (
                                                                     <div style={{ marginTop: '6px', padding: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171' }}>
                                                                         <AlertCircle size={14} />
-                                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>Aviso: Cliente ficará negativado em {Math.abs(currentCredits - delivered).toLocaleString('pt-BR')} disparos!</span>
+                                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>Aviso: Cliente ficará negativado em {Math.abs(currentCredits + added - delivered).toLocaleString('pt-BR')} disparos!</span>
                                                                     </div>
                                                                 );
                                                             }
@@ -1166,6 +1154,11 @@ const FinanceSales = () => {
                                     <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Package size={14} /> ACORDO COMERCIAL
                                     </h3>
+
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Quantidade Contratada / Vendida (UNID)</label>
+                                        <input type="number" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 900, padding: '16px', width: '100%', fontSize: '1.2rem' }} name="quantity_hired" value={formData.quantity_hired || ''} onChange={handleInputChange} placeholder="0" />
+                                    </div>
 
                                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
                                         <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1349,8 +1342,14 @@ const FinanceSales = () => {
                                             <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Projeção Pós-Venda</span>
                                             <div className="flex justify-between items-center border-t border-white/5 pt-2">
                                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800 }}>Saldo de Disparos Restante:</span>
-                                                <span style={{ fontSize: '0.85rem', color: ((dbClients.find(c => c.name === formData.client_name)?.disparo_quantidade || 0) - (formData.quantity_delivered || 0)) < 0 ? '#ef4444' : '#38bdf8', fontWeight: 900 }}>
-                                                    {((dbClients.find(c => c.name === formData.client_name)?.disparo_quantidade || 0) - (formData.quantity_delivered || 0)).toLocaleString('pt-BR')} disparos
+                                                <span style={{ fontSize: '0.85rem', color: '#38bdf8', fontWeight: 900 }}>
+                                                    {(() => {
+                                                        const current = dbClients.find(c => c.name === formData.client_name)?.disparo_quantidade || 0;
+                                                        const isPaid = formData.payment_status === 'RECEBIDO' || (useClientBalance && clientBalance > 0);
+                                                        const added = isPaid ? (parseInt(String(formData.quantity_hired)) || 0) : 0;
+                                                        const delivered = parseInt(String(formData.quantity_delivered)) || 0;
+                                                        return (current + added - delivered).toLocaleString('pt-BR');
+                                                    })()} disparos
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center">
