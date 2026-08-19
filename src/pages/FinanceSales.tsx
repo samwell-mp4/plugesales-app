@@ -75,8 +75,7 @@ const FinanceSales = () => {
     const [filterStatus, setFilterStatus] = useState('TODOS');
     const [filterSalesperson, setFilterSalesperson] = useState('TODOS');
     const [filterClient, setFilterClient] = useState('TODOS');
-    const [filterStartDate, setFilterStartDate] = useState('');
-    const [filterEndDate, setFilterEndDate] = useState('');
+    const [filterMonth, setFilterMonth] = useState('');
 
     const [selectedSales, setSelectedSales] = useState<number[]>([]);
     const [isMassActionModalOpen, setIsMassActionModalOpen] = useState(false);
@@ -192,19 +191,19 @@ const FinanceSales = () => {
                 }
             }
 
-            if (name === 'quantity_hired' || name === 'unit_value' || name === 'quantity_delivered' || name === 'salesperson_id' || name === 'client_name') {
+            if (name === 'unit_value' || name === 'quantity_delivered' || name === 'salesperson_id' || name === 'client_name') {
                 const finalUnit = name === 'unit_value' ? parseFloat(value) || 0 : newData.unit_value;
-                const finalHired = name === 'quantity_hired' ? parseInt(value) || 0 : newData.quantity_hired;
                 const finalDelivered = name === 'quantity_delivered' ? parseInt(value) || 0 : newData.quantity_delivered;
 
-                newData.total_value = finalHired * finalUnit;
-                newData.used_value = finalDelivered * finalUnit; // just for reference if needed
+                // Faturamento Bruto e Comissão agora sempre refletem a quantidade entregue
+                newData.total_value = finalDelivered * finalUnit;
+                newData.used_value = finalDelivered * finalUnit;
                 newData.remaining_balance = 0;
                 
                 const commPerUnit = getCommissionForPrice(finalUnit);
                 
                 if (commPerUnit > 0) {
-                    newData.commission_value = finalHired * commPerUnit;
+                    newData.commission_value = finalDelivered * commPerUnit;
                 } else {
                     const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
                     if (sp) {
@@ -240,8 +239,12 @@ const FinanceSales = () => {
             // Sync client credits balance
             if (clientObj) {
                 const isPaid = formData.payment_status === 'RECEBIDO' || (useClientBalance && clientBalance > 0);
-                const addedCredits = isPaid ? (formData.quantity_hired || 0) : 0;
-                const newCredits = currentCredits + addedCredits - (formData.quantity_delivered || 0);
+                const delivered = formData.quantity_delivered || 0;
+                
+                // Em Venda/Entrega combinada, apenas deduzimos o consumo do saldo existente.
+                // Se foi pago a mais, significa que comprou mais do que consumiu. 
+                // Mas de acordo com a regra: apenas deduzimos o entregue.
+                const newCredits = currentCredits - delivered;
                 
                 await fetch(`/api/users/${clientObj.id}/commercial`, {
                     method: 'PUT',
@@ -393,13 +396,9 @@ const FinanceSales = () => {
 
         const saleDateObj = s.sale_date ? new Date(s.sale_date) : null;
         let matchesDate = true;
-        if (saleDateObj) {
-            if (filterStartDate) {
-                matchesDate = matchesDate && saleDateObj >= new Date(filterStartDate);
-            }
-            if (filterEndDate) {
-                matchesDate = matchesDate && saleDateObj <= new Date(filterEndDate);
-            }
+        if (filterMonth && saleDateObj) {
+            const saleMonth = `${saleDateObj.getFullYear()}-${String(saleDateObj.getMonth() + 1).padStart(2, '0')}`;
+            matchesDate = saleMonth === filterMonth;
         }
 
         return matchesSearch && matchesStatus && matchesSalesperson && matchesClient && matchesDate;
@@ -407,7 +406,7 @@ const FinanceSales = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filterStatus, filterSalesperson, filterClient, filterStartDate, filterEndDate]);
+    }, [searchTerm, filterStatus, filterSalesperson, filterClient, filterMonth]);
 
     const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
     const paginatedSales = filteredSales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -657,21 +656,12 @@ const FinanceSales = () => {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '0 1 auto' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Data Inicial</span>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Mês da Venda</span>
                             <input
-                                type="datetime-local"
+                                type="month"
                                 className="filter-select"
-                                value={filterStartDate}
-                                onChange={(e) => setFilterStartDate(e.target.value)}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '0 1 auto' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Data Final</span>
-                            <input
-                                type="datetime-local"
-                                className="filter-select"
-                                value={filterEndDate}
-                                onChange={(e) => setFilterEndDate(e.target.value)}
+                                value={filterMonth}
+                                onChange={(e) => setFilterMonth(e.target.value)}
                             />
                         </div>
 
@@ -694,7 +684,7 @@ const FinanceSales = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '8px', alignItems: 'flex-end' as const }}>
-                        {user?.role === 'ADMIN' && (
+                        {(user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE') && (
                             <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '0 1 180px' }}>
                                 <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Vendedor</span>
                                 <select
@@ -710,21 +700,19 @@ const FinanceSales = () => {
                             </div>
                         )}
 
-                        {user?.role !== 'CLIENT' && (
-                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '1 1 200px', minWidth: '150px' }}>
-                                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Cliente</span>
-                                <select
-                                    className="filter-select"
-                                    value={filterClient}
-                                    onChange={(e) => setFilterClient(e.target.value)}
-                                >
-                                    <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Clientes</option>
-                                    {uniqueClients.map(client => (
-                                        <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '1 1 200px', minWidth: '150px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Cliente</span>
+                            <select
+                                className="filter-select"
+                                value={filterClient}
+                                onChange={(e) => setFilterClient(e.target.value)}
+                            >
+                                <option value="TODOS" style={{ background: '#0a0f18' }}>Todos Clientes</option>
+                                {uniqueClients.map(client => (
+                                    <option key={client} value={client} style={{ background: '#0a0f18' }}>{client}</option>
+                                ))}
+                            </select>
+                        </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', flex: '0 1 160px' }}>
                             <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' as const, paddingLeft: '4px' }}>Status</span>
@@ -1024,14 +1012,12 @@ const FinanceSales = () => {
                                                         {(() => {
                                                             const c = dbClients.find(cl => cl.name === formData.client_name);
                                                             const currentCredits = c ? c.disparo_quantidade || 0 : 0;
-                                                            const isPaid = formData.payment_status === 'RECEBIDO' || (useClientBalance && clientBalance > 0);
-                                                            const added = isPaid ? (parseInt(String(formData.quantity_hired)) || 0) : 0;
                                                             const delivered = parseInt(String(formData.quantity_delivered)) || 0;
-                                                            if (delivered > currentCredits + added) {
+                                                            if (delivered > currentCredits) {
                                                                 return (
                                                                     <div style={{ marginTop: '6px', padding: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171' }}>
                                                                         <AlertCircle size={14} />
-                                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>Aviso: Cliente ficará negativado em {Math.abs(currentCredits + added - delivered).toLocaleString('pt-BR')} disparos!</span>
+                                                                        <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>Aviso: Cliente ficará negativado em {Math.abs(currentCredits - delivered).toLocaleString('pt-BR')} disparos!</span>
                                                                     </div>
                                                                 );
                                                             }
@@ -1155,11 +1141,6 @@ const FinanceSales = () => {
                                         <Package size={14} /> ACORDO COMERCIAL
                                     </h3>
 
-                                    <div style={{ marginBottom: '20px' }}>
-                                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Quantidade Contratada / Vendida (UNID)</label>
-                                        <input type="number" className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 900, padding: '16px', width: '100%', fontSize: '1.2rem' }} name="quantity_hired" value={formData.quantity_hired || ''} onChange={handleInputChange} placeholder="0" />
-                                    </div>
-
                                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
                                         <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <AlertCircle size={14} color="var(--primary-color)"/> Tabela Padrão de Comissões
@@ -1172,13 +1153,13 @@ const FinanceSales = () => {
                                                     : `A partir de R$ ${tier.minPrice.toFixed(2)}`;
                                                 return (
                                                     <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem' }}>
-                                                        <span style={{ color: 'var(--text-muted)' }}>{label}:</span> <strong style={{ color: 'var(--primary-color)' }}>R$ {tier.commission.toFixed(3)}</strong>
+                                                        <span style={{ color: 'var(--text-muted)' }}>{label}:</span> <strong style={{ color: 'var(--primary-color)' }}>R$ {tier.commission === 0.005 ? '0.005' : tier.commission.toFixed(2)}</strong>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                         <div style={{ marginTop: '10px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                            Comissão projetada (unitária): <strong style={{ color: 'var(--primary-color)' }}>R$ {getCommissionForPrice(parseFloat(String(formData.unit_value).replace(',', '.')) || 0).toFixed(3)}</strong>
+                                            Comissão projetada (unitária): <strong style={{ color: 'var(--primary-color)' }}>R$ {getCommissionForPrice(parseFloat(String(formData.unit_value).replace(',', '.')) || 0) === 0.005 ? '0.005' : getCommissionForPrice(parseFloat(String(formData.unit_value).replace(',', '.')) || 0).toFixed(2)}</strong>
                                         </div>
                                     </div>
 
@@ -1345,10 +1326,8 @@ const FinanceSales = () => {
                                                 <span style={{ fontSize: '0.85rem', color: '#38bdf8', fontWeight: 900 }}>
                                                     {(() => {
                                                         const current = dbClients.find(c => c.name === formData.client_name)?.disparo_quantidade || 0;
-                                                        const isPaid = formData.payment_status === 'RECEBIDO' || (useClientBalance && clientBalance > 0);
-                                                        const added = isPaid ? (parseInt(String(formData.quantity_hired)) || 0) : 0;
                                                         const delivered = parseInt(String(formData.quantity_delivered)) || 0;
-                                                        return (current + added - delivered).toLocaleString('pt-BR');
+                                                        return (current - delivered).toLocaleString('pt-BR');
                                                     })()} disparos
                                                 </span>
                                             </div>
