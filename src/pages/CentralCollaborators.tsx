@@ -22,6 +22,10 @@ const CentralCollaborators = () => {
     const [collabRequests, setCollabRequests] = useState<any[]>([]);
     const [submitting, setSubmitting] = useState(false);
     
+    // Manual Advance/Discount
+    const [manualValue, setManualValue] = useState('');
+    const [manualJustification, setManualJustification] = useState('');
+    
     // Hub Tab View
     const [activeHubTab, setActiveHubTab] = useState<'adiantamentos' | 'comissoes'>('adiantamentos');
 
@@ -163,6 +167,43 @@ const CentralCollaborators = () => {
                 setRequests(reqData || []);
                 
                 // Update active modal info
+                const updatedCollab = spreadData.find((c: any) => c.id === selectedCollab.id);
+                if (updatedCollab) setSelectedCollab(updatedCollab);
+                setCollabRequests(reqData.filter((r: any) => r.user_id === selectedCollab.id));
+            }
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleAddManualAdvance = async () => {
+        const val = parseFloat(manualValue);
+        if (isNaN(val)) return alert('Por favor, informe um valor numérico válido.');
+        if (!manualJustification.trim()) return alert('Por favor, informe a justificativa.');
+        
+        setSubmitting(true);
+        try {
+            const res = await dbService.addManualAdvance({
+                userId: selectedCollab.id,
+                competence,
+                value: val,
+                justification: manualJustification
+            });
+            
+            if (res.error) {
+                alert(res.error);
+            } else {
+                alert('Lançamento manual adicionado com sucesso!');
+                setManualValue('');
+                setManualJustification('');
+                
+                const spreadData = await dbService.getCompetencesSpreadsheet(competence);
+                const reqData = await dbService.getPendingRequests();
+                setCollaborators(spreadData || []);
+                setRequests(reqData || []);
+                
                 const updatedCollab = spreadData.find((c: any) => c.id === selectedCollab.id);
                 if (updatedCollab) setSelectedCollab(updatedCollab);
                 setCollabRequests(reqData.filter((r: any) => r.user_id === selectedCollab.id));
@@ -656,7 +697,46 @@ const CentralCollaborators = () => {
                         </div>
 
                         {/* Requests History List */}
-                        <h4 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 900 }}>Histórico de Adiantamentos</h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900 }}>Histórico de Adiantamentos</h4>
+                        </div>
+                        
+                        {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE' || user?.email?.includes('contabilidade')) && (
+                            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border-subtle)', borderRadius: '16px', padding: '16px', marginBottom: '24px' }}>
+                                <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '12px', color: 'var(--text-muted)' }}>LANÇAMENTO MANUAL (Adiantamento ou Desconto)</div>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                    <div style={{ flex: 1, minWidth: '120px' }}>
+                                        <input 
+                                            type="number"
+                                            placeholder="Valor (ex: 150.00 ou -50.00)"
+                                            className="field-input"
+                                            value={manualValue}
+                                            onChange={e => setManualValue(e.target.value)}
+                                            style={{ height: '40px', fontSize: '13px' }}
+                                        />
+                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Use negativo (-) para desconto</span>
+                                    </div>
+                                    <div style={{ flex: 2, minWidth: '200px' }}>
+                                        <input 
+                                            type="text"
+                                            placeholder="Justificativa / Motivo"
+                                            className="field-input"
+                                            value={manualJustification}
+                                            onChange={e => setManualJustification(e.target.value)}
+                                            style={{ height: '40px', fontSize: '13px' }}
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={handleAddManualAdvance}
+                                        disabled={submitting || !manualValue || !manualJustification}
+                                        className="action-btn primary-btn"
+                                        style={{ height: '40px', padding: '0 16px', fontSize: '12px' }}
+                                    >
+                                        LANÇAR
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                         
                         {collabRequests.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '24px', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>

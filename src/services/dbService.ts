@@ -912,6 +912,23 @@ export const dbService = {
             return { error: err.message };
         }
     },
+    addManualAdvance: async (data: { userId: number; competence: string; value: number; justification?: string }) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/admin/manual-advance`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro ao adicionar lançamento manual.');
+            }
+            return await res.json();
+        } catch (err: any) {
+            console.error("Error adding manual advance:", err);
+            return { error: err.message };
+        }
+    },
     getMyRequests: async (userId: number) => {
         try {
             const res = await fetch(`${API_BASE}/finance/my-requests?userId=${userId}`);

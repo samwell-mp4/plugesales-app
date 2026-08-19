@@ -2404,6 +2404,31 @@ app.get('/api/finance/my-competence', async (req, res) => {
     }
 });
 
+// Endpoint Manual Adiantamento / Desconto
+app.post('/api/finance/admin/manual-advance', async (req, res) => {
+    const { userId, competence, value, justification } = req.body;
+    if (!userId || !competence || value === undefined) {
+        return res.status(400).json({ error: 'Faltam dados obrigatórios.' });
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+        return res.status(400).json({ error: 'Valor inválido.' });
+    }
+    try {
+        const userRes = await pool.query('SELECT pix_key FROM users WHERE id = $1', [userId]);
+        const pix_key = userRes.rows.length > 0 ? userRes.rows[0].pix_key : '';
+        
+        await pool.query(
+            `INSERT INTO advance_requests (user_id, competence, value, pix_key, status, justification) 
+             VALUES ($1, $2, $3, $4, 'Aprovado', $5)`,
+            [userId, competence, numValue, pix_key || 'Manual', justification || 'Lançamento manual']
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 2. Request advance
 app.post('/api/finance/request-advance', async (req, res) => {
     const { userId, competence, value, pix_key } = req.body;
