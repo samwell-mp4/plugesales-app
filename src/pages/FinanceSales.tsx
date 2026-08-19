@@ -117,6 +117,20 @@ const FinanceSales = () => {
     const [clientBalance, setClientBalance] = useState(0);
     const [useClientBalance, setUseClientBalance] = useState(false);
 
+    const [commissionTiers, setCommissionTiers] = useState<any[]>([
+        { minPrice: 0, commission: 0.005 },
+        { minPrice: 0.20, commission: 0.01 },
+        { minPrice: 0.25, commission: 0.02 },
+        { minPrice: 0.30, commission: 0.03 },
+        { minPrice: 0.40, commission: 0.04 }
+    ]);
+    
+    const getCommissionForPrice = (price: number) => {
+        const sortedTiers = [...commissionTiers].sort((a, b) => b.minPrice - a.minPrice);
+        const tier = sortedTiers.find(t => price >= t.minPrice);
+        return tier ? tier.commission : 0;
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -124,14 +138,20 @@ const FinanceSales = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [salesData, peopleData, clientsRes] = await Promise.all([
+            const [salesData, peopleData, clientsRes, settingsData] = await Promise.all([
                 dbService.getFinanceSales({ userId: user?.id, role: user?.role }),
                 dbService.getFinanceSalespeople(),
-                fetch('/api/clients').then(res => res.json()).catch(() => [])
+                fetch('/api/clients').then(res => res.json()).catch(() => []),
+                dbService.getSettings(user?.role)
             ]);
             setSales(salesData);
             setSalespeople(peopleData);
             setDbClients(clientsRes);
+            if (settingsData['commission_tiers']) {
+                try {
+                    setCommissionTiers(JSON.parse(settingsData['commission_tiers']));
+                } catch(e) {}
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -190,7 +210,7 @@ const FinanceSales = () => {
                 newData.used_value = billedQuantity * finalUnit;
                 newData.remaining_balance = 0;
                 
-                const commPerUnit = clientObj ? parseFloat(String(clientObj.comissao_vendedor || '0').replace(',', '.')) || 0 : 0;
+                const commPerUnit = getCommissionForPrice(finalUnit);
                 
                 if (commPerUnit > 0) {
                     newData.commission_value = billedQuantity * commPerUnit;
@@ -1146,6 +1166,29 @@ const FinanceSales = () => {
                                     <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Package size={14} /> ACORDO COMERCIAL
                                     </h3>
+
+                                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <AlertCircle size={14} color="var(--primary-color)"/> Tabela Padrão de Comissões
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                            {[...commissionTiers].sort((a, b) => a.minPrice - b.minPrice).map((tier, idx, arr) => {
+                                                const nextTier = arr[idx + 1];
+                                                const label = nextTier 
+                                                    ? `Até R$ ${(nextTier.minPrice - 0.01).toFixed(2)}` 
+                                                    : `A partir de R$ ${tier.minPrice.toFixed(2)}`;
+                                                return (
+                                                    <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem' }}>
+                                                        <span style={{ color: 'var(--text-muted)' }}>{label}:</span> <strong style={{ color: 'var(--primary-color)' }}>R$ {tier.commission.toFixed(3)}</strong>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div style={{ marginTop: '10px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                            Comissão projetada (unitária): <strong style={{ color: 'var(--primary-color)' }}>R$ {getCommissionForPrice(parseFloat(String(formData.unit_value).replace(',', '.')) || 0).toFixed(3)}</strong>
+                                        </div>
+                                    </div>
+
                                     <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800 }}>VALOR UNITÁRIO ACORDADO:</span>
                                         <span style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: 900 }}>

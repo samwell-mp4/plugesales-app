@@ -16,6 +16,16 @@ const FinanceCommissions = () => {
     const [editingCommission, setEditingCommission] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
     
+    const defaultTiers = [
+        { minPrice: 0, commission: 0.005 },
+        { minPrice: 0.20, commission: 0.01 },
+        { minPrice: 0.25, commission: 0.02 },
+        { minPrice: 0.30, commission: 0.03 },
+        { minPrice: 0.40, commission: 0.04 }
+    ];
+    const [commissionTiers, setCommissionTiers] = useState<any[]>(defaultTiers);
+    const [isEditingTiers, setIsEditingTiers] = useState(false);
+    
     // Filtros e paginação
     const [statusFilter, setStatusFilter] = useState<'TODOS' | 'PREVISTA' | 'PAGA'>('TODOS');
     const [salesPages, setSalesPages] = useState<Record<number, number>>({});
@@ -32,12 +42,22 @@ const FinanceCommissions = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [peopleData, salesData] = await Promise.all([
+            const [peopleData, salesData, settingsData] = await Promise.all([
                 dbService.getFinanceSalespeople(),
-                dbService.getFinanceSales({ userId: user?.id, role: user?.role })
+                dbService.getFinanceSales({ userId: user?.id, role: user?.role }),
+                dbService.getSettings(user?.role)
             ]);
             setSalespeople(peopleData);
             setSales(salesData);
+            if (settingsData['commission_tiers']) {
+                try {
+                    setCommissionTiers(JSON.parse(settingsData['commission_tiers']));
+                } catch(e) {
+                    setCommissionTiers(defaultTiers);
+                }
+            } else {
+                setCommissionTiers(defaultTiers);
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -169,6 +189,91 @@ const FinanceCommissions = () => {
                     </button>
                 </div>
             </header>
+
+            {(isAdmin || user?.role === 'CONTABILIDADE') && (
+                <div className="commission-card-finance mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-white font-black" style={{ fontSize: '1.2rem', margin: 0 }}>Regras de Comissão (Vendedores)</h3>
+                        <button 
+                            onClick={() => {
+                                if (isEditingTiers) {
+                                    setIsSaving(true);
+                                    dbService.saveSetting('commission_tiers', JSON.stringify(commissionTiers))
+                                        .then(() => setIsEditingTiers(false))
+                                        .catch(() => alert("Erro ao salvar regras."))
+                                        .finally(() => setIsSaving(false));
+                                } else {
+                                    setIsEditingTiers(true);
+                                }
+                            }}
+                            className="action-btn primary-btn"
+                            style={{ height: '38px', padding: '0 16px', fontSize: '0.8rem' }}
+                            disabled={isSaving}
+                        >
+                            {isEditingTiers ? <><Save size={16}/> SALVAR REGRAS</> : <><Edit3 size={16}/> EDITAR REGRAS</>}
+                        </button>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                        {commissionTiers.map((tier, idx) => (
+                            <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
+                                {isEditingTiers && (
+                                    <button 
+                                        onClick={() => setCommissionTiers(prev => prev.filter((_, i) => i !== idx))}
+                                        style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                    >
+                                        <X size={16}/>
+                                    </button>
+                                )}
+                                <div style={{ marginBottom: '8px' }}>
+                                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 800 }}>Preço Mínimo (R$)</label>
+                                    {isEditingTiers ? (
+                                        <input 
+                                            type="number" 
+                                            step="0.01"
+                                            value={tier.minPrice}
+                                            onChange={e => {
+                                                const newTiers = [...commissionTiers];
+                                                newTiers[idx].minPrice = parseFloat(e.target.value) || 0;
+                                                setCommissionTiers(newTiers);
+                                            }}
+                                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '6px', padding: '6px 10px', width: '100%' }}
+                                        />
+                                    ) : (
+                                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>R$ {tier.minPrice.toFixed(2)}</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 800 }}>Comissão (R$)</label>
+                                    {isEditingTiers ? (
+                                        <input 
+                                            type="number" 
+                                            step="0.001"
+                                            value={tier.commission}
+                                            onChange={e => {
+                                                const newTiers = [...commissionTiers];
+                                                newTiers[idx].commission = parseFloat(e.target.value) || 0;
+                                                setCommissionTiers(newTiers);
+                                            }}
+                                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--primary-color)', borderRadius: '6px', padding: '6px 10px', width: '100%' }}
+                                        />
+                                    ) : (
+                                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {tier.commission.toFixed(3)}</div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {isEditingTiers && (
+                            <button 
+                                onClick={() => setCommissionTiers(prev => [...prev, { minPrice: 0.50, commission: 0.05 }])}
+                                style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.2)', padding: '16px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: 800 }}
+                            >
+                                + NOVA FAIXA
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="flex gap-2 mb-6">
                 {(['TODOS', 'PREVISTA', 'PAGA'] as const).map(f => (

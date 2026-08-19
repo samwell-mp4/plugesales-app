@@ -67,6 +67,10 @@ const TemplateCreator = () => {
     const META_TOKEN = 'EAAR8bIZClsZCUBRWtOZB59QitbLQXFZAKuDIpGpipNZBKY6RvCp9K6CdBzULsYIp94YcALoOkTAqNEH320QZCPVJVTyCZCu8Ep1oX8OZB9MLOwCOZC5cIkV263CaxGwtk9BNs4zNhfYzej8qFNBLlKZCTYumQSMfI4bZCTRDOTtKlqPnudVzO189FZAwikKYndd2TQZDZD';
     const META_WABA_ID = '1262705619350517';
 
+    // --- MANUAL PAYLOAD STATE ---
+    const [isEditingPayload, setIsEditingPayload] = useState(false);
+    const [manualPayloadStr, setManualPayloadStr] = useState("");
+
 
     const effectiveApiKey = useLuis ? LUIS_KEY : apiKey;
     const effectiveBaseUrl = useLuis ? LUIS_BASE : (infobipUrl || DEFAULT_BASE);
@@ -621,9 +625,30 @@ const TemplateCreator = () => {
                     const currentName = copyCount > 1 ? `${sanitizedBaseName}_${String(i).padStart(3, '0')}` : sanitizedBaseName;
                     setGeneratingProgress({ current: currentOp, total: totalOps, msg: `Publicando "${currentName}" no remetente ${sender}...` });
 
-                    const payload = useMetaDirect
-                        ? buildMetaPayload(currentName, selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, undefined, enableCustomVariables ? bodyText : undefined)
-                        : buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage, undefined, undefined, undefined, undefined, undefined, undefined, enableCustomVariables ? bodyText : undefined);
+                    let payload;
+                    if (isEditingPayload) {
+                        try {
+                            const parsed = JSON.parse(manualPayloadStr);
+                            if (useMetaDirect) {
+                                if (parsed.name) parsed.name = currentName;
+                            } else {
+                                if (Array.isArray(parsed)) {
+                                    parsed.forEach(item => { if (item.name) item.name = currentName; });
+                                } else if (parsed.name) {
+                                    parsed.name = currentName;
+                                }
+                            }
+                            payload = parsed;
+                        } catch(e) {
+                            alert("JSON Payload manual inválido. Cancele a edição ou corrija o JSON antes de publicar.");
+                            setIsGenerating(false);
+                            return;
+                        }
+                    } else {
+                        payload = useMetaDirect
+                            ? buildMetaPayload(currentName, selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, undefined, enableCustomVariables ? bodyText : undefined)
+                            : buildInfobipPayload_STRICT(currentName, selectedPayloadLanguage, undefined, undefined, undefined, undefined, undefined, undefined, enableCustomVariables ? bodyText : undefined);
+                    }
 
 
                     const res = useMetaDirect
@@ -2040,11 +2065,38 @@ const TemplateCreator = () => {
                                 </div>
                             </div>
                             <div className="mt-8" ref={progressContainerRef}>
-                                <h4 style={{ color: 'var(--text-secondary)', marginBottom: '10px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <h4 style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
+                                    <button 
+                                        onClick={() => {
+                                            if (isEditingPayload) {
+                                                setIsEditingPayload(false);
+                                            } else {
+                                                const currentPayload = useMetaDirect
+                                                    ? buildMetaPayload(modelName || 'nome_exemplo', selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, undefined, enableCustomVariables ? bodyText : undefined)
+                                                    : buildInfobipPayload_STRICT(modelName || 'nome_exemplo', selectedPayloadLanguage, undefined, undefined, undefined, undefined, undefined, undefined, enableCustomVariables ? bodyText : undefined);
+                                                setManualPayloadStr(JSON.stringify(currentPayload, null, 2));
+                                                setIsEditingPayload(true);
+                                            }
+                                        }}
+                                        className="global-tile-btn global-tile-btn-ghost"
+                                        style={{ height: '24px', fontSize: '0.65rem', padding: '0 8px' }}
+                                    >
+                                        {isEditingPayload ? 'CANCELAR EDIÇÃO MANUAL' : 'EDITAR MANUALMENTE'}
+                                    </button>
+                                </div>
                                 <div style={{ background: 'var(--code-bg)', padding: '12px', borderRadius: '16px', border: '1px solid var(--surface-border)', overflow: 'hidden' }}>
-                                    <pre style={{ margin: 0, fontSize: '0.65rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
-                                        <code>{JSON.stringify(buildInfobipPayload_STRICT(modelName, selectedPayloadLanguage), null, 2)}</code>
-                                    </pre>
+                                    {isEditingPayload ? (
+                                        <textarea
+                                            value={manualPayloadStr}
+                                            onChange={e => setManualPayloadStr(e.target.value)}
+                                            style={{ width: '100%', height: '300px', background: 'transparent', border: 'none', color: 'var(--primary-color)', fontFamily: 'monospace', fontSize: '0.7rem', outline: 'none', resize: 'vertical' }}
+                                        />
+                                    ) : (
+                                        <pre style={{ margin: 0, fontSize: '0.65rem', color: 'var(--primary-color)', opacity: 0.8, overflowX: 'auto' }}>
+                                            <code>{JSON.stringify(useMetaDirect ? buildMetaPayload(modelName || 'nome_exemplo', selectedPayloadLanguage, headerType, buttons.filter(b => b.type === 'url').map(b => b.url || ''), buttons.length > 0, buttons.filter(b => b.type === 'url').map(b => b.text), headerMediaUrl, undefined, enableCustomVariables ? bodyText : undefined) : buildInfobipPayload_STRICT(modelName || 'nome_exemplo', selectedPayloadLanguage, undefined, undefined, undefined, undefined, undefined, undefined, enableCustomVariables ? bodyText : undefined), null, 2)}</code>
+                                        </pre>
+                                    )}
                                 </div>
 
                                 {isGenerating && (

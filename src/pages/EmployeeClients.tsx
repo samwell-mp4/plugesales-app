@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, Clock, CheckCircle2, ShieldCheck, Edit, Trash2, Key, Search, DollarSign, Plus, Minus, Coins, Zap, User, Link as LinkIcon, RefreshCw, X, Filter, ExternalLink } from 'lucide-react';
+import { Users, Clock, CheckCircle2, ShieldCheck, Edit, Trash2, Key, Search, DollarSign, Plus, Minus, Coins, Zap, User, Link as LinkIcon, RefreshCw, X, Filter, ExternalLink, AlertCircle } from 'lucide-react';
 import { dbService } from '../services/dbService';
 
 const EmployeeClients = () => {
@@ -108,14 +108,29 @@ const EmployeeClients = () => {
     const [uploadingCreditReceipt, setUploadingCreditReceipt] = useState(false);
     const [creditNotes, setCreditNotes] = useState('');
 
+    const [commissionTiers, setCommissionTiers] = useState<any[]>([
+        { minPrice: 0, commission: 0.005 },
+        { minPrice: 0.20, commission: 0.01 },
+        { minPrice: 0.25, commission: 0.02 },
+        { minPrice: 0.30, commission: 0.03 },
+        { minPrice: 0.40, commission: 0.04 }
+    ]);
+    
+    const getCommissionForPrice = (price: number) => {
+        const sortedTiers = [...commissionTiers].sort((a, b) => b.minPrice - a.minPrice);
+        const tier = sortedTiers.find(t => price >= t.minPrice);
+        return tier ? tier.commission : 0;
+    };
+
     const loadClients = async () => {
         setIsLoading(true);
         try {
             const sellerFilter = (user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE') ? '' : `seller_name=${encodeURIComponent(user?.name || '')}`;
-            const [pendingRes, approvedRes, peopleData] = await Promise.all([
+            const [pendingRes, approvedRes, peopleData, settingsData] = await Promise.all([
                 fetch(`/api/users/pending?${sellerFilter}`),
                 fetch(`/api/admin/users?${sellerFilter}`),
-                dbService.getFinanceSalespeople()
+                dbService.getFinanceSalespeople(),
+                dbService.getSettings(user?.role)
             ]);
             
             const pendingData = await pendingRes.json();
@@ -124,6 +139,11 @@ const EmployeeClients = () => {
             setPendingClients(pendingData.filter((u: any) => u.role === 'CLIENT' || u.role === 'ASSINATURA_BASICA'));
             setApprovedClients(approvedData.filter((u: any) => u.role === 'CLIENT' || u.role === 'ASSINATURA_BASICA'));
             setSalespeople(peopleData);
+            if (settingsData['commission_tiers']) {
+                try {
+                    setCommissionTiers(JSON.parse(settingsData['commission_tiers']));
+                } catch(e) {}
+            }
         } catch (err) {
             console.error("Error loading clients:", err);
         } finally {
@@ -567,7 +587,7 @@ const EmployeeClients = () => {
                 payment_status: saleForm.payment_status,
                 payment_competence: new Date().toISOString().slice(0, 7),
                 commission_status: 'PREVISTA',
-                commission_value: saleForm.quantity_hired * (parseFloat(String(selectedClientForSale.comissao_vendedor || '0').replace(',', '.')) || 0),
+                commission_value: saleForm.quantity_hired * getCommissionForPrice(parseFloat(String(saleForm.unit_value).replace(',', '.')) || 0.20),
                 receipt_url: receiptUrl,
                 report_url: reportUrl || null,
                 notes: saleNotes || null,
@@ -1083,6 +1103,28 @@ const EmployeeClients = () => {
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
                             Você está registrando uma nova venda de créditos para o cliente <strong style={{ color: 'white' }}>{selectedClientForSale?.name}</strong>.
                         </p>
+
+                        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <AlertCircle size={14} color="var(--primary-color)"/> Tabela Padrão de Comissões
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                {[...commissionTiers].sort((a, b) => a.minPrice - b.minPrice).map((tier, idx, arr) => {
+                                    const nextTier = arr[idx + 1];
+                                    const label = nextTier 
+                                        ? `Até R$ ${(nextTier.minPrice - 0.01).toFixed(2)}` 
+                                        : `A partir de R$ ${tier.minPrice.toFixed(2)}`;
+                                    return (
+                                        <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem' }}>
+                                            <span style={{ color: 'var(--text-muted)' }}>{label}:</span> <strong style={{ color: 'var(--primary-color)' }}>R$ {tier.commission.toFixed(3)}</strong>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div style={{ marginTop: '10px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                Comissão calculada para esta venda: <strong style={{ color: 'var(--primary-color)' }}>R$ {(saleForm.quantity_hired * getCommissionForPrice(parseFloat(String(saleForm.unit_value).replace(',', '.')) || 0.20)).toFixed(2)}</strong> (R$ {getCommissionForPrice(parseFloat(String(saleForm.unit_value).replace(',', '.')) || 0.20).toFixed(3)} un)
+                            </div>
+                        </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div>
