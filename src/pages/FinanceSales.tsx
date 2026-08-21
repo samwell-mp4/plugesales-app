@@ -117,19 +117,7 @@ const FinanceSales = () => {
     const [clientBalance, setClientBalance] = useState(0);
     const [useClientBalance, setUseClientBalance] = useState(false);
 
-    const [commissionTiers, setCommissionTiers] = useState<any[]>([
-        { minPrice: 0, commission: 0.005 },
-        { minPrice: 0.20, commission: 0.01 },
-        { minPrice: 0.25, commission: 0.02 },
-        { minPrice: 0.30, commission: 0.03 },
-        { minPrice: 0.40, commission: 0.04 }
-    ]);
-    
-    const getCommissionForPrice = (price: number) => {
-        const sortedTiers = [...commissionTiers].sort((a, b) => b.minPrice - a.minPrice);
-        const tier = sortedTiers.find(t => price >= t.minPrice);
-        return tier ? tier.commission : 0;
-    };
+
 
     useEffect(() => {
         fetchData();
@@ -147,11 +135,7 @@ const FinanceSales = () => {
             setSales(salesData);
             setSalespeople(peopleData);
             setDbClients(clientsRes);
-            if (settingsData['commission_tiers']) {
-                try {
-                    setCommissionTiers(JSON.parse(settingsData['commission_tiers']));
-                } catch(e) {}
-            }
+
         } catch (err) {
             console.error(err);
         } finally {
@@ -200,9 +184,24 @@ const FinanceSales = () => {
                 newData.used_value = finalDelivered * finalUnit;
                 newData.remaining_balance = 0;
                 
-                // Commission is generated based on unit value tier
-                const commissionPercent = getCommissionForPrice(newData.unit_value || 0);
-                newData.commission_value = (newData.quantity_hired || 0) * commissionPercent;
+                let commPerUnit = 0;
+                let commissionPerc = 0;
+                if (newData.client_name) {
+                    const clientObj = dbClients.find(c => c.name === newData.client_name);
+                    if (clientObj && clientObj.comissao_vendedor) {
+                        commPerUnit = parseFloat(String(clientObj.comissao_vendedor).replace(',', '.')) || 0;
+                    }
+                }
+                
+                if (commPerUnit > 0) {
+                    newData.commission_value = (newData.quantity_hired || 0) * commPerUnit;
+                } else if (newData.salesperson_id) {
+                    const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
+                    if (sp) {
+                        commissionPerc = sp.commission_percentage || 0;
+                        newData.commission_value = (newData.total_value * commissionPerc) / 100;
+                    }
+                }
                 newData.commission_status = 'PREVISTA';
             }
             return newData;
@@ -1147,26 +1146,26 @@ const FinanceSales = () => {
                                         <Package size={14} /> ACORDO COMERCIAL
                                     </h3>
 
-                                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <AlertCircle size={14} color="var(--primary-color)"/> Aviso sobre Comissões
-                                        </div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                            As comissões são geradas no momento da venda, seguindo a base de comissionamento de acordo com o preço unitário.<br/><br/>
-                                            Exemplo de regra atual (pode ser alterada em Configurações &gt; Regras de Comissão Operacional):<br/>
-                                            • Até 0,19 - comissão 0,005<br/>
-                                            • A partir de 0,20 - comissão 0,01<br/>
-                                            • A partir de 0,25 - comissão 0,02<br/>
-                                            • A partir de 0,30 - comissão 0,03<br/>
-                                            • A partir de 0,40 - comissão 0,04
-                                        </div>
-                                    </div>
 
-                                    <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800 }}>VALOR UNITÁRIO ACORDADO:</span>
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: 900 }}>
-                                            R$ {(formData.unit_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                        </span>
+
+                                    <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800 }}>VALOR UNITÁRIO ACORDADO:</span>
+                                            <span style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: 900 }}>
+                                                R$ {(formData.unit_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800 }}>COMISSÃO DO VENDEDOR (R$):</span>
+                                            <input 
+                                                type="number" 
+                                                step="0.01" 
+                                                name="commission_value" 
+                                                value={formData.commission_value || 0} 
+                                                onChange={handleInputChange}
+                                                style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontWeight: 900, textAlign: 'right', outline: 'none', width: '120px' }}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="pt-4">
