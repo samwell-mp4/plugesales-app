@@ -195,21 +195,13 @@ const FinanceSales = () => {
                 const finalUnit = name === 'unit_value' ? parseFloat(value) || 0 : newData.unit_value;
                 const finalDelivered = name === 'quantity_delivered' ? parseInt(value) || 0 : newData.quantity_delivered;
 
-                // Faturamento Bruto e Comissão agora sempre refletem a quantidade entregue
                 newData.total_value = finalDelivered * finalUnit;
                 newData.used_value = finalDelivered * finalUnit;
                 newData.remaining_balance = 0;
                 
-                const commPerUnit = getCommissionForPrice(finalUnit);
-                
-                if (commPerUnit > 0) {
-                    newData.commission_value = finalDelivered * commPerUnit;
-                } else {
-                    const sp = salespeople.find(s => String(s.id) === String(newData.salesperson_id));
-                    if (sp) {
-                        newData.commission_value = (newData.total_value * (sp.commission_percentage || 0)) / 100;
-                    }
-                }
+                // Commission is no longer generated here.
+                newData.commission_value = 0;
+                newData.commission_status = 'N/A';
             }
             return newData;
         });
@@ -1143,23 +1135,10 @@ const FinanceSales = () => {
 
                                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
                                         <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <AlertCircle size={14} color="var(--primary-color)"/> Tabela Padrão de Comissões
+                                            <AlertCircle size={14} color="var(--primary-color)"/> Aviso sobre Comissões
                                         </div>
-                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                            {[...commissionTiers].sort((a, b) => a.minPrice - b.minPrice).map((tier, idx, arr) => {
-                                                const nextTier = arr[idx + 1];
-                                                const label = nextTier 
-                                                    ? `Até R$ ${(nextTier.minPrice - 0.01).toFixed(2)}` 
-                                                    : `A partir de R$ ${tier.minPrice.toFixed(2)}`;
-                                                return (
-                                                    <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem' }}>
-                                                        <span style={{ color: 'var(--text-muted)' }}>{label}:</span> <strong style={{ color: 'var(--primary-color)' }}>R$ {tier.commission === 0.005 ? '0.005' : tier.commission.toFixed(2)}</strong>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                        <div style={{ marginTop: '10px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                            Comissão projetada (unitária): <strong style={{ color: 'var(--primary-color)' }}>R$ {getCommissionForPrice(parseFloat(String(formData.unit_value).replace(',', '.')) || 0) === 0.005 ? '0.005' : getCommissionForPrice(parseFloat(String(formData.unit_value).replace(',', '.')) || 0).toFixed(2)}</strong>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                            As comissões não são mais geradas no momento da venda/recarga. Elas serão geradas apenas quando o <strong>Relatório de Entrega</strong> for confirmado na tela de Relatórios.
                                         </div>
                                     </div>
 

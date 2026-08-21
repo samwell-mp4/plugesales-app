@@ -8250,6 +8250,102 @@ app.post('/api/proxy/shorten-url', async (req, res) => {
     }
 });
 
+// --- NEW COMMISSIONS AND REPORTS ENDPOINTS ---
+
+app.get('/api/delivery-reports', async (req, res) => {
+    try {
+        const query = `
+            SELECT r.*, u.name as salesperson_name
+            FROM delivery_reports r
+            LEFT JOIN users u ON r.salesperson_id = u.id
+            ORDER BY r.created_at DESC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/delivery-reports', async (req, res) => {
+    try {
+        const {
+            dispatch_name, client_name, client_id, salesperson_id, dispatch_date,
+            qty_dispatched, qty_delivered, qty_failed, success_rate, status,
+            commission_percent, commission_value, unit_value, consumed_value, created_by
+        } = req.body;
+
+        await pool.query('BEGIN');
+
+        // Create Report
+        const reportResult = await pool.query(`
+            INSERT INTO delivery_reports (dispatch_name, client_name, salesperson_id, dispatch_date, qty_dispatched, qty_delivered, qty_failed, success_rate, status, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id
+        `, [dispatch_name, client_name, salesperson_id, dispatch_date, qty_dispatched, qty_delivered, qty_failed, success_rate, status, created_by]);
+
+        const reportId = reportResult.rows[0].id;
+
+        // Create Commission if there is a value
+        if (commission_value > 0) {
+            await pool.query(`
+                INSERT INTO finance_commissions (client_name, salesperson_id, dispatch_id, dispatch_date, process_date, qty_delivered, unit_value, consumed_value, commission_percent, commission_value, status, created_by, origin_report_id, origin_type)
+                VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6, $7, $8, $9, 'Pendente', $10, $11, 'Relatório de Disparo')
+            `, [client_name, salesperson_id, dispatch_name, dispatch_date, qty_delivered, unit_value, consumed_value, commission_percent, commission_value, created_by, reportId]);
+        }
+
+        // Deduct from client's balance if client_id is provided
+        if (client_id && qty_delivered > 0) {
+            await pool.query(`UPDATE users SET disparo_quantidade = disparo_quantidade - $1 WHERE id = $2`, [qty_delivered, client_id]);
+        }
+
+        await pool.query('COMMIT');
+        res.json({ success: true, reportId });
+    } catch (err) {
+        await pool.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/finance/commissions', async (req, res) => {
+    try {
+        const { userId, role } = req.query;
+        let query = `
+            SELECT c.*, u.name as salesperson_name
+            FROM finance_commissions c
+            LEFT JOIN users u ON c.salesperson_id = u.id
+        `;
+        const params = [];
+        if (role !== 'ADMIN' && role !== 'CONTABILIDADE') {
+            query += ` WHERE c.salesperson_id = $1`;
+            params.push(userId);
+        }
+        query += ` ORDER BY c.created_at DESC`;
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/finance/commissions/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const body = req.body;
+        const fields = Object.keys(body);
+        if (fields.length === 0) return res.status(400).json({ error: 'Nenhum campo para atualizar' });
+
+        const setClause = fields.map((f, i) => `${f} = $${i + 2}`).join(', ');
+        const params = [id, ...fields.map(f => body[f])];
+        
+        const query = `UPDATE finance_commissions SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`;
+        const result = await pool.query(query, params);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${port}`);
 });

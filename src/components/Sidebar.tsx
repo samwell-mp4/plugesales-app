@@ -143,6 +143,7 @@ const Sidebar = () => {
                 { name: 'Solicitações', path: '/finance/requests', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'CONTABILIDADE'] },
                 { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'CONTABILIDADE'] },
+                { name: 'Relatórios (Entregas)', path: '/dispatch-reports', icon: <FileSpreadsheet />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Relatórios', path: '/finance/reports', icon: <BarChart3 />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Controle de Estoque', path: '/finance/inventory', icon: <Database />, roles: ['ADMIN', 'COZINHEIRA'] },

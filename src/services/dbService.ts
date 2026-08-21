@@ -1598,6 +1598,42 @@ export const dbService = {
             return [];
         }
     },
+    // --- Commissions & Delivery Reports ---
+    getDeliveryReports: async () => {
+        try {
+            const res = await fetch(`${API_BASE}/delivery-reports`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) { return []; }
+    },
+    addDeliveryReport: async (data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/delivery-reports`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
+    getFinanceCommissions: async (params: any = {}) => {
+        try {
+            const searchParams = new URLSearchParams(params);
+            const res = await fetch(`${API_BASE}/finance/commissions?${searchParams.toString()}`);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch (err) { return []; }
+    },
+    updateFinanceCommission: async (id: number, data: any) => {
+        try {
+            const res = await fetch(`${API_BASE}/finance/commissions/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        } catch (err) { return { error: err }; }
+    },
     saveFinanceSale: async (saleData: any) => {
         try {
             const method = saleData.id ? 'PUT' : 'POST';
