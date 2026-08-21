@@ -57,7 +57,6 @@ import FinanceSales from './pages/FinanceSales';
 import FinanceControl from './pages/FinanceControl';
 import FinanceCommissions from './pages/FinanceCommissions';
 import FinanceReports from './pages/FinanceReports';
-import DispatchReports from './pages/DispatchReports';
 import FinanceSuppliers from './pages/FinanceSuppliers';
 import FinancePayables from './pages/FinancePayables';
 import FinanceRefunds from './pages/FinanceRefunds';
@@ -370,7 +369,6 @@ function AppContent() {
           <Route path="/finance/control" element={<ProtectedRoute><FinanceControl /></ProtectedRoute>} />
           <Route path="/finance/commissions" element={<ProtectedRoute><FinanceCommissions /></ProtectedRoute>} />
           <Route path="/finance/reports" element={<ProtectedRoute><FinanceReports /></ProtectedRoute>} />
-          <Route path="/dispatch-reports" element={<ProtectedRoute><DispatchReports /></ProtectedRoute>} />
           <Route path="/finance/suppliers" element={<ProtectedRoute><FinanceSuppliers /></ProtectedRoute>} />
           <Route path="/finance/payables" element={<ProtectedRoute><FinancePayables /></ProtectedRoute>} />
           <Route path="/finance/refunds" element={<ProtectedRoute><FinanceRefunds /></ProtectedRoute>} />

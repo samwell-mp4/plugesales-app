@@ -96,6 +96,7 @@ const FinanceSales = () => {
         client_name: '',
         client_cpf_cnpj: '',
         client_contact: '',
+        campaign_name: '',
         package_hired: '',
         quantity_hired: 0,
         unit_value: 0,
@@ -199,9 +200,10 @@ const FinanceSales = () => {
                 newData.used_value = finalDelivered * finalUnit;
                 newData.remaining_balance = 0;
                 
-                // Commission is no longer generated here.
-                newData.commission_value = 0;
-                newData.commission_status = 'N/A';
+                // Commission is generated based on unit value tier
+                const commissionPercent = getCommissionForPrice(newData.unit_value || 0);
+                newData.commission_value = (newData.quantity_hired || 0) * commissionPercent;
+                newData.commission_status = 'PREVISTA';
             }
             return newData;
         });
@@ -233,10 +235,16 @@ const FinanceSales = () => {
                 const isPaid = formData.payment_status === 'RECEBIDO' || (useClientBalance && clientBalance > 0);
                 const delivered = formData.quantity_delivered || 0;
                 
-                // Em Venda/Entrega combinada, apenas deduzimos o consumo do saldo existente.
-                // Se foi pago a mais, significa que comprou mais do que consumiu. 
-                // Mas de acordo com a regra: apenas deduzimos o entregue.
-                const newCredits = currentCredits - delivered;
+                // Em Venda/Entrega combinada, somamos o contratado e deduzimos o consumo.
+                let addedHired = formData.quantity_hired || 0;
+                let addedDelivered = delivered;
+                
+                if (editingSale) {
+                    addedHired -= (editingSale.quantity_hired || 0);
+                    addedDelivered -= (editingSale.quantity_delivered || 0);
+                }
+
+                const newCredits = currentCredits + addedHired - addedDelivered;
                 
                 await fetch(`/api/users/${clientObj.id}/commercial`, {
                     method: 'PUT',
@@ -267,6 +275,7 @@ const FinanceSales = () => {
             client_name: sale.client_name,
             client_cpf_cnpj: sale.client_cpf_cnpj || '',
             client_contact: sale.client_contact || '',
+            campaign_name: sale.campaign_name || '',
             package_hired: sale.package_hired || '',
             quantity_hired: sale.quantity_hired || 0,
             unit_value: sale.unit_value || 0,
@@ -304,6 +313,7 @@ const FinanceSales = () => {
             client_name: '',
             client_cpf_cnpj: '',
             client_contact: '',
+            campaign_name: '',
             package_hired: '',
             quantity_hired: 0,
             unit_value: 0,
@@ -1104,6 +1114,10 @@ const FinanceSales = () => {
                                             <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="client_contact" value={formData.client_contact} onChange={handleInputChange} placeholder="(00) 00000-0000" />
                                         </div>
                                     </div>
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px', marginLeft: '4px' }}>Nome da Campanha</label>
+                                        <input className="input-field" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'white', fontWeight: 700, padding: '12px', width: '100%' }} name="campaign_name" value={formData.campaign_name} onChange={handleInputChange} placeholder="Ex: Campanha Black Friday" />
+                                    </div>
 
                                     <div className="pt-4">
                                         <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-color)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1138,7 +1152,13 @@ const FinanceSales = () => {
                                             <AlertCircle size={14} color="var(--primary-color)"/> Aviso sobre Comissões
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                            As comissões não são mais geradas no momento da venda/recarga. Elas serão geradas apenas quando o <strong>Relatório de Entrega</strong> for confirmado na tela de Relatórios.
+                                            As comissões são geradas no momento da venda, seguindo a base de comissionamento de acordo com o preço unitário.<br/><br/>
+                                            Exemplo de regra atual (pode ser alterada em Configurações &gt; Regras de Comissão Operacional):<br/>
+                                            • Até 0,19 - comissão 0,005<br/>
+                                            • A partir de 0,20 - comissão 0,01<br/>
+                                            • A partir de 0,25 - comissão 0,02<br/>
+                                            • A partir de 0,30 - comissão 0,03<br/>
+                                            • A partir de 0,40 - comissão 0,04
                                         </div>
                                     </div>
 

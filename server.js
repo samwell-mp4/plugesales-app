@@ -821,6 +821,7 @@ const initDB = async () => {
         
         await client.query("ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS commission_receipt_url TEXT");
         await client.query("ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS payment_receipt_url TEXT");
+        await client.query("ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS campaign_name TEXT");
         
         console.log('✅ Finance tables verified/created.');
 
@@ -1798,7 +1799,7 @@ app.delete('/api/crm/consultiva/:id', async (req, res) => {
 app.get('/api/finance/sales', async (req, res) => {
     try {
         const { userId, role, salespersonId, startDate, endDate } = req.query;
-        let query = 'SELECT s.*, u.name as salesperson_name, cs.profile_name as campaign_name FROM finance_sales s LEFT JOIN users u ON s.salesperson_id = u.id LEFT JOIN client_submissions cs ON s.submission_id = cs.id WHERE 1=1';
+        let query = 'SELECT s.*, u.name as salesperson_name, COALESCE(s.campaign_name, cs.profile_name) as campaign_name FROM finance_sales s LEFT JOIN users u ON s.salesperson_id = u.id LEFT JOIN client_submissions cs ON s.submission_id = cs.id WHERE 1=1';
         const params = [];
 
         if (role === 'EMPLOYEE' || role === 'VENDEDOR') {
@@ -1837,7 +1838,7 @@ app.post('/api/finance/sales', async (req, res) => {
             salesperson_id, payment_status, payment_competence,
             commission_status, commission_value,
             quantity_delivered, used_value, remaining_balance, discount_applied,
-            receipt_url, payment_receipt_url, report_url, notes
+            receipt_url, payment_receipt_url, report_url, notes, campaign_name
         } = req.body;
 
         const query = `
@@ -1847,8 +1848,8 @@ app.post('/api/finance/sales', async (req, res) => {
                 salesperson_id, payment_status, payment_competence,
                 commission_status, commission_value,
                 quantity_delivered, used_value, remaining_balance, discount_applied,
-                receipt_url, payment_receipt_url, report_url, notes
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+                receipt_url, payment_receipt_url, report_url, notes, campaign_name
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
             RETURNING *
         `;
         const params = [
@@ -1862,7 +1863,8 @@ app.post('/api/finance/sales', async (req, res) => {
             receipt_url || null,
             payment_receipt_url || receipt_url || null,
             report_url || null,
-            notes || null
+            notes || null,
+            campaign_name || null
         ];
 
         const result = await pool.query(query, params);

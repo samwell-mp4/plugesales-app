@@ -1,36 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { 
+    Users, Percent, DollarSign, 
+    Save, RefreshCw, User, 
+    CheckCircle2, Clock, AlertCircle,
+    ChevronDown, Edit3, TrendingUp, Upload, ExternalLink, X
+} from 'lucide-react';
 import { dbService } from '../services/dbService';
-import { User, CheckCircle2, ExternalLink, X, Upload, Save, Edit3, Settings } from 'lucide-react';
-import '../index.css';
-
-const defaultTiers = [
-    { minPrice: 0.10, commission: 0.005 },
-    { minPrice: 0.20, commission: 0.010 },
-    { minPrice: 0.25, commission: 0.020 },
-    { minPrice: 0.30, commission: 0.030 },
-    { minPrice: 0.40, commission: 0.040 },
-];
+import { useAuth } from '../contexts/AuthContext';
 
 const FinanceCommissions = () => {
     const { user } = useAuth();
-    const isAdmin = user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE';
-    
     const [salespeople, setSalespeople] = useState<any[]>([]);
-    const [commissions, setCommissions] = useState<any[]>([]);
+    const [sales, setSales] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [statusFilter, setStatusFilter] = useState<'TODOS' | 'PENDENTE' | 'PAGA' | 'LIBERADA'>('TODOS');
-    const [commissionPages, setCommissionPages] = useState<Record<number, number>>({});
+    const [editingCommission, setEditingCommission] = useState<any>(null);
+    const [isSaving, setIsSaving] = useState(false);
     
-    // Modal de Pagamento
-    const [commissionToPay, setCommissionToPay] = useState<any>(null);
-    const [uploadingReceipt, setUploadingReceipt] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // Regras de Comissão (para leitura)
+    const defaultTiers = [
+        { minPrice: 0, commission: 0.005 },
+        { minPrice: 0.20, commission: 0.01 },
+        { minPrice: 0.25, commission: 0.02 },
+        { minPrice: 0.30, commission: 0.03 },
+        { minPrice: 0.40, commission: 0.04 }
+    ];
     const [commissionTiers, setCommissionTiers] = useState<any[]>(defaultTiers);
     const [isEditingTiers, setIsEditingTiers] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+    
+    // Filtros e paginação
+    const [statusFilter, setStatusFilter] = useState<'TODOS' | 'PREVISTA' | 'PAGA'>('TODOS');
+    const [salesPages, setSalesPages] = useState<Record<number, number>>({});
+    
+    // Upload de comprovante
+    const [saleToPay, setSaleToPay] = useState<any>(null);
+    const [uploadingReceipt, setUploadingReceipt] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchData();
@@ -39,14 +42,13 @@ const FinanceCommissions = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [peopleData, commData, settingsData] = await Promise.all([
+            const [peopleData, salesData, settingsData] = await Promise.all([
                 dbService.getFinanceSalespeople(),
-                dbService.getFinanceCommissions(isAdmin ? {} : { salesperson_id: user?.id }),
+                dbService.getFinanceSales({ userId: user?.id, role: user?.role }),
                 dbService.getSettings(user?.role)
             ]);
             setSalespeople(peopleData);
-            setCommissions(commData);
-            
+            setSales(salesData);
             if (settingsData['commission_tiers']) {
                 try {
                     setCommissionTiers(JSON.parse(settingsData['commission_tiers']));
@@ -57,110 +59,229 @@ const FinanceCommissions = () => {
                 setCommissionTiers(defaultTiers);
             }
         } catch (err) {
-            console.error("Erro ao buscar dados:", err);
+            console.error(err);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const calculateCommissionStats = (personId: number) => {
-        const personCommissions = commissions.filter(c => c.salesperson_id === personId);
-        const total = personCommissions.reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
-        const paid = personCommissions.filter(c => c.status === 'PAGA').reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
-        const pending = personCommissions.filter(c => c.status !== 'PAGA' && c.status !== 'CANCELADA').reduce((acc, curr) => acc + parseFloat(curr.commission_value || 0), 0);
-        return { totalCommission: total, paidCommission: paid, pendingCommission: pending, count: personCommissions.length };
+    const calculateCommissionStats = (salespersonId: number) => {
+        const personSales = sales.filter(s => s.salesperson_id === salespersonId);
+        
+        let totalCommission = 0;
+        let paidCommission = 0;
+        
+        personSales.forEach(s => {
+            const sp = salespeople.find(person => person.id === salespersonId);
+            const commPerc = sp?.commission_percentage || 0;
+            
+            let comm = parseFloat(s.commission_value || 0);
+            
+            if (s.balance_rolled_over) {
+                 const remainingComm = parseFloat(s.remaining_balance || 0) * (commPerc / 100);
+                 comm += remainingComm;
+            }
+            
+            totalCommission += comm;
+            if (s.commission_status === 'PAGA') paidCommission += comm;
+        });
+
+        const pendingCommission = totalCommission - paidCommission;
+        return { totalCommission, paidCommission, pendingCommission, count: personSales.length };
     };
 
-    const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !commissionToPay) return;
+    const updateCommissionStatus = async (saleId: number, status: string, receiptUrl?: string) => {
+        try {
+            const updateData: any = { id: saleId, commission_status: status };
+            if (receiptUrl) {
+                updateData.commission_receipt_url = receiptUrl;
+            }
+            await dbService.saveFinanceSale(updateData);
+            fetchData();
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
+    const handleUploadReceiptAndPay = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !saleToPay) return;
+        
         setUploadingReceipt(true);
         try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('userId', user?.id?.toString() || '');
             
             const uploadRes = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
-
-            if (!uploadRes.ok) throw new Error("Erro no upload");
+            const uploadData = await uploadRes.json();
+            const hostedUrl = uploadData.url || `${window.location.origin}${uploadData.path}`;
             
-            const { url } = await uploadRes.json();
-            
-            // Update commission via API
-            await dbService.updateFinanceCommission(commissionToPay.id, {
-                status: 'PAGA',
-                receipt_url: url
-            });
-            
-            fetchData();
-            setCommissionToPay(null);
-        } catch (error) {
-            console.error(error);
-            alert("Erro ao enviar comprovante.");
+            await updateCommissionStatus(saleToPay.id, 'PAGA', hostedUrl);
+            setSaleToPay(null);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao fazer upload do comprovante.");
         } finally {
             setUploadingReceipt(false);
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div style={{ width: '40px', height: '40px', border: '3px solid rgba(172, 248, 0, 0.2)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-            </div>
-        );
-    }
+    const isAdmin = user?.role === 'ADMIN';
 
     return (
-        <div style={{ padding: '32px 24px', minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-color)' }}>
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 style={{ fontSize: '24px', margin: '0 0 8px 0', fontWeight: 900 }}>Comissões e Relatórios</h1>
-                    <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem' }}>Gerenciamento de comissões por disparos.</p>
-                </div>
-            </div>
+        <div className="animate-fade-in finance-page p-4 md:p-10 pb-20 md:pb-20">
+            <style>{`
+                .finance-page h1 { font-weight: 900 !important; font-size: 2.5rem !important; letter-spacing: -1.5px !important; margin: 0 !important; color: white !important; }
+                .finance-page .subtitle { margin: 0; color: var(--text-secondary); opacity: 0.7; font-size: 0.9rem; }
+                
+                .commission-card-finance {
+                    background: var(--card-bg-subtle, rgba(255, 255, 255, 0.03));
+                    border: 1px solid var(--surface-border-subtle, rgba(255, 255, 255, 0.08));
+                    border-radius: 24px;
+                    padding: 24px;
+                    backdrop-filter: blur(20px);
+                }
 
-            {isAdmin && (
-                <div style={{ background: 'var(--card-bg-subtle)', borderRadius: '16px', padding: '24px', marginBottom: '32px', border: '1px solid var(--surface-border-subtle)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ width: '40px', height: '40px', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
-                                <Settings size={20} />
-                            </div>
-                            <div>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>Regras de Comissão Operacional</h3>
-                                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Defina as faixas de preço para comissionamento por lead entregue.</p>
-                            </div>
-                        </div>
+                .table-container-finance {
+                    background: var(--card-bg-subtle, rgba(255, 255, 255, 0.03));
+                    border: 1px solid var(--surface-border-subtle, rgba(255, 255, 255, 0.08));
+                    border-radius: 24px;
+                    overflow: hidden;
+                    margin-top: 24px;
+                }
+                
+                table { width: 100%; border-collapse: collapse; }
+                th { 
+                    padding: 16px 24px; 
+                    background: rgba(255,255,255,0.02); 
+                    color: var(--text-muted); 
+                    font-size: 0.7rem; 
+                    font-weight: 800; 
+                    text-transform: uppercase; 
+                    letter-spacing: 1px;
+                }
+                td { padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+                .supreme-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px; }
+                .supreme-modal-content { background: #0f172a; border: 1px solid var(--surface-border-subtle); border-radius: 32px; width: 90%; max-width: 500px; padding: 40px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box; }
+
+                @media (max-width: 768px) {
+                    .supreme-modal-content { padding: 24px; border-radius: 24px; }
+                }
+            `}</style>
+
+            <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
+                <div>
+                    <h1>Comissões & Pagamentos</h1>
+                    <p className="subtitle">Gestão de repasses e liquidação de comissões para a equipe comercial</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={fetchData} 
+                        disabled={isLoading}
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px', color: 'white', cursor: 'pointer' }}
+                    >
+                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                    </button>
+                </div>
+            </header>
+
+            {(isAdmin || user?.role === 'CONTABILIDADE') && (
+                <div className="commission-card-finance mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-white font-black" style={{ fontSize: '1.2rem', margin: 0 }}>Regras de Comissão (Vendedores)</h3>
+                        <button 
+                            onClick={() => {
+                                if (isEditingTiers) {
+                                    setIsSaving(true);
+                                    dbService.saveSetting('commission_tiers', JSON.stringify(commissionTiers))
+                                        .then(() => setIsEditingTiers(false))
+                                        .catch(() => alert("Erro ao salvar regras."))
+                                        .finally(() => setIsSaving(false));
+                                } else {
+                                    setIsEditingTiers(true);
+                                }
+                            }}
+                            className="action-btn primary-btn"
+                            style={{ height: '38px', padding: '0 16px', fontSize: '0.8rem' }}
+                            disabled={isSaving}
+                        >
+                            {isEditingTiers ? <><Save size={16}/> SALVAR REGRAS</> : <><Edit3 size={16}/> EDITAR REGRAS</>}
+                        </button>
                     </div>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
                         {commissionTiers.map((tier, idx) => (
-                            <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
+                                {isEditingTiers && (
+                                    <button 
+                                        onClick={() => setCommissionTiers(prev => prev.filter((_, i) => i !== idx))}
+                                        style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                    >
+                                        <X size={16}/>
+                                    </button>
+                                )}
                                 <div style={{ marginBottom: '8px' }}>
-                                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 800 }}>Preço Unitário Mín. (R$)</label>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>R$ {tier.minPrice.toFixed(2)}</div>
+                                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 800 }}>Preço Mínimo (R$)</label>
+                                    {isEditingTiers ? (
+                                        <input 
+                                            type="number" 
+                                            step="0.01"
+                                            value={tier.minPrice}
+                                            onChange={e => {
+                                                const newTiers = [...commissionTiers];
+                                                newTiers[idx].minPrice = parseFloat(e.target.value) || 0;
+                                                setCommissionTiers(newTiers);
+                                            }}
+                                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '6px', padding: '6px 10px', width: '100%' }}
+                                        />
+                                    ) : (
+                                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>R$ {tier.minPrice.toFixed(2)}</div>
+                                    )}
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 800 }}>Comissão por Lead (R$)</label>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {tier.commission.toFixed(3)}</div>
+                                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 800 }}>Comissão (R$)</label>
+                                    {isEditingTiers ? (
+                                        <input 
+                                            type="number" 
+                                            step="0.001"
+                                            value={tier.commission}
+                                            onChange={e => {
+                                                const newTiers = [...commissionTiers];
+                                                newTiers[idx].commission = parseFloat(e.target.value) || 0;
+                                                setCommissionTiers(newTiers);
+                                            }}
+                                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--primary-color)', borderRadius: '6px', padding: '6px 10px', width: '100%' }}
+                                        />
+                                    ) : (
+                                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-color)' }}>R$ {tier.commission.toFixed(3)}</div>
+                                    )}
                                 </div>
                             </div>
                         ))}
+                        {isEditingTiers && (
+                            <button 
+                                onClick={() => setCommissionTiers(prev => [...prev, { minPrice: 0.50, commission: 0.05 }])}
+                                style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.2)', padding: '16px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: 800 }}
+                            >
+                                + NOVA FAIXA
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
 
             <div className="flex gap-2 mb-6">
-                {(['TODOS', 'PENDENTE', 'PAGA', 'LIBERADA'] as const).map(f => (
+                {(['TODOS', 'PREVISTA', 'PAGA'] as const).map(f => (
                     <button
                         key={f}
                         onClick={() => {
                             setStatusFilter(f);
-                            setCommissionPages({});
+                            setSalesPages({});
                         }}
                         style={{
                             background: statusFilter === f ? 'var(--primary-color)' : 'rgba(255,255,255,0.03)',
@@ -174,7 +295,7 @@ const FinanceCommissions = () => {
                             transition: 'all 0.2s'
                         }}
                     >
-                        {f === 'TODOS' ? 'TODAS' : f}
+                        {f === 'TODOS' ? 'TODAS' : f === 'PREVISTA' ? 'PENDENTES' : 'PAGAS'}
                     </button>
                 ))}
             </div>
@@ -184,13 +305,11 @@ const FinanceCommissions = () => {
                     const stats = calculateCommissionStats(person.id);
                     if (stats.count === 0 && !isAdmin) return null;
 
-                    const personComms = commissions.filter(c => c.salesperson_id === person.id && (statusFilter === 'TODOS' || c.status === statusFilter));
-                    if (personComms.length === 0 && !isAdmin) return null;
-
+                    const personSales = sales.filter(s => s.salesperson_id === person.id && (statusFilter === 'TODOS' || s.commission_status === statusFilter));
                     const itemsPerPage = 5;
-                    const currentPage = commissionPages[person.id] || 1;
-                    const totalPages = Math.ceil(personComms.length / itemsPerPage) || 1;
-                    const slicedComms = personComms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                    const currentPage = salesPages[person.id] || 1;
+                    const totalPages = Math.ceil(personSales.length / itemsPerPage);
+                    const slicedSales = personSales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
                     return (
                         <div key={person.id} className="bg-white/[0.01] p-6 rounded-[24px] border border-white/5">
@@ -207,74 +326,81 @@ const FinanceCommissions = () => {
                                         <h4 style={{ margin: 0, fontWeight: 950, color: 'white' }}>R$ {stats.totalCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
                                     </div>
                                     <div className="text-right">
-                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>PAGO</span>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>LIQUIDADO</span>
                                         <h4 style={{ margin: 0, fontWeight: 950, color: '#10b981' }}>R$ {stats.paidCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
                                     </div>
                                     <div className="text-right">
-                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#facc15', textTransform: 'uppercase' }}>PENDENTE/LIBERADA</span>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#facc15', textTransform: 'uppercase' }}>A REPASSAR</span>
                                         <h4 style={{ margin: 0, fontWeight: 950, color: '#facc15' }}>R$ {stats.pendingCommission.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="table-container-finance overflow-x-auto custom-scrollbar">
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <table>
                                     <thead>
-                                        <tr style={{ borderBottom: '1px solid var(--surface-border)' }}>
-                                            <th style={{ padding: '12px' }}>DISPARO (RELATÓRIO)</th>
-                                            <th style={{ padding: '12px' }}>DATA</th>
-                                            <th style={{ padding: '12px' }}>ENTREGUES</th>
-                                            <th style={{ padding: '12px' }}>UNIT. (R$)</th>
-                                            <th style={{ padding: '12px' }}>VALOR CONSUMIDO</th>
-                                            <th style={{ padding: '12px', textAlign: 'right' }}>COMISSÃO (R$)</th>
-                                            <th style={{ padding: '12px', textAlign: 'center' }}>STATUS</th>
-                                            <th style={{ padding: '12px', textAlign: 'right' }}>AÇÕES</th>
+                                        <tr>
+                                            <th style={{ textAlign: 'left' }}>COMPETÊNCIA</th>
+                                            <th style={{ textAlign: 'left' }}>CLIENTE & PACOTE</th>
+                                            <th style={{ textAlign: 'right' }}>BASE (R$)</th>
+                                            <th style={{ textAlign: 'right' }}>COMISSÃO (R$)</th>
+                                            <th style={{ textAlign: 'center' }}>SITUAÇÃO</th>
+                                            <th style={{ textAlign: 'right' }}>AÇÕES</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {slicedComms.map((c) => (
-                                            <tr key={c.id} style={{ borderBottom: '1px solid var(--surface-border-subtle)' }}>
-                                                <td style={{ padding: '12px' }}>
+                                        {slicedSales.map((sale) => (
+                                            <tr key={sale.id}>
+                                                <td style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{sale.payment_competence || new Date(sale.sale_date).toLocaleDateString('pt-BR')}</td>
+                                                <td>
                                                     <div className="flex flex-col">
-                                                        <span style={{ fontWeight: 900, color: 'white', fontSize: '0.9rem' }}>{c.dispatch_name}</span>
-                                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.client_name} - Rel #{c.report_id}</span>
+                                                        <span style={{ fontWeight: 900, color: 'white', fontSize: '0.9rem' }}>{sale.client_name}</span>
+                                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>{sale.package_hired}</span>
                                                     </div>
                                                 </td>
-                                                <td style={{ padding: '12px', fontSize: '0.85rem' }}>{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
-                                                <td style={{ padding: '12px', color: '#22c55e', fontWeight: 700 }}>{Number(c.qty_delivered).toLocaleString('pt-BR')}</td>
-                                                <td style={{ padding: '12px' }}>R$ {Number(c.unit_value).toFixed(2)}</td>
-                                                <td style={{ padding: '12px', fontWeight: 600 }}>R$ {Number(c.consumed_value).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                                                <td style={{ padding: '12px', textAlign: 'right', fontWeight: 900, color: 'var(--primary-color)' }}>
-                                                    R$ {Number(c.commission_value).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>({Number(c.commission_percent).toFixed(3)}/lead)</div>
+                                                <td style={{ textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                                    R$ {parseFloat(sale.total_value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                                    {sale.discount_applied > 0 && <span style={{display: 'block', fontSize: '0.65rem', color: '#facc15'}}>(-{parseFloat(sale.discount_applied).toLocaleString('pt-BR')})</span>}
                                                 </td>
-                                                <td style={{ padding: '12px', textAlign: 'center' }}>
+                                                <td style={{ textAlign: 'right', fontSize: '0.9rem', fontWeight: 950, color: 'var(--primary-color)' }}>
+                                                    R$ {(() => {
+                                                        const sp = salespeople.find(person => person.id === sale.salesperson_id);
+                                                        const commPerc = sp?.commission_percentage || 0;
+                                                        let comm = parseFloat(sale.commission_value || 0);
+                                                        if (sale.balance_rolled_over) {
+                                                            comm += parseFloat(sale.remaining_balance || 0) * (commPerc / 100);
+                                                        }
+                                                        return comm.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                                    })()}
+                                                    {sale.balance_rolled_over && <span style={{display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)'}}>+ ROLLOVER</span>}
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
                                                     <span style={{ 
-                                                        fontSize: '0.7rem', 
+                                                        fontSize: '0.65rem', 
                                                         fontWeight: 900, 
                                                         padding: '4px 8px', 
                                                         borderRadius: '6px', 
-                                                        background: c.status === 'PAGA' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(250, 204, 21, 0.1)',
-                                                        color: c.status === 'PAGA' ? '#10b981' : '#facc15',
-                                                        border: `1px solid ${c.status === 'PAGA' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(250, 204, 21, 0.2)'}`
+                                                        background: sale.commission_status === 'PAGA' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(250, 204, 21, 0.1)',
+                                                        color: sale.commission_status === 'PAGA' ? '#10b981' : '#facc15',
+                                                        border: `1px solid ${sale.commission_status === 'PAGA' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(250, 204, 21, 0.2)'}`
                                                     }}>
-                                                        {c.status}
+                                                        {sale.commission_status}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '12px', textAlign: 'right' }}>
+                                                <td style={{ textAlign: 'right' }}>
                                                     <div className="flex justify-end gap-2">
-                                                        {c.receipt_url && (
+                                                        {sale.commission_receipt_url && (
                                                             <button 
-                                                                onClick={() => window.open(c.receipt_url, '_blank')}
-                                                                style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer' }}
+                                                                onClick={() => window.open(sale.commission_receipt_url, '_blank')}
+                                                                style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                                             >
-                                                                <ExternalLink size={14} /> RECIBO
+                                                                <ExternalLink size={14} /> COMPROVANTE
                                                             </button>
                                                         )}
-                                                        {isAdmin && c.status !== 'PAGA' && (
+                                                        {isAdmin && sale.commission_status !== 'PAGA' && (
                                                             <button 
-                                                                onClick={() => setCommissionToPay(c)}
-                                                                style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer' }}
+                                                                onClick={() => setSaleToPay(sale)}
+                                                                style={{ background: 'var(--primary-color)', color: 'black', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                                             >
                                                                 <CheckCircle2 size={14} /> LIQUIDAR
                                                             </button>
@@ -283,18 +409,32 @@ const FinanceCommissions = () => {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {slicedComms.length === 0 && (
-                                            <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontWeight: 800 }}>NENHUMA COMISSÃO ENCONTRADA</td></tr>
+                                        {slicedSales.length === 0 && (
+                                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontWeight: 800, fontSize: '0.8rem' }}>NENHUMA COMISSÃO REGISTRADA</td></tr>
                                         )}
                                     </tbody>
                                 </table>
                             </div>
 
                             {totalPages > 1 && (
-                                <div style={{ display: 'flex', justifySelf: 'flex-end', gap: '8px', marginTop: '16px' }}>
-                                    <button disabled={currentPage === 1} onClick={() => setCommissionPages(prev => ({ ...prev, [person.id]: currentPage - 1 }))} style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--surface-border)' }}>Anterior</button>
-                                    <span style={{ padding: '6px 12px' }}>{currentPage} de {totalPages}</span>
-                                    <button disabled={currentPage === totalPages} onClick={() => setCommissionPages(prev => ({ ...prev, [person.id]: currentPage + 1 }))} style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--surface-border)' }}>Próxima</button>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', padding: '0 8px' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800 }}>PÁGINA {currentPage} DE {totalPages}</span>
+                                    <div className="flex gap-2">
+                                        <button
+                                            disabled={currentPage === 1}
+                                            onClick={() => setSalesPages(prev => ({ ...prev, [person.id]: currentPage - 1 }))}
+                                            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 16px', color: 'white', fontWeight: 800, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.75rem', opacity: currentPage === 1 ? 0.3 : 1 }}
+                                        >
+                                            Anterior
+                                        </button>
+                                        <button
+                                            disabled={currentPage === totalPages}
+                                            onClick={() => setSalesPages(prev => ({ ...prev, [person.id]: currentPage + 1 }))}
+                                            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 16px', color: 'white', fontWeight: 800, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.75rem', opacity: currentPage === totalPages ? 0.3 : 1 }}
+                                        >
+                                            Próxima
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -303,74 +443,52 @@ const FinanceCommissions = () => {
             </div>
 
             {/* Modal de Pagamento de Comissão */}
-            {commissionToPay && (
-                <div className="supreme-modal-overlay" onClick={() => !uploadingReceipt && setCommissionToPay(null)}>
-                    <div className="supreme-modal-content" onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg)', border: '1px solid var(--surface-border)', padding: '32px', borderRadius: '16px', maxWidth: '400px', margin: '0 auto', position: 'relative' }}>
-                        <button onClick={() => !uploadingReceipt && setCommissionToPay(null)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+            {saleToPay && (
+                <div className="supreme-modal-overlay" onClick={() => !uploadingReceipt && setSaleToPay(null)}>
+                    <div className="supreme-modal-content" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => !uploadingReceipt && setSaleToPay(null)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                             <X size={24} />
                         </button>
                         
-                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                                <CheckCircle2 size={32} />
-                            </div>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'white', margin: '0 0 8px 0' }}>Liquidar Comissão</h2>
-                            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem' }}>
-                                Anexe o comprovante de pagamento para liquidar esta comissão.
-                            </p>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto' }}>
+                            <DollarSign size={32} />
                         </div>
-
-                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Vendedor</span>
-                                <span style={{ color: 'white', fontWeight: 800, fontSize: '0.9rem' }}>{salespeople.find(p => p.id === commissionToPay.salesperson_id)?.name}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Disparo</span>
-                                <span style={{ color: 'white', fontWeight: 800, fontSize: '0.9rem' }}>{commissionToPay.dispatch_name}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Valor a Pagar</span>
-                                <span style={{ color: 'var(--primary-color)', fontWeight: 900, fontSize: '1.2rem' }}>
-                                    R$ {parseFloat(commissionToPay.commission_value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                </span>
-                            </div>
-                        </div>
-
+                        <h2 style={{ margin: '0 0 8px 0', fontSize: '1.5rem', fontWeight: 900, color: 'white' }}>
+                            Liquidar Comissão
+                        </h2>
+                        <p style={{ margin: '0 0 24px 0', fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                            Você está prestes a registrar o repasse de comissão referente à campanha do cliente <strong style={{ color: 'white' }}>{saleToPay.client_name}</strong> no valor de <strong style={{ color: 'var(--primary-color)' }}>R$ {parseFloat(saleToPay.commission_value).toLocaleString('pt-BR')}</strong>.
+                        </p>
+                        
                         <input 
                             type="file" 
                             ref={fileInputRef} 
-                            style={{ display: 'none' }}
-                            accept="image/*,application/pdf"
-                            onChange={handleReceiptUpload}
+                            style={{ display: 'none' }} 
+                            onChange={handleUploadReceiptAndPay}
+                            accept="image/*,.pdf"
                         />
-
-                        <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploadingReceipt}
-                            style={{ 
-                                width: '100%', 
-                                padding: '16px', 
-                                background: 'var(--primary-color)', 
-                                color: 'black', 
-                                border: 'none', 
-                                borderRadius: '12px', 
-                                fontWeight: 900, 
-                                fontSize: '1rem',
-                                cursor: uploadingReceipt ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '8px',
-                                opacity: uploadingReceipt ? 0.7 : 1
-                            }}
-                        >
-                            {uploadingReceipt ? (
-                                <>Enviando...</>
-                            ) : (
-                                <><Upload size={18} /> ANEXAR COMPROVANTE</>
-                            )}
-                        </button>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploadingReceipt}
+                                style={{ width: '100%', background: 'var(--primary-color)', color: '#000', border: 'none', borderRadius: '14px', padding: '16px', fontWeight: 900, fontSize: '0.9rem', cursor: uploadingReceipt ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                            >
+                                {uploadingReceipt ? <RefreshCw size={18} className="animate-spin" /> : <Upload size={18} />}
+                                {uploadingReceipt ? 'ENVIANDO...' : 'ANEXAR COMPROVANTE E LIQUIDAR'}
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    updateCommissionStatus(saleToPay.id, 'PAGA');
+                                    setSaleToPay(null);
+                                }}
+                                disabled={uploadingReceipt}
+                                style={{ width: '100%', background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '16px', fontWeight: 900, fontSize: '0.8rem', cursor: uploadingReceipt ? 'not-allowed' : 'pointer' }}
+                            >
+                                LIQUIDAR SEM COMPROVANTE
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
