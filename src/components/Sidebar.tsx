@@ -140,7 +140,7 @@ const Sidebar = () => {
                 { name: 'Fornecedores', path: '/finance/suppliers', icon: <Users />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Contas a Pagar', path: '/finance/payables', icon: <FileSpreadsheet />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Reembolsos', path: '/finance/refunds', icon: <DollarSign />, roles: ['ADMIN', 'CONTABILIDADE'] },
-                { name: 'Solicitações', path: '/finance/requests', icon: <MessageSquare />, roles: ['ADMIN', 'EMPLOYEE', 'CONTABILIDADE'] },
+                { name: 'Solicitações', path: '/finance/requests', icon: <MessageSquare />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Cadastro de Vendas', path: '/finance/sales', icon: <Zap />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },
                 { name: 'Controle Financeiro', path: '/finance/control', icon: <Activity />, roles: ['ADMIN', 'CONTABILIDADE'] },
                 { name: 'Comissões', path: '/finance/commissions', icon: <Users />, roles: ['ADMIN', 'EMPLOYEE', 'VENDEDOR', 'CONTABILIDADE'] },

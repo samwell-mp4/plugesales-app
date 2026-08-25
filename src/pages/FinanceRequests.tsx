@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Search, Plus, X, MessageSquare, Paperclip, Send, Clock, CheckCircle2, DollarSign, LayoutDashboard, AlertCircle } from 'lucide-react';
 import SupremeLoading from '../components/SupremeLoading';
@@ -29,6 +30,10 @@ const REQUEST_TYPES = ['Desconto', 'Comissão', 'Adiantamento', 'Reembolso'];
 
 const FinanceRequests = () => {
     const { user } = useAuth();
+
+    if (user?.role === 'EMPLOYEE') {
+        return <Navigate to="/dashboard" replace />;
+    }
     const [requests, setRequests] = useState<RequestModel[]>([]);
     const [loading, setLoading] = useState(false);
     const [userFinanceData, setUserFinanceData] = useState<any | null>(null);
