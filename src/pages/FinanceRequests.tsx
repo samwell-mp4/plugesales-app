@@ -31,9 +31,6 @@ const REQUEST_TYPES = ['Desconto', 'Comissão', 'Adiantamento', 'Reembolso'];
 const FinanceRequests = () => {
     const { user } = useAuth();
 
-    if (user?.role === 'EMPLOYEE') {
-        return <Navigate to="/dashboard" replace />;
-    }
     const [requests, setRequests] = useState<RequestModel[]>([]);
     const [loading, setLoading] = useState(false);
     const [userFinanceData, setUserFinanceData] = useState<any | null>(null);
