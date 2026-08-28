@@ -62,6 +62,8 @@ const FinancePayables = () => {
         launch_date: new Date().toISOString().split('T')[0],
         responsible: user?.name || ''
     });
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurringDay, setRecurringDay] = useState('');
     const [uploading, setUploading] = useState(false);
     const [page, setPage] = useState(1);
     const [fileUrl, setFileUrl] = useState('');
@@ -158,27 +160,58 @@ const FinancePayables = () => {
         }
 
         setLoading(true);
-        const { error, data: insertedData } = await supabase.from('finance_payables').insert([formData]).select().single();
+        let inserts = [];
+        if (isRecurring && recurringDay) {
+            const day = parseInt(recurringDay);
+            const currentDate = new Date();
+            let startMonth = currentDate.getMonth();
+            let startYear = currentDate.getFullYear();
+            
+            for (let i = 0; i < 12; i++) {
+                let m = startMonth + i;
+                let y = startYear;
+                if (m > 11) {
+                    y += Math.floor(m / 12);
+                    m = m % 12;
+                }
+                
+                let lastDay = new Date(y, m + 1, 0).getDate();
+                let actualDay = Math.min(day, lastDay);
+                let dueDateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+                
+                inserts.push({
+                    ...formData,
+                    due_date: dueDateStr
+                });
+            }
+        } else {
+            inserts.push(formData);
+        }
+
+        const { error, data: insertedData } = await supabase.from('finance_payables').insert(inserts).select();
         setLoading(false);
-        if (!error && insertedData) {
-            alert('Conta adicionada com sucesso!');
+        if (!error && insertedData && insertedData.length > 0) {
+            alert(isRecurring ? 'Contas recorrentes adicionadas com sucesso!' : 'Conta adicionada com sucesso!');
             
             // Send webhook notification
-            const dateObj = new Date(formData.launch_date || '');
+            const firstInsert = insertedData[0];
+            const dateObj = new Date(firstInsert.launch_date || '');
             const dateFormatted = `${String(dateObj.getUTCDate()).padStart(2, '0')}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${dateObj.getUTCFullYear()}`;
             
-            let msgText = `Nova conta de ${formData.type} no valor de R$ ${formData.value} adicionada para o fornecedor. Data: ${dateFormatted}.`;
-            if (formData.attachment_url) {
-                msgText += `\n\n📄 Anexo/Comprovante: ${formData.attachment_url}`;
+            let msgText = `Nova conta${isRecurring ? ' recorrente' : ''} de ${firstInsert.type} no valor de R$ ${firstInsert.value} adicionada para o fornecedor. Data: ${dateFormatted}.`;
+            if (firstInsert.attachment_url) {
+                msgText += `\n\n📄 Anexo/Comprovante: ${firstInsert.attachment_url}`;
             }
             sendAccountingNotification(
                 'NOVA_CONTA_PAGAR',
-                `Nova conta adicionada: ${formData.description || formData.type}`,
+                `Nova conta adicionada: ${firstInsert.description || firstInsert.type}`,
                 msgText,
-                { payable: insertedData }
+                { payable: firstInsert }
             );
 
             setFormData({ type: 'Outros', status: 'Pendente', launch_date: new Date().toISOString().split('T')[0], responsible: user?.name || '' });
+            setIsRecurring(false);
+            setRecurringDay('');
             setFileUrl('');
             setActiveTab('consulta');
             fetchData();
@@ -402,14 +435,27 @@ const FinancePayables = () => {
                                     {ACCOUNT_TYPES.map(t => <option key={t} value={t} style={{ background: '#000' }}>{t}</option>)}
                                 </select>
                             </div>
+                            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', ...labelBase, fontSize: '0.8rem', color: 'white', textTransform: 'none' }}>
+                                    <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)' }} />
+                                    Conta Recorrente (Mensal)
+                                </label>
+                            </div>
                             <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
                                 <label style={labelBase}>Data de Lançamento *</label>
                                 <input required type="date" style={inputBase} value={formData.launch_date || ''} onChange={e => setFormData({...formData, launch_date: e.target.value})} />
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
-                                <label style={labelBase}>Data de Vencimento *</label>
-                                <input required type="date" style={inputBase} value={formData.due_date || ''} onChange={e => setFormData({...formData, due_date: e.target.value})} />
-                            </div>
+                            {isRecurring ? (
+                                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                    <label style={labelBase}>Dia de Vencimento *</label>
+                                    <input required type="number" min="1" max="31" style={inputBase} placeholder="Ex: 15" value={recurringDay} onChange={e => setRecurringDay(e.target.value)} />
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                                    <label style={labelBase}>Data de Vencimento *</label>
+                                    <input required type="date" style={inputBase} value={formData.due_date || ''} onChange={e => setFormData({...formData, due_date: e.target.value})} />
+                                </div>
+                            )}
                             <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
                                 <label style={labelBase}>Valor (R$) *</label>
                                 <input required type="number" step="0.01" style={inputBase} placeholder="0.00" value={formData.value || ''} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />

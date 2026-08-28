@@ -23,7 +23,8 @@ const Obrigado = () => {
         '13': 'Gelton Carlos',
         '14': 'Bernardo Rodrigues',
         '15': 'Lucas Maia',
-        '16': 'Bernado Rodrigues'
+        '16': 'Bernado Rodrigues',
+        '17': 'Fernanda'
     };
 
     // Mapeamento de Telefones dos Agentes para Redirecionamento de WhatsApp

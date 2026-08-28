@@ -57,7 +57,8 @@ const LeadStepForm = () => {
         '13': 'Gelton Carlos',
         '14': 'Bernardo Rodrigues',
         '15': 'Lucas Maia',
-        '16': 'Bernado Rodrigues'
+        '16': 'Bernado Rodrigues',
+        '17': 'Fernanda'
     };
 
     useEffect(() => {
