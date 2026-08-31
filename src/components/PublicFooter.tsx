@@ -48,9 +48,9 @@ const PublicFooter = () => {
                 </div>
 
                 <div className="footer-bottom">
-                    <p>© 2026 Plug & Sales Pro. Todos os direitos reservados. Operação Profissional de WhatsApp API.</p>
+                    <p>© 2026 Plug & Sales. Todos os direitos reservados. Operação Profissional de WhatsApp API.</p>
                     <p style={{ marginTop: '16px', fontSize: '11px', color: 'rgba(255,255,255,0.4)', lineHeight: '1.6', maxWidth: '800px', margin: '16px auto 0' }}>
-                        63.140.137/0001-61 | LOGRADOURO Q SQNW 102 NÚMERO S/N COMPLEMENTO BLOCO G APT 503 CEP 70.683-085 BAIRRO/DISTRITO SETOR NOROESTE MUNICÍPIO BRASILIA UF DF | contato@plugesales.com
+                        PLUG & SALES SOLUCOES DIGITAIS LTDA | CNPJ: 63.140.137/0001-61 | LOGRADOURO Q SQNW 102 NÚMERO S/N COMPLEMENTO BLOCO G APT 503 CEP 70.683-085 BAIRRO/DISTRITO SETOR NOROESTE MUNICÍPIO BRASILIA UF DF | contato@plugesales.com
                     </p>
                 </div>
             </div>
