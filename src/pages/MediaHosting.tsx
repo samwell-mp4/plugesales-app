@@ -13,24 +13,33 @@ import {
     X,
     Folder,
     Maximize2,
-    Clock
+    Clock,
+    Lock,
+    FileText,
+    ShieldAlert
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
 interface HostedMedia {
     id: string;
     name: string;
-    type: 'image' | 'video';
+    type: 'image' | 'video' | 'document' | 'spreadsheet';
     size: string;
     shortUrl: string;
     originalName: string;
     uploadedAt: string;
+    isFinancial?: boolean;
 }
 
 const MediaHosting = () => {
+    const { user } = useAuth();
+    const isAccountingOrAdmin = user?.role === 'CONTABILIDADE' || user?.role === 'ADMIN';
+
     const [hostedFiles, setHostedFiles] = useState<HostedMedia[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState<'all' | 'marketing' | 'financial'>('all');
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [previewFile, setPreviewFile] = useState<HostedMedia | null>(null);
@@ -39,15 +48,17 @@ const MediaHosting = () => {
     const itemsPerPage = 20;
 
     const load = () => {
-        dbService.getMedia(currentPage, itemsPerPage, searchTerm).then((res: any) => {
+        const activeCategory = isAccountingOrAdmin ? categoryFilter : 'marketing';
+        dbService.getMedia(currentPage, itemsPerPage, searchTerm, user?.role, activeCategory).then((res: any) => {
             if (res && res.media) {
                 setHostedFiles(res.media.map((m: any) => ({
                     id: String(m.id),
                     name: m.name,
-                    type: m.type as 'image' | 'video',
+                    type: m.type as any,
                     size: '--',
                     shortUrl: m.short_url,
                     originalName: m.name,
+                    isFinancial: Boolean(m.is_financial),
                     uploadedAt: new Date(m.created_at).toLocaleString('pt-BR', { day: '2-digit', month: 'short' })
                 })));
                 setTotalFiles(res.total || 0);
@@ -63,11 +74,11 @@ const MediaHosting = () => {
             load();
         }, 300);
         return () => clearTimeout(delaySearch);
-    }, [currentPage, searchTerm]);
+    }, [currentPage, searchTerm, categoryFilter, user?.role]);
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, categoryFilter]);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -104,7 +115,7 @@ const MediaHosting = () => {
     const handleDelete = async (id: string) => {
         if (!window.confirm('Excluir este arquivo permanentemente?')) return;
         setHostedFiles(prev => prev.filter(f => String(f.id) !== id));
-        await dbService.deleteMedia(Number(id));
+        await dbService.deleteMedia(Number(id), user?.role);
     };
 
     const copyToClipboard = (text: string, id: string) => {
@@ -264,15 +275,74 @@ const MediaHosting = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                         
                         {/* SEARCH & FILTERS */}
-                        <div style={{ position: 'relative' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
-                            <input 
-                                className="field-input" 
-                                style={{ paddingLeft: '52px', height: '60px' }} 
-                                placeholder="BUSCAR ARQUIVOS NA BIBLIOTECA..." 
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                            />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ position: 'relative' }}>
+                                <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                                <input 
+                                    className="field-input" 
+                                    style={{ paddingLeft: '52px', height: '60px' }} 
+                                    placeholder="BUSCAR ARQUIVOS NA BIBLIOTECA..." 
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Category Filter Tabs (Visible ONLY to CONTABILIDADE and ADMIN) */}
+                            {isAccountingOrAdmin && (
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={() => setCategoryFilter('all')}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '12px',
+                                            fontSize: '11px',
+                                            fontWeight: 800,
+                                            border: categoryFilter === 'all' ? '1px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)',
+                                            background: categoryFilter === 'all' ? 'rgba(172, 248, 0, 0.15)' : 'var(--card-bg-subtle)',
+                                            color: categoryFilter === 'all' ? 'var(--primary-color)' : 'var(--text-muted)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        TODOS OS ARQUIVOS
+                                    </button>
+                                    <button
+                                        onClick={() => setCategoryFilter('marketing')}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '12px',
+                                            fontSize: '11px',
+                                            fontWeight: 800,
+                                            border: categoryFilter === 'marketing' ? '1px solid var(--primary-color)' : '1px solid var(--surface-border-subtle)',
+                                            background: categoryFilter === 'marketing' ? 'rgba(172, 248, 0, 0.15)' : 'var(--card-bg-subtle)',
+                                            color: categoryFilter === 'marketing' ? 'var(--primary-color)' : 'var(--text-muted)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        CAMPANHAS / MARKETING
+                                    </button>
+                                    <button
+                                        onClick={() => setCategoryFilter('financial')}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '12px',
+                                            fontSize: '11px',
+                                            fontWeight: 800,
+                                            border: categoryFilter === 'financial' ? '1px solid #ef4444' : '1px solid var(--surface-border-subtle)',
+                                            background: categoryFilter === 'financial' ? 'rgba(239, 68, 68, 0.15)' : 'var(--card-bg-subtle)',
+                                            color: categoryFilter === 'financial' ? '#ef4444' : 'var(--text-muted)',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <Lock size={12} /> FINANCEIRO & CONTABILIDADE
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* ACTUAL GRID */}
@@ -280,10 +350,21 @@ const MediaHosting = () => {
                             {filteredFiles.map((file, idx) => (
                                 <div key={file.id} className="control-card media-item" style={{ animationDelay: `${idx * 0.05}s` }}>
                                     <div className="media-preview-box">
+                                        {file.isFinancial && (
+                                            <div style={{ position: 'absolute', top: 12, left: 12, padding: '4px 8px', background: 'rgba(239, 68, 68, 0.9)', color: '#fff', borderRadius: '6px', fontSize: '9px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px', zIndex: 2 }}>
+                                                <Lock size={10} /> CONTABILIDADE
+                                            </div>
+                                        )}
+
                                         {file.type === 'video' ? (
                                             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card-bg-subtle)' }}>
                                                 <video src={file.shortUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                <div style={{ position: 'absolute', top: 12, left: 12, padding: '4px 8px', background: 'var(--overlay-bg)', borderRadius: '6px', fontSize: '9px', fontWeight: 900 }}>MP4</div>
+                                                <div style={{ position: 'absolute', top: file.isFinancial ? 38 : 12, left: 12, padding: '4px 8px', background: 'var(--overlay-bg)', borderRadius: '6px', fontSize: '9px', fontWeight: 900 }}>MP4</div>
+                                            </div>
+                                        ) : file.type === 'document' || file.shortUrl?.toLowerCase().endsWith('.pdf') ? (
+                                            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--card-bg-subtle)', gap: '8px' }}>
+                                                <FileText size={38} style={{ opacity: 0.7, color: file.isFinancial ? '#ef4444' : 'var(--primary-color)' }} />
+                                                <span style={{ fontSize: '9px', fontWeight: 800, opacity: 0.6 }}>PDF / DOCUMENTO</span>
                                             </div>
                                         ) : (
                                             <img src={file.shortUrl} alt="" />
@@ -450,6 +531,8 @@ const MediaHosting = () => {
                         >
                             {previewFile.type === 'video' ? (
                                 <video src={previewFile.shortUrl} controls autoPlay style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: 'var(--shadow-md)' }} />
+                            ) : previewFile.type === 'document' || previewFile.shortUrl?.toLowerCase().endsWith('.pdf') ? (
+                                <iframe src={previewFile.shortUrl} title={previewFile.name} style={{ width: '80vw', height: '80vh', borderRadius: '24px', border: 'none', background: '#fff' }} />
                             ) : (
                                 <img src={previewFile.shortUrl} alt="" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '24px', boxShadow: 'var(--shadow-md)' }} />
                             )}

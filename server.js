@@ -528,6 +528,7 @@ const initDB = async () => {
         await client.query(`ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS salesperson_name TEXT`);
         await client.query(`ALTER TABLE finance_sales ADD COLUMN IF NOT EXISTS comissao_vendedor TEXT`);
         await client.query(`ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
+        await client.query(`ALTER TABLE media_library ADD COLUMN IF NOT EXISTS is_financial BOOLEAN DEFAULT FALSE`);
 
         // Migration: Tag existing data
         console.log('Running security migration: tagging submission origin...');
@@ -2989,14 +2990,33 @@ app.get('/api/media', async (req, res) => {
         const page = parseInt(req.query.page);
         const limit = parseInt(req.query.limit);
         const search = req.query.search || '';
+        const role = (req.query.role || req.headers['x-user-role'] || '').toString().toUpperCase();
+        const category = (req.query.category || 'all').toString().toLowerCase();
 
         let queryParams = [];
-        let whereClause = '';
+        let conditions = [];
+
+        // Security check: ONLY CONTABILIDADE and ADMIN can view financial media
+        const isAuthorizedFinance = (role === 'CONTABILIDADE' || role === 'ADMIN');
+
+        if (!isAuthorizedFinance) {
+            // Collaborators (EMPLOYEE) or any other unauthorized role NEVER see financial media
+            conditions.push('(is_financial IS NOT TRUE)');
+        } else {
+            // Authorized roles can filter if requested
+            if (category === 'financial') {
+                conditions.push('is_financial IS TRUE');
+            } else if (category === 'marketing') {
+                conditions.push('(is_financial IS NOT TRUE)');
+            }
+        }
 
         if (search) {
-            whereClause = 'WHERE name ILIKE $1';
             queryParams.push(`%${search}%`);
+            conditions.push(`name ILIKE $${queryParams.length}`);
         }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
         if (page && limit) {
             const countQuery = `SELECT COUNT(*) FROM media_library ${whereClause}`;
@@ -3019,6 +3039,14 @@ app.get('/api/media', async (req, res) => {
 
 app.delete('/api/media/:id', async (req, res) => {
     try {
+        const role = (req.query.role || req.headers['x-user-role'] || '').toString().toUpperCase();
+        const isAuthorizedFinance = (role === 'CONTABILIDADE' || role === 'ADMIN');
+        
+        const existing = await pool.query('SELECT is_financial FROM media_library WHERE id = $1', [req.params.id]);
+        if (existing.rows.length > 0 && existing.rows[0].is_financial && !isAuthorizedFinance) {
+            return res.status(403).json({ error: 'Apenas a contabilidade ou admin podem excluir arquivos do financeiro.' });
+        }
+
         await pool.query('DELETE FROM media_library WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
@@ -5438,20 +5466,35 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     else if (mimetype.includes('pdf')) fileType = 'document';
     else if (mimetype.includes('spreadsheet') || mimetype.includes('excel') || mimetype.includes('csv')) fileType = 'spreadsheet';
 
+    const referer = req.get('referer') || '';
+    const originalName = req.file.originalname || '';
+    const finPatterns = /comprovante|boleto|recibo|pagamento|nota[_\s-]?fiscal|nf[_\s-]?e|reembolso|adiantamento|fatura|darf|das|gps|fgts|pix/i;
+
+    const isFinancial = Boolean(
+        req.body?.is_financial === 'true' ||
+        req.body?.is_financial === true ||
+        req.headers['x-is-financial'] === 'true' ||
+        referer.includes('/finance') ||
+        referer.includes('/financial') ||
+        finPatterns.test(originalName)
+    );
+
     try {
         const dbResult = await pool.query(
-            'INSERT INTO media_library (name, type, url, short_url) VALUES ($1, $2, $3, $4) RETURNING id',
-            [req.file.originalname, fileType, fileUrl, fileUrl]
+            'INSERT INTO media_library (name, type, url, short_url, is_financial) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [req.file.originalname, fileType, fileUrl, fileUrl, isFinancial]
         );
 
         res.json({
             success: true,
             id: dbResult.rows[0].id,
             url: fileUrl,
+            fileUrl: fileUrl,
             path: `/uploads/${req.file.filename}`,
             fileName: req.file.filename,
             originalName: req.file.originalname,
-            size: req.file.size
+            size: req.file.size,
+            isFinancial
         });
     } catch (err) {
         console.error("Error saving media to DB:", err);

@@ -118,15 +118,31 @@ export const dbService = {
     },
 
     // --- Media Library ---
-    getMedia: async (page?: number, limit?: number, search?: string) => {
+    getMedia: async (page?: number, limit?: number, search?: string, role?: string, category?: string) => {
         try {
+            let currentRole = role;
+            if (!currentRole) {
+                try {
+                    const saved = localStorage.getItem('auth_user');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        currentRole = parsed.role;
+                    }
+                } catch (_) {}
+            }
+
             const params = new URLSearchParams();
             if (page) params.append('page', page.toString());
             if (limit) params.append('limit', limit.toString());
             if (search) params.append('search', search);
+            if (currentRole) params.append('role', currentRole);
+            if (category) params.append('category', category);
             
             const url = params.toString() ? `${API_BASE}/media?${params.toString()}` : `${API_BASE}/media`;
-            const res = await fetch(url);
+            const headers: Record<string, string> = {};
+            if (currentRole) headers['x-user-role'] = currentRole;
+
+            const res = await fetch(url, { headers });
             if (!res.ok) return page ? { media: [], total: 0 } : [];
             return await res.json();
         } catch (err: any) {
@@ -134,9 +150,24 @@ export const dbService = {
             return page ? { media: [], total: 0 } : [];
         }
     },
-    deleteMedia: async (id: number) => {
+    deleteMedia: async (id: number, role?: string) => {
         try {
-            await fetch(`${API_BASE}/media/${id}`, { method: 'DELETE' });
+            let currentRole = role;
+            if (!currentRole) {
+                try {
+                    const saved = localStorage.getItem('auth_user');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        currentRole = parsed.role;
+                    }
+                } catch (_) {}
+            }
+
+            const headers: Record<string, string> = {};
+            if (currentRole) headers['x-user-role'] = currentRole;
+            const query = currentRole ? `?role=${encodeURIComponent(currentRole)}` : '';
+
+            await fetch(`${API_BASE}/media/${id}${query}`, { method: 'DELETE', headers });
         } catch (err: any) {
             console.error("Error deleting media:", err);
         }
