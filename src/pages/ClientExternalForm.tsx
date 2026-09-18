@@ -462,6 +462,9 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                     color: #fff;
                     box-sizing: border-box;
                     padding-bottom: 100px;
+                /* Ensure scroll container allows position: sticky to stick to viewport */
+                .main-content {
+                    overflow: visible !important;
                 }
 
                 /* 2-Column Main Layout */
@@ -471,6 +474,7 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                     gap: 32px;
                     align-items: flex-start;
                     width: 100%;
+                    position: relative;
                 }
 
                 .submission-form-col {
@@ -479,11 +483,13 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                 }
 
                 .submission-preview-col {
-                    width: 360px;
+                    width: 350px;
                     flex-shrink: 0;
+                    position: -webkit-sticky;
                     position: sticky;
                     top: 24px;
-                    z-index: 10;
+                    align-self: flex-start;
+                    z-index: 20;
                 }
 
                 .mobile-device-tab-toggle {
@@ -763,24 +769,24 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
 
                 /* iPhone Mockup Shell & WhatsApp Look */
                 .iphone-sticky-container {
-                    position: sticky;
-                    top: 24px;
+                    width: 100%;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                 }
 
                 .iphone-shell {
-                    width: 350px;
-                    height: 690px;
+                    width: 340px;
+                    height: min(650px, calc(100vh - 100px));
                     background: #11141a;
-                    border: 10px solid #232834;
-                    border-radius: 50px;
+                    border: 9px solid #232834;
+                    border-radius: 46px;
                     position: relative;
                     overflow: hidden;
                     box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 0 40px rgba(172, 248, 0, 0.04);
                     display: flex;
                     flex-direction: column;
+                    box-sizing: border-box;
                 }
 
                 .iphone-shell.compact-mode {
@@ -1381,7 +1387,26 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                             <label className="input-label text-center mb-3">Foto / Logo do Perfil</label>
                                             <div
                                                 onClick={() => document.getElementById('photo-upload-input')?.click()}
-                                                className="w-28 h-28 rounded-3xl border-2 border-dashed border-white/20 hover:border-[#acf800] bg-white/[0.02] hover:bg-[#acf800]/5 cursor-pointer flex flex-col items-center justify-center relative overflow-hidden transition-all group shadow-inner"
+                                                style={{
+                                                    width: '104px',
+                                                    height: '104px',
+                                                    minWidth: '104px',
+                                                    minHeight: '104px',
+                                                    maxWidth: '104px',
+                                                    maxHeight: '104px',
+                                                    borderRadius: '24px',
+                                                    border: '2px dashed rgba(255, 255, 255, 0.2)',
+                                                    background: 'rgba(255, 255, 255, 0.02)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    position: 'relative',
+                                                    overflow: 'hidden',
+                                                    boxSizing: 'border-box'
+                                                }}
+                                                className="hover:border-[#acf800] hover:bg-[#acf800]/5 transition-all group shadow-inner"
                                             >
                                                 <input
                                                     id="photo-upload-input"
@@ -1391,10 +1416,19 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                                     onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'profile_photo')}
                                                 />
                                                 {formData.profile_photo ? (
-                                                    <img src={formData.profile_photo} alt="Logo" className="w-full h-full object-cover" />
+                                                    <img
+                                                        src={formData.profile_photo}
+                                                        alt="Logo"
+                                                        style={{
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            objectFit: 'cover',
+                                                            display: 'block'
+                                                        }}
+                                                    />
                                                 ) : (
                                                     <div className="flex flex-col items-center gap-2 text-white/40 group-hover:text-[#acf800] transition-colors">
-                                                        <UploadCloud size={28} />
+                                                        <UploadCloud size={26} />
                                                         <span className="text-[9px] font-black uppercase tracking-wider">Subir Foto</span>
                                                     </div>
                                                 )}
@@ -1897,14 +1931,44 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                             <p className="text-[10px] font-black uppercase tracking-wider text-white/40">Identidade do Disparo</p>
                                             <div className="flex items-center gap-3">
                                                 {formData.profile_photo ? (
-                                                    <img src={formData.profile_photo} alt="Logo" className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                                                    <img
+                                                        src={formData.profile_photo}
+                                                        alt="Logo"
+                                                        style={{
+                                                            width: '44px',
+                                                            height: '44px',
+                                                            minWidth: '44px',
+                                                            minHeight: '44px',
+                                                            maxWidth: '44px',
+                                                            maxHeight: '44px',
+                                                            borderRadius: '50%',
+                                                            objectFit: 'cover',
+                                                            border: '2px solid rgba(255, 255, 255, 0.15)',
+                                                            display: 'block',
+                                                            flexShrink: 0
+                                                        }}
+                                                    />
                                                 ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                                                    <div
+                                                        style={{
+                                                            width: '44px',
+                                                            height: '44px',
+                                                            minWidth: '44px',
+                                                            minHeight: '44px',
+                                                            borderRadius: '50%',
+                                                            background: 'rgba(255, 255, 255, 0.1)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                            flexShrink: 0
+                                                        }}
+                                                    >
                                                         <User size={18} className="text-white/40" />
                                                     </div>
                                                 )}
-                                                <div>
-                                                    <p className="text-sm font-bold text-white">{formData.profile_name || 'Sem nome'}</p>
+                                                <div style={{ minWidth: 0 }}>
+                                                    <p className="text-sm font-bold text-white truncate">{formData.profile_name || 'Sem nome'}</p>
                                                     <p className="text-xs text-white/50">DDD Regional: {formData.ddd || '--'}</p>
                                                 </div>
                                             </div>
