@@ -464,18 +464,78 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                     padding-bottom: 100px;
                 }
 
+                /* 2-Column Main Layout */
+                .submission-main-layout {
+                    display: flex;
+                    flex-direction: row;
+                    gap: 32px;
+                    align-items: flex-start;
+                    width: 100%;
+                }
+
+                .submission-form-col {
+                    flex: 1 1 0%;
+                    min-width: 0;
+                }
+
+                .submission-preview-col {
+                    width: 360px;
+                    flex-shrink: 0;
+                    position: sticky;
+                    top: 24px;
+                    z-index: 10;
+                }
+
+                .mobile-device-tab-toggle {
+                    display: none;
+                    align-items: center;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 16px;
+                    padding: 4px;
+                    width: 100%;
+                }
+
+                @media (max-width: 1023px) {
+                    .submission-main-layout {
+                        flex-direction: column;
+                        gap: 20px;
+                    }
+                    .submission-preview-col {
+                        width: 100%;
+                        position: static;
+                    }
+                    .submission-form-col.mobile-hide-col {
+                        display: none !important;
+                    }
+                    .submission-preview-col.mobile-hide-col {
+                        display: none !important;
+                    }
+                    .mobile-device-tab-toggle {
+                        display: flex;
+                    }
+                }
+
+                @media (min-width: 640px) and (max-width: 1023px) {
+                    .mobile-device-tab-toggle {
+                        width: auto;
+                    }
+                }
+
+                /* Single Row Modern Stepper */
                 .step-indicator-bar {
                     display: flex;
                     align-items: center;
-                    justify-content: space-between;
-                    background: rgba(15, 23, 42, 0.7);
+                    gap: 8px;
+                    background: rgba(15, 23, 42, 0.75);
                     backdrop-filter: blur(20px);
                     border: 1px solid rgba(255, 255, 255, 0.08);
-                    border-radius: 20px;
-                    padding: 8px 12px;
+                    border-radius: 16px;
+                    padding: 8px 10px;
                     position: relative;
-                    overflow: hidden;
                     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+                    width: 100%;
+                    box-sizing: border-box;
                 }
 
                 .step-item {
@@ -483,35 +543,43 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                     align-items: center;
                     gap: 10px;
                     padding: 8px 14px;
-                    border-radius: 14px;
-                    background: transparent;
-                    border: 1px solid transparent;
+                    border-radius: 12px;
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
                     cursor: pointer;
                     transition: all 0.25s ease;
-                    flex: 1;
-                    justify-content: center;
+                    flex: 1 1 0%;
+                    min-width: 0;
+                    justify-content: flex-start;
+                    height: 48px;
+                    box-sizing: border-box;
+                }
+
+                .step-item:hover:not(.disabled) {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-color: rgba(255, 255, 255, 0.12);
                 }
 
                 .step-item.active {
                     background: rgba(172, 248, 0, 0.12);
                     border-color: rgba(172, 248, 0, 0.4);
-                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.1);
+                    box-shadow: 0 0 20px rgba(172, 248, 0, 0.12);
                 }
 
                 .step-item.completed {
-                    background: rgba(255, 255, 255, 0.03);
-                    border-color: rgba(255, 255, 255, 0.06);
+                    background: rgba(255, 255, 255, 0.04);
+                    border-color: rgba(172, 248, 0, 0.25);
                 }
 
                 .step-item.disabled {
-                    opacity: 0.4;
+                    opacity: 0.35;
                     cursor: not-allowed;
                 }
 
                 .step-badge {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 10px;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 8px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -524,7 +592,7 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                 .step-item.active .step-badge {
                     background: #acf800;
                     color: #000;
-                    box-shadow: 0 0 15px rgba(172, 248, 0, 0.4);
+                    box-shadow: 0 0 12px rgba(172, 248, 0, 0.4);
                 }
 
                 .step-item.completed .step-badge {
@@ -535,6 +603,60 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                 .step-item:not(.active):not(.completed) .step-badge {
                     background: rgba(255, 255, 255, 0.08);
                     color: rgba(255, 255, 255, 0.5);
+                }
+
+                .step-text-container {
+                    display: flex;
+                    flex-direction: column;
+                    min-width: 0;
+                    overflow: hidden;
+                    text-align: left;
+                }
+
+                .step-title {
+                    font-size: 12px;
+                    font-weight: 800;
+                    color: #fff;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1.2;
+                }
+
+                .step-desc {
+                    font-size: 10px;
+                    font-weight: 500;
+                    color: rgba(255, 255, 255, 0.4);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    line-height: 1.2;
+                }
+
+                @media (max-width: 768px) {
+                    .step-desc {
+                        display: none;
+                    }
+                    .step-item {
+                        padding: 6px 8px;
+                        gap: 6px;
+                        justify-content: center;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .step-title {
+                        display: none;
+                    }
+                    .step-item {
+                        flex: 0 0 auto;
+                        width: 44px;
+                        padding: 0;
+                        justify-content: center;
+                    }
+                    .step-indicator-bar {
+                        justify-content: space-around;
+                    }
                 }
 
                 .main-card {
@@ -880,18 +1002,33 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                     justify-content: center;
                 }
 
+                .creative-format-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 12px;
+                    width: 100%;
+                }
+
+                @media (max-width: 520px) {
+                    .creative-format-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
                 .creative-type-card {
-                    flex: 1;
-                    padding: 16px 14px;
-                    border-radius: 18px;
+                    padding: 14px 12px;
+                    border-radius: 14px;
                     background: rgba(255, 255, 255, 0.02);
                     border: 1px solid rgba(255, 255, 255, 0.08);
                     cursor: pointer;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
+                    justify-content: center;
                     gap: 8px;
                     transition: all 0.25s ease;
+                    min-height: 76px;
+                    box-sizing: border-box;
                 }
 
                 .creative-type-card:hover {
@@ -903,6 +1040,56 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                     background: rgba(172, 248, 0, 0.08);
                     border-color: #acf800;
                     box-shadow: 0 0 25px rgba(172, 248, 0, 0.15);
+                }
+
+                /* Step 1 Identity Grid */
+                .step-identity-layout {
+                    display: flex;
+                    gap: 24px;
+                    align-items: flex-start;
+                    width: 100%;
+                }
+
+                .step-identity-photo {
+                    width: 200px;
+                    flex-shrink: 0;
+                }
+
+                .step-identity-fields {
+                    flex: 1 1 0%;
+                    min-width: 0;
+                }
+
+                .identity-fields-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 110px;
+                    gap: 16px;
+                }
+
+                @media (max-width: 680px) {
+                    .step-identity-layout {
+                        flex-direction: column;
+                    }
+                    .step-identity-photo {
+                        width: 100%;
+                    }
+                    .identity-fields-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
+                /* Two Column Form Row */
+                .form-two-columns {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 16px;
+                    width: 100%;
+                }
+
+                @media (max-width: 640px) {
+                    .form-two-columns {
+                        grid-template-columns: 1fr;
+                    }
                 }
 
                 .ad-tab-chip {
@@ -982,7 +1169,7 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
 
                     {/* Mobile Tab Toggle: Formulário vs Prévia WhatsApp */}
                     {step < 4 && (
-                        <div className="flex lg:hidden items-center bg-white/5 border border-white/10 rounded-2xl p-1 w-full sm:w-auto">
+                        <div className="mobile-device-tab-toggle">
                             <button
                                 type="button"
                                 onClick={() => setMobileTab('form')}
@@ -1006,17 +1193,15 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                 {/* Progress / Step Navigation Bar */}
                 {step < 4 && (
                     <nav aria-label="Etapas da Submissão" className="mb-8">
-                        <div className="step-indicator-bar grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="step-indicator-bar">
                             {stepsConfig.map((s, idx) => {
                                 const isCurrent = step === s.id;
                                 const isPassed = step > s.id;
-                                const StepIcon = s.icon;
                                 return (
                                     <button
                                         type="button"
                                         key={s.id}
                                         onClick={() => {
-                                            // Allow navigating to any already completed step or current step
                                             if (isPassed || isCurrent) {
                                                 setStep(s.id);
                                             }
@@ -1025,11 +1210,11 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                         className={`step-item ${isCurrent ? 'active' : ''} ${isPassed ? 'completed' : ''} ${!isPassed && !isCurrent ? 'disabled' : ''}`}
                                     >
                                         <div className="step-badge">
-                                            {isPassed ? <Check size={16} className="text-[#acf800]" /> : <span>{idx + 1}</span>}
+                                            {isPassed ? <Check size={14} className="text-[#acf800]" /> : <span>{idx + 1}</span>}
                                         </div>
-                                        <div className="text-left hidden sm:block">
-                                            <p className="text-xs font-black text-white leading-none mb-0.5">{s.title}</p>
-                                            <p className="text-[9px] font-semibold text-white/40 leading-none">{s.desc}</p>
+                                        <div className="step-text-container">
+                                            <p className="step-title">{s.title}</p>
+                                            <p className="step-desc">{s.desc}</p>
                                         </div>
                                     </button>
                                 );
@@ -1040,9 +1225,9 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
 
                 {/* Main Content Layout */}
                 {step < 4 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <div className="submission-main-layout">
                         {/* Form Column */}
-                        <div className={`lg:col-span-7 xl:col-span-8 space-y-6 ${mobileTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
+                        <div className={`submission-form-col space-y-6 ${mobileTab === 'preview' ? 'mobile-hide-col' : ''}`}>
                             {/* STEP 0: SELECIONAR CLIENTE (Colaborador / Admin) */}
                             {step === 0 && isStaff && (
                                 <div className="main-card space-y-8 animate-fade-in">
@@ -1190,9 +1375,9 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                     </div>
 
                                     {/* Brand identity grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                    <div className="step-identity-layout">
                                         {/* Avatar / Logo Upload */}
-                                        <div className="md:col-span-4 flex flex-col items-center justify-center p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center">
+                                        <div className="step-identity-photo flex flex-col items-center justify-center p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center">
                                             <label className="input-label text-center mb-3">Foto / Logo do Perfil</label>
                                             <div
                                                 onClick={() => document.getElementById('photo-upload-input')?.click()}
@@ -1232,9 +1417,9 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                         </div>
 
                                         {/* Main Fields */}
-                                        <div className="md:col-span-8 space-y-4">
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                <div className="sm:col-span-2">
+                                        <div className="step-identity-fields space-y-4">
+                                            <div className="identity-fields-grid">
+                                                <div>
                                                     <label className="input-label">
                                                         <span>Nome do Atendimento</span>
                                                         <span className="text-[#acf800] text-[10px]">Obrigatório</span>
@@ -1262,7 +1447,7 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                                         onChange={e => setFormData(p => ({ ...p, ddd: e.target.value.replace(/\D/g, '') }))}
                                                         required
                                                     />
-                                                    <p className="text-[10px] text-white/40 mt-1">DDD para o chip de disparo.</p>
+                                                    <p className="text-[10px] text-white/40 mt-1">DDD chip.</p>
                                                 </div>
                                             </div>
 
@@ -1380,7 +1565,7 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                     {/* Creative Format Selector */}
                                     <div>
                                         <label className="input-label mb-2">Formato do Conteúdo</label>
-                                        <div className="grid grid-cols-3 gap-3">
+                                        <div className="creative-format-grid">
                                             {[
                                                 { type: 'TEXT' as const, label: 'Apenas Texto', icon: MessageSquare },
                                                 { type: 'IMAGE' as const, label: 'Imagem + Texto', icon: ImageIcon },
@@ -1452,7 +1637,7 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                     )}
 
                                     {/* Contacts Spreadsheet & CTA Link in 2 Columns */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="form-two-columns">
                                         {/* Planilha de Destinatários */}
                                         <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
                                             <div>
@@ -1587,7 +1772,7 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                                                 </div>
 
                                                 {/* Variables inputs in 2 columns */}
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="form-two-columns">
                                                     {[1, 2, 3, 4, 5].map(vNum => {
                                                         if (vNum === 5 && !currentAd.showFifthVariable) return null;
                                                         const placeholders = [
@@ -1812,7 +1997,7 @@ const ClientExternalForm: React.FC<ClientExternalFormProps> = ({ isInternal = fa
                         </div>
 
                         {/* Phone Mockup Column - Desktop (Sticky) & Mobile Toggle View */}
-                        <div className={`lg:col-span-5 xl:col-span-4 ${mobileTab === 'form' ? 'hidden lg:block' : 'block'}`}>
+                        <div className={`submission-preview-col ${mobileTab === 'form' ? 'mobile-hide-col' : ''}`}>
                             <div className="iphone-sticky-container">
                                 <div className="flex items-center justify-between w-full max-w-[350px] mb-3 px-2">
                                     <div className="flex items-center gap-2">

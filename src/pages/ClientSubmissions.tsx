@@ -72,6 +72,7 @@ interface ClientSubmission {
     timestamp: string;
     logs?: any[];
     dispatch_date?: string;
+    notes?: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -92,13 +93,19 @@ const ClientSubmissions = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all'>('mine');
+    const [activeTab, setActiveTab] = useState<'available' | 'mine' | 'all' | 'schedule'>('mine');
     const [employees, setEmployees] = useState<string[]>([]);
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [assignedFilter, setAssignedFilter] = useState('ALL');
-    const [viewMode, setViewMode] = useState<'grid' | 'list' | 'kanban'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list' | 'kanban' | 'schedule'>('grid');
+    const [agendaSelectedDate, setAgendaSelectedDate] = useState<string>(() => {
+        const today = new Date();
+        return today.toLocaleDateString('en-CA');
+    });
+    const [agendaOnlyMine, setAgendaOnlyMine] = useState(false);
+    const [showUnassignedAgenda, setShowUnassignedAgenda] = useState(false);
     const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
     const [selectedSubForChange, setSelectedSubForChange] = useState<any>(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -282,6 +289,7 @@ const ClientSubmissions = () => {
             const current = (user?.name || '').trim().toLowerCase();
             return assigned !== '' && current !== '' && assigned === current;
         })
+        : activeTab === 'schedule' ? allFiltered.filter(s => !!s.dispatch_date)
         : allFiltered;
 
     const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -546,6 +554,7 @@ const ClientSubmissions = () => {
         ...((user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') ? [{ id: 'available' as const, label: 'PENDENTES', icon: <Inbox size={13} />, count: Array.isArray(allFiltered) ? allFiltered.filter(s => !s.assigned_to).length : 0 }] : []),
         { id: 'mine' as const, label: 'MINHAS TAREFAS', icon: <CheckCircle size={13} />, count: Array.isArray(allFiltered) ? allFiltered.filter(s => (s.assigned_to || '').trim().toLowerCase() === (user?.name || '').trim().toLowerCase()).length : 0 },
         ...((user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') ? [{ id: 'all' as const, label: 'TODAS', icon: <Users size={13} />, count: Array.isArray(allFiltered) ? allFiltered.length : 0 }] : []),
+        { id: 'schedule' as const, label: 'AGENDA DE DISPAROS', icon: <Calendar size={13} />, count: Array.isArray(allSubmissions) ? allSubmissions.filter(s => !!s.dispatch_date).length : 0 },
     ];
 
     const totalEntregues = allFiltered.reduce((sum, sub) => {
@@ -930,6 +939,733 @@ const ClientSubmissions = () => {
         );
     };
 
+    const renderScheduleView = () => {
+        // Base list for agenda respecting search, client filter, employee filter, and agendaOnlyMine
+        const baseList = allSubmissions.filter(s => {
+            const matchesSearch = !searchTerm || 
+                (s.profile_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (s.ddd || '').includes(searchTerm);
+            const matchesClient = !selectedClientFilter || String(s.user_id) === String(selectedClientFilter);
+            const matchesEmployee = !selectedEmployeeFilter || 
+                (s.assigned_to || '').trim().toLowerCase() === selectedEmployeeFilter.trim().toLowerCase();
+            const matchesMine = !agendaOnlyMine || 
+                (s.assigned_to || '').trim().toLowerCase() === (user?.name || '').trim().toLowerCase();
+            return matchesSearch && matchesClient && matchesEmployee && matchesMine;
+        });
+
+        const dispatchesByDate: Record<string, ClientSubmission[]> = {};
+        const unassignedSubs: ClientSubmission[] = [];
+
+        baseList.forEach(s => {
+            const rawDate = s.dispatch_date || (s.ads && s.ads[0]?.scheduled_at);
+            if (rawDate) {
+                try {
+                    const d = new Date(rawDate);
+                    if (!isNaN(d.getTime())) {
+                        const key = d.toLocaleDateString('en-CA');
+                        if (!dispatchesByDate[key]) dispatchesByDate[key] = [];
+                        dispatchesByDate[key].push(s);
+                        return;
+                    }
+                } catch (e) {}
+            }
+            unassignedSubs.push(s);
+        });
+
+        // Current day dispatches sorted chronologically
+        const dayDispatches = [...(dispatchesByDate[agendaSelectedDate] || [])].sort((a, b) => {
+            const timeA = new Date(a.dispatch_date || (a.ads && a.ads[0]?.scheduled_at) || '').getTime();
+            const timeB = new Date(b.dispatch_date || (b.ads && b.ads[0]?.scheduled_at) || '').getTime();
+            return timeA - timeB;
+        });
+
+        // 14-day strip around today
+        const todayObj = new Date();
+        const todayKey = todayObj.toLocaleDateString('en-CA');
+        const stripDates: { dateKey: string; weekday: string; dayMonth: string; count: number; isToday: boolean; isSelected: boolean }[] = [];
+
+        for (let i = -3; i <= 10; i++) {
+            const cur = new Date(todayObj);
+            cur.setDate(todayObj.getDate() + i);
+            const key = cur.toLocaleDateString('en-CA');
+            const weekday = cur.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase();
+            const dayMonth = cur.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            stripDates.push({
+                dateKey: key,
+                weekday,
+                dayMonth,
+                count: (dispatchesByDate[key] || []).length,
+                isToday: key === todayKey,
+                isSelected: key === agendaSelectedDate
+            });
+        }
+
+        // List of other dates that have dispatches (compact list)
+        const otherDatesWithDispatches = Object.keys(dispatchesByDate)
+            .filter(k => k !== agendaSelectedDate && dispatchesByDate[k].length > 0)
+            .sort((a, b) => a.localeCompare(b));
+
+        // Format date helpers
+        const formatLongDate = (key: string) => {
+            try {
+                const parts = key.split('-');
+                const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                const str = d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                return str.charAt(0).toUpperCase() + str.slice(1);
+            } catch {
+                return key;
+            }
+        };
+
+        const formatShortDate = (key: string) => {
+            try {
+                const parts = key.split('-');
+                const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                const str = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+                return str.replace('.', '').toUpperCase();
+            } catch {
+                return key;
+            }
+        };
+
+        const jumpDay = (days: number) => {
+            const parts = agendaSelectedDate.split('-');
+            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            d.setDate(d.getDate() + days);
+            setAgendaSelectedDate(d.toLocaleDateString('en-CA'));
+        };
+
+        const getDispatchTime = (sub: ClientSubmission) => {
+            const raw = sub.dispatch_date || (sub.ads && sub.ads[0]?.scheduled_at);
+            if (!raw) return 'Horário livre';
+            try {
+                const d = new Date(raw);
+                if (isNaN(d.getTime())) return 'Horário livre';
+                return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            } catch {
+                return 'Horário livre';
+            }
+        };
+
+        // Total count of scheduled items
+        const totalScheduledCount = Object.values(dispatchesByDate).reduce((acc, curr) => acc + curr.length, 0);
+
+        return (
+            <div className="agenda-view-container animate-fade-in" style={{ width: '100%', minWidth: 0, marginTop: '8px' }}>
+                {/* Agenda Top Controls */}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: '20px',
+                    padding: '16px 20px',
+                    marginBottom: '16px',
+                    backdropFilter: 'blur(15px)'
+                }}>
+                    {/* Date Navigation & Day Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                                type="button"
+                                onClick={() => jumpDay(-1)}
+                                className="page-btn"
+                                style={{ padding: '8px 12px', borderRadius: '10px' }}
+                                title="Dia Anterior"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => jumpDay(1)}
+                                className="page-btn"
+                                style={{ padding: '8px 12px', borderRadius: '10px' }}
+                                title="Próximo Dia"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+
+                        {agendaSelectedDate !== todayKey && (
+                            <button
+                                type="button"
+                                onClick={() => setAgendaSelectedDate(todayKey)}
+                                style={{
+                                    background: 'rgba(172, 248, 0, 0.1)',
+                                    color: 'var(--primary-color)',
+                                    border: '1px solid rgba(172, 248, 0, 0.3)',
+                                    padding: '6px 12px',
+                                    borderRadius: '8px',
+                                    fontSize: '11px',
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    textTransform: 'uppercase'
+                                }}
+                            >
+                                IR PARA HOJE
+                            </button>
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Calendar size={18} style={{ color: 'var(--primary-color)' }} />
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>
+                                    {formatLongDate(agendaSelectedDate)}
+                                </h3>
+                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                                    {dayDispatches.length} disparo(s) agendado(s)
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style={{ marginLeft: '4px' }}>
+                            <input
+                                type="date"
+                                value={agendaSelectedDate}
+                                onChange={e => e.target.value && setAgendaSelectedDate(e.target.value)}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.04)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    color: '#fff',
+                                    padding: '6px 10px',
+                                    borderRadius: '8px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    outline: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Right Action Controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                            type="button"
+                            onClick={() => setAgendaOnlyMine(!agendaOnlyMine)}
+                            style={{
+                                background: agendaOnlyMine ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.04)',
+                                color: agendaOnlyMine ? '#000' : 'var(--text-secondary)',
+                                border: `1px solid ${agendaOnlyMine ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.1)'}`,
+                                padding: '8px 14px',
+                                borderRadius: '10px',
+                                fontSize: '11px',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <User size={13} />
+                            {agendaOnlyMine ? 'MEUS DISPAROS (ATIVO)' : 'TODOS OS DISPAROS'}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => navigate('/client-submissions/add')}
+                            style={{
+                                background: 'var(--primary-color)',
+                                color: '#000',
+                                padding: '8px 16px',
+                                borderRadius: '10px',
+                                fontSize: '11px',
+                                fontWeight: 900,
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                            }}
+                        >
+                            <Plus size={14} /> NOVO DISPARO
+                        </button>
+                    </div>
+                </div>
+
+                {/* Compact Date Strip (14-day strip, not wide, clean and responsive) */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    overflowX: 'auto',
+                    paddingBottom: '12px',
+                    marginBottom: '20px',
+                    WebkitOverflowScrolling: 'touch'
+                }}>
+                    {stripDates.map(item => (
+                        <button
+                            type="button"
+                            key={item.dateKey}
+                            onClick={() => setAgendaSelectedDate(item.dateKey)}
+                            style={{
+                                flex: '0 0 auto',
+                                minWidth: '76px',
+                                padding: '10px 8px',
+                                borderRadius: '14px',
+                                border: item.isSelected ? '1.5px solid var(--primary-color)' : '1px solid rgba(255, 255, 255, 0.06)',
+                                background: item.isSelected 
+                                    ? 'var(--primary-color)' 
+                                    : item.isToday 
+                                    ? 'rgba(172, 248, 0, 0.08)' 
+                                    : 'rgba(255, 255, 255, 0.02)',
+                                color: item.isSelected ? '#000' : '#fff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '3px',
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: item.isSelected ? '0 0 20px rgba(172, 248, 0, 0.25)' : 'none',
+                                position: 'relative'
+                            }}
+                        >
+                            <span style={{
+                                fontSize: '9px',
+                                fontWeight: 900,
+                                opacity: item.isSelected ? 0.8 : 0.5,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                            }}>
+                                {item.isToday ? 'HOJE' : item.weekday}
+                            </span>
+                            <span style={{
+                                fontSize: '13px',
+                                fontWeight: 900,
+                                lineHeight: 1
+                            }}>
+                                {item.dayMonth}
+                            </span>
+                            {item.count > 0 && (
+                                <span style={{
+                                    fontSize: '9px',
+                                    fontWeight: 900,
+                                    padding: '1px 5px',
+                                    borderRadius: '6px',
+                                    marginTop: '2px',
+                                    background: item.isSelected ? 'rgba(0,0,0,0.25)' : 'rgba(172, 248, 0, 0.15)',
+                                    color: item.isSelected ? '#000' : 'var(--primary-color)',
+                                    border: item.isSelected ? 'none' : '1px solid rgba(172, 248, 0, 0.3)'
+                                }}>
+                                    {item.count} {item.count === 1 ? 'disp' : 'disps'}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Agenda Content: 2-Column Grid (Daily Timeline + Other Upcoming Dates) */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1.8fr) minmax(280px, 1fr)',
+                    gap: '24px',
+                    alignItems: 'start'
+                }} className="agenda-grid-layout">
+                    {/* LEFT COLUMN: Daily Timeline for agendaSelectedDate */}
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.015)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderRadius: '24px',
+                        padding: '24px',
+                        backdropFilter: 'blur(20px)'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingBottom: '16px',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                            marginBottom: '20px'
+                        }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Clock size={16} style={{ color: 'var(--primary-color)' }} />
+                                    Cronograma Diário de Disparos
+                                </h4>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                                    Envios programados para {formatLongDate(agendaSelectedDate)}
+                                </p>
+                            </div>
+                            <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '8px',
+                                background: dayDispatches.length > 0 ? 'rgba(172, 248, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                                color: dayDispatches.length > 0 ? 'var(--primary-color)' : 'var(--text-muted)',
+                                border: `1px solid ${dayDispatches.length > 0 ? 'rgba(172, 248, 0, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`,
+                                fontSize: '11px',
+                                fontWeight: 900
+                            }}>
+                                {dayDispatches.length} DISPARO(S)
+                            </span>
+                        </div>
+
+                        {/* List of Dispatches for the selected day */}
+                        {dayDispatches.length === 0 ? (
+                            <div style={{
+                                padding: '60px 20px',
+                                textAlign: 'center',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '12px'
+                            }}>
+                                <div style={{
+                                    width: '64px',
+                                    height: '64px',
+                                    borderRadius: '20px',
+                                    background: 'rgba(255, 255, 255, 0.02)',
+                                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'var(--text-muted)'
+                                }}>
+                                    <Calendar size={28} opacity={0.4} />
+                                </div>
+                                <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                                    Nenhum disparo agendado para este dia
+                                </h5>
+                                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', maxWidth: '300px' }}>
+                                    Não há envios com horário definido para {formatLongDate(agendaSelectedDate)}.
+                                </p>
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                    {otherDatesWithDispatches.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setAgendaSelectedDate(otherDatesWithDispatches[0])}
+                                            style={{
+                                                background: 'rgba(172, 248, 0, 0.08)',
+                                                border: '1px solid rgba(172, 248, 0, 0.25)',
+                                                color: 'var(--primary-color)',
+                                                padding: '8px 14px',
+                                                borderRadius: '10px',
+                                                fontSize: '11px',
+                                                fontWeight: 800,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Ver Próximo Dia ({formatShortDate(otherDatesWithDispatches[0])}) ➜
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/client-submissions/add')}
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.04)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#fff',
+                                            padding: '8px 14px',
+                                            borderRadius: '10px',
+                                            fontSize: '11px',
+                                            fontWeight: 800,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        + Agendar Novo Disparo
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {dayDispatches.map((sub) => {
+                                    const timeStr = getDispatchTime(sub);
+                                    const cfg = sub.assigned_to 
+                                        ? { label: `EM MÃOS: ${sub.assigned_to.toUpperCase()}`, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.2)' }
+                                        : (STATUS_CONFIG[sub.status] || STATUS_CONFIG['PENDENTE']);
+
+                                    const adsArr = Array.isArray(sub.ads) ? sub.ads : [];
+                                    const adType = (adsArr.length > 0 ? adsArr[0]?.template_type : sub.template_type) || 'TEXT';
+
+                                    return (
+                                        <div
+                                            key={sub.id}
+                                            onClick={() => navigate(`/client-submissions/${sub.id}`)}
+                                            style={{
+                                                display: 'flex',
+                                                gap: '16px',
+                                                background: 'rgba(255, 255, 255, 0.02)',
+                                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                                borderRadius: '18px',
+                                                padding: '16px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.25s ease',
+                                                position: 'relative'
+                                            }}
+                                            className="agenda-item-card"
+                                        >
+                                            {/* Time Column */}
+                                            <div style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                minWidth: '65px',
+                                                padding: '8px',
+                                                borderRadius: '12px',
+                                                background: 'rgba(172, 248, 0, 0.08)',
+                                                border: '1px solid rgba(172, 248, 0, 0.2)',
+                                                flexShrink: 0
+                                            }}>
+                                                <Clock size={14} style={{ color: 'var(--primary-color)', marginBottom: '4px' }} />
+                                                <span style={{ fontSize: '13px', fontWeight: 900, color: 'var(--primary-color)', lineHeight: 1 }}>
+                                                    {timeStr}
+                                                </span>
+                                            </div>
+
+                                            {/* Dispatch Information */}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                                        {sub.profile_photo ? (
+                                                            <img
+                                                                src={sub.profile_photo}
+                                                                alt=""
+                                                                style={{ width: 34, height: 34, borderRadius: '10px', objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)' }}
+                                                            />
+                                                        ) : (
+                                                            <div style={{ width: 34, height: 34, borderRadius: '10px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                                <User size={16} opacity={0.3} />
+                                                            </div>
+                                                        )}
+                                                        <div style={{ minWidth: 0 }}>
+                                                            <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                {sub.profile_name}
+                                                            </h5>
+                                                            {sub.client_name && (
+                                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                                                    Cliente: {sub.client_name}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Status Badge */}
+                                                    <span style={{
+                                                        padding: '3px 8px',
+                                                        borderRadius: '6px',
+                                                        fontSize: '9px',
+                                                        fontWeight: 900,
+                                                        textTransform: 'uppercase',
+                                                        background: cfg.bg,
+                                                        color: cfg.color,
+                                                        border: `1px solid ${cfg.border}`
+                                                    }}>
+                                                        {cfg.label}
+                                                    </span>
+                                                </div>
+
+                                                {/* Meta tags & Details */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
+                                                    <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-color)', background: 'rgba(172, 248, 0, 0.08)', padding: '2px 6px', borderRadius: '4px' }}>
+                                                        DDD {sub.ddd}
+                                                    </span>
+                                                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        {getTemplateIcon(adType.toLowerCase())} {adType}
+                                                    </span>
+                                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                                        • {adsArr.length || 1} anúncio(s)
+                                                    </span>
+                                                    {sub.assigned_to && (
+                                                        <span style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 700 }}>
+                                                            • 👤 {sub.assigned_to}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {sub.notes && (
+                                                    <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', padding: '6px 10px', borderRadius: '6px' }}>
+                                                        "{sub.notes}"
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Action Icon */}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); navigate(`/client-submissions/${sub.id}`); }}
+                                                    style={{
+                                                        background: 'rgba(255, 255, 255, 0.05)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                        color: '#fff',
+                                                        padding: '8px',
+                                                        borderRadius: '10px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    title="Abrir Painel"
+                                                >
+                                                    <ChevronRight size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RIGHT COLUMN: Compact Overview of Other Dates (Não Amplo) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {/* Summary Widget */}
+                        <div style={{
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '20px',
+                            padding: '18px 20px',
+                            backdropFilter: 'blur(15px)'
+                        }}>
+                            <h5 style={{ margin: '0 0 12px 0', fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                                Resumo da Agenda
+                            </h5>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '12px' }}>
+                                    <span style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary-color)', display: 'block', lineHeight: 1 }}>
+                                        {dayDispatches.length}
+                                    </span>
+                                    <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                        Hoje / Selecionado
+                                    </span>
+                                </div>
+                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px', padding: '12px' }}>
+                                    <span style={{ fontSize: '20px', fontWeight: 900, color: '#38bdf8', display: 'block', lineHeight: 1 }}>
+                                        {totalScheduledCount}
+                                    </span>
+                                    <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                        Total Agendados
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Other Upcoming Dates List (Compact & Specific) */}
+                        <div style={{
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '20px',
+                            padding: '20px',
+                            backdropFilter: 'blur(15px)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                                <h5 style={{ margin: 0, fontSize: '12px', fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                    Próximos Dias com Disparo
+                                </h5>
+                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                                    {otherDatesWithDispatches.length} data(s)
+                                </span>
+                            </div>
+
+                            {otherDatesWithDispatches.length === 0 ? (
+                                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>
+                                    Nenhuma outra data com disparos agendados.
+                                </p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '380px', overflowY: 'auto' }}>
+                                    {otherDatesWithDispatches.slice(0, 8).map(dateKey => {
+                                        const count = (dispatchesByDate[dateKey] || []).length;
+                                        const sampleNames = (dispatchesByDate[dateKey] || []).map(s => s.profile_name).slice(0, 2).join(', ');
+                                        return (
+                                            <div
+                                                key={dateKey}
+                                                onClick={() => setAgendaSelectedDate(dateKey)}
+                                                style={{
+                                                    padding: '12px 14px',
+                                                    borderRadius: '12px',
+                                                    background: 'rgba(255, 255, 255, 0.02)',
+                                                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    gap: '10px',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                className="upcoming-date-card"
+                                            >
+                                                <div style={{ minWidth: 0 }}>
+                                                    <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#fff' }}>
+                                                        {formatShortDate(dateKey)}
+                                                    </p>
+                                                    <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {sampleNames || 'Disparos programados'}
+                                                    </p>
+                                                </div>
+                                                <span style={{
+                                                    fontSize: '10px',
+                                                    fontWeight: 900,
+                                                    padding: '2px 8px',
+                                                    borderRadius: '6px',
+                                                    background: 'rgba(172, 248, 0, 0.1)',
+                                                    color: 'var(--primary-color)',
+                                                    border: '1px solid rgba(172, 248, 0, 0.2)',
+                                                    flexShrink: 0
+                                                }}>
+                                                    {count} {count === 1 ? 'disp' : 'disps'}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Optional unassigned submissions accordion */}
+                        {unassignedSubs.length > 0 && (
+                            <div style={{
+                                background: 'rgba(255, 255, 255, 0.015)',
+                                border: '1px solid rgba(255, 255, 255, 0.04)',
+                                borderRadius: '16px',
+                                padding: '14px 18px'
+                            }}>
+                                <div
+                                    onClick={() => setShowUnassignedAgenda(!showUnassignedAgenda)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>
+                                        Disparos sem data ({unassignedSubs.length})
+                                    </span>
+                                    {showUnassignedAgenda ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </div>
+                                {showUnassignedAgenda && (
+                                    <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                                        {unassignedSubs.slice(0, 10).map(s => (
+                                            <div
+                                                key={s.id}
+                                                onClick={() => navigate(`/client-submissions/${s.id}`)}
+                                                style={{
+                                                    padding: '8px 10px',
+                                                    borderRadius: '8px',
+                                                    background: 'rgba(255,255,255,0.02)',
+                                                    fontSize: '11px',
+                                                    color: '#fff',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between'
+                                                }}
+                                            >
+                                                <span style={{ fontWeight: 700 }}>{s.profile_name}</span>
+                                                <span style={{ color: 'var(--primary-color)' }}>DDD {s.ddd}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="cs-page-container" style={{ minHeight: '100vh', padding: '32px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
             <style>{`
@@ -1026,6 +1762,24 @@ const ClientSubmissions = () => {
                     display: flex; align-items: center; gap: 4px;
                 }
                 .page-btn.active { background: var(--primary-color); color: #000; border-color: var(--primary-color); }
+
+                /* Agenda View Styles */
+                .agenda-item-card:hover {
+                    border-color: rgba(172,248,0,0.3) !important;
+                    background: rgba(172,248,0,0.03) !important;
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+                }
+                .upcoming-date-card:hover {
+                    border-color: rgba(172,248,0,0.3) !important;
+                    background: rgba(172,248,0,0.05) !important;
+                    transform: translateX(3px);
+                }
+                @media (max-width: 1024px) {
+                    .agenda-grid-layout {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
 
                 @media (max-width: 1024px) {
                     .cs-page-container { padding: 16px 12px !important; overflow-x: hidden !important; }
@@ -1248,7 +2002,16 @@ const ClientSubmissions = () => {
                     <div className="flex items-center justify-between mb-6 gap-4 flex-wrap responsive-stack-mobile">
                         <div className="flex gap-1 background-subtle border-subtle rounded-xl p-1 responsive-stack-mobile">
                             {tabs.map(tab => (
-                                <button key={tab.id} className={`tab-pill ${activeTab === tab.id ? 'active' : 'inactive'}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}>
+                                <button
+                                    key={tab.id}
+                                    className={`tab-pill ${activeTab === tab.id ? 'active' : 'inactive'}`}
+                                    onClick={() => {
+                                        setActiveTab(tab.id);
+                                        if (tab.id === 'schedule') setViewMode('schedule');
+                                        else if (viewMode === 'schedule') setViewMode('grid');
+                                        setCurrentPage(1);
+                                    }}
+                                >
                                     {tab.icon} {tab.label} <span className={`count-badge ${activeTab === tab.id ? 'active' : 'inactive'}`}>{tab.count}</span>
                                 </button>
                             ))}
@@ -1324,8 +2087,22 @@ const ClientSubmissions = () => {
                 </div>
 
                 <div className="view-mode-container">
-                    {[{ id: 'grid', icon: <LayoutGrid size={16} />, label: 'GRADE' }, { id: 'list', icon: <List size={16} />, label: 'LISTA' }, { id: 'kanban', icon: <Trello size={16} />, label: 'KANBAN' }].map(mode => (
-                        <button key={mode.id} onClick={() => { setViewMode(mode.id as any); setCurrentPage(1); }} className={`page-btn ${viewMode === mode.id ? 'active' : ''}`}>
+                    {[
+                        { id: 'grid', icon: <LayoutGrid size={16} />, label: 'GRADE' },
+                        { id: 'list', icon: <List size={16} />, label: 'LISTA' },
+                        { id: 'kanban', icon: <Trello size={16} />, label: 'KANBAN' },
+                        { id: 'schedule', icon: <Calendar size={16} />, label: 'AGENDA' }
+                    ].map(mode => (
+                        <button
+                            key={mode.id}
+                            onClick={() => {
+                                setViewMode(mode.id as any);
+                                if (mode.id === 'schedule') setActiveTab('schedule');
+                                else if (activeTab === 'schedule') setActiveTab('all');
+                                setCurrentPage(1);
+                            }}
+                            className={`page-btn ${(activeTab === 'schedule' ? mode.id === 'schedule' : viewMode === mode.id) ? 'active' : ''}`}
+                        >
                             {mode.icon} {mode.label}
                         </button>
                     ))}
@@ -1333,6 +2110,8 @@ const ClientSubmissions = () => {
 
                 {isLoading ? (
                     <div style={{ padding: '80px', textAlign: 'center' }}><div style={{ width: 48, height: 48, border: '3px solid var(--surface-border-subtle)', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} /> <span style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '12px', letterSpacing: '2px' }}>CARREGANDO...</span></div>
+                ) : (activeTab === 'schedule' || viewMode === 'schedule') ? (
+                    renderScheduleView()
                 ) : filteredSubmissions.length === 0 ? (
                     <div style={{ padding: '80px', textAlign: 'center', opacity: 0.3 }}><Inbox size={70} strokeWidth={1} style={{ margin: '0 auto 16px' }} /><p style={{ fontWeight: 900, fontSize: '1.1rem' }}>SEM REGISTROS</p></div>
                 ) : (
