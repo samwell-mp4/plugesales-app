@@ -1036,35 +1036,115 @@ const TemplateCreator = () => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({ ...r, hasButtons })) } : c));
     };
 
+    const setGlobalButtonCount = (count: 1 | 2, campaignId: string) => {
+        if (count === 2) {
+            setButtons(prev => {
+                const b0 = prev[0] || { type: 'reply', text: 'Confirmar' };
+                const b1 = prev[1] || { type: 'url', text: 'Acessar Link', url: '' };
+                return [b0, b1];
+            });
+            setCampaigns(prev => prev.map(c => c.id === campaignId ? {
+                ...c,
+                rows: c.rows.map(r => {
+                    const types = (r.buttonTypes && r.buttonTypes.length > 0) ? [...r.buttonTypes] : ['reply'];
+                    while (types.length < 2) types.push('url');
+                    const texts = (r.buttonTexts && r.buttonTexts.length > 0) ? [...r.buttonTexts] : ['Confirmar'];
+                    while (texts.length < 2) texts.push('Acessar Link');
+                    const urls = (r.buttonUrls && r.buttonUrls.length > 0) ? [...r.buttonUrls] : [''];
+                    while (urls.length < 2) urls.push('');
+                    return {
+                        ...r,
+                        hasButtons: true,
+                        buttonTypes: types.slice(0, 2),
+                        buttonTexts: texts.slice(0, 2),
+                        buttonUrls: urls.slice(0, 2)
+                    };
+                })
+            } : c));
+        } else {
+            setButtons(prev => [prev[0] || { type: 'reply', text: 'Confirmar' }]);
+            setCampaigns(prev => prev.map(c => c.id === campaignId ? {
+                ...c,
+                rows: c.rows.map(r => ({
+                    ...r,
+                    buttonTypes: (r.buttonTypes || ['reply']).slice(0, 1),
+                    buttonTexts: (r.buttonTexts || ['']).slice(0, 1),
+                    buttonUrls: (r.buttonUrls || ['']).slice(0, 1)
+                }))
+            } : c));
+        }
+    };
+
+    const applyDualPreset = (type1: 'reply' | 'url', type2: 'reply' | 'url', text1: string, text2: string, campaignId: string) => {
+        setButtons([
+            { type: type1, text: text1, url: '' },
+            { type: type2, text: text2, url: '' }
+        ]);
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? {
+            ...c,
+            rows: c.rows.map(r => {
+                const urls = [...(r.buttonUrls || ['', ''])];
+                while (urls.length < 2) urls.push('');
+                return {
+                    ...r,
+                    hasButtons: true,
+                    buttonTypes: [type1, type2],
+                    buttonTexts: [text1, text2],
+                    buttonUrls: urls
+                };
+            })
+        } : c));
+    };
+
     const applyGlobalButtonType = (type: 'url' | 'reply', campaignId: string, buttonIndex = 0) => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? {
             ...c, rows: c.rows.map(r => {
                 const types = r.buttonTypes && r.buttonTypes.length > 0 ? [...r.buttonTypes] : (buttons.map(b => b.type) || ['url']);
+                while (types.length <= buttonIndex) types.push('url');
                 types[buttonIndex] = type;
                 return { ...r, hasButtons: true, buttonTypes: types };
             })
         } : c));
+        setButtons(prev => {
+            const copy = [...prev];
+            while (copy.length <= buttonIndex) copy.push({ type: 'url', text: 'Clique Aqui', url: '' });
+            copy[buttonIndex] = { ...copy[buttonIndex], type };
+            return copy;
+        });
     };
 
     const applyGlobalButtonText = (text: string, campaignId: string, buttonIndex = 0) => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? {
             ...c, rows: c.rows.map(r => {
                 const texts = r.buttonTexts && r.buttonTexts.length > 0 ? [...r.buttonTexts] : [''];
+                while (texts.length <= buttonIndex) texts.push('');
                 texts[buttonIndex] = text;
                 return { ...r, buttonTexts: texts };
             })
         } : c));
+        setButtons(prev => {
+            const copy = [...prev];
+            while (copy.length <= buttonIndex) copy.push({ type: 'url', text: 'Clique Aqui', url: '' });
+            copy[buttonIndex] = { ...copy[buttonIndex], text };
+            return copy;
+        });
     };
 
-    const applyGlobalLink = (link: string, campaignId: string) => {
+    const applyGlobalLink = (link: string, campaignId: string, buttonIndex = 0) => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? {
             ...c, rows: c.rows.map(r => {
                 const newUrls = [...r.buttonUrls];
-                if (newUrls.length === 0 && r.hasButtons !== false) newUrls.push(link);
-                else if (newUrls.length > 0) newUrls[0] = link;
+                while (newUrls.length <= buttonIndex) newUrls.push('');
+                newUrls[buttonIndex] = link;
                 return { ...r, buttonUrls: newUrls };
             })
         } : c));
+        setButtons(prev => {
+            const copy = [...prev];
+            while (copy.length <= buttonIndex) copy.push({ type: 'url', text: 'Clique Aqui', url: '' });
+            copy[buttonIndex] = { ...copy[buttonIndex], url: link };
+            return copy;
+        });
     };
 
     const duplicateRow = (campaignId: string, rowIndex: number) => {
@@ -1981,9 +2061,58 @@ const TemplateCreator = () => {
                                                 </div>
                                                 {camp.rows.length > 0 && (
                                                     <div className="mt-4 animate-fade-in">
-                                                        <div className="flex flex-col gap-4 mb-6" style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
-                                                            <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px', textTransform: 'uppercase' }}>Painel de Configuração Rápida</span>
-                                                            <div className="global-config-grid grid grid-cols-1 md:grid-cols-4 gap-6">
+                                                        <div className="flex flex-col gap-5 mb-6" style={{ background: 'rgba(255,255,255,0.03)', padding: '22px', borderRadius: '20px', border: '1px solid rgba(172, 248, 0, 0.15)' }}>
+                                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                                <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--primary-color)', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                                                                    Painel de Configuração Rápida
+                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span style={{ fontSize: '10px', fontWeight: 900, opacity: 0.6 }}>QUANTIDADE DE BOTÕES:</span>
+                                                                    <div className="flex gap-1" style={{ background: 'rgba(0,0,0,0.3)', padding: '2px', borderRadius: '10px', border: '1px solid var(--surface-border-subtle)' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setGlobalButtonCount(1, camp.id)}
+                                                                            style={{
+                                                                                padding: '4px 12px',
+                                                                                borderRadius: '8px',
+                                                                                fontSize: '11px',
+                                                                                fontWeight: 900,
+                                                                                border: 'none',
+                                                                                background: buttons.length === 1 ? 'var(--primary-color)' : 'transparent',
+                                                                                color: buttons.length === 1 ? 'black' : 'white',
+                                                                                cursor: 'pointer',
+                                                                                transition: 'all 0.2s'
+                                                                            }}
+                                                                        >
+                                                                            1 BOTÃO
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setGlobalButtonCount(2, camp.id)}
+                                                                            style={{
+                                                                                padding: '4px 12px',
+                                                                                borderRadius: '8px',
+                                                                                fontSize: '11px',
+                                                                                fontWeight: 900,
+                                                                                border: 'none',
+                                                                                background: buttons.length >= 2 ? 'var(--primary-color)' : 'transparent',
+                                                                                color: buttons.length >= 2 ? 'black' : 'white',
+                                                                                cursor: 'pointer',
+                                                                                transition: 'all 0.2s',
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                gap: '4px'
+                                                                            }}
+                                                                        >
+                                                                            <span>2 BOTÕES</span>
+                                                                            <span style={{ fontSize: '8px', background: buttons.length >= 2 ? 'black' : 'rgba(172,248,0,0.2)', color: buttons.length >= 2 ? 'var(--primary-color)' : 'var(--primary-color)', padding: '1px 4px', borderRadius: '4px' }}>SIMULTÂNEOS</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Top Grid: Sender, Media, Button Switch */}
+                                                            <div className="global-config-grid grid grid-cols-1 md:grid-cols-3 gap-6">
                                                                 <div className="flex flex-col gap-2">
                                                                     <label style={{ fontSize: '10px' }}>REMETENTE GLOBAL</label>
                                                                     <div className="flex gap-2">
@@ -1994,77 +2123,260 @@ const TemplateCreator = () => {
                                                                         }} style={{ flex: 1 }}>APLICAR</button>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex flex-col gap-2">
-                                                                    <label style={{ fontSize: '10px' }}>LINK GLOBAL (B1)</label>
-                                                                    <div className="flex gap-2">
-                                                                        <input id={`global-link-${camp.id}`} className="bulk-row-input" style={{ height: '38px' }} placeholder="Ex: https://..." />
-                                                                        <button className="global-tile-btn global-tile-btn-primary" onClick={() => {
-                                                                            const val = (document.getElementById(`global-link-${camp.id}`) as HTMLInputElement)?.value;
-                                                                            if (val) applyGlobalLink(val, camp.id);
-                                                                        }} style={{ flex: 1 }}>APLICAR</button>
-                                                                    </div>
-                                                                </div>
+
                                                                 <div className="flex flex-col gap-2">
                                                                     <label style={{ fontSize: '10px' }}>MÍDIA GLOBAL</label>
                                                                     <div className="flex gap-1">{(['TEXT', 'IMAGE', 'VIDEO'] as const).map(t => (<button key={t} onClick={() => applyGlobalHeaderType(t, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>{t}</button>))}</div>
                                                                 </div>
+
                                                                 <div className="flex flex-col gap-2">
                                                                     <label style={{ fontSize: '10px' }}>BOTÕES GLOBAIS</label>
-                                                                    <div className="flex gap-1"><button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>LIGAR BOTÕES</button><button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '0.6rem', padding: '0 4px' }}>DESLIGAR</button></div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                                                                <div className="flex flex-col gap-2">
-                                                                    <label style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>TIPO DO BOTÃO GLOBAL (B1)</label>
-                                                                    <div className="flex gap-2">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => applyGlobalButtonType('reply', camp.id)}
-                                                                            className="global-tile-btn global-tile-btn-ghost"
-                                                                            style={{ flex: 1, height: '38px', fontSize: '11px', background: 'rgba(172, 248, 0, 0.08)', borderColor: 'rgba(172, 248, 0, 0.3)', color: 'var(--primary-color)', fontWeight: 900 }}
-                                                                            title="Ativar botão de resposta rápida (Quick Reply) em todas as linhas da campanha"
-                                                                        >
-                                                                            <MessageSquareReply size={14} /> ATIVAR RESPOSTA (REPLY)
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => applyGlobalButtonType('url', camp.id)}
-                                                                            className="global-tile-btn global-tile-btn-ghost"
-                                                                            style={{ flex: 1, height: '38px', fontSize: '11px' }}
-                                                                            title="Ativar botão de link (URL) em todas as linhas da campanha"
-                                                                        >
-                                                                            <Link size={14} /> ATIVAR LINK (URL)
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="flex flex-col gap-2">
-                                                                    <label style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>NOME GLOBAL DO BOTÃO (B1)</label>
-                                                                    <div className="flex gap-2">
-                                                                        <input
-                                                                            id={`global-btn-text-${camp.id}`}
-                                                                            className="bulk-row-input"
-                                                                            style={{ height: '38px' }}
-                                                                            placeholder="Ex: Confirmar / Sim / Acessar..."
-                                                                        />
-                                                                        <button
-                                                                            type="button"
-                                                                            className="global-tile-btn global-tile-btn-primary"
-                                                                            onClick={() => {
-                                                                                const inputEl = document.getElementById(`global-btn-text-${camp.id}`) as HTMLInputElement;
-                                                                                const val = inputEl?.value;
-                                                                                if (val !== undefined && val.trim() !== '') {
-                                                                                    applyGlobalButtonText(val.trim(), camp.id, 0);
-                                                                                }
-                                                                            }}
-                                                                            style={{ flex: 0.8 }}
-                                                                        >
-                                                                            APLICAR
-                                                                        </button>
+                                                                    <div className="flex gap-1">
+                                                                        <button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>LIGAR BOTÕES</button>
+                                                                        <button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '0.6rem', padding: '0 4px' }}>DESLIGAR</button>
                                                                     </div>
                                                                 </div>
                                                             </div>
+
+                                                            {/* Quick Combo Presets (Ativar os 2 ao mesmo tempo ou 1) */}
+                                                            <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="flex flex-wrap items-center gap-2">
+                                                                <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', marginRight: '6px' }}>
+                                                                    ⚡ ATALHOS RÁPIDOS:
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => applyDualPreset('reply', 'url', 'Confirmar', 'Acessar Link', camp.id)}
+                                                                    className="global-tile-btn global-tile-btn-ghost"
+                                                                    style={{ fontSize: '10px', height: '32px', padding: '0 10px', background: 'rgba(172,248,0,0.08)', borderColor: 'rgba(172,248,0,0.3)', color: 'var(--primary-color)', fontWeight: 900 }}
+                                                                    title="Ativa 2 botões simultâneos: B1 Resposta + B2 Link"
+                                                                >
+                                                                    <MessageSquareReply size={12} /> B1: Resposta + <Link size={12} /> B2: Link
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => applyDualPreset('reply', 'reply', 'Sim, quero', 'Não tenho interesse', camp.id)}
+                                                                    className="global-tile-btn global-tile-btn-ghost"
+                                                                    style={{ fontSize: '10px', height: '32px', padding: '0 10px' }}
+                                                                    title="Ativa 2 botões de resposta rápida simultâneos"
+                                                                >
+                                                                    <MessageSquareReply size={12} /> B1: Resposta + B2: Resposta
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => applyDualPreset('url', 'url', 'Site Oficial', 'Suporte WhatsApp', camp.id)}
+                                                                    className="global-tile-btn global-tile-btn-ghost"
+                                                                    style={{ fontSize: '10px', height: '32px', padding: '0 10px' }}
+                                                                    title="Ativa 2 botões de Link simultâneos"
+                                                                >
+                                                                    <Link size={12} /> B1: Link + B2: Link
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setGlobalButtonCount(1, camp.id);
+                                                                        applyGlobalButtonType('reply', camp.id, 0);
+                                                                        applyGlobalButtonText('Confirmar', camp.id, 0);
+                                                                    }}
+                                                                    className="global-tile-btn global-tile-btn-ghost"
+                                                                    style={{ fontSize: '10px', height: '32px', padding: '0 10px' }}
+                                                                >
+                                                                    Apenas 1 Resposta
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setGlobalButtonCount(1, camp.id);
+                                                                        applyGlobalButtonType('url', camp.id, 0);
+                                                                        applyGlobalButtonText('Clique Aqui', camp.id, 0);
+                                                                    }}
+                                                                    className="global-tile-btn global-tile-btn-ghost"
+                                                                    style={{ fontSize: '10px', height: '32px', padding: '0 10px' }}
+                                                                >
+                                                                    Apenas 1 Link
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Button 1 (B1) Config Section */}
+                                                            <div style={{
+                                                                background: 'rgba(0,0,0,0.25)',
+                                                                padding: '16px',
+                                                                borderRadius: '16px',
+                                                                border: '1px solid rgba(172, 248, 0, 0.15)'
+                                                            }} className="flex flex-col gap-3">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--primary-color)' }}>
+                                                                        🔘 CONFIGURAÇÃO DO BOTÃO 1 (B1)
+                                                                    </span>
+                                                                    <span style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase' }}>
+                                                                        Primeiro botão da mensagem
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                    <div className="flex flex-col gap-1.5">
+                                                                        <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>TIPO DO B1</label>
+                                                                        <div className="flex gap-1.5">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => applyGlobalButtonType('reply', camp.id, 0)}
+                                                                                className="global-tile-btn global-tile-btn-ghost"
+                                                                                style={{ flex: 1, height: '36px', fontSize: '11px', fontWeight: 900 }}
+                                                                            >
+                                                                                <MessageSquareReply size={13} /> RESPOSTA (REPLY)
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => applyGlobalButtonType('url', camp.id, 0)}
+                                                                                className="global-tile-btn global-tile-btn-ghost"
+                                                                                style={{ flex: 1, height: '36px', fontSize: '11px' }}
+                                                                            >
+                                                                                <Link size={13} /> LINK (URL)
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex flex-col gap-1.5">
+                                                                        <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>NOME DO B1</label>
+                                                                        <div className="flex gap-2">
+                                                                            <input
+                                                                                id={`global-btn-text-${camp.id}`}
+                                                                                className="bulk-row-input"
+                                                                                style={{ height: '36px' }}
+                                                                                placeholder="Ex: Confirmar / Sim..."
+                                                                            />
+                                                                            <button
+                                                                                type="button"
+                                                                                className="global-tile-btn global-tile-btn-primary"
+                                                                                onClick={() => {
+                                                                                    const inputEl = document.getElementById(`global-btn-text-${camp.id}`) as HTMLInputElement;
+                                                                                    const val = inputEl?.value;
+                                                                                    if (val !== undefined && val.trim() !== '') {
+                                                                                        applyGlobalButtonText(val.trim(), camp.id, 0);
+                                                                                    }
+                                                                                }}
+                                                                                style={{ padding: '0 12px' }}
+                                                                            >
+                                                                                APLICAR
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex flex-col gap-1.5">
+                                                                        <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>LINK (URL) DO B1</label>
+                                                                        <div className="flex gap-2">
+                                                                            <input
+                                                                                id={`global-link-${camp.id}`}
+                                                                                className="bulk-row-input"
+                                                                                style={{ height: '36px' }}
+                                                                                placeholder="Ex: https://seusite.com/link1"
+                                                                            />
+                                                                            <button
+                                                                                type="button"
+                                                                                className="global-tile-btn global-tile-btn-primary"
+                                                                                onClick={() => {
+                                                                                    const val = (document.getElementById(`global-link-${camp.id}`) as HTMLInputElement)?.value;
+                                                                                    if (val) applyGlobalLink(val, camp.id, 0);
+                                                                                }}
+                                                                                style={{ padding: '0 12px' }}
+                                                                            >
+                                                                                APLICAR
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Button 2 (B2) Config Section - visible if buttons.length >= 2 */}
+                                                            {buttons.length >= 2 && (
+                                                                <div style={{
+                                                                    background: 'rgba(0,0,0,0.25)',
+                                                                    padding: '16px',
+                                                                    borderRadius: '16px',
+                                                                    border: '1px solid rgba(56, 189, 248, 0.2)'
+                                                                }} className="flex flex-col gap-3 animate-fade-in">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span style={{ fontSize: '11px', fontWeight: 900, color: '#38bdf8' }}>
+                                                                            🔘 CONFIGURAÇÃO DO BOTÃO 2 (B2)
+                                                                        </span>
+                                                                        <span style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase' }}>
+                                                                            Segundo botão simultâneo
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                        <div className="flex flex-col gap-1.5">
+                                                                            <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>TIPO DO B2</label>
+                                                                            <div className="flex gap-1.5">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => applyGlobalButtonType('reply', camp.id, 1)}
+                                                                                    className="global-tile-btn global-tile-btn-ghost"
+                                                                                    style={{ flex: 1, height: '36px', fontSize: '11px', fontWeight: 900 }}
+                                                                                >
+                                                                                    <MessageSquareReply size={13} /> RESPOSTA (REPLY)
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => applyGlobalButtonType('url', camp.id, 1)}
+                                                                                    className="global-tile-btn global-tile-btn-ghost"
+                                                                                    style={{ flex: 1, height: '36px', fontSize: '11px' }}
+                                                                                >
+                                                                                    <Link size={13} /> LINK (URL)
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="flex flex-col gap-1.5">
+                                                                            <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>NOME DO B2</label>
+                                                                            <div className="flex gap-2">
+                                                                                <input
+                                                                                    id={`global-btn2-text-${camp.id}`}
+                                                                                    className="bulk-row-input"
+                                                                                    style={{ height: '36px' }}
+                                                                                    placeholder="Ex: Falar com Atendente / Ver Mais..."
+                                                                                />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="global-tile-btn global-tile-btn-primary"
+                                                                                    onClick={() => {
+                                                                                        const inputEl = document.getElementById(`global-btn2-text-${camp.id}`) as HTMLInputElement;
+                                                                                        const val = inputEl?.value;
+                                                                                        if (val !== undefined && val.trim() !== '') {
+                                                                                            applyGlobalButtonText(val.trim(), camp.id, 1);
+                                                                                        }
+                                                                                    }}
+                                                                                    style={{ padding: '0 12px' }}
+                                                                                >
+                                                                                    APLICAR
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="flex flex-col gap-1.5">
+                                                                            <label style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>LINK (URL) DO B2</label>
+                                                                            <div className="flex gap-2">
+                                                                                <input
+                                                                                    id={`global-link2-${camp.id}`}
+                                                                                    className="bulk-row-input"
+                                                                                    style={{ height: '36px' }}
+                                                                                    placeholder="Ex: https://seusite.com/link2"
+                                                                                />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="global-tile-btn global-tile-btn-primary"
+                                                                                    onClick={() => {
+                                                                                        const val = (document.getElementById(`global-link2-${camp.id}`) as HTMLInputElement)?.value;
+                                                                                        if (val) applyGlobalLink(val, camp.id, 1);
+                                                                                    }}
+                                                                                    style={{ padding: '0 12px' }}
+                                                                                >
+                                                                                    APLICAR
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="bulk-table-container">
                                                             <table className="bulk-table">
