@@ -22,6 +22,7 @@ import {
     Settings2,
     Check
 } from 'lucide-react';
+import { MultiBMExcelDispatch } from '../components/MultiBMExcelDispatch';
 
 interface PlaceholderField {
     id: number;
@@ -42,6 +43,9 @@ const TemplateDispatch = () => {
     const location = useLocation();
     const { user } = useAuth();
     const passedTemplate = location.state?.template as InfobipTemplate;
+
+    // Navigation Tab
+    const [activeTab, setActiveTab] = useState<'standard' | 'multi-bm'>('multi-bm');
 
     // Multi-Template Support (Selector)
     const [allTemplates, setAllTemplates] = useState<InfobipTemplate[]>([]);
@@ -124,6 +128,13 @@ const TemplateDispatch = () => {
         const queryFrom = queryParams.get('from');
         const queryTemplate = queryParams.get('template');
         const queryCardId = queryParams.get('card_id');
+        const queryTab = queryParams.get('tab');
+
+        if (queryTab === 'standard' || location.state?.draft || location.state?.lead || passedTemplate) {
+            setActiveTab('standard');
+        } else if (queryTab === 'multi-bm') {
+            setActiveTab('multi-bm');
+        }
 
         if (queryFrom) setSenderNumbers(queryFrom);
         if (queryTemplate) setTemplateName(queryTemplate);
@@ -677,22 +688,83 @@ const TemplateDispatch = () => {
                 }
             `}</style>
 
-            <div className="flex items-center justify-between mb-8 header-flex">
+            <div className="flex items-center justify-between mb-6 header-flex">
                 <div>
                     <h1 style={{ fontWeight: 900, fontSize: '2.5rem', letterSpacing: '-1.5px', margin: 0 }}>Template Dispatch</h1>
                     <p className="subtitle">Simulador e disparador de alta precisão para Templates Aprovados</p>
                 </div>
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-3">
-                        {[1, 2, 3].map(s => (
-                            <div key={s} className={`step-dot ${step >= s ? 'active' : ''}`}></div>
-                        ))}
-                        <span style={{ fontSize: '0.8rem', fontWeight: 800, marginLeft: '10px' }}>PASSO {step} DE 3</span>
+                {activeTab === 'standard' && (
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3">
+                            {[1, 2, 3].map(s => (
+                                <div key={s} className={`step-dot ${step >= s ? 'active' : ''}`}></div>
+                            ))}
+                            <span style={{ fontSize: '0.8rem', fontWeight: 800, marginLeft: '10px' }}>PASSO {step} DE 3</span>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
-            <div className="dispatch-container">
+            {/* Mode Switcher Tabs */}
+            <div className="flex gap-2 p-1.5 mb-8" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)', width: 'fit-content' }}>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('multi-bm')}
+                    style={{
+                        padding: '10px 22px',
+                        borderRadius: '12px',
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        border: 'none',
+                        background: activeTab === 'multi-bm' ? 'var(--primary-color)' : 'transparent',
+                        color: activeTab === 'multi-bm' ? 'black' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <span>⚡ Disparo Multi-BM (Planilha Excel + Redis)</span>
+                    <span style={{
+                        fontSize: '0.65rem',
+                        background: activeTab === 'multi-bm' ? 'rgba(0,0,0,0.2)' : 'rgba(172,248,0,0.15)',
+                        color: activeTab === 'multi-bm' ? 'black' : 'var(--primary-color)',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 900
+                    }}>FILA PRÓPRIA</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('standard')}
+                    style={{
+                        padding: '10px 22px',
+                        borderRadius: '12px',
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        border: 'none',
+                        background: activeTab === 'standard' ? 'var(--primary-color)' : 'transparent',
+                        color: activeTab === 'standard' ? 'black' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <span>📋 Disparo Rápido / Rascunhos</span>
+                </button>
+            </div>
+
+            {activeTab === 'multi-bm' ? (
+                <MultiBMExcelDispatch
+                    defaultApiKey={effectiveApiKey}
+                    defaultSender={fromNumber}
+                    userName={user?.name}
+                />
+            ) : (
+                <div className="dispatch-container">
                 {/* Configuration side */}
                 <div className="flex-col gap-6">
                     {/* Step 1: Basic Structure & Template Selection */}
@@ -1248,6 +1320,7 @@ const TemplateDispatch = () => {
                     )}
                 </div>
             </div>
+            )}
         </div>
     );
 };

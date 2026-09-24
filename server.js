@@ -5515,7 +5515,7 @@ app.post('/api/dispatch/queue', async (req, res) => {
         // Store messages in Redis
         for (const msg of messages) {
             // Attach apiKey and baseUrl to each job so the worker can use it
-            const job = { ...msg, _apiKey: apiKey, _baseUrl: baseUrl };
+            const job = { ...msg, _apiKey: msg._apiKey || apiKey, _baseUrl: msg._baseUrl || baseUrl };
             await redisClient.lPush('dispatch_queue', JSON.stringify(job));
         }
 
