@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    User, 
-    Mail, 
-    Lock, 
-    Smartphone, 
-    Save, 
-    CheckCircle2, 
+import {
+    User,
+    Mail,
+    Lock,
+    Smartphone,
+    Save,
+    CheckCircle2,
     AlertCircle,
     UserCircle,
     Phone,
@@ -33,10 +33,10 @@ import * as XLSX from 'xlsx';
 
 const Profile = () => {
     const { user, setUser } = useAuth();
-    
+
     // Main navigation tabs: 'dados' | 'financeiro'
     const [activeTab, setActiveTab] = useState<'dados' | 'financeiro'>('dados');
-    
+
     // Sub-tab for finance (only for ADMIN / CONTABILIDADE): 'colaborador' | 'contabilidade'
     const [financeSubTab, setFinanceSubTab] = useState<'colaborador' | 'contabilidade'>('colaborador');
 
@@ -86,7 +86,7 @@ const Profile = () => {
     const [justificationModal, setJustificationModal] = useState<{ show: boolean, requestId: number | null }>({ show: false, requestId: null });
     const [justificationText, setJustificationText] = useState('');
     const [processingAction, setProcessingAction] = useState(false);
-    
+
     // Quick inline edit receivable for Admin/Contabilidade
     const [editingReceivableId, setEditingReceivableId] = useState<number | null>(null);
     const [tempReceivableValue, setTempReceivableValue] = useState('');
@@ -186,7 +186,7 @@ const Profile = () => {
     const handleTogglePush = async () => {
         if (!user || pushChecking) return;
         setPushChecking(true);
-        
+
         if (pushSubscribed) {
             const res = await pushNotificationService.unsubscribeUser(user.id as number);
             if (!res?.error) setPushSubscribed(false);
@@ -213,9 +213,9 @@ const Profile = () => {
         }
 
         if (!user || !user.id) {
-            setMessage({ 
-                type: 'error', 
-                text: 'Sua sessão está incompleta. Por favor, faça login novamente.' 
+            setMessage({
+                type: 'error',
+                text: 'Sua sessão está incompleta. Por favor, faça login novamente.'
             });
             return;
         }
@@ -463,15 +463,15 @@ const Profile = () => {
 
                     {/* Main tab buttons */}
                     <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--surface-border-subtle)', padding: '6px', borderRadius: '16px' }}>
-                        <button 
-                            onClick={() => setActiveTab('dados')} 
+                        <button
+                            onClick={() => setActiveTab('dados')}
                             className={`action-btn ${activeTab === 'dados' ? 'primary-btn' : 'secondary-btn'}`}
                             style={{ padding: '10px 24px', fontSize: '12px', height: 'auto', borderRadius: '12px' }}
                         >
                             <User size={16} /> MEUS DADOS
                         </button>
-                        <button 
-                            onClick={() => setActiveTab('financeiro')} 
+                        <button
+                            onClick={() => setActiveTab('financeiro')}
                             className={`action-btn ${activeTab === 'financeiro' ? 'primary-btn' : 'secondary-btn'}`}
                             style={{ padding: '10px 24px', fontSize: '12px', height: 'auto', borderRadius: '12px' }}
                         >
@@ -486,13 +486,13 @@ const Profile = () => {
                     {/* Profile Overview Card */}
                     <div className="gestiva-sidebar-panels">
                         <div className="crm-card" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 32px' }}>
-                            <div style={{ 
-                                width: '140px', 
-                                height: '140px', 
-                                borderRadius: '48px', 
-                                background: 'var(--primary-gradient)', 
-                                display: 'flex', 
-                                alignItems: 'center', 
+                            <div style={{
+                                width: '140px',
+                                height: '140px',
+                                borderRadius: '48px',
+                                background: 'var(--primary-gradient)',
+                                display: 'flex',
+                                alignItems: 'center',
                                 justifyContent: 'center',
                                 marginBottom: '32px',
                                 boxShadow: '0 20px 50px rgba(172, 248, 0, 0.25)',
@@ -500,9 +500,9 @@ const Profile = () => {
                             }}>
                                 <UserCircle size={80} strokeWidth={1} />
                             </div>
-                            
+
                             <h2 style={{ margin: '0 0 12px 0', fontSize: '1.75rem', fontWeight: 950, letterSpacing: '-0.5px' }}>{user?.name}</h2>
-                            
+
                             <span className="status-badge-premium" style={{ '--bg': 'rgba(172, 248, 0, 0.05)', '--color': '#acf800', '--border': 'rgba(172, 248, 0, 0.2)' } as any}>
                                 {user?.role}
                             </span>
@@ -519,7 +519,7 @@ const Profile = () => {
                                         <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>{user?.email}</div>
                                     </div>
                                 </div>
-                                
+
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: 'var(--text-muted)' }}>
                                     <div style={{ minWidth: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Bell size={18} />
@@ -544,38 +544,38 @@ const Profile = () => {
                                     <div className="card-grid-responsive">
                                         <div>
                                             <label className="field-label">Nome Completo</label>
-                                            <input 
-                                                className="field-input" 
-                                                value={profileData.name} 
-                                                onChange={e => setProfileData({ ...profileData, name: e.target.value })} 
-                                                required 
+                                            <input
+                                                className="field-input"
+                                                value={profileData.name}
+                                                onChange={e => setProfileData({ ...profileData, name: e.target.value })}
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="field-label">Endereço de E-mail</label>
-                                            <input 
-                                                type="email" 
-                                                className="field-input" 
-                                                value={profileData.email} 
-                                                onChange={e => setProfileData({ ...profileData, email: e.target.value })} 
-                                                required 
+                                            <input
+                                                type="email"
+                                                className="field-input"
+                                                value={profileData.email}
+                                                onChange={e => setProfileData({ ...profileData, email: e.target.value })}
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="field-label">WhatsApp (DDI+DDD+Num)</label>
-                                            <input 
-                                                className="field-input" 
-                                                value={profileData.phone} 
-                                                onChange={e => setProfileData({ ...profileData, phone: e.target.value })} 
+                                            <input
+                                                className="field-input"
+                                                value={profileData.phone}
+                                                onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
                                                 placeholder="5511999998888"
                                             />
                                         </div>
                                         <div>
-                                            <label className="field-label">Nº para Alertas</label>
-                                            <input 
-                                                className="field-input" 
-                                                value={profileData.notification_number} 
-                                                onChange={e => setProfileData({ ...profileData, notification_number: e.target.value })} 
+                                            <label className="field-label"> para Alertas</label>
+                                            <input
+                                                className="field-input"
+                                                value={profileData.notification_number}
+                                                onChange={e => setProfileData({ ...profileData, notification_number: e.target.value })}
                                                 placeholder="5511999998888"
                                             />
                                         </div>
@@ -593,29 +593,29 @@ const Profile = () => {
                                             <div className="card-grid-responsive">
                                                 <div style={{ gridColumn: 'span 2' }}>
                                                     <label className="field-label">Infobip API Key</label>
-                                                    <input 
-                                                        className="field-input" 
-                                                        value={profileData.infobip_key} 
-                                                        onChange={e => setProfileData({ ...profileData, infobip_key: e.target.value })} 
+                                                    <input
+                                                        className="field-input"
+                                                        value={profileData.infobip_key}
+                                                        onChange={e => setProfileData({ ...profileData, infobip_key: e.target.value })}
                                                         placeholder="App 35a1621fff9a9..."
                                                         style={{ fontFamily: 'monospace' }}
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="field-label">Infobip Base URL</label>
-                                                    <input 
-                                                        className="field-input" 
-                                                        value={profileData.infobip_url} 
-                                                        onChange={e => setProfileData({ ...profileData, infobip_url: e.target.value })} 
+                                                    <input
+                                                        className="field-input"
+                                                        value={profileData.infobip_url}
+                                                        onChange={e => setProfileData({ ...profileData, infobip_url: e.target.value })}
                                                         placeholder="8k6xv1.api-us.infobip.com"
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="field-label">Remetente (WABA)</label>
-                                                    <input 
-                                                        className="field-input" 
-                                                        value={profileData.infobip_sender} 
-                                                        onChange={e => setProfileData({ ...profileData, infobip_sender: e.target.value })} 
+                                                    <input
+                                                        className="field-input"
+                                                        value={profileData.infobip_sender}
+                                                        onChange={e => setProfileData({ ...profileData, infobip_sender: e.target.value })}
                                                         placeholder="5511999998888"
                                                     />
                                                 </div>
@@ -630,10 +630,10 @@ const Profile = () => {
                                     <h3 style={{ margin: '0 0 32px 0', fontSize: '1.5rem', fontWeight: 950, display: 'flex', alignItems: 'center', gap: '16px', letterSpacing: '-0.5px' }}>
                                         <Bell size={24} color="var(--primary-color)" /> Notificações PWA
                                     </h3>
-                                    <div style={{ 
-                                        background: 'rgba(255,255,255,0.02)', 
-                                        border: '1px solid var(--surface-border-subtle)', 
-                                        padding: '32px', 
+                                    <div style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid var(--surface-border-subtle)',
+                                        padding: '32px',
                                         borderRadius: '24px',
                                         display: 'flex',
                                         justifyContent: 'space-between',
@@ -652,7 +652,7 @@ const Profile = () => {
                                                     VERIFICANDO...
                                                 </div>
                                             ) : (
-                                                <button 
+                                                <button
                                                     onClick={handleTogglePush}
                                                     type="button"
                                                     className={`action-btn ${pushSubscribed ? 'danger-btn' : 'primary-btn'}`}
@@ -674,23 +674,23 @@ const Profile = () => {
                                     <div className="card-grid-responsive">
                                         <div>
                                             <label className="field-label">Nova Senha</label>
-                                            <input 
-                                                type="password" 
-                                                className="field-input" 
-                                                value={profileData.password} 
-                                                onChange={e => setProfileData({ ...profileData, password: e.target.value })} 
-                                                placeholder="Deixe vazio para manter" 
+                                            <input
+                                                type="password"
+                                                className="field-input"
+                                                value={profileData.password}
+                                                onChange={e => setProfileData({ ...profileData, password: e.target.value })}
+                                                placeholder="Deixe vazio para manter"
                                                 autoComplete="new-password"
                                             />
                                         </div>
                                         <div>
                                             <label className="field-label">Confirmar Senha</label>
-                                            <input 
-                                                type="password" 
-                                                className="field-input" 
-                                                value={profileData.confirmPassword} 
-                                                onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })} 
-                                                placeholder="Confirmar nova senha" 
+                                            <input
+                                                type="password"
+                                                className="field-input"
+                                                value={profileData.confirmPassword}
+                                                onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })}
+                                                placeholder="Confirmar nova senha"
                                                 autoComplete="new-password"
                                             />
                                         </div>
@@ -698,27 +698,27 @@ const Profile = () => {
                                 </div>
 
                                 {message.text && (
-                                    <div className="animate-slide-in" style={{ 
-                                        padding: '20px', 
-                                        borderRadius: '20px', 
+                                    <div className="animate-slide-in" style={{
+                                        padding: '20px',
+                                        borderRadius: '20px',
                                         background: message.type === 'error' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(172, 248, 0, 0.05)',
                                         border: `1px solid ${message.type === 'error' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(172, 248, 0, 0.2)'}`,
                                         color: message.type === 'error' ? '#ef4444' : 'var(--primary-color)',
-                                        fontSize: '14px', 
-                                        fontWeight: 800, 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        gap: '12px' 
+                                        fontSize: '14px',
+                                        fontWeight: 800,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px'
                                     }}>
                                         {message.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
                                         {message.text}
                                     </div>
                                 )}
 
-                                <button 
-                                    type="submit" 
-                                    className="action-btn primary-btn" 
-                                    disabled={isSaving} 
+                                <button
+                                    type="submit"
+                                    className="action-btn primary-btn"
+                                    disabled={isSaving}
                                     style={{ height: '64px', fontSize: '14px', letterSpacing: '1px' }}
                                 >
                                     <Save size={20} /> {isSaving ? 'PROCESSANDO...' : 'SALVAR ALTERAÇÕES'}
@@ -730,14 +730,14 @@ const Profile = () => {
             ) : (
                 /* TAB: FINANCEIRO */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    
+
                     {/* Admin / Contabilidade Toggle to switch view */}
                     {(user?.role === 'ADMIN' || user?.role === 'CONTABILIDADE') && (
                         <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid var(--surface-border-subtle)', paddingBottom: '16px' }}>
-                            <button 
+                            <button
                                 onClick={() => setFinanceSubTab('colaborador')}
                                 className="tab-btn"
-                                style={{ 
+                                style={{
                                     borderBottom: financeSubTab === 'colaborador' ? '2px solid var(--primary-color)' : 'none',
                                     color: financeSubTab === 'colaborador' ? 'var(--text-primary)' : 'var(--text-muted)',
                                     fontWeight: financeSubTab === 'colaborador' ? 'bold' : 'normal',
@@ -748,10 +748,10 @@ const Profile = () => {
                             >
                                 <User size={16} style={{ marginRight: '6px' }} /> Meu Resumo
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setFinanceSubTab('contabilidade')}
                                 className="tab-btn"
-                                style={{ 
+                                style={{
                                     borderBottom: financeSubTab === 'contabilidade' ? '2px solid var(--primary-color)' : 'none',
                                     color: financeSubTab === 'contabilidade' ? 'var(--text-primary)' : 'var(--text-muted)',
                                     fontWeight: financeSubTab === 'contabilidade' ? 'bold' : 'normal',
@@ -767,7 +767,7 @@ const Profile = () => {
 
                     {/* NF Deadline warning alert banner */}
                     {isDeadlineWarning && financeSubTab === 'colaborador' && (
-                        <div style={{ 
+                        <div style={{
                             background: 'rgba(239, 68, 68, 0.08)',
                             border: '1px solid rgba(239, 68, 68, 0.3)',
                             padding: '20px 24px',
@@ -791,7 +791,7 @@ const Profile = () => {
                         /* --- COLABORATOR VIEW --- */
                         <div className="gestiva-split-layout">
                             <div className="gestiva-sidebar-panels" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                
+
                                 {/* NF Upload Card */}
                                 <div className="crm-card" style={{ padding: '32px' }}>
                                     <h3 style={{ margin: '0 0 20px 0', fontSize: '1.25rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -803,7 +803,7 @@ const Profile = () => {
 
                                     {competenceSummary.nf_url ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <div style={{ 
+                                            <div style={{
                                                 background: 'rgba(74, 222, 128, 0.05)',
                                                 border: '1px solid rgba(74, 222, 128, 0.2)',
                                                 color: '#4ade80',
@@ -822,10 +822,10 @@ const Profile = () => {
                                                     Enviado em: {new Date(competenceSummary.nf_uploaded_at).toLocaleString('pt-BR')}
                                                 </span>
                                             )}
-                                            <a 
-                                                href={competenceSummary.nf_url} 
-                                                target="_blank" 
-                                                rel="noreferrer" 
+                                            <a
+                                                href={competenceSummary.nf_url}
+                                                target="_blank"
+                                                rel="noreferrer"
                                                 className="action-btn secondary-btn"
                                                 style={{ width: '100%', justifyContent: 'center', gap: '8px' }}
                                             >
@@ -834,12 +834,12 @@ const Profile = () => {
                                         </div>
                                     ) : (
                                         <div style={{ position: 'relative', width: '100%' }}>
-                                            <label 
-                                                htmlFor="nf-file-input" 
-                                                style={{ 
-                                                    display: 'flex', 
-                                                    flexDirection: 'column', 
-                                                    alignItems: 'center', 
+                                            <label
+                                                htmlFor="nf-file-input"
+                                                style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
                                                     justifyContent: 'center',
                                                     border: '2px dashed var(--surface-border-subtle)',
                                                     borderRadius: '20px',
@@ -859,10 +859,10 @@ const Profile = () => {
                                                     PDF ou XML (Max. 10MB)
                                                 </span>
                                             </label>
-                                            <input 
-                                                type="file" 
-                                                id="nf-file-input" 
-                                                accept=".pdf,.xml" 
+                                            <input
+                                                type="file"
+                                                id="nf-file-input"
+                                                accept=".pdf,.xml"
                                                 onChange={handleNfUpload}
                                                 style={{ display: 'none' }}
                                                 disabled={uploadingNf}
@@ -873,7 +873,7 @@ const Profile = () => {
                             </div>
 
                             <div className="gestiva-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                                
+
                                 {/* Resumo da Competência Cards */}
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                     <div className="crm-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -912,8 +912,8 @@ const Profile = () => {
 
                                 {/* Main Actions */}
                                 <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                                    <button 
-                                        onClick={handleStartAdvance} 
+                                    <button
+                                        onClick={handleStartAdvance}
                                         className="action-btn primary-btn"
                                         style={{ padding: '16px 36px', fontSize: '14px', borderRadius: '16px', gap: '10px' }}
                                     >
@@ -926,7 +926,7 @@ const Profile = () => {
                                     <h3 style={{ margin: '0 0 24px 0', fontSize: '1.25rem', fontWeight: 900 }}>
                                         Histórico de Solicitações
                                     </h3>
-                                    
+
                                     {loadingFinance ? (
                                         <div style={{ textAlign: 'center', padding: '30px' }}>Carregando dados...</div>
                                     ) : myRequests.length === 0 ? (
@@ -985,7 +985,7 @@ const Profile = () => {
                     ) : (
                         /* --- ACCOUNTING / CONTABILIDADE VIEW --- */
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                            
+
                             {/* REQUESTS LIST WITH SMART COLUMNS FILTERS */}
                             <div className="crm-card" style={{ padding: '32px' }}>
                                 <h2 style={{ margin: '0 0 24px 0', fontSize: '1.25rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -998,11 +998,11 @@ const Profile = () => {
                                         <label className="field-label" style={{ fontSize: '10px', marginBottom: '6px' }}>BUSCAR COLABORADOR</label>
                                         <div style={{ position: 'relative' }}>
                                             <Search size={14} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
-                                            <input 
-                                                type="text" 
-                                                className="field-input" 
-                                                placeholder="Nome do colaborador..." 
-                                                value={requestSearch} 
+                                            <input
+                                                type="text"
+                                                className="field-input"
+                                                placeholder="Nome do colaborador..."
+                                                value={requestSearch}
                                                 onChange={e => setRequestSearch(e.target.value)}
                                                 style={{ paddingLeft: '36px', height: '38px', fontSize: '12px' }}
                                             />
@@ -1010,8 +1010,8 @@ const Profile = () => {
                                     </div>
                                     <div>
                                         <label className="field-label" style={{ fontSize: '10px', marginBottom: '6px' }}>FILTRAR STATUS</label>
-                                        <select 
-                                            value={requestStatusFilter} 
+                                        <select
+                                            value={requestStatusFilter}
                                             onChange={e => setRequestStatusFilter(e.target.value)}
                                             className="field-input"
                                             style={{ height: '38px', fontSize: '12px', padding: '0 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px' }}
@@ -1024,8 +1024,8 @@ const Profile = () => {
                                     </div>
                                     <div>
                                         <label className="field-label" style={{ fontSize: '10px', marginBottom: '6px' }}>FILTRAR COMPETÊNCIA</label>
-                                        <select 
-                                            value={requestCompetenceFilter} 
+                                        <select
+                                            value={requestCompetenceFilter}
                                             onChange={e => setRequestCompetenceFilter(e.target.value)}
                                             className="field-input"
                                             style={{ height: '38px', fontSize: '12px', padding: '0 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px' }}
@@ -1070,9 +1070,9 @@ const Profile = () => {
                                                         return matchesSearch && matchesStatus && matchesCompetence;
                                                     })
                                                     .map(req => (
-                                                        <tr 
-                                                            key={req.id} 
-                                                            onClick={() => setSelectedRequest(req)} 
+                                                        <tr
+                                                            key={req.id}
+                                                            onClick={() => setSelectedRequest(req)}
                                                             style={{ borderBottom: '1px solid var(--surface-border-subtle)', cursor: 'pointer' }}
                                                             className="hover-card"
                                                         >
@@ -1091,7 +1091,7 @@ const Profile = () => {
                                                                 </span>
                                                             </td>
                                                             <td style={{ padding: '12px', textAlign: 'center' }}>
-                                                                <button 
+                                                                <button
                                                                     className="action-btn secondary-btn"
                                                                     style={{ padding: '6px 12px', fontSize: '11px', height: 'auto' }}
                                                                     onClick={(e) => {
@@ -1116,12 +1116,12 @@ const Profile = () => {
                                     <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <FileSpreadsheet size={20} color="var(--primary-color)" /> Planilha Financeira Geral
                                     </h2>
-                                    
+
                                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                         {/* Competence Selector */}
-                                        <select 
-                                            value={selectedCompetence} 
-                                            onChange={e => setSelectedCompetence(e.target.value)} 
+                                        <select
+                                            value={selectedCompetence}
+                                            onChange={e => setSelectedCompetence(e.target.value)}
                                             className="field-input"
                                             style={{ width: '160px', padding: '8px 12px', height: 'auto', background: 'rgba(0,0,0,0.3)', borderRadius: '12px' }}
                                         >
@@ -1132,8 +1132,8 @@ const Profile = () => {
                                             <option value="Abril/2026">Abril/2026</option>
                                         </select>
 
-                                        <button 
-                                            onClick={exportToExcel} 
+                                        <button
+                                            onClick={exportToExcel}
                                             className="action-btn secondary-btn"
                                             style={{ padding: '8px 16px', fontSize: '12px', height: 'auto' }}
                                         >
@@ -1163,11 +1163,11 @@ const Profile = () => {
                                                         <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold' }}>{item.name}</td>
                                                         <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right', fontWeight: 'bold' }}>
                                                             {isEditing ? (
-                                                                <input 
-                                                                    type="number" 
-                                                                    step="0.01" 
-                                                                    className="field-input" 
-                                                                    value={tempReceivableValue} 
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    className="field-input"
+                                                                    value={tempReceivableValue}
                                                                     onChange={e => setTempReceivableValue(e.target.value)}
                                                                     style={{ width: '100px', textAlign: 'right', padding: '4px 8px', fontSize: '12px', height: 'auto' }}
                                                                 />
@@ -1179,14 +1179,14 @@ const Profile = () => {
                                                         <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right', color: '#3b82f6', fontWeight: 'bold' }}>{formatCurrency(item.net_receivable)}</td>
                                                         <td style={{ padding: '12px', textAlign: 'center' }}>
                                                             {item.nf_url ? (
-                                                                <a 
-                                                                    href={item.nf_url} 
-                                                                    target="_blank" 
-                                                                    rel="noreferrer" 
-                                                                    style={{ 
-                                                                        fontSize: '11px', 
-                                                                        background: 'rgba(74, 222, 128, 0.1)', 
-                                                                        color: '#4ade80', 
+                                                                <a
+                                                                    href={item.nf_url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    style={{
+                                                                        fontSize: '11px',
+                                                                        background: 'rgba(74, 222, 128, 0.1)',
+                                                                        color: '#4ade80',
                                                                         border: '1px solid rgba(74, 222, 128, 0.2)',
                                                                         padding: '4px 8px',
                                                                         borderRadius: '8px',
@@ -1202,10 +1202,10 @@ const Profile = () => {
                                                         </td>
                                                         <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-muted)' }}>
                                                             {isEditing ? (
-                                                                <input 
-                                                                    type="text" 
-                                                                    className="field-input" 
-                                                                    value={tempPixKey} 
+                                                                <input
+                                                                    type="text"
+                                                                    className="field-input"
+                                                                    value={tempPixKey}
                                                                     onChange={e => setTempPixKey(e.target.value)}
                                                                     style={{ width: '140px', padding: '4px 8px', fontSize: '12px', height: 'auto' }}
                                                                 />
@@ -1216,14 +1216,14 @@ const Profile = () => {
                                                         <td style={{ padding: '12px', textAlign: 'center' }}>
                                                             {isEditing ? (
                                                                 <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => handleSaveReceivableInline(item.id)}
                                                                         className="action-btn primary-btn"
                                                                         style={{ padding: '4px 8px', fontSize: '10px', height: 'auto' }}
                                                                     >
                                                                         GRAVAR
                                                                     </button>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => setEditingReceivableId(null)}
                                                                         className="action-btn secondary-btn"
                                                                         style={{ padding: '4px 8px', fontSize: '10px', height: 'auto' }}
@@ -1232,7 +1232,7 @@ const Profile = () => {
                                                                     </button>
                                                                 </div>
                                                             ) : (
-                                                                <button 
+                                                                <button
                                                                     onClick={() => startEditingReceivable(item)}
                                                                     className="action-btn secondary-btn"
                                                                     style={{ padding: '4px 8px', fontSize: '10px', height: 'auto' }}
@@ -1255,16 +1255,16 @@ const Profile = () => {
 
             {/* --- MODAL: SOLICITAR ADIANTAMENTO (3 STEPS) --- */}
             {showAdvanceModal && (
-                <div style={{ 
-                    position: 'fixed', 
-                    top: 0, 
-                    left: 0, 
-                    right: 0, 
-                    bottom: 0, 
-                    background: 'rgba(0,0,0,0.8)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     zIndex: 9999,
                     backdropFilter: 'blur(10px)'
                 }}>
@@ -1280,7 +1280,7 @@ const Profile = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '32px', position: 'relative' }}>
                             <div style={{ position: 'absolute', top: '10px', left: 0, right: 0, height: '2px', background: 'var(--surface-border-subtle)', zIndex: 1 }} />
                             <div style={{ position: 'absolute', top: '10px', left: 0, width: `${(advanceStep - 1) * 50}%`, height: '2px', background: 'var(--primary-color)', zIndex: 2, transition: 'all 0.3s' }} />
-                            
+
                             <div style={{ zIndex: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: advanceStep >= 1 ? 'var(--primary-color)' : 'var(--surface-border-subtle)', color: advanceStep >= 1 ? 'black' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>1</div>
                                 <span style={{ fontSize: '9px', color: advanceStep >= 1 ? 'var(--text-primary)' : 'var(--text-muted)' }}>VALOR</span>
@@ -1300,13 +1300,13 @@ const Profile = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div>
                                     <label className="field-label">VALOR DESEJADO (R$)</label>
-                                    <input 
-                                        type="number" 
-                                        step="0.01" 
-                                        className="field-input" 
-                                        value={advanceValue} 
-                                        onChange={e => setAdvanceValue(e.target.value)} 
-                                        placeholder="0.00" 
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="field-input"
+                                        value={advanceValue}
+                                        onChange={e => setAdvanceValue(e.target.value)}
+                                        placeholder="0.00"
                                         autoFocus
                                     />
                                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', display: 'block' }}>
@@ -1325,11 +1325,11 @@ const Profile = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 <div>
                                     <label className="field-label">CONFIRMAR CHAVE PIX DE RECEBIMENTO</label>
-                                    <input 
-                                        type="text" 
-                                        className="field-input" 
-                                        value={advancePix} 
-                                        onChange={e => setAdvancePix(e.target.value)} 
+                                    <input
+                                        type="text"
+                                        className="field-input"
+                                        value={advancePix}
+                                        onChange={e => setAdvancePix(e.target.value)}
                                         placeholder="Ex: CPF, E-mail, Celular ou Chave Aleatória"
                                         autoFocus
                                     />
@@ -1365,7 +1365,7 @@ const Profile = () => {
                                 </div>
 
                                 {advanceError && <div style={{ color: '#ef4444', fontSize: '12px', fontWeight: 'bold' }}>{advanceError}</div>}
-                                
+
                                 <div style={{ display: 'flex', gap: '12px' }}>
                                     <button onClick={() => setAdvanceStep(2)} className="action-btn secondary-btn" style={{ flex: 1, justifyContent: 'center' }} disabled={submittingAdvance}>
                                         VOLTAR
@@ -1382,16 +1382,16 @@ const Profile = () => {
 
             {/* --- MODAL: REJECT JUSTIFICATION --- */}
             {justificationModal.show && (
-                <div style={{ 
-                    position: 'fixed', 
-                    top: 0, 
-                    left: 0, 
-                    right: 0, 
-                    bottom: 0, 
-                    background: 'rgba(0,0,0,0.8)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     zIndex: 9999,
                     backdropFilter: 'blur(10px)'
                 }}>
@@ -1400,9 +1400,9 @@ const Profile = () => {
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
                             Por favor, informe a justificativa do cancelamento. O colaborador poderá visualizar este motivo no perfil dele.
                         </p>
-                        
-                        <textarea 
-                            className="field-input" 
+
+                        <textarea
+                            className="field-input"
                             style={{ width: '100%', height: '100px', resize: 'none', padding: '12px', borderRadius: '12px', marginBottom: '20px' }}
                             placeholder="Descreva aqui o motivo..."
                             value={justificationText}
@@ -1410,15 +1410,15 @@ const Profile = () => {
                         />
 
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                            <button 
-                                onClick={() => setJustificationModal({ show: false, requestId: null })} 
+                            <button
+                                onClick={() => setJustificationModal({ show: false, requestId: null })}
                                 className="action-btn secondary-btn"
                                 style={{ padding: '8px 16px', fontSize: '12px' }}
                             >
                                 CANCELAR
                             </button>
-                            <button 
-                                onClick={submitRejection} 
+                            <button
+                                onClick={submitRejection}
                                 className="action-btn danger-btn"
                                 style={{ padding: '8px 16px', fontSize: '12px', background: '#ef4444', color: 'white' }}
                             >
@@ -1431,16 +1431,16 @@ const Profile = () => {
 
             {/* --- MODAL: COMANDA INDIVIDUAL (REQUEST DETAIL) --- */}
             {selectedRequest && (
-                <div style={{ 
-                    position: 'fixed', 
-                    top: 0, 
-                    left: 0, 
-                    right: 0, 
-                    bottom: 0, 
-                    background: 'rgba(0,0,0,0.8)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     zIndex: 9998,
                     backdropFilter: 'blur(10px)'
                 }}>
@@ -1456,11 +1456,11 @@ const Profile = () => {
                         </div>
 
                         {/* Request Card Stats */}
-                        <div style={{ 
-                            background: 'rgba(255,255,255,0.01)', 
-                            border: '1px solid var(--surface-border-subtle)', 
-                            borderRadius: '24px', 
-                            padding: '24px', 
+                        <div style={{
+                            background: 'rgba(255,255,255,0.01)',
+                            border: '1px solid var(--surface-border-subtle)',
+                            borderRadius: '24px',
+                            padding: '24px',
                             marginBottom: '28px',
                             display: 'flex',
                             flexDirection: 'column',
@@ -1505,7 +1505,7 @@ const Profile = () => {
                         {/* Request status info or action buttons */}
                         {selectedRequest.status === 'Pendente' ? (
                             <div style={{ display: 'flex', gap: '16px' }}>
-                                <button 
+                                <button
                                     onClick={() => handleRespondRequest(selectedRequest.id, 'Aprovado')}
                                     className="action-btn primary-btn"
                                     style={{ flex: 1, height: '48px', justifyContent: 'center', fontSize: '13px' }}
@@ -1513,7 +1513,7 @@ const Profile = () => {
                                 >
                                     APROVAR ADIANTAMENTO
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => openRejectModal(selectedRequest.id)}
                                     className="action-btn danger-btn"
                                     style={{ flex: 1, height: '48px', justifyContent: 'center', fontSize: '13px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}
@@ -1523,9 +1523,9 @@ const Profile = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div style={{ 
-                                display: 'flex', 
-                                flexDirection: 'column', 
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
                                 gap: '12px',
                                 background: selectedRequest.status === 'Aprovado' ? 'rgba(74, 222, 128, 0.05)' : 'rgba(239, 68, 68, 0.05)',
                                 border: `1px solid ${selectedRequest.status === 'Aprovado' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
@@ -1533,8 +1533,8 @@ const Profile = () => {
                                 borderRadius: '16px',
                                 textAlign: 'center'
                             }}>
-                                <span style={{ 
-                                    fontWeight: 'bold', 
+                                <span style={{
+                                    fontWeight: 'bold',
                                     color: selectedRequest.status === 'Aprovado' ? '#4ade80' : '#ef4444',
                                     fontSize: '14px'
                                 }}>

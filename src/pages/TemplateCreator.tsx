@@ -31,7 +31,7 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
-const LEANDRO_BODY_2 = 'Olá, {{1}}.\n\nRecebemos sua solicitação nº {{2}} e precisamos confirmar algumas informações para dar continuidade ao atendimento.\n\nPara revisar os dados relacionados a essa solicitação, utilize uma das opções abaixo.';
+const LEANDRO_BODY_2 = 'Olá, {{1}}.\n\nRecebemos sua solicitação {{2}} e precisamos confirmar algumas informações para dar continuidade ao atendimento.\n\nPara revisar os dados relacionados a essa solicitação, utilize uma das opções abaixo.';
 const LEANDRO_BODY_2_EN = 'Hello, {{1}}.\n\nWe received your request no. {{2}} and need to confirm some information to proceed with your service.\n\nTo review the data related to this request, please use one of the options below.';
 const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\nPara {{4}} Clique no botão abaixo!';
 const LEANDRO_BODY_5 = 'Olá {{1}}\n\nEstamos informando que: {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara saber mais {{5}} Clique no botão abaixo!';
@@ -44,7 +44,7 @@ const LEANDRO_EXAMPLES_2 = [
 ];
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
-    "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
+    "recebemos a confirmação do pagamento referente ao protocolo  7164427, realizado em 12/10/2025", // {{2}}
     "O comprovante digital já se encontra disponível para conferência", // {{3}}
     "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
     "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
@@ -673,7 +673,7 @@ const TemplateCreator = () => {
                                 }
                             }
                             payload = parsed;
-                        } catch(e) {
+                        } catch (e) {
                             alert("JSON Payload manual inválido. Cancele a edição ou corrija o JSON antes de publicar.");
                             setIsGenerating(false);
                             return;
@@ -1040,7 +1040,7 @@ const TemplateCreator = () => {
         if (isNaN(copiesCount) || copiesCount <= 0) return;
         setCampaigns(prev => prev.map(c => {
             if (c.id !== campaignId) return c;
-            
+
             // Find max numeric suffix to start from
             let maxNum = 0;
             c.rows.forEach(r => {
@@ -1050,7 +1050,7 @@ const TemplateCreator = () => {
                     if (num > maxNum) maxNum = num;
                 }
             });
-            
+
             const rowToCopy = c.rows[rowIndex];
             const newRows = Array(copiesCount).fill(null).map((_, i) => ({
                 ...rowToCopy,
@@ -2132,7 +2132,7 @@ const TemplateCreator = () => {
                             <div className="mt-8" ref={progressContainerRef}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <h4 style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Payload Técnico API</h4>
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             if (isEditingPayload) {
                                                 setIsEditingPayload(false);

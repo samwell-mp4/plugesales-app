@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Layers, 
-    Plus, 
-    Trash2, 
-    AlertCircle, 
-    CheckCircle2, 
-    Loader2, 
-    Image as ImageIcon, 
-    Video, 
-    MousePointer2, 
-    FileText, 
+import {
+    Layers,
+    Plus,
+    Trash2,
+    AlertCircle,
+    CheckCircle2,
+    Loader2,
+    Image as ImageIcon,
+    Video,
+    MousePointer2,
+    FileText,
     RefreshCw,
     ExternalLink,
     Smartphone,
@@ -19,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
 // --- LEANDRO STANDARD CONSTANTS ---
-const LEANDRO_BODY_2 = 'Olá, {{1}}.\n\nRecebemos sua solicitação nº {{2}} e precisamos confirmar algumas informações para dar continuidade ao atendimento.\n\nPara revisar os dados relacionados a essa solicitação, utilize uma das opções abaixo.';
+const LEANDRO_BODY_2 = 'Olá, {{1}}.\n\nRecebemos sua solicitação  {{2}} e precisamos confirmar algumas informações para dar continuidade ao atendimento.\n\nPara revisar os dados relacionados a essa solicitação, utilize uma das opções abaixo.';
 const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\nPara {{4}} Clique no botão abaixo!';
 const LEANDRO_BODY_5 = 'Olá {{1}}\n\nEstamos informando que: {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara saber mais {{5}} Clique no botão abaixo!';
 const LEANDRO_EXAMPLES_2 = [
@@ -28,7 +28,7 @@ const LEANDRO_EXAMPLES_2 = [
 ];
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
-    "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
+    "recebemos a confirmação do pagamento referente ao protocolo  7164427, realizado em 12/10/2025", // {{2}}
     "O comprovante digital já se encontra disponível para conferência", // {{3}}
     "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
     "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
@@ -57,7 +57,7 @@ const TemplateBatchGenerator = () => {
     const [language, setLanguage] = useState('pt_BR');
     const [isTwoVars, setIsTwoVars] = useState(false);
     const [isFiveVars, setIsFiveVars] = useState(false);
-    
+
     const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO'>('NONE');
     const [headerText, setHeaderText] = useState('Alerta de Atualização');
     const [headerTextExample, setHeaderTextExample] = useState('João');
@@ -67,7 +67,7 @@ const TemplateBatchGenerator = () => {
     const [bodyExamples, setBodyExamples] = useState<string[]>(LEANDRO_EXAMPLES.slice(0, 4));
 
     const [footerText, setFooterText] = useState('Digite "sair" para não receber mais mensagens');
-    
+
     const [buttonType, setButtonType] = useState<'NONE' | 'URL' | 'QUICK_REPLY'>('URL');
     const [buttonText, setButtonText] = useState('Clique Aqui');
     const [buttonUrl, setButtonUrl] = useState('');
@@ -347,12 +347,12 @@ const TemplateBatchGenerator = () => {
                     </h2>
 
                     <form onSubmit={handleCreateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        
+
                         {/* --- SENDER CONFIG & CLIENT --- */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid var(--surface-border-subtle)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <label style={{ fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Configuração de Credenciais</label>
-                                
+
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setUseLuis(!useLuis)}>
                                     <div style={{ width: '32px', height: '18px', background: useLuis ? 'var(--primary-color)' : 'var(--surface-border-subtle)', borderRadius: '9px', position: 'relative', transition: 'all 0.3s' }}>
                                         <div style={{ position: 'absolute', top: '3px', left: useLuis ? '17px' : '3px', width: '12px', height: '12px', background: 'white', borderRadius: '50%', transition: 'all 0.3s' }} />
@@ -364,19 +364,19 @@ const TemplateBatchGenerator = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
                                 <div>
                                     <label className="field-label">Remetente Oficial (WABA)</label>
-                                    <input 
-                                        className="field-input" 
-                                        placeholder="5511999998888" 
+                                    <input
+                                        className="field-input"
+                                        placeholder="5511999998888"
                                         value={sender}
                                         onChange={e => setSender(e.target.value)}
-                                        required 
+                                        required
                                     />
                                 </div>
 
                                 {(user?.role === 'ADMIN' || user?.role === 'EMPLOYEE') && (
                                     <div>
                                         <label className="field-label">Vincular a Cliente</label>
-                                        <select 
+                                        <select
                                             className="field-input"
                                             value={selectedClientId}
                                             onChange={e => setSelectedClientId(e.target.value)}
@@ -397,17 +397,17 @@ const TemplateBatchGenerator = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
                             <div>
                                 <label className="field-label">Nome Base do Template (Sem espaços/símbolos)</label>
-                                <input 
-                                    className="field-input" 
-                                    placeholder="Ex: promo_final_dia" 
+                                <input
+                                    className="field-input"
+                                    placeholder="Ex: promo_final_dia"
                                     value={baseName}
                                     onChange={e => setBaseName(e.target.value.toLowerCase().replace(/[\s\-*]+/g, '_').replace(/[^a-z0-9_]/g, ''))}
-                                    required 
+                                    required
                                 />
                             </div>
                             <div>
                                 <label className="field-label">Categoria</label>
-                                <select 
+                                <select
                                     className="field-input"
                                     value={category}
                                     onChange={e => setCategory(e.target.value as any)}
@@ -423,12 +423,12 @@ const TemplateBatchGenerator = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ flex: 1 }}>
                                     <label className="field-label">Idioma</label>
-                                    <input 
-                                        className="field-input" 
-                                        placeholder="pt_BR" 
+                                    <input
+                                        className="field-input"
+                                        placeholder="pt_BR"
                                         value={language}
                                         onChange={e => setLanguage(e.target.value)}
-                                        required 
+                                        required
                                     />
                                 </div>
                                 <div style={{ display: 'flex', gap: '16px', marginTop: '12px', flexWrap: 'wrap' }}>
@@ -448,14 +448,14 @@ const TemplateBatchGenerator = () => {
                             </div>
                             <div>
                                 <label className="field-label">Quantidade de Cópias</label>
-                                <input 
+                                <input
                                     type="number"
                                     min="1"
                                     max="50"
-                                    className="field-input" 
+                                    className="field-input"
                                     value={copiesCount}
                                     onChange={e => setCopiesCount(parseInt(e.target.value) || 20)}
-                                    required 
+                                    required
                                 />
                             </div>
                         </div>
@@ -483,18 +483,18 @@ const TemplateBatchGenerator = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
                                     <div>
                                         <label className="field-label">Texto do Cabeçalho</label>
-                                        <input 
-                                            className="field-input" 
-                                            placeholder="Ex: Alerta de Atualização" 
+                                        <input
+                                            className="field-input"
+                                            placeholder="Ex: Alerta de Atualização"
                                             value={headerText}
                                             onChange={e => setHeaderText(e.target.value)}
                                         />
                                     </div>
                                     <div>
                                         <label className="field-label">Exemplo de Variável</label>
-                                        <input 
-                                            className="field-input" 
-                                            placeholder="Ex: João" 
+                                        <input
+                                            className="field-input"
+                                            placeholder="Ex: João"
                                             value={headerTextExample}
                                             onChange={e => setHeaderTextExample(e.target.value)}
                                         />
@@ -505,9 +505,9 @@ const TemplateBatchGenerator = () => {
                             {(headerType === 'IMAGE' || headerType === 'VIDEO') && (
                                 <div>
                                     <label className="field-label">URL da Mídia (Exemplo Público)</label>
-                                    <input 
-                                        className="field-input" 
-                                        placeholder="https://exemplo.com/media.png" 
+                                    <input
+                                        className="field-input"
+                                        placeholder="https://exemplo.com/media.png"
                                         value={headerMediaUrl}
                                         onChange={e => setHeaderMediaUrl(e.target.value)}
                                     />
@@ -518,9 +518,9 @@ const TemplateBatchGenerator = () => {
                         {/* --- BODY & EDITABLE VARIABLES --- */}
                         <div style={{ borderTop: '1px solid var(--surface-border-subtle)', paddingTop: '20px' }}>
                             <label className="field-label">Corpo do Texto (Body)</label>
-                            <textarea 
-                                className="field-input" 
-                                placeholder="Olá {{1}}, seu protocolo é {{2}}." 
+                            <textarea
+                                className="field-input"
+                                placeholder="Olá {{1}}, seu protocolo é {{2}}."
                                 value={bodyText}
                                 onChange={e => setBodyText(e.target.value)}
                                 rows={4}
@@ -533,14 +533,14 @@ const TemplateBatchGenerator = () => {
                                     <label style={{ fontSize: '10px', fontWeight: 900, color: 'var(--primary-color)', display: 'block', marginBottom: '16px', letterSpacing: '0.5px' }}>
                                         EXEMPLOS DE VARIÁVEIS (EDITÁVEIS)
                                     </label>
-                                    
+
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         {Array.from({ length: varsCount }).map((_, i) => (
                                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--text-muted)', minWidth: '40px' }}>
                                                     {`{{${i + 1}}}`}
                                                 </span>
-                                                <input 
+                                                <input
                                                     className="field-input"
                                                     style={{ height: '38px', fontSize: '13px' }}
                                                     placeholder={`Exemplo da variável {{${i + 1}}}`}
@@ -564,16 +564,16 @@ const TemplateBatchGenerator = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                 <div>
                                     <label className="field-label">Rodapé (Footer)</label>
-                                    <input 
-                                        className="field-input" 
-                                        placeholder="Digite SAIR para cancelar" 
+                                    <input
+                                        className="field-input"
+                                        placeholder="Digite SAIR para cancelar"
                                         value={footerText}
                                         onChange={e => setFooterText(e.target.value)}
                                     />
                                 </div>
                                 <div>
                                     <label className="field-label">Tipo de Botão</label>
-                                    <select 
+                                    <select
                                         className="field-input"
                                         value={buttonType}
                                         onChange={e => setButtonType(e.target.value as any)}
@@ -591,9 +591,9 @@ const TemplateBatchGenerator = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: buttonType === 'URL' ? '1fr 1fr' : '1fr', gap: '16px' }}>
                                         <div>
                                             <label className="field-label">Texto do Botão</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Ex: Acessar Painel" 
+                                            <input
+                                                className="field-input"
+                                                placeholder="Ex: Acessar Painel"
                                                 value={buttonText}
                                                 onChange={e => setButtonText(e.target.value)}
                                                 required
@@ -602,23 +602,23 @@ const TemplateBatchGenerator = () => {
                                         {buttonType === 'URL' && (
                                             <div>
                                                 <label className="field-label">Link de Redirecionamento (URL)</label>
-                                                <input 
-                                                    className="field-input" 
-                                                    placeholder="https://exemplo.com/{{1}}" 
+                                                <input
+                                                    className="field-input"
+                                                    placeholder="https://exemplo.com/{{1}}"
                                                     value={buttonUrl}
                                                     onChange={e => setButtonUrl(e.target.value)}
                                                     required
                                                 />
-                                                <button 
+                                                <button
                                                     type="button"
                                                     onClick={handleAutoGenerateRotator}
                                                     className="action-btn"
-                                                    style={{ 
-                                                        marginTop: '8px', 
-                                                        height: '32px', 
-                                                        padding: '0 12px', 
-                                                        fontSize: '11px', 
-                                                        background: 'rgba(172, 248, 0, 0.05)', 
+                                                    style={{
+                                                        marginTop: '8px',
+                                                        height: '32px',
+                                                        padding: '0 12px',
+                                                        fontSize: '11px',
+                                                        background: 'rgba(172, 248, 0, 0.05)',
                                                         color: 'var(--primary-color)',
                                                         border: '1px solid rgba(172,248,0,0.1)'
                                                     }}
@@ -631,9 +631,9 @@ const TemplateBatchGenerator = () => {
                                     {buttonType === 'URL' && buttonUrl.includes('{{1}}') && (
                                         <div>
                                             <label className="field-label">Exemplo de Variável do Link</label>
-                                            <input 
-                                                className="field-input" 
-                                                placeholder="Ex: painel" 
+                                            <input
+                                                className="field-input"
+                                                placeholder="Ex: painel"
                                                 value={buttonUrlExample}
                                                 onChange={e => setButtonUrlExample(e.target.value)}
                                                 required
@@ -645,27 +645,27 @@ const TemplateBatchGenerator = () => {
                         </div>
 
                         {message.text && (
-                            <div className="animate-slide-in" style={{ 
-                                padding: '16px', 
-                                borderRadius: '14px', 
+                            <div className="animate-slide-in" style={{
+                                padding: '16px',
+                                borderRadius: '14px',
                                 background: message.type === 'error' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(172, 248, 0, 0.05)',
                                 border: `1px solid ${message.type === 'error' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(172, 248, 0, 0.2)'}`,
                                 color: message.type === 'error' ? '#ef4444' : 'var(--primary-color)',
-                                fontSize: '13px', 
-                                fontWeight: 800, 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '10px' 
+                                fontSize: '13px',
+                                fontWeight: 800,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
                             }}>
                                 {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
                                 {message.text}
                             </div>
                         )}
 
-                        <button 
-                            type="submit" 
-                            className="action-btn primary-btn" 
-                            disabled={isSubmitting} 
+                        <button
+                            type="submit"
+                            className="action-btn primary-btn"
+                            disabled={isSubmitting}
                             style={{ height: '54px', fontSize: '13px', letterSpacing: '0.5px' }}
                         >
                             {isSubmitting ? (
@@ -684,18 +684,18 @@ const TemplateBatchGenerator = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     <div className="crm-card" style={{ padding: '24px' }}>
                         <h3 style={{ fontSize: '1rem', fontWeight: 900, marginBottom: '16px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Visualização Prévia (WhatsApp)</h3>
-                        
-                        <div style={{ 
-                            background: '#0b141a', 
-                            borderRadius: '16px', 
-                            padding: '16px', 
+
+                        <div style={{
+                            background: '#0b141a',
+                            borderRadius: '16px',
+                            padding: '16px',
                             border: '1px solid var(--surface-border-subtle)',
                             fontFamily: 'sans-serif'
                         }}>
-                            <div style={{ 
-                                background: '#1f2c34', 
-                                borderRadius: '12px', 
-                                padding: '12px', 
+                            <div style={{
+                                background: '#1f2c34',
+                                borderRadius: '12px',
+                                padding: '12px',
                                 color: 'white',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -742,7 +742,7 @@ const TemplateBatchGenerator = () => {
                                 )}
 
                                 {buttonType !== 'NONE' && buttonText && (
-                                    <div style={{ 
+                                    <div style={{
                                         marginTop: '4px',
                                         borderTop: '1px solid rgba(255,255,255,0.1)',
                                         paddingTop: '8px',
@@ -766,9 +766,9 @@ const TemplateBatchGenerator = () => {
                     <div className="crm-card" style={{ padding: '24px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                             <h3 style={{ fontSize: '1rem', fontWeight: 950, margin: 0 }}>Geradores Ativos / Histórico</h3>
-                            <button 
-                                onClick={fetchJobs} 
-                                className="icon-button" 
+                            <button
+                                onClick={fetchJobs}
+                                className="icon-button"
                                 disabled={isLoadingJobs}
                                 style={{ width: '32px', height: '32px' }}
                             >
@@ -786,10 +786,10 @@ const TemplateBatchGenerator = () => {
                                 jobs.map(job => {
                                     const badge = getStatusBadgeStyle(job.status);
                                     return (
-                                        <div key={job.id} style={{ 
-                                            background: 'rgba(255,255,255,0.01)', 
-                                            border: '1px solid var(--surface-border-subtle)', 
-                                            padding: '16px', 
+                                        <div key={job.id} style={{
+                                            background: 'rgba(255,255,255,0.01)',
+                                            border: '1px solid var(--surface-border-subtle)',
+                                            padding: '16px',
                                             borderRadius: '16px',
                                             display: 'flex',
                                             flexDirection: 'column',
@@ -797,11 +797,11 @@ const TemplateBatchGenerator = () => {
                                         }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <div style={{ fontWeight: 800, fontSize: '14px' }}>{job.base_name}</div>
-                                                <span 
-                                                    className="status-badge-premium" 
-                                                    style={{ 
-                                                        '--bg': badge.bg, 
-                                                        '--color': badge.color, 
+                                                <span
+                                                    className="status-badge-premium"
+                                                    style={{
+                                                        '--bg': badge.bg,
+                                                        '--color': badge.color,
                                                         '--border': badge.border,
                                                         fontSize: '10px'
                                                     } as any}
