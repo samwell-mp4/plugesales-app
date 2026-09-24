@@ -31,11 +31,17 @@ interface CampaignBatch {
 }
 
 // --- LEANDRO STANDARD CONSTANTS (STRICT API DEFAULTS) ---
+const LEANDRO_BODY_2 = 'Olá, {{1}}.\n\nRecebemos sua solicitação nº {{2}} e precisamos confirmar algumas informações para dar continuidade ao atendimento.\n\nPara revisar os dados relacionados a essa solicitação, utilize uma das opções abaixo.';
+const LEANDRO_BODY_2_EN = 'Hello, {{1}}.\n\nWe received your request no. {{2}} and need to confirm some information to proceed with your service.\n\nTo review the data related to this request, please use one of the options below.';
 const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\nPara {{4}} Clique no botão abaixo!';
 const LEANDRO_BODY_5 = 'Olá {{1}}\n\nEstamos informando que: {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara saber mais {{5}} Clique no botão abaixo!';
 const LEANDRO_BODY_4_EN = 'Hi {{1}}!\n\nWe inform you that: {{2}}\n\n{{3}}\n\nTo {{4}} Click the button below!';
 const LEANDRO_BODY_5_EN = 'Hello {{1}}, how are you doing? \n\nWe are reaching out to inform you that {{2}}.\n\nMore details: {{3}}\n\nImportant note: {{4}}\n\nTo {{5}}, please click the button below 👇';
 const LEANDRO_FOOTER = 'Digite "sair" para não receber mais mensagens';
+const LEANDRO_EXAMPLES_2 = [
+    "Leandro", // {{1}}
+    "7164427"  // {{2}}
+];
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
     "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
@@ -43,6 +49,16 @@ const LEANDRO_EXAMPLES = [
     "acessar o comprovante digital #54333 e verificar a entrega", // {{4}}
     "ver o comprovante digital #76632353 e verificar a entrega"   // {{5}}
 ];
+
+const getStandardBodyText = (twoVars: boolean, fiveVars: boolean, lang: string) => {
+    if (twoVars) {
+        return lang === 'en_US' ? LEANDRO_BODY_2_EN : LEANDRO_BODY_2;
+    }
+    if (fiveVars) {
+        return lang === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5;
+    }
+    return lang === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4;
+};
 
 const TemplateCreator = () => {
     const { user } = useAuth();
@@ -138,7 +154,16 @@ const TemplateCreator = () => {
             if (data.bodyText) {
                 _setBodyText(data.bodyText);
                 const varMatch = data.bodyText.match(/\{\{(\d+)\}\}/g) || [];
-                if (varMatch.length >= 5) setIsFiveVars(true);
+                if (varMatch.length === 2) {
+                    setIsTwoVars(true);
+                    setIsFiveVars(false);
+                } else if (varMatch.length >= 5) {
+                    setIsFiveVars(true);
+                    setIsTwoVars(false);
+                } else {
+                    setIsTwoVars(false);
+                    setIsFiveVars(false);
+                }
             }
             if (data.language) setSelectedPayloadLanguage(data.language);
 
@@ -222,6 +247,7 @@ const TemplateCreator = () => {
 
     const defaultVars = ['', '', '', ''];
     const [variablesExample, _setVariablesExample] = useState(defaultVars);
+    const [isTwoVars, setIsTwoVars] = useState(false);
     const [isFiveVars, setIsFiveVars] = useState(false);
     const [showIndividualDetails, setShowIndividualDetails] = useState(false);
 
@@ -289,14 +315,18 @@ const TemplateCreator = () => {
         const lang = overrideLanguage || selectedPayloadLanguage;
 
         // --- LEANDRO STANDARD ENFORCEMENT ---
-        let bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
-        let varCount = isFiveVars ? 5 : 4;
-        let examples = LEANDRO_EXAMPLES.slice(0, varCount);
+        let bodyValue = isTwoVars
+            ? (lang === 'en_US' ? LEANDRO_BODY_2_EN : LEANDRO_BODY_2)
+            : (isFiveVars
+                ? (lang === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5)
+                : (lang === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
+        let varCount = isTwoVars ? 2 : (isFiveVars ? 5 : 4);
+        let examples = isTwoVars ? LEANDRO_EXAMPLES_2 : LEANDRO_EXAMPLES.slice(0, varCount);
 
         if (overrideBodyText) {
             bodyValue = overrideBodyText;
             varCount = (overrideBodyText.match(/\{\{(\d+)\}\}/g) || []).length;
-            examples = LEANDRO_EXAMPLES.slice(0, varCount);
+            examples = varCount === 2 ? LEANDRO_EXAMPLES_2 : LEANDRO_EXAMPLES.slice(0, varCount);
         }
 
         const effectiveHeaderType = overrideHeaderType || headerType;
@@ -417,14 +447,18 @@ const TemplateCreator = () => {
 
     const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, _variablesOverride?: string[], overrideBodyText?: string) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
-        let bodyValue = isFiveVars ? LEANDRO_BODY_5 : LEANDRO_BODY_4;
-        let varCount = isFiveVars ? 5 : 4;
-        let examples = LEANDRO_EXAMPLES.slice(0, varCount);
+        let bodyValue = isTwoVars
+            ? (lang === 'en_US' ? LEANDRO_BODY_2_EN : LEANDRO_BODY_2)
+            : (isFiveVars
+                ? (lang === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5)
+                : (lang === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
+        let varCount = isTwoVars ? 2 : (isFiveVars ? 5 : 4);
+        let examples = isTwoVars ? LEANDRO_EXAMPLES_2 : LEANDRO_EXAMPLES.slice(0, varCount);
 
         if (overrideBodyText) {
             bodyValue = overrideBodyText;
             varCount = (overrideBodyText.match(/\{\{(\d+)\}\}/g) || []).length;
-            examples = LEANDRO_EXAMPLES.slice(0, varCount);
+            examples = varCount === 2 ? LEANDRO_EXAMPLES_2 : LEANDRO_EXAMPLES.slice(0, varCount);
         }
 
         const effectiveHeaderType = overrideHeaderType || headerType;
@@ -681,7 +715,7 @@ const TemplateCreator = () => {
                         const clientName = client?.name || (user?.role === 'ASSINATURA_BASICA' ? user?.name : '');
                         const clientDDD = client?.phone?.substring(0, 2) || (user?.role === 'ASSINATURA_BASICA' ? user?.notification_number?.substring(2, 4) : '11');
 
-                        const actualBodyText = enableCustomVariables ? bodyText : (isFiveVars ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5) : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
+                        const actualBodyText = enableCustomVariables ? bodyText : getStandardBodyText(isTwoVars, isFiveVars, selectedPayloadLanguage);
 
                         await dbService.addClientSubmission({
                             user_id: selectedClientId || (isInternalUser ? undefined : user?.id),
@@ -827,7 +861,7 @@ const TemplateCreator = () => {
                         });
                         await sendToWebhook(extendedPayload);
 
-                        const actualBodyText = enableBulkCustomVariables ? bodyText : (isFiveVars ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5) : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
+                        const actualBodyText = enableBulkCustomVariables ? bodyText : getStandardBodyText(isTwoVars, isFiveVars, selectedPayloadLanguage);
 
                         adsByCampaignId[campaign.id].push({
                             ad_name: name,
@@ -896,7 +930,7 @@ const TemplateCreator = () => {
                     const clientDDD = client?.phone?.substring(0, 2) || (user?.role === 'ASSINATURA_BASICA' ? user?.notification_number?.substring(2, 4) : '11');
                     const isInternalUser = ['ADMIN', 'EMPLOYEE'].includes(user?.role || '');
 
-                    const actualBodyText = enableBulkCustomVariables ? bodyText : (isFiveVars ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5) : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4));
+                    const actualBodyText = enableBulkCustomVariables ? bodyText : getStandardBodyText(isTwoVars, isFiveVars, selectedPayloadLanguage);
 
                     await dbService.addClientSubmission({
                         user_id: selectedClientId ? String(selectedClientId) : (isInternalUser ? undefined : String(user?.id)),
@@ -1527,8 +1561,44 @@ const TemplateCreator = () => {
 
                             <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
                                 <div className="flex flex-col">
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Modo 2 Variáveis</span>
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Template de solicitação (2 variáveis)</span>
+                                </div>
+                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
+                                    <input
+                                        type="checkbox"
+                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                        checked={isTwoVars}
+                                        onChange={(e) => {
+                                            const active = e.target.checked;
+                                            setIsTwoVars(active);
+                                            if (active) setIsFiveVars(false);
+                                            const defaultText = getStandardBodyText(active, false, selectedPayloadLanguage);
+                                            _setBodyText(defaultText);
+                                            if (active) {
+                                                _setVariablesExample(['Leandro', '7164427']);
+                                            } else {
+                                                _setVariablesExample(defaultVars);
+                                            }
+                                        }}
+                                    />
+                                    <span style={{
+                                        position: 'absolute', cursor: 'pointer', inset: 0,
+                                        backgroundColor: isTwoVars ? 'var(--primary-color)' : '#333',
+                                        transition: '.4s', borderRadius: '34px'
+                                    }}>
+                                        <span style={{
+                                            position: 'absolute', content: '""', height: '16px', width: '16px', left: isTwoVars ? '24px' : '4px', bottom: '3px',
+                                            backgroundColor: isTwoVars ? 'black' : 'white', transition: '.4s', borderRadius: '50%'
+                                        }}></span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(172, 248, 0, 0.1)' }}>
+                                <div className="flex flex-col">
                                     <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--primary-color)' }}>Modo 5 Variáveis</span>
-                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Ativar template estendido</span>
+                                    <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>Ativar template estendido (5 variáveis)</span>
                                 </div>
                                 <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '44px', height: '22px', margin: 0 }}>
                                     <input
@@ -1538,18 +1608,15 @@ const TemplateCreator = () => {
                                         onChange={(e) => {
                                             const active = e.target.checked;
                                             setIsFiveVars(active);
-                                            const defaultText = active
-                                                ? (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5)
-                                                : (selectedPayloadLanguage === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4);
+                                            if (active) setIsTwoVars(false);
+                                            const defaultText = getStandardBodyText(false, active, selectedPayloadLanguage);
                                             _setBodyText(defaultText);
                                             if (active) {
                                                 if (variablesExample.length < 5) {
                                                     _setVariablesExample([...variablesExample, 'check visual proof #76632353']);
                                                 }
                                             } else {
-                                                const defaultText = selectedPayloadLanguage === 'en_US'
-                                                    ? 'Hi {{1}} We inform you that {{2}}\n\n{{3}}.\n\nTo {{4}}, click the button below 👇'
-                                                    : 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\nPara {{4}} Clique no botão abaixo!';
+                                                const defaultText = getStandardBodyText(false, false, selectedPayloadLanguage);
                                                 _setBodyText(defaultText);
                                                 if (variablesExample.length > 4) {
                                                     _setVariablesExample(variablesExample.slice(0, 4));
@@ -1668,9 +1735,7 @@ const TemplateCreator = () => {
                                             key={lang.code}
                                             onClick={() => {
                                                 setSelectedPayloadLanguage(lang.code);
-                                                const defaultText = isFiveVars
-                                                    ? (lang.code === 'en_US' ? LEANDRO_BODY_5_EN : LEANDRO_BODY_5)
-                                                    : (lang.code === 'en_US' ? LEANDRO_BODY_4_EN : LEANDRO_BODY_4);
+                                                const defaultText = getStandardBodyText(isTwoVars, isFiveVars, lang.code);
                                                 _setBodyText(defaultText);
                                             }}
                                             className={`global-tile-btn ${selectedPayloadLanguage === lang.code ? 'global-tile-btn-primary' : 'global-tile-btn-ghost'}`}

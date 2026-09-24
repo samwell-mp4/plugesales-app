@@ -19,8 +19,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 
 // --- LEANDRO STANDARD CONSTANTS ---
+const LEANDRO_BODY_2 = 'Olá, {{1}}.\n\nRecebemos sua solicitação nº {{2}} e precisamos confirmar algumas informações para dar continuidade ao atendimento.\n\nPara revisar os dados relacionados a essa solicitação, utilize uma das opções abaixo.';
 const LEANDRO_BODY_4 = 'Olá {{1}}\n\nEstamos informando {{2}}\n\n{{3}}.\n\nPara {{4}} Clique no botão abaixo!';
 const LEANDRO_BODY_5 = 'Olá {{1}}\n\nEstamos informando que: {{2}}.\n\n{{3}}.\n\n{{4}}.\n\nPara saber mais {{5}} Clique no botão abaixo!';
+const LEANDRO_EXAMPLES_2 = [
+    "Leandro", // {{1}}
+    "7164427"  // {{2}}
+];
 const LEANDRO_EXAMPLES = [
     "Leandro", // {{1}}
     "recebemos a confirmação do pagamento referente ao protocolo nº 7164427, realizado em 12/10/2025", // {{2}}
@@ -50,6 +55,7 @@ const TemplateBatchGenerator = () => {
     const [baseName, setBaseName] = useState('pagamento_confirmado');
     const [category, setCategory] = useState<'UTILITY' | 'MARKETING'>('UTILITY');
     const [language, setLanguage] = useState('pt_BR');
+    const [isTwoVars, setIsTwoVars] = useState(false);
     const [isFiveVars, setIsFiveVars] = useState(false);
     
     const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO'>('NONE');
@@ -94,16 +100,19 @@ const TemplateBatchGenerator = () => {
         }
     }, [user]);
 
-    // Handle isFiveVars changes to reset bodyText and examples
+    // Handle variable mode changes to reset bodyText and examples
     useEffect(() => {
-        if (isFiveVars) {
+        if (isTwoVars) {
+            setBodyText(LEANDRO_BODY_2);
+            setBodyExamples(LEANDRO_EXAMPLES_2);
+        } else if (isFiveVars) {
             setBodyText(LEANDRO_BODY_5);
             setBodyExamples(LEANDRO_EXAMPLES.slice(0, 5));
         } else {
             setBodyText(LEANDRO_BODY_4);
             setBodyExamples(LEANDRO_EXAMPLES.slice(0, 4));
         }
-    }, [isFiveVars]);
+    }, [isTwoVars, isFiveVars]);
 
     // Dynamic variable detection to ensure bodyExamples has enough items
     const detectBodyVariables = () => {
@@ -422,8 +431,14 @@ const TemplateBatchGenerator = () => {
                                         required 
                                     />
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setIsFiveVars(!isFiveVars)}>
+                                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => { const next = !isTwoVars; setIsTwoVars(next); if (next) setIsFiveVars(false); }}>
+                                        <div style={{ width: '32px', height: '18px', background: isTwoVars ? 'var(--primary-color)' : 'var(--surface-border-subtle)', borderRadius: '9px', position: 'relative', transition: 'all 0.3s' }}>
+                                            <div style={{ position: 'absolute', top: '3px', left: isTwoVars ? '17px' : '3px', width: '12px', height: '12px', background: 'white', borderRadius: '50%', transition: 'all 0.3s' }} />
+                                        </div>
+                                        <span style={{ fontSize: '11px', fontWeight: 900 }}>MODO 2 VARS</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => { const next = !isFiveVars; setIsFiveVars(next); if (next) setIsTwoVars(false); }}>
                                         <div style={{ width: '32px', height: '18px', background: isFiveVars ? 'var(--primary-color)' : 'var(--surface-border-subtle)', borderRadius: '9px', position: 'relative', transition: 'all 0.3s' }}>
                                             <div style={{ position: 'absolute', top: '3px', left: isFiveVars ? '17px' : '3px', width: '12px', height: '12px', background: 'white', borderRadius: '50%', transition: 'all 0.3s' }} />
                                         </div>
