@@ -18,6 +18,7 @@ type BulkRow = {
     hasButtons: boolean;
     buttonUrls: string[];
     buttonTexts: string[];
+    buttonTypes?: ('url' | 'reply')[];
     originalButtonUrls?: string[];
     variables?: string[];
     csvUrl?: string;
@@ -311,7 +312,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildInfobipPayload_STRICT = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, _variablesOverride?: string[], overrideBodyText?: string) => {
+    const buildInfobipPayload_STRICT = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, _variablesOverride?: string[], overrideBodyText?: string, overrideButtonTypes?: ('url' | 'reply')[]) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
 
         // --- LEANDRO STANDARD ENFORCEMENT ---
@@ -359,12 +360,17 @@ const TemplateCreator = () => {
 
         if (effectiveHasButtons && buttons.length > 0) {
             let urlIdxCount = 0;
-            structure.buttons = buttons.map((btn: any) => {
+            structure.buttons = buttons.map((btn: any, idx: number) => {
+                const bType = (overrideButtonTypes && overrideButtonTypes[idx]) ? overrideButtonTypes[idx] : btn.type;
+                const bText = (buttonTextOverrides && buttonTextOverrides[idx] !== undefined && buttonTextOverrides[idx] !== '')
+                    ? buttonTextOverrides[idx]
+                    : btn.text;
+
                 const bPayload: any = {
-                    type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
-                    text: (btn.type === 'url' && buttonTextOverrides && buttonTextOverrides[urlIdxCount]) ? buttonTextOverrides[urlIdxCount] : btn.text,
+                    type: bType === 'url' ? 'URL' : 'QUICK_REPLY',
+                    text: bText || (bType === 'url' ? 'Clique Aqui' : 'Resposta'),
                 };
-                if (btn.type === 'url') {
+                if (bType === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
                     bPayload.url = finalUrl || 'https://site.com';
                     urlIdxCount++;
@@ -445,7 +451,7 @@ const TemplateCreator = () => {
         }
     };
 
-    const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, _variablesOverride?: string[], overrideBodyText?: string) => {
+    const buildMetaPayload = (name: string, overrideLanguage?: string, overrideHeaderType?: 'TEXT' | 'IMAGE' | 'VIDEO', buttonUrlOverrides?: string[], overrideHasButtons?: boolean, buttonTextOverrides?: string[], mediaUrlOverride?: string, _variablesOverride?: string[], overrideBodyText?: string, overrideButtonTypes?: ('url' | 'reply')[]) => {
         const lang = overrideLanguage || selectedPayloadLanguage;
         let bodyValue = isTwoVars
             ? (lang === 'en_US' ? LEANDRO_BODY_2_EN : LEANDRO_BODY_2)
@@ -497,12 +503,17 @@ const TemplateCreator = () => {
         const effectiveHasButtons = overrideHasButtons !== undefined ? overrideHasButtons : (buttons.length > 0);
         if (effectiveHasButtons && buttons.length > 0) {
             let urlIdxCount = 0;
-            const metaButtons = buttons.map((btn: any) => {
+            const metaButtons = buttons.map((btn: any, idx: number) => {
+                const bType = (overrideButtonTypes && overrideButtonTypes[idx]) ? overrideButtonTypes[idx] : btn.type;
+                const bText = (buttonTextOverrides && buttonTextOverrides[idx] !== undefined && buttonTextOverrides[idx] !== '')
+                    ? buttonTextOverrides[idx]
+                    : btn.text;
+
                 const b: any = {
-                    type: btn.type === 'url' ? 'URL' : 'QUICK_REPLY',
-                    text: (btn.type === 'url' && buttonTextOverrides && buttonTextOverrides[urlIdxCount]) ? buttonTextOverrides[urlIdxCount] : btn.text,
+                    type: bType === 'url' ? 'URL' : 'QUICK_REPLY',
+                    text: bText || (bType === 'url' ? 'Clique Aqui' : 'Resposta'),
                 };
-                if (btn.type === 'url') {
+                if (bType === 'url') {
                     const finalUrl = (buttonUrlOverrides && buttonUrlOverrides[urlIdxCount]) || btn.url;
                     b.url = finalUrl || 'https://site.com';
                     urlIdxCount++;
@@ -815,14 +826,15 @@ const TemplateCreator = () => {
 
                     let finalButtonUrls = row.buttonUrls && row.buttonUrls.length > 0 ? [...row.buttonUrls] : [];
                     const finalButtonTexts = row.buttonTexts && row.buttonTexts.length > 0 ? [...row.buttonTexts] : [];
+                    const finalButtonTypes = row.buttonTypes && row.buttonTypes.length > 0 ? [...row.buttonTypes] : (buttons.map(b => b.type) || ['url']);
 
                     if (row.hasButtons !== false && finalButtonUrls.length > 0) {
                         row.originalButtonUrls = [...finalButtonUrls]; // Preserve original
                     }
 
                     const payload = useMetaDirect
-                        ? buildMetaPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, undefined, enableBulkCustomVariables ? bodyText : undefined)
-                        : buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, undefined, enableBulkCustomVariables ? bodyText : undefined);
+                        ? buildMetaPayload(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, undefined, enableBulkCustomVariables ? bodyText : undefined, finalButtonTypes)
+                        : buildInfobipPayload_STRICT(name, selectedPayloadLanguage, row.headerType, finalButtonUrls, row.hasButtons, finalButtonTexts, row.mediaUrl, undefined, enableBulkCustomVariables ? bodyText : undefined, finalButtonTypes);
 
                     const rowSender = row.sender && row.sender.trim() ? row.sender : senderNumbers.split(/[\n,]/)[0]?.trim();
                     if (!rowSender && !useMetaDirect) {
@@ -971,12 +983,12 @@ const TemplateCreator = () => {
     };
 
     const autoGenerateRows = (qty: number, campaignId: string) => {
-        const urlButtons = buttons.filter(b => b.type === 'url');
         setCampaigns(prev => prev.map(c => {
             if (c.id !== campaignId) return c;
             const startIdx = c.rows.length + 1;
             const newRows: BulkRow[] = [];
             const firstSender = senderNumbers.split(/[\n,]/)[0]?.trim() || '';
+            const baseButtons = buttons.length > 0 ? buttons : [{ type: 'url' as const, text: 'Clique Aqui', url: '' }];
             for (let i = 0; i < qty; i++) {
                 const currentNum = startIdx + i;
                 newRows.push({
@@ -985,8 +997,9 @@ const TemplateCreator = () => {
                     headerType: 'TEXT',
                     mediaUrl: headerType !== 'TEXT' ? headerMediaUrl : '',
                     hasButtons: true,
-                    buttonUrls: urlButtons.map(b => b.url || ''),
-                    buttonTexts: urlButtons.map(b => b.text || ''),
+                    buttonUrls: baseButtons.map(b => b.url || ''),
+                    buttonTexts: baseButtons.map(b => b.text || (b.type === 'reply' ? 'Resposta' : 'Clique Aqui')),
+                    buttonTypes: baseButtons.map(b => b.type || 'url'),
                     variables: []
                 });
             }
@@ -1021,6 +1034,26 @@ const TemplateCreator = () => {
 
     const applyGlobalButtons = (hasButtons: boolean, campaignId: string) => {
         setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, rows: c.rows.map(r => ({ ...r, hasButtons })) } : c));
+    };
+
+    const applyGlobalButtonType = (type: 'url' | 'reply', campaignId: string, buttonIndex = 0) => {
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? {
+            ...c, rows: c.rows.map(r => {
+                const types = r.buttonTypes && r.buttonTypes.length > 0 ? [...r.buttonTypes] : (buttons.map(b => b.type) || ['url']);
+                types[buttonIndex] = type;
+                return { ...r, hasButtons: true, buttonTypes: types };
+            })
+        } : c));
+    };
+
+    const applyGlobalButtonText = (text: string, campaignId: string, buttonIndex = 0) => {
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? {
+            ...c, rows: c.rows.map(r => {
+                const texts = r.buttonTexts && r.buttonTexts.length > 0 ? [...r.buttonTexts] : [''];
+                texts[buttonIndex] = text;
+                return { ...r, buttonTexts: texts };
+            })
+        } : c));
     };
 
     const applyGlobalLink = (link: string, campaignId: string) => {
@@ -1980,6 +2013,58 @@ const TemplateCreator = () => {
                                                                     <div className="flex gap-1"><button onClick={() => applyGlobalButtons(true, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '10px' }}>LIGAR BOTÕES</button><button onClick={() => applyGlobalButtons(false, camp.id)} className="global-tile-btn global-tile-btn-ghost" style={{ flex: 1, fontSize: '0.6rem', padding: '0 4px' }}>DESLIGAR</button></div>
                                                                 </div>
                                                             </div>
+
+                                                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                                                                <div className="flex flex-col gap-2">
+                                                                    <label style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>TIPO DO BOTÃO GLOBAL (B1)</label>
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => applyGlobalButtonType('reply', camp.id)}
+                                                                            className="global-tile-btn global-tile-btn-ghost"
+                                                                            style={{ flex: 1, height: '38px', fontSize: '11px', background: 'rgba(172, 248, 0, 0.08)', borderColor: 'rgba(172, 248, 0, 0.3)', color: 'var(--primary-color)', fontWeight: 900 }}
+                                                                            title="Ativar botão de resposta rápida (Quick Reply) em todas as linhas da campanha"
+                                                                        >
+                                                                            <MessageSquareReply size={14} /> ATIVAR RESPOSTA (REPLY)
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => applyGlobalButtonType('url', camp.id)}
+                                                                            className="global-tile-btn global-tile-btn-ghost"
+                                                                            style={{ flex: 1, height: '38px', fontSize: '11px' }}
+                                                                            title="Ativar botão de link (URL) em todas as linhas da campanha"
+                                                                        >
+                                                                            <Link size={14} /> ATIVAR LINK (URL)
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex flex-col gap-2">
+                                                                    <label style={{ fontSize: '10px', color: 'var(--primary-color)', fontWeight: 900 }}>NOME GLOBAL DO BOTÃO (B1)</label>
+                                                                    <div className="flex gap-2">
+                                                                        <input
+                                                                            id={`global-btn-text-${camp.id}`}
+                                                                            className="bulk-row-input"
+                                                                            style={{ height: '38px' }}
+                                                                            placeholder="Ex: Confirmar / Sim / Acessar..."
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            className="global-tile-btn global-tile-btn-primary"
+                                                                            onClick={() => {
+                                                                                const inputEl = document.getElementById(`global-btn-text-${camp.id}`) as HTMLInputElement;
+                                                                                const val = inputEl?.value;
+                                                                                if (val !== undefined && val.trim() !== '') {
+                                                                                    applyGlobalButtonText(val.trim(), camp.id, 0);
+                                                                                }
+                                                                            }}
+                                                                            style={{ flex: 0.8 }}
+                                                                        >
+                                                                            APLICAR
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         <div className="bulk-table-container">
                                                             <table className="bulk-table">
@@ -1989,8 +2074,9 @@ const TemplateCreator = () => {
                                                                         <th>SENDER</th>
                                                                         <th>TIPO</th>
                                                                         <th>BOTÃO</th>
-                                                                        {(buttons || []).filter(b => b.type === 'url').map((_, i) => (
+                                                                        {(buttons && buttons.length > 0 ? buttons : [{ type: 'url' as const, text: 'Clique Aqui' }]).map((_, i) => (
                                                                             <Fragment key={i}>
+                                                                                <th>TIPO B{i + 1}</th>
                                                                                 <th>NOME B{i + 1}</th>
                                                                                 <th>LINK B{i + 1}</th>
                                                                             </Fragment>
@@ -2023,12 +2109,70 @@ const TemplateCreator = () => {
                                                                                             <td><input className="bulk-row-input" value={row.sender} onChange={e => { const n = [...camp.rows]; n[rIdx].sender = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
                                                                                             <td><select className="bulk-row-input" value={row.headerType} onChange={e => { const n = [...camp.rows]; n[rIdx].headerType = e.target.value as any; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="TEXT">TEXTO</option><option value="IMAGE">IMG</option><option value="VIDEO">VID</option></select></td>
                                                                                             <td><select className="bulk-row-input" value={row.hasButtons ? 'COM' : 'SEM'} onChange={e => { const n = [...camp.rows]; n[rIdx].hasButtons = e.target.value === 'COM'; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }}><option value="COM">COM</option><option value="SEM">SEM</option></select></td>
-                                                                                            {buttons.filter(b => b.type === 'url').map((_, urlIdx) => (
-                                                                                                <Fragment key={urlIdx}>
-                                                                                                    <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonTexts[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonTexts[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
-                                                                                                    <td><input className="bulk-row-input" style={{ opacity: row.hasButtons === false ? 0.3 : 1 }} disabled={row.hasButtons === false} value={row.buttonUrls[urlIdx] || ''} onChange={e => { const n = [...camp.rows]; n[rIdx].buttonUrls[urlIdx] = e.target.value; setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c)); }} /></td>
-                                                                                                </Fragment>
-                                                                                            ))}
+                                                                                            {(buttons && buttons.length > 0 ? buttons : [{ type: 'url' as const, text: 'Clique Aqui' }]).map((bDef, btnIdx) => {
+                                                                                                const curType = (row.buttonTypes && row.buttonTypes[btnIdx]) || bDef.type || 'url';
+                                                                                                const isReply = curType === 'reply';
+                                                                                                return (
+                                                                                                    <Fragment key={btnIdx}>
+                                                                                                        <td>
+                                                                                                            <select
+                                                                                                                className="bulk-row-input"
+                                                                                                                style={{ opacity: row.hasButtons === false ? 0.3 : 1 }}
+                                                                                                                disabled={row.hasButtons === false}
+                                                                                                                value={curType}
+                                                                                                                onChange={e => {
+                                                                                                                    const n = [...camp.rows];
+                                                                                                                    const types = n[rIdx].buttonTypes && n[rIdx].buttonTypes.length > 0 ? [...n[rIdx].buttonTypes] : (buttons.map(b => b.type) || ['url']);
+                                                                                                                    types[btnIdx] = e.target.value as 'url' | 'reply';
+                                                                                                                    n[rIdx].buttonTypes = types;
+                                                                                                                    setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c));
+                                                                                                                }}
+                                                                                                            >
+                                                                                                                <option value="url">Link</option>
+                                                                                                                <option value="reply">Resposta</option>
+                                                                                                            </select>
+                                                                                                        </td>
+                                                                                                        <td>
+                                                                                                            <input
+                                                                                                                className="bulk-row-input"
+                                                                                                                style={{ opacity: row.hasButtons === false ? 0.3 : 1 }}
+                                                                                                                disabled={row.hasButtons === false}
+                                                                                                                placeholder={isReply ? "Texto da resposta" : "Texto do botão"}
+                                                                                                                value={(row.buttonTexts && row.buttonTexts[btnIdx] !== undefined) ? row.buttonTexts[btnIdx] : (bDef.text || '')}
+                                                                                                                onChange={e => {
+                                                                                                                    const n = [...camp.rows];
+                                                                                                                    const texts = n[rIdx].buttonTexts ? [...n[rIdx].buttonTexts] : [''];
+                                                                                                                    texts[btnIdx] = e.target.value;
+                                                                                                                    n[rIdx].buttonTexts = texts;
+                                                                                                                    setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c));
+                                                                                                                }}
+                                                                                                            />
+                                                                                                        </td>
+                                                                                                        <td>
+                                                                                                            {isReply ? (
+                                                                                                                <div style={{ textAlign: 'center', opacity: 0.4, fontSize: '0.75rem', fontStyle: 'italic', padding: '6px' }}>
+                                                                                                                    — Resposta —
+                                                                                                                </div>
+                                                                                                            ) : (
+                                                                                                                <input
+                                                                                                                    className="bulk-row-input"
+                                                                                                                    style={{ opacity: row.hasButtons === false ? 0.3 : 1 }}
+                                                                                                                    disabled={row.hasButtons === false}
+                                                                                                                    placeholder="https://"
+                                                                                                                    value={(row.buttonUrls && row.buttonUrls[btnIdx] !== undefined) ? row.buttonUrls[btnIdx] : (bDef.url || '')}
+                                                                                                                    onChange={e => {
+                                                                                                                        const n = [...camp.rows];
+                                                                                                                        const urls = n[rIdx].buttonUrls ? [...n[rIdx].buttonUrls] : [''];
+                                                                                                                        urls[btnIdx] = e.target.value;
+                                                                                                                        n[rIdx].buttonUrls = urls;
+                                                                                                                        setCampaigns(campaigns.map(c => c.id === camp.id ? { ...c, rows: n } : c));
+                                                                                                                    }}
+                                                                                                                />
+                                                                                                            )}
+                                                                                                        </td>
+                                                                                                    </Fragment>
+                                                                                                );
+                                                                                            })}
                                                                                             <td>
                                                                                                 {row.csvUrl ? (
                                                                                                     <a href={row.csvUrl} download={`${camp.prefix}${row.suffix}CONTATOS.csv`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(172, 248, 0, 0.1)', color: 'var(--primary-color)', padding: '6px', borderRadius: '8px', textDecoration: 'none' }} title="Baixar Contatos">
